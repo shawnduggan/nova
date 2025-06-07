@@ -13,7 +13,7 @@ export class OpenAIProvider implements AIProvider {
 	}
 
 	async isAvailable(): Promise<boolean> {
-		return this.config.enabled && !!this.config.apiKey;
+		return !!this.config.apiKey;
 	}
 
 	async generateText(prompt: string, options?: AIGenerationOptions): Promise<string> {

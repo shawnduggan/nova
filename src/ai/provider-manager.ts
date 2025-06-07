@@ -37,7 +37,13 @@ export class AIProviderManager {
 	private async getAvailableProvider(): Promise<AIProvider | null> {
 		const orderedProviders = this.getPlatformProviders();
 		
+		// If primary provider is 'none', Nova is disabled on this platform
+		if (orderedProviders[0] === 'none') {
+			return null;
+		}
+		
 		for (const providerType of orderedProviders) {
+			if (providerType === 'none') continue;
 			const provider = this.providers.get(providerType);
 			if (provider && await provider.isAvailable()) {
 				return provider;
@@ -50,7 +56,7 @@ export class AIProviderManager {
 	async generateText(prompt: string, options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
-			throw new Error('No AI provider available');
+			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		return provider.generateText(prompt, options);
 	}
@@ -58,7 +64,7 @@ export class AIProviderManager {
 	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
-			throw new Error('No AI provider available');
+			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		yield* provider.generateTextStream(prompt, options);
 	}
@@ -66,7 +72,7 @@ export class AIProviderManager {
 	async chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
-			throw new Error('No AI provider available');
+			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		return provider.chatCompletion(messages, options);
 	}
@@ -74,7 +80,7 @@ export class AIProviderManager {
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
-			throw new Error('No AI provider available');
+			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		yield* provider.chatCompletionStream(messages, options);
 	}

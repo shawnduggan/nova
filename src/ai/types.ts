@@ -27,7 +27,6 @@ export interface AIGenerationOptions {
 }
 
 export interface ProviderConfig {
-	enabled: boolean;
 	apiKey?: string;
 	baseUrl?: string;
 	model?: string;
@@ -42,7 +41,7 @@ export interface AIProviderSettings {
 	ollama: ProviderConfig;
 }
 
-export type ProviderType = 'claude' | 'openai' | 'google' | 'ollama';
+export type ProviderType = 'claude' | 'openai' | 'google' | 'ollama' | 'none';
 
 export interface PlatformSettings {
 	desktop: {

@@ -15,42 +15,38 @@ export interface NovaSettings {
 export const DEFAULT_SETTINGS: NovaSettings = {
 	aiProviders: {
 		claude: {
-			enabled: false,
 			apiKey: '',
-			model: 'claude-3-haiku-20240307',
+			model: 'claude-sonnet-4',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		openai: {
-			enabled: false,
 			apiKey: '',
 			baseUrl: 'https://api.openai.com/v1',
-			model: 'gpt-3.5-turbo',
+			model: 'gpt-4o',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		google: {
-			enabled: false,
 			apiKey: '',
-			model: 'gemini-pro',
+			model: 'gemini-2.5-flash',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		ollama: {
-			enabled: false,
 			baseUrl: 'http://localhost:11434',
-			model: 'llama2',
+			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		}
 	},
 	platformSettings: {
 		desktop: {
-			primaryProvider: 'claude',
+			primaryProvider: 'ollama',
 			fallbackProviders: ['openai', 'google', 'ollama']
 		},
 		mobile: {
-			primaryProvider: 'claude',
+			primaryProvider: 'none',
 			fallbackProviders: ['openai', 'google']
 		}
 	},
@@ -75,8 +71,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', { text: 'Nova AI Settings' });
 
 		this.createGeneralSettings();
-		this.createProviderSettings();
 		this.createPlatformSettings();
+		this.createProviderSettings();
 	}
 
 	private createGeneralSettings() {
@@ -124,26 +120,16 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.createEl('h3', { text: 'AI Provider Settings' });
 
-		this.createClaudeSettings();
-		this.createOpenAISettings();
-		this.createGoogleSettings();
 		this.createOllamaSettings();
+		this.createClaudeSettings();
+		this.createGoogleSettings();
+		this.createOpenAISettings();
 	}
 
 	private createClaudeSettings() {
 		const { containerEl } = this;
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
-
-		new Setting(claudeContainer)
-			.setName('Enable Claude')
-			.setDesc('Use Claude for AI responses')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.aiProviders.claude.enabled)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.claude.enabled = value;
-					await this.plugin.saveSettings();
-				}));
 
 		new Setting(claudeContainer)
 			.setName('API Key')
@@ -160,10 +146,12 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Model')
 			.setDesc('Claude model to use')
 			.addDropdown(dropdown => dropdown
+				.addOption('claude-sonnet-4', 'Claude Sonnet 4')
+				.addOption('claude-opus-4', 'Claude Opus 4')
 				.addOption('claude-3-haiku-20240307', 'Claude 3 Haiku')
 				.addOption('claude-3-sonnet-20240229', 'Claude 3 Sonnet')
 				.addOption('claude-3-opus-20240229', 'Claude 3 Opus')
-				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-3-haiku-20240307')
+				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-sonnet-4')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.claude.model = value;
 					await this.plugin.saveSettings();
@@ -174,16 +162,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		openaiContainer.createEl('h4', { text: 'OpenAI' });
-
-		new Setting(openaiContainer)
-			.setName('Enable OpenAI')
-			.setDesc('Use OpenAI for AI responses')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.aiProviders.openai.enabled)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.openai.enabled = value;
-					await this.plugin.saveSettings();
-				}));
 
 		new Setting(openaiContainer)
 			.setName('API Key')
@@ -211,10 +189,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Model')
 			.setDesc('OpenAI model to use')
 			.addDropdown(dropdown => dropdown
+				.addOption('gpt-4o', 'GPT-4o')
 				.addOption('gpt-3.5-turbo', 'GPT-3.5 Turbo')
 				.addOption('gpt-4', 'GPT-4')
 				.addOption('gpt-4-turbo-preview', 'GPT-4 Turbo')
-				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-3.5-turbo')
+				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4o')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.openai.model = value;
 					await this.plugin.saveSettings();
@@ -225,16 +204,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
-
-		new Setting(googleContainer)
-			.setName('Enable Google')
-			.setDesc('Use Google Gemini for AI responses')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.aiProviders.google.enabled)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.google.enabled = value;
-					await this.plugin.saveSettings();
-				}));
 
 		new Setting(googleContainer)
 			.setName('API Key')
@@ -251,9 +220,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Model')
 			.setDesc('Gemini model to use')
 			.addDropdown(dropdown => dropdown
+				.addOption('gemini-2.5-flash', 'Gemini 2.5 Flash')
+				.addOption('gemini-2.5-pro', 'Gemini 2.5 Pro')
 				.addOption('gemini-pro', 'Gemini Pro')
 				.addOption('gemini-pro-vision', 'Gemini Pro Vision')
-				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-pro')
+				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.google.model = value;
 					await this.plugin.saveSettings();
@@ -264,16 +235,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		const ollamaContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		ollamaContainer.createEl('h4', { text: 'Ollama (Local)' });
-
-		new Setting(ollamaContainer)
-			.setName('Enable Ollama')
-			.setDesc('Use local Ollama for AI responses')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.aiProviders.ollama.enabled)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.ollama.enabled = value;
-					await this.plugin.saveSettings();
-				}));
 
 		new Setting(ollamaContainer)
 			.setName('Base URL')
@@ -324,6 +285,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Primary Provider')
 			.setDesc('Primary AI provider for mobile')
 			.addDropdown(dropdown => dropdown
+				.addOption('none', 'None (Disabled)')
 				.addOption('claude', 'Claude')
 				.addOption('openai', 'OpenAI')
 				.addOption('google', 'Google')

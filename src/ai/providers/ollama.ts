@@ -13,7 +13,7 @@ export class OllamaProvider implements AIProvider {
 	}
 
 	async isAvailable(): Promise<boolean> {
-		if (!this.config.enabled) return false;
+		if (!this.config.model) return false; // Require model to be set
 		
 		try {
 			const baseUrl = this.config.baseUrl || 'http://localhost:11434';
@@ -29,7 +29,10 @@ export class OllamaProvider implements AIProvider {
 
 	async generateText(prompt: string, options?: AIGenerationOptions): Promise<string> {
 		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model || 'llama2';
+		const model = options?.model || this.config.model;
+		if (!model) {
+			throw new Error('Ollama model must be specified');
+		}
 
 		const response = await fetch(`${baseUrl}/api/generate`, {
 			method: 'POST',
@@ -55,7 +58,10 @@ export class OllamaProvider implements AIProvider {
 
 	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model || 'llama2';
+		const model = options?.model || this.config.model;
+		if (!model) {
+			throw new Error('Ollama model must be specified');
+		}
 
 		const response = await fetch(`${baseUrl}/api/generate`, {
 			method: 'POST',
@@ -114,7 +120,10 @@ export class OllamaProvider implements AIProvider {
 
 	async chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string> {
 		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model || 'llama2';
+		const model = options?.model || this.config.model;
+		if (!model) {
+			throw new Error('Ollama model must be specified');
+		}
 
 		const response = await fetch(`${baseUrl}/api/chat`, {
 			method: 'POST',
@@ -143,7 +152,10 @@ export class OllamaProvider implements AIProvider {
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model || 'llama2';
+		const model = options?.model || this.config.model;
+		if (!model) {
+			throw new Error('Ollama model must be specified');
+		}
 
 		const response = await fetch(`${baseUrl}/api/chat`, {
 			method: 'POST',
