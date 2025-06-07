@@ -1,0 +1,11 @@
+{
+	"id": "nova",
+	"name": "Nova",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "AI writing partner that directly edits documents",
+	"author": "Shawn Duggan",
+	"authorUrl": "https://github.com/shawnduggan",
+	"fundingUrl": "https://github.com/sponsors/shawnduggan",
+	"isDesktopOnly": false
+}
