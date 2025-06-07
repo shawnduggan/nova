@@ -4,8 +4,8 @@ import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
 
 export default class NovaPlugin extends Plugin {
-	settings: NovaSettings;
-	aiProviderManager: AIProviderManager;
+	settings!: NovaSettings;
+	aiProviderManager!: AIProviderManager;
 
 	async onload() {
 		await this.loadSettings();
@@ -49,7 +49,7 @@ export default class NovaPlugin extends Plugin {
 	async activateView() {
 		const { workspace } = this.app;
 
-		let leaf: WorkspaceLeaf | null = null;
+		let leaf: WorkspaceLeaf | null;
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
 
 		if (leaves.length > 0) {

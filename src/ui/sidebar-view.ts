@@ -5,10 +5,10 @@ export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
 export class NovaSidebarView extends ItemView {
 	plugin: NovaPlugin;
-	private chatContainer: HTMLElement;
-	private inputContainer: HTMLElement;
-	private textArea: TextAreaComponent;
-	private sendButton: ButtonComponent;
+	private chatContainer!: HTMLElement;
+	private inputContainer!: HTMLElement;
+	private textArea!: TextAreaComponent;
+	private sendButton!: ButtonComponent;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -24,7 +24,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	async onOpen() {
-		const container = this.containerEl.children[1];
+		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.createEl('h4', { text: 'Nova AI Writing Partner' });
 
@@ -153,7 +153,7 @@ export class NovaSidebarView extends ItemView {
 			const loadingEl = this.chatContainer.querySelector('.nova-loading');
 			if (loadingEl) loadingEl.remove();
 			
-			this.addMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
+			this.addMessage('assistant', `Sorry, I encountered an error: ${(error as Error).message}`);
 		} finally {
 			this.sendButton.setDisabled(false);
 		}

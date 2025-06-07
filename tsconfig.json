@@ -9,7 +9,6 @@
     "noImplicitAny": true,
     "moduleResolution": "node",
     "importHelpers": true,
-    "declarationMap": true,
     "lib": [
       "DOM",
       "ES6"

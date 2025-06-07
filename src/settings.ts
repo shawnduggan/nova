@@ -314,8 +314,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				.addOption('google', 'Google')
 				.addOption('ollama', 'Ollama')
 				.setValue(this.plugin.settings.platformSettings.desktop.primaryProvider)
-				.onChange(async (value: ProviderType) => {
-					this.plugin.settings.platformSettings.desktop.primaryProvider = value;
+				.onChange(async (value: string) => {
+					this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
 					await this.plugin.saveSettings();
 				}));
 
@@ -328,8 +328,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				.addOption('openai', 'OpenAI')
 				.addOption('google', 'Google')
 				.setValue(this.plugin.settings.platformSettings.mobile.primaryProvider)
-				.onChange(async (value: ProviderType) => {
-					this.plugin.settings.platformSettings.mobile.primaryProvider = value;
+				.onChange(async (value: string) => {
+					this.plugin.settings.platformSettings.mobile.primaryProvider = value as ProviderType;
 					await this.plugin.saveSettings();
 				}));
 	}
