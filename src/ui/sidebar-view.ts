@@ -23,6 +23,10 @@ export class NovaSidebarView extends ItemView {
 		return 'Nova AI';
 	}
 
+	getIcon() {
+		return 'nova-star';
+	}
+
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
