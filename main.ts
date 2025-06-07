@@ -18,7 +18,7 @@ export default class NovaPlugin extends Plugin {
 			(leaf) => new NovaSidebarView(leaf, this)
 		);
 
-		this.addRibbonIcon('bot', 'Nova AI', (evt: MouseEvent) => {
+		this.addRibbonIcon('brain', 'Nova AI', (evt: MouseEvent) => {
 			this.activateView();
 		});
 

@@ -1,5 +1,5 @@
 import { Platform } from 'obsidian';
-import { AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse } from './types';
+import { AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse, AIProviderSettings } from './types';
 import { ClaudeProvider } from './providers/claude';
 import { OpenAIProvider } from './providers/openai';
 import { GoogleProvider } from './providers/google';
@@ -24,7 +24,9 @@ export class AIProviderManager {
 	updateSettings(settings: NovaSettings) {
 		this.settings = settings;
 		this.providers.forEach((provider, type) => {
-			provider.updateConfig?.(this.settings.aiProviders[type]);
+			if (type !== 'none' && type in this.settings.aiProviders) {
+				provider.updateConfig?.(this.settings.aiProviders[type as keyof AIProviderSettings]);
+			}
 		});
 	}
 

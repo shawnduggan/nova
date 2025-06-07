@@ -26,7 +26,7 @@ export class NovaSidebarView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
-		container.createEl('h4', { text: 'Nova AI Writing Partner' });
+		container.createEl('h4', { text: 'Nova - Your AI Thinking Partner' });
 
 		this.createChatInterface(container);
 		this.createInputInterface(container);
@@ -49,7 +49,7 @@ export class NovaSidebarView extends ItemView {
 		`;
 
 		// Welcome message
-		this.addMessage('assistant', 'Hello! I\'m Nova, your AI writing partner. I can help you with writing, editing, and improving your documents. How can I assist you today?');
+		this.addMessage('assistant', 'Hello! I\'m Nova, your AI Thinking Partner. How can I assist you today?');
 	}
 
 	private createInputInterface(container: HTMLElement) {

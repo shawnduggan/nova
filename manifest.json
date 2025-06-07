@@ -1,9 +1,9 @@
 {
 	"id": "nova",
 	"name": "Nova",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "AI writing partner that directly edits documents",
+	"description": "Nova - your AI Thinking Partner for Obsidian that edits your documents directly through natural conversation. Stop copying from chat, start collaborating with AI.",
 	"author": "Shawn Duggan",
 	"authorUrl": "https://github.com/shawnduggan",
 	"fundingUrl": "https://github.com/sponsors/shawnduggan",
