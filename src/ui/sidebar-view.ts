@@ -207,14 +207,24 @@ export class NovaSidebarView extends ItemView {
 				await this.plugin.documentEngine.addUserMessage(message);
 			}
 
-			// Use PromptBuilder to build the appropriate prompt
-			const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+			// Check if this is a command or conversation
+			const isLikelyCommand = this.plugin.promptBuilder['isLikelyCommand'](message);
+			let response: string;
 			
-			// Get AI response using the provider manager
-			const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
-				temperature: prompt.config.temperature,
-				maxTokens: prompt.config.maxTokens
-			});
+			if (isLikelyCommand && activeFile) {
+				// Parse as command and route to appropriate handler
+				const parsedCommand = this.plugin.commandParser.parseCommand(message);
+				response = await this.executeCommand(parsedCommand);
+			} else {
+				// Handle as conversation using PromptBuilder
+				const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+				
+				// Get AI response using the provider manager
+				response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
+					temperature: prompt.config.temperature,
+					maxTokens: prompt.config.maxTokens
+				});
+			}
 			
 			// Remove loading indicator
 			loadingEl.remove();
@@ -245,6 +255,57 @@ export class NovaSidebarView extends ItemView {
 				const cursor = editor.getCursor();
 				editor.replaceRange(text, cursor);
 			}
+		}
+	}
+
+	private async executeCommand(command: EditCommand): Promise<string> {
+		try {
+			let result;
+			
+			switch (command.action) {
+				case 'add':
+					result = await this.plugin.addCommandHandler.execute(command);
+					break;
+				case 'edit':
+					result = await this.plugin.editCommandHandler.execute(command);
+					break;
+				case 'delete':
+					result = await this.plugin.deleteCommandHandler.execute(command);
+					break;
+				case 'grammar':
+					result = await this.plugin.grammarCommandHandler.execute(command);
+					break;
+				case 'rewrite':
+					result = await this.plugin.rewriteCommandHandler.execute(command);
+					break;
+				default:
+					return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, or rewrite content.`;
+			}
+			
+			if (result.success) {
+				return `✅ ${this.getSuccessMessage(command.action)}`;
+			} else {
+				return `❌ Failed to ${command.action}: ${result.error}`;
+			}
+		} catch (error) {
+			return `❌ Error executing command: ${(error as Error).message}`;
+		}
+	}
+
+	private getSuccessMessage(action: string): string {
+		switch (action) {
+			case 'add':
+				return 'Content added successfully';
+			case 'edit':
+				return 'Content edited successfully';
+			case 'delete':
+				return 'Content deleted successfully';
+			case 'grammar':
+				return 'Grammar corrected successfully';
+			case 'rewrite':
+				return 'Content rewritten successfully';
+			default:
+				return 'Command executed successfully';
 		}
 	}
 

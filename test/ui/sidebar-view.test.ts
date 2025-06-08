@@ -1,5 +1,5 @@
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from '../../src/ui/sidebar-view';
-import { WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile } from 'obsidian';
+import { WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { PromptBuilder } from '../../src/core/prompt-builder';
 import { ConversationManager } from '../../src/core/conversation-manager';
@@ -19,47 +19,27 @@ describe('NovaSidebarView', () => {
         document.body.innerHTML = '';
         
         // Create mock container with Obsidian methods
-        mockContainer = Object.assign(document.createElement('div'), {
-            empty: function() { (this as any).innerHTML = ''; },
-            createEl: function(tag: string, attrs?: any) {
-                const el = document.createElement(tag);
-                if (attrs?.text) el.textContent = attrs.text;
-                if (attrs?.cls) el.className = attrs.cls;
-                (this as any).appendChild(el);
-                return el;
-            },
-            createDiv: function(attrs?: any) { return (this as any).createEl('div', attrs); },
-            createSpan: function(attrs?: any) { return (this as any).createEl('span', attrs); },
-            setText: function(text: string) { (this as any).textContent = text; }
-        });
+        const createObsidianElement = (tag: string, attrs?: any) => {
+            const el = Object.assign(document.createElement(tag), {
+                empty: function() { (this as any).innerHTML = ''; },
+                createEl: function(tag: string, attrs?: any) {
+                    const childEl = createObsidianElement(tag, attrs);
+                    (this as any).appendChild(childEl);
+                    return childEl;
+                },
+                createDiv: function(attrs?: any) { return (this as any).createEl('div', attrs); },
+                createSpan: function(attrs?: any) { return (this as any).createEl('span', attrs); },
+                setText: function(text: string) { (this as any).textContent = text; }
+            });
+            if (attrs?.text) el.textContent = attrs.text;
+            if (attrs?.cls) el.className = attrs.cls;
+            return el;
+        };
         
-        const child1 = Object.assign(document.createElement('div'), {
-            empty: function() { (this as any).innerHTML = ''; },
-            createEl: function(tag: string, attrs?: any) {
-                const el = document.createElement(tag);
-                if (attrs?.text) el.textContent = attrs.text;
-                if (attrs?.cls) el.className = attrs.cls;
-                (this as any).appendChild(el);
-                return el;
-            },
-            createDiv: function(attrs?: any) { return (this as any).createEl('div', attrs); },
-            createSpan: function(attrs?: any) { return (this as any).createEl('span', attrs); },
-            setText: function(text: string) { (this as any).textContent = text; }
-        });
+        mockContainer = createObsidianElement('div');
         
-        const child2 = Object.assign(document.createElement('div'), {
-            empty: function() { (this as any).innerHTML = ''; },
-            createEl: function(tag: string, attrs?: any) {
-                const el = document.createElement(tag);
-                if (attrs?.text) el.textContent = attrs.text;
-                if (attrs?.cls) el.className = attrs.cls;
-                (this as any).appendChild(el);
-                return el;
-            },
-            createDiv: function(attrs?: any) { return (this as any).createEl('div', attrs); },
-            createSpan: function(attrs?: any) { return (this as any).createEl('span', attrs); },
-            setText: function(text: string) { (this as any).textContent = text; }
-        });
+        const child1 = createObsidianElement('div');
+        const child2 = createObsidianElement('div');
         
         mockContainer.appendChild(child1);
         mockContainer.appendChild(child2);
@@ -86,6 +66,14 @@ describe('NovaSidebarView', () => {
                     userPrompt: 'User prompt',
                     context: 'Context',
                     config: { temperature: 0.7, maxTokens: 1000 }
+                }),
+                isLikelyCommand: jest.fn().mockReturnValue(false)
+            },
+            commandParser: {
+                parseCommand: jest.fn().mockReturnValue({
+                    action: 'add',
+                    target: 'document',
+                    instruction: 'test command'
                 })
             },
             conversationManager: {
@@ -95,6 +83,21 @@ describe('NovaSidebarView', () => {
             documentEngine: {
                 addUserMessage: jest.fn().mockResolvedValue(undefined),
                 addAssistantMessage: jest.fn().mockResolvedValue(undefined)
+            },
+            addCommandHandler: {
+                execute: jest.fn().mockResolvedValue({ success: true })
+            },
+            editCommandHandler: {
+                execute: jest.fn().mockResolvedValue({ success: true })
+            },
+            deleteCommandHandler: {
+                execute: jest.fn().mockResolvedValue({ success: true })
+            },
+            grammarCommandHandler: {
+                execute: jest.fn().mockResolvedValue({ success: true })
+            },
+            rewriteCommandHandler: {
+                execute: jest.fn().mockResolvedValue({ success: true })
             },
             app: {
                 workspace: {
@@ -107,6 +110,10 @@ describe('NovaSidebarView', () => {
         // Create sidebar instance
         sidebar = new NovaSidebarView(mockLeaf, mockPlugin);
         sidebar.containerEl = mockContainer;
+        
+        // Mock app and registerEvent
+        sidebar.app = mockPlugin.app;
+        sidebar.registerEvent = jest.fn();
     });
 
     afterEach(() => {
@@ -128,11 +135,36 @@ describe('NovaSidebarView', () => {
     });
 
     describe('onOpen', () => {
-        beforeEach(async () => {
-            await sidebar.onOpen();
+        beforeEach(() => {
+            // Mock ButtonComponent for the Clear Chat button
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue(''),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn(),
+                    style: { cssText: '' }
+                })
+            }));
         });
 
-        test('should create header with title and provider status', () => {
+        afterEach(() => {
+            jest.clearAllMocks();
+        });
+
+        test('should create header with title and provider status', async () => {
+            await sidebar.onOpen();
+            
             const header = mockContainer.querySelector('.nova-header');
             expect(header).toBeTruthy();
             
@@ -144,13 +176,17 @@ describe('NovaSidebarView', () => {
             expect(providerStatus?.textContent).toContain('Claude');
         });
 
-        test('should create chat container', () => {
+        test('should create chat container', async () => {
+            await sidebar.onOpen();
+            
             const chatContainer = mockContainer.querySelector('.nova-chat-container');
             expect(chatContainer).toBeTruthy();
             expect((chatContainer as HTMLElement)?.style.overflowY).toBe('auto');
         });
 
-        test('should create input interface', () => {
+        test('should create input interface', async () => {
+            await sidebar.onOpen();
+            
             const inputContainer = mockContainer.querySelector('.nova-input-container');
             expect(inputContainer).toBeTruthy();
             
@@ -163,13 +199,17 @@ describe('NovaSidebarView', () => {
             expect(sendButton?.textContent).toBe('Send');
         });
 
-        test('should display welcome message', () => {
+        test('should display welcome message', async () => {
+            await sidebar.onOpen();
+            
             const messages = mockContainer.querySelectorAll('.nova-message');
             expect(messages.length).toBe(1);
             expect(messages[0].textContent).toContain("Hello! I'm Nova");
         });
 
-        test('should register active-leaf-change event', () => {
+        test('should register active-leaf-change event', async () => {
+            await sidebar.onOpen();
+            
             expect(mockPlugin.app.workspace.on).toHaveBeenCalledWith(
                 'active-leaf-change',
                 expect.any(Function)
@@ -179,6 +219,14 @@ describe('NovaSidebarView', () => {
 
     describe('Message Display', () => {
         beforeEach(async () => {
+            // Mock ButtonComponent for the Clear Chat button
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
             await sidebar.onOpen();
         });
 
@@ -220,6 +268,27 @@ describe('NovaSidebarView', () => {
         let sendButton: ButtonComponent;
 
         beforeEach(async () => {
+            // Mock ButtonComponent and TextAreaComponent
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue(''),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn(),
+                    style: { cssText: '' }
+                })
+            }));
+            
             await sidebar.onOpen();
             textArea = sidebar['textArea'];
             sendButton = sidebar['sendButton'];
@@ -287,8 +356,27 @@ describe('NovaSidebarView', () => {
 
     describe('AI Integration', () => {
         beforeEach(async () => {
+            // Mock ButtonComponent and TextAreaComponent
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue('Test message'),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn()
+                })
+            }));
+            
             await sidebar.onOpen();
-            jest.spyOn(sidebar['textArea'], 'getValue').mockReturnValue('Test message');
         });
 
         test('should call AI provider and display response', async () => {
@@ -342,6 +430,99 @@ describe('NovaSidebarView', () => {
             await sidebar['handleSend']();
             
             expect(setDisabledSpy).toHaveBeenLastCalledWith(false);
+        });
+    });
+
+    describe('Command Routing', () => {
+        beforeEach(() => {
+            // Mock required UI elements for all tests
+            sidebar['textArea'] = { getValue: jest.fn(), setValue: jest.fn() } as any;
+            sidebar['sendButton'] = { setDisabled: jest.fn() } as any;
+            sidebar['chatContainer'] = { 
+                createDiv: jest.fn().mockReturnValue({ style: {}, textContent: '', remove: jest.fn() }),
+                querySelector: jest.fn().mockReturnValue(null),
+                scrollHeight: 100, 
+                scrollTop: 0 
+            } as any;
+            jest.spyOn(sidebar as any, 'addMessage').mockImplementation();
+
+            // Mock command handlers
+            mockPlugin.addCommandHandler = { execute: jest.fn().mockResolvedValue({ success: true }) } as any;
+            mockPlugin.editCommandHandler = { execute: jest.fn().mockResolvedValue({ success: true }) } as any;
+            mockPlugin.deleteCommandHandler = { execute: jest.fn().mockResolvedValue({ success: true }) } as any;
+            mockPlugin.grammarCommandHandler = { execute: jest.fn().mockResolvedValue({ success: true }) } as any;
+            mockPlugin.rewriteCommandHandler = { execute: jest.fn().mockResolvedValue({ success: true }) } as any;
+        });
+
+        test('should route add command to AddCommand handler', async () => {
+            const command = { action: 'add' as const, target: 'document' as const, instruction: 'add a conclusion' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(mockPlugin.addCommandHandler.execute).toHaveBeenCalledWith(command);
+            expect(result).toBe('✅ Content added successfully');
+        });
+
+        test('should route edit command to EditCommand handler', async () => {
+            const command = { action: 'edit' as const, target: 'selection' as const, instruction: 'make it more formal' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(mockPlugin.editCommandHandler.execute).toHaveBeenCalledWith(command);
+            expect(result).toBe('✅ Content edited successfully');
+        });
+
+        test('should route delete command to DeleteCommand handler', async () => {
+            const command = { action: 'delete' as const, target: 'selection' as const, instruction: 'remove this paragraph' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(mockPlugin.deleteCommandHandler.execute).toHaveBeenCalledWith(command);
+            expect(result).toBe('✅ Content deleted successfully');
+        });
+
+        test('should route grammar command to GrammarCommand handler', async () => {
+            const command = { action: 'grammar' as const, target: 'document' as const, instruction: 'fix grammar' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(mockPlugin.grammarCommandHandler.execute).toHaveBeenCalledWith(command);
+            expect(result).toBe('✅ Grammar corrected successfully');
+        });
+
+        test('should route rewrite command to RewriteCommand handler', async () => {
+            const command = { action: 'rewrite' as const, target: 'selection' as const, instruction: 'make it simpler' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(mockPlugin.rewriteCommandHandler.execute).toHaveBeenCalledWith(command);
+            expect(result).toBe('✅ Content rewritten successfully');
+        });
+
+        test('should handle unknown command action', async () => {
+            const command = { action: 'unknown' as any, target: 'document' as const, instruction: 'do something' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(result).toBe('I don\'t understand the command "unknown". Try asking me to add, edit, delete, fix grammar, or rewrite content.');
+        });
+
+        test('should handle command execution failure', async () => {
+            (mockPlugin.addCommandHandler.execute as jest.Mock).mockResolvedValue({ success: false, error: 'Something went wrong' });
+            const command = { action: 'add' as const, target: 'document' as const, instruction: 'add a conclusion' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(result).toBe('❌ Failed to add: Something went wrong');
+        });
+
+        test('should handle command execution error', async () => {
+            (mockPlugin.addCommandHandler.execute as jest.Mock).mockRejectedValue(new Error('Network error'));
+            const command = { action: 'add' as const, target: 'document' as const, instruction: 'add a conclusion' };
+            
+            const result = await sidebar['executeCommand'](command);
+            
+            expect(result).toBe('❌ Error executing command: Network error');
         });
     });
 
@@ -432,6 +613,53 @@ describe('NovaSidebarView', () => {
             expect(mockPlugin.documentEngine.addUserMessage).not.toHaveBeenCalled();
             expect(mockPlugin.documentEngine.addAssistantMessage).not.toHaveBeenCalled();
         });
+
+        test('should route command messages to executeCommand instead of AI provider', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('add a conclusion section');
+            
+            // Mock isLikelyCommand to return true
+            jest.spyOn(mockPlugin.promptBuilder, 'isLikelyCommand' as any).mockReturnValue(true);
+            
+            // Mock parseCommand to return a valid command
+            (mockPlugin.commandParser.parseCommand as jest.Mock).mockReturnValue({
+                action: 'add' as const,
+                target: 'document' as const,
+                instruction: 'add a conclusion section'
+            });
+            
+            // Mock executeCommand
+            const executeCommandSpy = jest.spyOn(sidebar as any, 'executeCommand').mockResolvedValue('✅ Content added successfully');
+
+            await sidebar['handleSend']();
+
+            expect(executeCommandSpy).toHaveBeenCalledWith({
+                action: 'add' as const,
+                target: 'document' as const,
+                instruction: 'add a conclusion section'
+            });
+            
+            // Should not call AI provider for commands
+            expect(mockPlugin.aiProviderManager.complete).not.toHaveBeenCalled();
+        });
+
+        test('should use AI provider for conversation messages', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('what is the meaning of life?');
+            
+            // Mock isLikelyCommand to return false
+            jest.spyOn(mockPlugin.promptBuilder, 'isLikelyCommand' as any).mockReturnValue(false);
+
+            await sidebar['handleSend']();
+
+            expect(mockPlugin.promptBuilder.buildPromptForMessage).toHaveBeenCalledWith(
+                'what is the meaning of life?',
+                mockFile
+            );
+            expect(mockPlugin.aiProviderManager.complete).toHaveBeenCalled();
+        });
     });
 
     describe('Conversation Loading', () => {
@@ -502,6 +730,27 @@ describe('NovaSidebarView', () => {
 
     describe('Clear Chat Feature', () => {
         beforeEach(async () => {
+            // Mock ButtonComponent and TextAreaComponent
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue(''),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn(),
+                    style: { cssText: '' }
+                })
+            }));
+            
             await sidebar.onOpen();
         });
 
@@ -558,6 +807,26 @@ describe('NovaSidebarView', () => {
 
     describe('Error Handling', () => {
         beforeEach(async () => {
+            // Mock ButtonComponent and TextAreaComponent
+            (ButtonComponent as any) = jest.fn().mockImplementation(() => ({
+                setButtonText: jest.fn().mockReturnThis(),
+                setTooltip: jest.fn().mockReturnThis(),
+                onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
+                buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue('Test message'),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn()
+                })
+            }));
+            
             await sidebar.onOpen();
         });
 
