@@ -7,7 +7,7 @@ import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
 import { ContextBuilder } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
-import { EditCommand, EditResult, DocumentContext } from '../types';
+import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
 
 export class AddCommand {
     constructor(
@@ -20,7 +20,7 @@ export class AddCommand {
     /**
      * Execute add command
      */
-    async execute(command: EditCommand): Promise<EditResult> {
+    async execute(command: EditCommandType): Promise<EditResult> {
         try {
             // Get document context
             const documentContext = await this.documentEngine.getDocumentContext();
@@ -95,7 +95,7 @@ export class AddCommand {
      * Determine where to insert new content
      */
     private async determineInsertPosition(
-        command: EditCommand,
+        command: EditCommandType,
         documentContext: DocumentContext
     ): Promise<'cursor' | 'selection' | 'end' | { line: number; ch: number }> {
         switch (command.target) {
@@ -129,7 +129,7 @@ export class AddCommand {
     /**
      * Validate add command requirements
      */
-    validateCommand(command: EditCommand, hasSelection: boolean): {
+    validateCommand(command: EditCommandType, hasSelection: boolean): {
         valid: boolean;
         error?: string;
     } {
@@ -185,7 +185,7 @@ export class AddCommand {
     /**
      * Preview what content would be added (without actually adding it)
      */
-    async preview(command: EditCommand): Promise<{
+    async preview(command: EditCommandType): Promise<{
         success: boolean;
         preview?: string;
         position?: string;
