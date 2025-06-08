@@ -136,5 +136,4 @@ dist
 .pnp.*
 
 # Project-specific files
-CLAUDE.md
 data.json

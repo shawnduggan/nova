@@ -91,6 +91,11 @@ export class AIProviderManager {
 		return Array.from(this.providers.values()).map(p => p.name);
 	}
 
+	async getCurrentProviderName(): Promise<string> {
+		const provider = await this.getAvailableProvider();
+		return provider ? provider.name : 'None';
+	}
+
 	cleanup() {
 		this.providers.clear();
 	}

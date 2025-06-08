@@ -1,6 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   collectCoverageFrom: [
@@ -18,5 +18,8 @@ module.exports = {
         allowSyntheticDefaultImports: true,
       }
     }],
+  },
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
   }
 };

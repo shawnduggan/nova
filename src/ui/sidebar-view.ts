@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
@@ -9,6 +9,7 @@ export class NovaSidebarView extends ItemView {
 	private inputContainer!: HTMLElement;
 	private textArea!: TextAreaComponent;
 	private sendButton!: ButtonComponent;
+	private currentFile: TFile | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -30,10 +31,65 @@ export class NovaSidebarView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
-		container.createEl('h4', { text: 'Nova - Your AI Thinking Partner' });
+		
+		// Header with provider info
+		const headerEl = container.createDiv({ cls: 'nova-header' });
+		headerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 10px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid var(--background-modifier-border);
+		`;
+		
+		const titleEl = headerEl.createEl('h4', { text: 'Nova - Your AI Thinking Partner' });
+		titleEl.style.margin = '0';
+		
+		// Provider status
+		const providerEl = headerEl.createDiv({ cls: 'nova-provider-status' });
+		providerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			font-size: 0.9em;
+			color: var(--text-muted);
+		`;
+		
+		const statusDot = providerEl.createSpan({ cls: 'nova-status-dot' });
+		statusDot.style.cssText = `
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: #4caf50;
+		`;
+		
+		// Get current provider name - will be updated async
+		const providerNameSpan = providerEl.createSpan({ text: 'Loading...' });
+		
+		// Update provider name asynchronously
+		this.plugin.aiProviderManager.getCurrentProviderName().then(name => {
+			providerNameSpan.setText(name);
+		});
+		
+		// Clear Chat button
+		const clearButton = new ButtonComponent(headerEl);
+		clearButton.setButtonText('Clear Chat')
+			.setTooltip('Clear conversation history')
+			.onClick(() => this.clearChat());
 
 		this.createChatInterface(container);
 		this.createInputInterface(container);
+		
+		// Register event listener for active file changes
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				this.loadConversationForActiveFile();
+			})
+		);
+		
+		// Load conversation for current file
+		this.loadConversationForActiveFile();
 	}
 
 	async onClose() {
@@ -172,5 +228,41 @@ export class NovaSidebarView extends ItemView {
 				editor.replaceRange(text, cursor);
 			}
 		}
+	}
+
+	private async loadConversationForActiveFile() {
+		const activeFile = this.app.workspace.getActiveFile();
+		
+		// If no file or same file, do nothing
+		if (!activeFile || activeFile === this.currentFile) {
+			return;
+		}
+		
+		this.currentFile = activeFile;
+		
+		// Clear current chat
+		this.chatContainer.empty();
+		
+		// Show welcome message for new file
+		// TODO: Implement conversation loading when conversation manager is integrated
+		this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+	}
+
+	private clearChat() {
+		// Clear the chat container
+		this.chatContainer.empty();
+		
+		// TODO: Clear conversation in conversation manager when integrated
+		// this.plugin.conversationManager?.clearConversation(this.currentFile);
+		
+		// Show fresh welcome message
+		if (this.currentFile) {
+			this.addMessage('assistant', `Chat cleared! I'm ready to help you with "${this.currentFile.basename}". What would you like to do?`);
+		} else {
+			this.addMessage('assistant', "Chat cleared! I'm ready to help. What would you like to do?");
+		}
+		
+		// Show notice to user
+		new Notice('Chat history cleared');
 	}
 }

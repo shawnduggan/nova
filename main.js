@@ -792,6 +792,10 @@ var AIProviderManager = class {
   getProviderNames() {
     return Array.from(this.providers.values()).map((p) => p.name);
   }
+  async getCurrentProviderName() {
+    const provider = await this.getAvailableProvider();
+    return provider ? provider.name : "None";
+  }
   cleanup() {
     this.providers.clear();
   }
@@ -803,6 +807,7 @@ var VIEW_TYPE_NOVA_SIDEBAR = "nova-sidebar";
 var NovaSidebarView = class extends import_obsidian3.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
+    this.currentFile = null;
     this.plugin = plugin;
   }
   getViewType() {
@@ -817,9 +822,46 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
   async onOpen() {
     const container = this.containerEl.children[1];
     container.empty();
-    container.createEl("h4", { text: "Nova - Your AI Thinking Partner" });
+    const headerEl = container.createDiv({ cls: "nova-header" });
+    headerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 10px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid var(--background-modifier-border);
+		`;
+    const titleEl = headerEl.createEl("h4", { text: "Nova - Your AI Thinking Partner" });
+    titleEl.style.margin = "0";
+    const providerEl = headerEl.createDiv({ cls: "nova-provider-status" });
+    providerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			font-size: 0.9em;
+			color: var(--text-muted);
+		`;
+    const statusDot = providerEl.createSpan({ cls: "nova-status-dot" });
+    statusDot.style.cssText = `
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: #4caf50;
+		`;
+    const providerNameSpan = providerEl.createSpan({ text: "Loading..." });
+    this.plugin.aiProviderManager.getCurrentProviderName().then((name) => {
+      providerNameSpan.setText(name);
+    });
+    const clearButton = new import_obsidian3.ButtonComponent(headerEl);
+    clearButton.setButtonText("Clear Chat").setTooltip("Clear conversation history").onClick(() => this.clearChat());
     this.createChatInterface(container);
     this.createInputInterface(container);
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        this.loadConversationForActiveFile();
+      })
+    );
+    this.loadConversationForActiveFile();
   }
   async onClose() {
   }
@@ -924,6 +966,24 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
         editor.replaceRange(text, cursor);
       }
     }
+  }
+  async loadConversationForActiveFile() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile || activeFile === this.currentFile) {
+      return;
+    }
+    this.currentFile = activeFile;
+    this.chatContainer.empty();
+    this.addMessage("assistant", `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+  }
+  clearChat() {
+    this.chatContainer.empty();
+    if (this.currentFile) {
+      this.addMessage("assistant", `Chat cleared! I'm ready to help you with "${this.currentFile.basename}". What would you like to do?`);
+    } else {
+      this.addMessage("assistant", "Chat cleared! I'm ready to help. What would you like to do?");
+    }
+    new import_obsidian3.Notice("Chat history cleared");
   }
 };
 

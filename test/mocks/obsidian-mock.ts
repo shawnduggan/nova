@@ -11,9 +11,9 @@ export class TFile {
     stat: { ctime: number; mtime: number; size: number };
     vault: any;
     
-    constructor(path: string) {
-        this.path = path;
-        this.name = path.split('/').pop() || '';
+    constructor(path?: string) {
+        this.path = path || 'test.md';
+        this.name = this.path.split('/').pop() || '';
         const parts = this.name.split('.');
         this.extension = parts.length > 1 ? parts.pop() || '' : '';
         this.basename = parts.join('.');
@@ -157,6 +157,7 @@ export class Vault {
 
 export class Workspace {
     activeEditor: { editor: Editor | null; file: TFile | null } | null = null;
+    private eventHandlers: Map<string, Array<() => void>> = new Map();
     
     getActiveFile(): TFile | null {
         return this.activeEditor?.file || null;
@@ -164,6 +165,30 @@ export class Workspace {
     
     getActiveViewOfType<T>(type: any): T | null {
         return null;
+    }
+    
+    on(event: string, handler: () => void): { unsubscribe: () => void } {
+        if (!this.eventHandlers.has(event)) {
+            this.eventHandlers.set(event, []);
+        }
+        this.eventHandlers.get(event)!.push(handler);
+        
+        return {
+            unsubscribe: () => {
+                const handlers = this.eventHandlers.get(event);
+                if (handlers) {
+                    const index = handlers.indexOf(handler);
+                    if (index !== -1) {
+                        handlers.splice(index, 1);
+                    }
+                }
+            }
+        };
+    }
+    
+    trigger(event: string): void {
+        const handlers = this.eventHandlers.get(event) || [];
+        handlers.forEach(handler => handler());
     }
 }
 
@@ -183,19 +208,77 @@ export class MetadataCache {
     }
 }
 
+// Extend HTMLElement to add Obsidian-specific methods
+class ExtendedHTMLElement extends HTMLElement {
+    empty(): void {
+        this.innerHTML = '';
+    }
+    
+    createEl<T extends keyof HTMLElementTagNameMap>(
+        tag: T, 
+        attrs?: { text?: string; cls?: string; attr?: Record<string, string> }
+    ): HTMLElementTagNameMap[T] {
+        const el = document.createElement(tag);
+        if (attrs?.text) el.textContent = attrs.text;
+        if (attrs?.cls) el.className = attrs.cls;
+        if (attrs?.attr) {
+            Object.entries(attrs.attr).forEach(([key, value]) => {
+                el.setAttribute(key, value);
+            });
+        }
+        this.appendChild(el);
+        return el;
+    }
+    
+    createDiv(attrs?: { cls?: string; text?: string }): HTMLDivElement {
+        return this.createEl('div', attrs);
+    }
+    
+    createSpan(attrs?: { cls?: string; text?: string }): HTMLSpanElement {
+        return this.createEl('span', attrs);
+    }
+    
+    setText(text: string): void {
+        this.textContent = text;
+    }
+}
+
 export class ItemView {
     app: App;
-    containerEl: HTMLElement;
+    containerEl: ExtendedHTMLElement;
+    private _children: ExtendedHTMLElement[] = [];
     
     constructor(leaf: any) {
         this.app = new App();
-        this.containerEl = document.createElement('div');
+        this.containerEl = this.createExtendedElement('div') as ExtendedHTMLElement;
+        
+        // Add child elements that Obsidian normally provides  
+        const child1 = this.createExtendedElement('div');
+        const child2 = this.createExtendedElement('div');
+        this._children = [child1, child2];
+        this.containerEl.appendChild(child1);
+        this.containerEl.appendChild(child2);
+        
+        // Override children property
+        Object.defineProperty(this.containerEl, 'children', {
+            get: () => this._children
+        });
+    }
+    
+    private createExtendedElement(tag: string): ExtendedHTMLElement {
+        const element = document.createElement(tag);
+        return Object.assign(element, ExtendedHTMLElement.prototype);
     }
     
     async onOpen(): Promise<void> {}
     async onClose(): Promise<void> {}
     getViewType(): string { return ''; }
     getDisplayText(): string { return ''; }
+    getIcon(): string { return ''; }
+    
+    registerEvent(event: any): void {
+        // Mock implementation
+    }
 }
 
 export class MarkdownView extends ItemView {
@@ -301,6 +384,78 @@ export class Notice {
     }
 }
 
+export class WorkspaceLeaf {
+    view: ItemView | null = null;
+    
+    constructor() {}
+    
+    getViewState(): any {
+        return { type: 'test-view' };
+    }
+    
+    setViewState(state: any): void {
+        // Mock implementation
+    }
+}
+
+export class ButtonComponent {
+    buttonEl: HTMLButtonElement;
+    private clickHandler?: () => void;
+    private disabled: boolean = false;
+    
+    constructor(containerEl: HTMLElement) {
+        this.buttonEl = document.createElement('button');
+        containerEl.appendChild(this.buttonEl);
+    }
+    
+    setButtonText(text: string): this {
+        this.buttonEl.textContent = text;
+        return this;
+    }
+    
+    setCta(): this {
+        this.buttonEl.classList.add('mod-cta');
+        return this;
+    }
+    
+    setDisabled(disabled: boolean): this {
+        this.disabled = disabled;
+        this.buttonEl.disabled = disabled;
+        return this;
+    }
+    
+    onClick(handler: () => void): this {
+        this.clickHandler = handler;
+        this.buttonEl.addEventListener('click', handler);
+        return this;
+    }
+}
+
+export class TextAreaComponent {
+    inputEl: HTMLTextAreaElement;
+    private value: string = '';
+    
+    constructor(containerEl: HTMLElement) {
+        this.inputEl = document.createElement('textarea');
+        containerEl.appendChild(this.inputEl);
+    }
+    
+    setPlaceholder(placeholder: string): this {
+        this.inputEl.placeholder = placeholder;
+        return this;
+    }
+    
+    getValue(): string {
+        return this.value;
+    }
+    
+    setValue(value: string): this {
+        this.value = value;
+        this.inputEl.value = value;
+        return this;
+    }
+}
+
 export default {
     App,
     Editor,
@@ -313,5 +468,8 @@ export default {
     Notice,
     Vault,
     Workspace,
-    MetadataCache
+    MetadataCache,
+    WorkspaceLeaf,
+    ButtonComponent,
+    TextAreaComponent
 };
