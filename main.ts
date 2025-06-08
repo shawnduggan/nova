@@ -1,7 +1,15 @@
-import { Plugin, WorkspaceLeaf, ItemView, addIcon } from 'obsidian';
+import { Plugin, WorkspaceLeaf, ItemView, addIcon, Notice, Editor, MarkdownView, MarkdownFileInfo } from 'obsidian';
 import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
+import { DocumentEngine } from './src/core/document-engine';
+import { ContextBuilder } from './src/core/context-builder';
+import { CommandParser } from './src/core/command-parser';
+import { AddCommand } from './src/core/commands/add-command';
+import { EditCommand } from './src/core/commands/edit-command';
+import { DeleteCommand } from './src/core/commands/delete-command';
+import { GrammarCommand } from './src/core/commands/grammar-command';
+import { RewriteCommand } from './src/core/commands/rewrite-command';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -24,6 +32,14 @@ const NOVA_ICON_SVG = `
 export default class NovaPlugin extends Plugin {
 	settings!: NovaSettings;
 	aiProviderManager!: AIProviderManager;
+	documentEngine!: DocumentEngine;
+	contextBuilder!: ContextBuilder;
+	commandParser!: CommandParser;
+	addCommandHandler!: AddCommand;
+	editCommandHandler!: EditCommand;
+	deleteCommandHandler!: DeleteCommand;
+	grammarCommandHandler!: GrammarCommand;
+	rewriteCommandHandler!: RewriteCommand;
 
 	async onload() {
 		try {
@@ -39,6 +55,19 @@ export default class NovaPlugin extends Plugin {
 			await this.aiProviderManager.initialize();
 			console.log('Nova: AI provider manager initialized');
 
+			// Initialize document engine and commands
+			this.documentEngine = new DocumentEngine(this.app, this);
+			this.contextBuilder = new ContextBuilder();
+			this.commandParser = new CommandParser();
+			
+			// Initialize command implementations
+			this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.editCommandHandler = new EditCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			console.log('Nova: document engine and commands initialized');
+
 			this.registerView(
 				VIEW_TYPE_NOVA_SIDEBAR,
 				(leaf) => new NovaSidebarView(leaf, this)
@@ -53,14 +82,55 @@ export default class NovaPlugin extends Plugin {
 			console.log('Nova: ribbon icon innerHTML:', ribbonIcon.innerHTML);
 			console.log('Nova: ribbon icon classList:', ribbonIcon.classList.toString());
 
+			// Register core document editing commands
+			this.addCommand({
+				id: 'nova-add-content',
+				name: 'Nova: Add content',
+				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+					await this.handleAddCommand();
+				}
+			});
+
+			this.addCommand({
+				id: 'nova-edit-content',
+				name: 'Nova: Edit content',
+				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+					await this.handleEditCommand();
+				}
+			});
+
+			this.addCommand({
+				id: 'nova-delete-content',
+				name: 'Nova: Delete content',
+				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+					await this.handleDeleteCommand();
+				}
+			});
+
+			this.addCommand({
+				id: 'nova-fix-grammar',
+				name: 'Nova: Fix grammar',
+				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+					await this.handleGrammarCommand();
+				}
+			});
+
+			this.addCommand({
+				id: 'nova-rewrite-content',
+				name: 'Nova: Rewrite content',
+				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+					await this.handleRewriteCommand();
+				}
+			});
+
 			this.addCommand({
 				id: 'open-nova-sidebar',
-				name: 'Open Nova sidebar',
+				name: 'Nova: Open sidebar',
 				callback: () => {
 					this.activateView();
 				}
 			});
-			console.log('Nova: command added');
+			console.log('Nova: commands registered');
 
 			this.addSettingTab(new NovaSettingTab(this.app, this));
 			console.log('Nova: settings tab added');
@@ -97,6 +167,195 @@ export default class NovaPlugin extends Plugin {
 		}
 
 		workspace.revealLeaf(leaf!);
+	}
+
+	/**
+	 * Handle add content command with user input
+	 */
+	private async handleAddCommand(): Promise<void> {
+		const instruction = await this.promptForInstruction('What would you like to add?');
+		if (!instruction) return;
+
+		try {
+			const documentContext = await this.documentEngine.getDocumentContext();
+			const hasSelection = !!(documentContext?.selectedText);
+			const command = this.commandParser.parseCommand(instruction, hasSelection);
+			const result = await this.addCommandHandler.execute(command);
+			
+			if (result.success) {
+				new Notice('Content added successfully');
+			} else {
+				new Notice(`Failed to add content: ${result.error}`);
+			}
+		} catch (error) {
+			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Handle edit content command with user input
+	 */
+	private async handleEditCommand(): Promise<void> {
+		const instruction = await this.promptForInstruction('How would you like to edit the content?');
+		if (!instruction) return;
+
+		try {
+			const documentContext = await this.documentEngine.getDocumentContext();
+			const hasSelection = !!(documentContext?.selectedText);
+			const command = this.commandParser.parseCommand(instruction, hasSelection);
+			const result = await this.editCommandHandler.execute(command);
+			
+			if (result.success) {
+				new Notice('Content edited successfully');
+			} else {
+				new Notice(`Failed to edit content: ${result.error}`);
+			}
+		} catch (error) {
+			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Handle delete content command with user input
+	 */
+	private async handleDeleteCommand(): Promise<void> {
+		const instruction = await this.promptForInstruction('What would you like to delete?');
+		if (!instruction) return;
+
+		try {
+			const documentContext = await this.documentEngine.getDocumentContext();
+			const hasSelection = !!(documentContext?.selectedText);
+			const command = this.commandParser.parseCommand(instruction, hasSelection);
+			const result = await this.deleteCommandHandler.execute(command);
+			
+			if (result.success) {
+				new Notice('Content deleted successfully');
+			} else {
+				new Notice(`Failed to delete content: ${result.error}`);
+			}
+		} catch (error) {
+			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Handle grammar correction command
+	 */
+	private async handleGrammarCommand(): Promise<void> {
+		const documentContext = await this.documentEngine.getDocumentContext();
+		if (!documentContext) {
+			new Notice('No active document found');
+			return;
+		}
+
+		// Determine target based on selection
+		let target: 'selection' | 'document' = 'document';
+		let instruction = 'Fix grammar and spelling errors';
+		
+		if (documentContext.selectedText) {
+			target = 'selection';
+			instruction = 'Fix grammar and spelling errors in the selected text';
+		}
+
+		try {
+			const command = {
+				action: 'grammar' as const,
+				target,
+				instruction
+			};
+			
+			const result = await this.grammarCommandHandler.execute(command);
+			
+			if (result.success) {
+				new Notice('Grammar corrected successfully');
+			} else {
+				new Notice(`Failed to correct grammar: ${result.error}`);
+			}
+		} catch (error) {
+			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Handle rewrite content command with user input
+	 */
+	private async handleRewriteCommand(): Promise<void> {
+		const instruction = await this.promptForInstruction('How would you like to rewrite the content?');
+		if (!instruction) return;
+
+		try {
+			const documentContext = await this.documentEngine.getDocumentContext();
+			const hasSelection = !!(documentContext?.selectedText);
+			const command = this.commandParser.parseCommand(instruction, hasSelection);
+			const result = await this.rewriteCommandHandler.execute(command);
+			
+			if (result.success) {
+				new Notice('Content rewritten successfully');
+			} else {
+				new Notice(`Failed to rewrite content: ${result.error}`);
+			}
+		} catch (error) {
+			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Prompt user for instruction input
+	 */
+	private async promptForInstruction(placeholder: string): Promise<string | null> {
+		return new Promise((resolve) => {
+			const modal = document.createElement('div');
+			modal.className = 'modal nova-input-modal';
+			modal.innerHTML = `
+				<div class="modal-container">
+					<div class="modal-bg" onclick="this.parentElement.parentElement.remove(); resolve(null);"></div>
+					<div class="modal-content">
+						<div class="modal-header">
+							<h3>Nova AI Command</h3>
+							<button class="modal-close-button" onclick="this.closest('.modal').remove(); resolve(null);">×</button>
+						</div>
+						<div class="modal-body">
+							<input type="text" class="nova-instruction-input" placeholder="${placeholder}" autofocus>
+						</div>
+						<div class="modal-footer">
+							<button class="mod-cta nova-submit-btn">Execute</button>
+							<button class="nova-cancel-btn">Cancel</button>
+						</div>
+					</div>
+				</div>
+			`;
+
+			const input = modal.querySelector('.nova-instruction-input') as HTMLInputElement;
+			const submitBtn = modal.querySelector('.nova-submit-btn') as HTMLButtonElement;
+			const cancelBtn = modal.querySelector('.nova-cancel-btn') as HTMLButtonElement;
+
+			const handleSubmit = () => {
+				const value = input.value.trim();
+				modal.remove();
+				resolve(value || null);
+			};
+
+			const handleCancel = () => {
+				modal.remove();
+				resolve(null);
+			};
+
+			input.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					handleSubmit();
+				} else if (e.key === 'Escape') {
+					e.preventDefault();
+					handleCancel();
+				}
+			});
+
+			submitBtn.addEventListener('click', handleSubmit);
+			cancelBtn.addEventListener('click', handleCancel);
+
+			document.body.appendChild(modal);
+			input.focus();
+		});
 	}
 
 }

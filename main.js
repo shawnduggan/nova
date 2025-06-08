@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => NovaPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -927,6 +927,3239 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
   }
 };
 
+// src/core/document-engine.ts
+var import_obsidian4 = require("obsidian");
+
+// src/core/conversation-manager.ts
+var ConversationManager = class {
+  constructor(dataStore) {
+    this.dataStore = dataStore;
+    this.conversations = /* @__PURE__ */ new Map();
+    this.maxMessagesPerFile = 100;
+    // Limit conversation history
+    this.storageKey = "nova-conversations";
+    this.loadConversations();
+  }
+  /**
+   * Load conversations from plugin data
+   */
+  async loadConversations() {
+    try {
+      const data = await this.dataStore.loadData(this.storageKey);
+      if (data && Array.isArray(data)) {
+        for (const conversation of data) {
+          this.conversations.set(conversation.filePath, conversation);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load conversation data:", error);
+    }
+  }
+  /**
+   * Save conversations to plugin data
+   */
+  async saveConversations() {
+    try {
+      const conversationsArray = Array.from(this.conversations.values());
+      await this.dataStore.saveData(this.storageKey, conversationsArray);
+    } catch (error) {
+      console.error("Failed to save conversation data:", error);
+    }
+  }
+  /**
+   * Get conversation for a specific file
+   */
+  getConversation(file) {
+    const filePath = file.path;
+    if (!this.conversations.has(filePath)) {
+      const newConversation = {
+        filePath,
+        messages: [],
+        lastUpdated: Date.now(),
+        metadata: {
+          editCount: 0,
+          commandFrequency: {
+            add: 0,
+            edit: 0,
+            delete: 0,
+            grammar: 0,
+            rewrite: 0
+          }
+        }
+      };
+      this.conversations.set(filePath, newConversation);
+    }
+    return this.conversations.get(filePath);
+  }
+  /**
+   * Add a user message to the conversation
+   */
+  async addUserMessage(file, content, command) {
+    const conversation = this.getConversation(file);
+    const message = {
+      id: this.generateMessageId(),
+      role: "user",
+      content,
+      timestamp: Date.now(),
+      command
+    };
+    conversation.messages.push(message);
+    conversation.lastUpdated = Date.now();
+    if (command && conversation.metadata) {
+      conversation.metadata.commandFrequency[command.action]++;
+    }
+    await this.trimAndSave(conversation);
+    return message;
+  }
+  /**
+   * Add an assistant response to the conversation
+   */
+  async addAssistantMessage(file, content, result) {
+    const conversation = this.getConversation(file);
+    const message = {
+      id: this.generateMessageId(),
+      role: "assistant",
+      content,
+      timestamp: Date.now(),
+      result
+    };
+    conversation.messages.push(message);
+    conversation.lastUpdated = Date.now();
+    if ((result == null ? void 0 : result.success) && conversation.metadata) {
+      conversation.metadata.editCount++;
+    }
+    await this.trimAndSave(conversation);
+    return message;
+  }
+  /**
+   * Add a system message to the conversation
+   */
+  async addSystemMessage(file, content) {
+    const conversation = this.getConversation(file);
+    const message = {
+      id: this.generateMessageId(),
+      role: "system",
+      content,
+      timestamp: Date.now()
+    };
+    conversation.messages.push(message);
+    conversation.lastUpdated = Date.now();
+    await this.trimAndSave(conversation);
+    return message;
+  }
+  /**
+   * Get recent messages for context
+   */
+  getRecentMessages(file, count = 10) {
+    const conversation = this.getConversation(file);
+    return conversation.messages.slice(-count);
+  }
+  /**
+   * Get messages by role
+   */
+  getMessagesByRole(file, role) {
+    const conversation = this.getConversation(file);
+    return conversation.messages.filter((msg) => msg.role === role);
+  }
+  /**
+   * Get conversation context for AI prompts
+   */
+  getConversationContext(file, maxMessages = 6) {
+    const messages = this.getRecentMessages(file, maxMessages);
+    if (messages.length === 0) {
+      return "";
+    }
+    const contextLines = messages.map((msg) => {
+      const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+      let line = `[${timestamp}] ${msg.role.toUpperCase()}: ${msg.content}`;
+      if (msg.command) {
+        line += ` (Command: ${msg.command.action} ${msg.command.target})`;
+      }
+      if (msg.result) {
+        line += ` (Result: ${msg.result.success ? "success" : "failed"})`;
+      }
+      return line;
+    });
+    return `Previous conversation:
+${contextLines.join("\n")}
+`;
+  }
+  /**
+   * Clear conversation for a file
+   */
+  async clearConversation(file) {
+    const conversation = this.getConversation(file);
+    conversation.messages = [];
+    conversation.lastUpdated = Date.now();
+    if (conversation.metadata) {
+      conversation.metadata.editCount = 0;
+      conversation.metadata.commandFrequency = {
+        add: 0,
+        edit: 0,
+        delete: 0,
+        grammar: 0,
+        rewrite: 0
+      };
+    }
+    await this.saveConversations();
+  }
+  /**
+   * Get conversation statistics
+   */
+  getStats(file) {
+    var _a;
+    const conversation = this.getConversation(file);
+    let mostUsedCommand = null;
+    let maxCount = 0;
+    if (conversation.metadata) {
+      for (const [action, count] of Object.entries(conversation.metadata.commandFrequency)) {
+        if (count > maxCount) {
+          maxCount = count;
+          mostUsedCommand = action;
+        }
+      }
+    }
+    const conversationAge = conversation.messages.length > 0 ? Date.now() - conversation.messages[0].timestamp : 0;
+    return {
+      messageCount: conversation.messages.length,
+      editCount: ((_a = conversation.metadata) == null ? void 0 : _a.editCount) || 0,
+      mostUsedCommand,
+      conversationAge
+    };
+  }
+  /**
+   * Remove old conversations to manage memory
+   */
+  async cleanupOldConversations(maxAge = 7 * 24 * 60 * 60 * 1e3) {
+    const now = Date.now();
+    let removedCount = 0;
+    for (const [filePath, conversation] of this.conversations.entries()) {
+      if (now - conversation.lastUpdated > maxAge) {
+        this.conversations.delete(filePath);
+        removedCount++;
+      }
+    }
+    if (removedCount > 0) {
+      await this.saveConversations();
+    }
+    return removedCount;
+  }
+  /**
+   * Export conversation for a file
+   */
+  exportConversation(file) {
+    const conversation = this.getConversation(file);
+    const lines = [`# Conversation History for ${file.name}`, ""];
+    for (const message of conversation.messages) {
+      const timestamp = new Date(message.timestamp).toLocaleString();
+      lines.push(`## ${message.role.toUpperCase()} (${timestamp})`);
+      lines.push(message.content);
+      if (message.command) {
+        lines.push(`*Command: ${message.command.action} ${message.command.target}*`);
+      }
+      if (message.result) {
+        lines.push(`*Result: ${message.result.success ? "Success" : "Failed"}*`);
+        if (message.result.error) {
+          lines.push(`*Error: ${message.result.error}*`);
+        }
+      }
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+  /**
+   * Generate unique message ID
+   */
+  generateMessageId() {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  /**
+   * Trim conversation to max length and save
+   */
+  async trimAndSave(conversation) {
+    if (conversation.messages.length > this.maxMessagesPerFile) {
+      conversation.messages = conversation.messages.slice(-this.maxMessagesPerFile);
+    }
+    await this.saveConversations();
+  }
+  /**
+   * Get all conversation file paths
+   */
+  getAllConversationFiles() {
+    return Array.from(this.conversations.keys());
+  }
+  /**
+   * Check if file has active conversation
+   */
+  hasConversation(file) {
+    const conversation = this.conversations.get(file.path);
+    return conversation ? conversation.messages.length > 0 : false;
+  }
+  /**
+   * Update conversation file path (for file renames)
+   */
+  async updateFilePath(oldPath, newPath) {
+    const conversation = this.conversations.get(oldPath);
+    if (conversation) {
+      conversation.filePath = newPath;
+      this.conversations.delete(oldPath);
+      this.conversations.set(newPath, conversation);
+      await this.saveConversations();
+    }
+  }
+};
+
+// src/core/document-engine.ts
+var DocumentEngine = class {
+  constructor(app, dataStore) {
+    this.app = app;
+    this.conversationManager = null;
+    if (dataStore) {
+      this.conversationManager = new ConversationManager(dataStore);
+    }
+  }
+  /**
+   * Set conversation manager (for dependency injection)
+   */
+  setConversationManager(conversationManager) {
+    this.conversationManager = conversationManager;
+  }
+  /**
+   * Get the active editor instance
+   */
+  getActiveEditor() {
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    return (view == null ? void 0 : view.editor) || null;
+  }
+  /**
+   * Get the active file
+   */
+  getActiveFile() {
+    return this.app.workspace.getActiveFile();
+  }
+  /**
+   * Get the currently selected text
+   */
+  getSelectedText() {
+    const editor = this.getActiveEditor();
+    if (!editor) return "";
+    return editor.getSelection();
+  }
+  /**
+   * Get the current cursor position
+   */
+  getCursorPosition() {
+    const editor = this.getActiveEditor();
+    if (!editor) return null;
+    return editor.getCursor();
+  }
+  /**
+   * Extract comprehensive document context
+   */
+  async getDocumentContext() {
+    const file = this.getActiveFile();
+    const editor = this.getActiveEditor();
+    if (!file || !editor) {
+      return null;
+    }
+    const content = editor.getValue();
+    const selectedText = this.getSelectedText();
+    const cursorPosition = this.getCursorPosition();
+    const headings = this.extractHeadings(content);
+    const surroundingLines = cursorPosition ? this.getSurroundingLines(content, cursorPosition.line) : void 0;
+    return {
+      file,
+      filename: file.basename,
+      content,
+      headings,
+      selectedText: selectedText || void 0,
+      cursorPosition: cursorPosition || void 0,
+      surroundingLines
+    };
+  }
+  /**
+   * Extract headings from document content
+   */
+  extractHeadings(content) {
+    const lines = content.split("\n");
+    const headings = [];
+    let charCount = 0;
+    lines.forEach((line, index) => {
+      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = headingMatch[2];
+        headings.push({
+          text,
+          level,
+          line: index,
+          position: {
+            start: charCount,
+            end: charCount + line.length
+          }
+        });
+      }
+      charCount += line.length + 1;
+    });
+    return headings;
+  }
+  /**
+   * Get lines surrounding the cursor position
+   */
+  getSurroundingLines(content, currentLine, contextSize = 5) {
+    const lines = content.split("\n");
+    const startLine = Math.max(0, currentLine - contextSize);
+    const endLine = Math.min(lines.length - 1, currentLine + contextSize);
+    return {
+      before: lines.slice(startLine, currentLine),
+      after: lines.slice(currentLine + 1, endLine + 1)
+    };
+  }
+  /**
+   * Apply an edit to the document
+   */
+  async applyEdit(content, position, options = {}) {
+    const editor = this.getActiveEditor();
+    const file = this.getActiveFile();
+    if (!editor || !file) {
+      return {
+        success: false,
+        error: "No active editor or file",
+        editType: "insert"
+      };
+    }
+    try {
+      let appliedAt;
+      if (position === "cursor") {
+        appliedAt = editor.getCursor();
+        editor.replaceRange(content, appliedAt);
+      } else if (position === "selection") {
+        const selection = editor.getSelection();
+        if (!selection) {
+          return {
+            success: false,
+            error: "No text selected",
+            editType: "replace"
+          };
+        }
+        appliedAt = editor.getCursor("from");
+        editor.replaceSelection(content);
+      } else if (position === "end") {
+        const lastLine = editor.lastLine();
+        const lastLineLength = editor.getLine(lastLine).length;
+        appliedAt = { line: lastLine, ch: lastLineLength };
+        const currentContent = editor.getValue();
+        const newContent = currentContent + (currentContent.endsWith("\n") ? "" : "\n") + content;
+        await this.app.vault.modify(file, newContent);
+      } else {
+        appliedAt = position;
+        editor.replaceRange(content, appliedAt);
+      }
+      if (options.selectNewText) {
+        const endPos = {
+          line: appliedAt.line + content.split("\n").length - 1,
+          ch: content.includes("\n") ? content.split("\n").pop().length : appliedAt.ch + content.length
+        };
+        editor.setSelection(appliedAt, endPos);
+      }
+      if (options.scrollToEdit) {
+        editor.scrollIntoView({
+          from: appliedAt,
+          to: appliedAt
+        }, true);
+      }
+      return {
+        success: true,
+        content,
+        editType: position === "selection" ? "replace" : position === "end" ? "append" : "insert",
+        appliedAt
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "insert"
+      };
+    }
+  }
+  /**
+   * Delete content at a specific location
+   */
+  async deleteContent(target, location) {
+    const editor = this.getActiveEditor();
+    const file = this.getActiveFile();
+    if (!editor || !file) {
+      return {
+        success: false,
+        error: "No active editor or file",
+        editType: "delete"
+      };
+    }
+    try {
+      if (target === "selection") {
+        const selection = editor.getSelection();
+        if (!selection) {
+          return {
+            success: false,
+            error: "No text selected",
+            editType: "delete"
+          };
+        }
+        editor.replaceSelection("");
+        return {
+          success: true,
+          editType: "delete"
+        };
+      } else if (target === "line") {
+        const cursor = editor.getCursor();
+        const line = cursor.line;
+        editor.replaceRange(
+          "",
+          { line, ch: 0 },
+          { line: line + 1, ch: 0 }
+        );
+        return {
+          success: true,
+          editType: "delete",
+          appliedAt: { line, ch: 0 }
+        };
+      } else if (target === "section" && location) {
+        const section = await this.findSection(location);
+        if (!section) {
+          return {
+            success: false,
+            error: `Section "${location}" not found`,
+            editType: "delete"
+          };
+        }
+        const content = editor.getValue();
+        const lines = content.split("\n");
+        const newLines = lines.filter(
+          (_, index) => index < section.range.start || index > section.range.end
+        );
+        await this.app.vault.modify(file, newLines.join("\n"));
+        return {
+          success: true,
+          editType: "delete",
+          appliedAt: { line: section.range.start, ch: 0 }
+        };
+      }
+      return {
+        success: false,
+        error: "Invalid delete target",
+        editType: "delete"
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "delete"
+      };
+    }
+  }
+  /**
+   * Find a section by heading name
+   */
+  async findSection(headingText) {
+    const context = await this.getDocumentContext();
+    if (!context) return null;
+    const headingIndex = context.headings.findIndex(
+      (h) => h.text.toLowerCase().includes(headingText.toLowerCase())
+    );
+    if (headingIndex === -1) return null;
+    const heading = context.headings[headingIndex];
+    const nextHeading = context.headings[headingIndex + 1];
+    const lines = context.content.split("\n");
+    const endLine = nextHeading ? nextHeading.line - 1 : lines.length - 1;
+    const sectionLines = lines.slice(heading.line + 1, endLine + 1);
+    const sectionContent = sectionLines.join("\n").trim();
+    return {
+      heading: heading.text,
+      level: heading.level,
+      content: sectionContent,
+      range: {
+        start: heading.line,
+        end: endLine
+      }
+    };
+  }
+  /**
+   * Get the full document content
+   */
+  async getDocumentContent() {
+    const editor = this.getActiveEditor();
+    if (!editor) return null;
+    return editor.getValue();
+  }
+  /**
+   * Replace the entire document content
+   */
+  async setDocumentContent(content) {
+    const file = this.getActiveFile();
+    if (!file) {
+      return {
+        success: false,
+        error: "No active file",
+        editType: "replace"
+      };
+    }
+    try {
+      await this.app.vault.modify(file, content);
+      return {
+        success: true,
+        content,
+        editType: "replace"
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "replace"
+      };
+    }
+  }
+  // Conversation management methods
+  /**
+   * Add user message to conversation
+   */
+  async addUserMessage(content, command) {
+    if (!this.conversationManager) return;
+    const file = this.getActiveFile();
+    if (file) {
+      await this.conversationManager.addUserMessage(file, content, command);
+    }
+  }
+  /**
+   * Add assistant response to conversation
+   */
+  async addAssistantMessage(content, result) {
+    if (!this.conversationManager) return;
+    const file = this.getActiveFile();
+    if (file) {
+      await this.conversationManager.addAssistantMessage(file, content, result);
+    }
+  }
+  /**
+   * Add system message to conversation
+   */
+  async addSystemMessage(content) {
+    if (!this.conversationManager) return;
+    const file = this.getActiveFile();
+    if (file) {
+      await this.conversationManager.addSystemMessage(file, content);
+    }
+  }
+  /**
+   * Get conversation context for AI prompts
+   */
+  getConversationContext(maxMessages = 6) {
+    if (!this.conversationManager) return "";
+    const file = this.getActiveFile();
+    if (!file) return "";
+    return this.conversationManager.getConversationContext(file, maxMessages);
+  }
+  /**
+   * Clear conversation for current file
+   */
+  async clearConversation() {
+    if (!this.conversationManager) return;
+    const file = this.getActiveFile();
+    if (file) {
+      await this.conversationManager.clearConversation(file);
+    }
+  }
+  /**
+   * Get conversation statistics for current file
+   */
+  getConversationStats() {
+    if (!this.conversationManager) return null;
+    const file = this.getActiveFile();
+    if (!file) return null;
+    return this.conversationManager.getStats(file);
+  }
+  /**
+   * Check if current file has an active conversation
+   */
+  hasConversation() {
+    if (!this.conversationManager) return false;
+    const file = this.getActiveFile();
+    if (!file) return false;
+    return this.conversationManager.hasConversation(file);
+  }
+  /**
+   * Export conversation for current file
+   */
+  exportConversation() {
+    if (!this.conversationManager) return null;
+    const file = this.getActiveFile();
+    if (!file) return null;
+    return this.conversationManager.exportConversation(file);
+  }
+};
+
+// src/core/context-builder.ts
+var ContextBuilder = class {
+  constructor() {
+    this.defaultConfig = {
+      maxContextLines: 20,
+      includeStructure: true,
+      includeHistory: false,
+      temperature: 0.7,
+      maxTokens: 1e3
+    };
+  }
+  /**
+   * Build prompt for a specific command
+   */
+  buildPrompt(command, documentContext, options = {}, conversationContext) {
+    const config = { ...this.defaultConfig, ...options };
+    const systemPrompt = this.buildSystemPrompt(command.action, config);
+    const contextInfo = this.buildContextInfo(documentContext, command, config, conversationContext);
+    const userPrompt = this.buildUserPrompt(command, contextInfo);
+    return {
+      systemPrompt,
+      userPrompt,
+      context: contextInfo,
+      config: {
+        temperature: config.temperature || 0.7,
+        maxTokens: config.maxTokens || 1e3
+      }
+    };
+  }
+  /**
+   * Build system prompt based on action type
+   */
+  buildSystemPrompt(action, config) {
+    const basePrompt = `You are Nova, an AI writing partner that helps users edit documents directly. You work with Markdown documents in Obsidian.
+
+IMPORTANT GUIDELINES:
+- Provide ONLY the content to be inserted/modified, no explanations or meta-text
+- Maintain the document's existing style and tone unless specifically asked to change it
+- Preserve formatting, structure, and markdown syntax
+- Be concise and focused on the specific request
+- Do not add section headers unless specifically requested`;
+    const actionSpecificPrompts = {
+      add: `
+TASK: Add new content to the document.
+- Create well-structured, relevant content that fits the document's purpose
+- Use appropriate markdown formatting (headings, lists, emphasis)
+- Ensure smooth flow with existing content
+- Match the document's style and tone`,
+      edit: `
+TASK: Edit and improve existing content.
+- Enhance clarity, readability, and flow
+- Preserve the original meaning unless changes are requested
+- Improve word choice and sentence structure
+- Maintain the original formatting and structure`,
+      delete: `
+TASK: Remove specified content from the document.
+- Identify the exact content to be removed
+- Ensure remaining content flows naturally
+- Preserve document structure and formatting
+- Confirm the deletion is appropriate for the context`,
+      grammar: `
+TASK: Fix grammar, spelling, and language issues.
+- Correct spelling errors, grammar mistakes, and typos
+- Improve sentence structure and clarity
+- Maintain the original voice and style
+- Preserve all formatting and markdown syntax
+- Make minimal changes - only fix actual errors`,
+      rewrite: `
+TASK: Rewrite or restructure content.
+- Create new content that serves the same purpose
+- Improve organization, clarity, and flow
+- Use more effective language and structure
+- Maintain key information and concepts
+- Adapt to any specified style requirements`
+    };
+    return basePrompt + actionSpecificPrompts[action];
+  }
+  /**
+   * Build user prompt with specific instructions
+   */
+  buildUserPrompt(command, contextInfo) {
+    let prompt = `${contextInfo}
+
+USER REQUEST: ${command.instruction}`;
+    if (command.context && command.context.trim()) {
+      prompt += `
+
+ADDITIONAL REQUIREMENTS: ${command.context}`;
+    }
+    const targetInstructions = this.getTargetInstructions(command);
+    if (targetInstructions) {
+      prompt += `
+
+${targetInstructions}`;
+    }
+    const actionInstructions = this.getActionInstructions(command);
+    if (actionInstructions) {
+      prompt += `
+
+${actionInstructions}`;
+    }
+    return prompt;
+  }
+  /**
+   * Get target-specific instructions
+   */
+  getTargetInstructions(command) {
+    switch (command.target) {
+      case "selection":
+        return "FOCUS: Work with the selected text only. Provide the improved version of the selected content.";
+      case "section":
+        if (command.location) {
+          return `FOCUS: Work with the "${command.location}" section. ${command.action === "add" ? "Add content to this section." : "Modify only this section."}`;
+        }
+        return "FOCUS: Work with the current section.";
+      case "document":
+        return "FOCUS: Apply changes to the entire document while preserving its structure.";
+      case "end":
+        return "FOCUS: Add content at the end of the document. Ensure it flows naturally from existing content.";
+      case "paragraph":
+        return "FOCUS: Work with the current paragraph or create a new paragraph.";
+      default:
+        return "";
+    }
+  }
+  /**
+   * Get action-specific instructions
+   */
+  getActionInstructions(command) {
+    switch (command.action) {
+      case "add":
+        return "OUTPUT: Provide only the new content to be added. Include appropriate headings if adding a section.";
+      case "edit":
+        return "OUTPUT: Provide only the improved version of the content.";
+      case "delete":
+        return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.';
+      case "grammar":
+        return "OUTPUT: Provide only the corrected text with grammar and spelling fixes.";
+      case "rewrite":
+        return "OUTPUT: Provide the completely rewritten content that serves the same purpose.";
+      default:
+        return "";
+    }
+  }
+  /**
+   * Build context information for the prompt
+   */
+  buildContextInfo(documentContext, command, config, conversationContext) {
+    let context = `DOCUMENT: ${documentContext.filename}
+`;
+    if (config.includeHistory && conversationContext && conversationContext.trim()) {
+      context += `
+${conversationContext}
+`;
+    }
+    if (config.includeStructure && documentContext.headings.length > 0) {
+      context += "\nDOCUMENT STRUCTURE:\n";
+      documentContext.headings.forEach((heading) => {
+        const indent = "  ".repeat(heading.level - 1);
+        context += `${indent}- ${heading.text}
+`;
+      });
+    }
+    if (documentContext.selectedText && command.target === "selection") {
+      context += `
+SELECTED TEXT:
+${documentContext.selectedText}
+`;
+    }
+    if (command.target === "section" && command.location) {
+      const section = this.findSectionInContent(documentContext.content, command.location);
+      if (section) {
+        context += `
+CURRENT SECTION "${command.location}":
+${section}
+`;
+      }
+    } else if (command.target === "paragraph" && documentContext.surroundingLines) {
+      context += "\nCURRENT CONTEXT:\n";
+      if (documentContext.surroundingLines.before.length > 0) {
+        context += `Before: ${documentContext.surroundingLines.before.join(" ")}
+`;
+      }
+      if (documentContext.surroundingLines.after.length > 0) {
+        context += `After: ${documentContext.surroundingLines.after.join(" ")}
+`;
+      }
+    }
+    const contentLines = documentContext.content.split("\n");
+    if (contentLines.length > config.maxContextLines) {
+      const start = Math.max(0, contentLines.length - config.maxContextLines);
+      context += `
+RECENT CONTENT (last ${config.maxContextLines} lines):
+`;
+      context += contentLines.slice(start).join("\n");
+    } else {
+      context += `
+FULL DOCUMENT:
+${documentContext.content}`;
+    }
+    return context;
+  }
+  /**
+   * Find a specific section in content
+   */
+  findSectionInContent(content, sectionName) {
+    const lines = content.split("\n");
+    const normalizedSectionName = sectionName.toLowerCase().trim();
+    let sectionStart = -1;
+    let sectionLevel = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const heading = headingMatch[2].toLowerCase().trim();
+        if (heading === normalizedSectionName || heading.includes(normalizedSectionName)) {
+          sectionStart = i;
+          sectionLevel = level;
+          break;
+        }
+      }
+    }
+    if (sectionStart === -1) return null;
+    let sectionEnd = lines.length;
+    for (let i = sectionStart + 1; i < lines.length; i++) {
+      const line = lines[i];
+      const headingMatch = line.match(/^(#{1,6})\s+/);
+      if (headingMatch && headingMatch[1].length <= sectionLevel) {
+        sectionEnd = i;
+        break;
+      }
+    }
+    return lines.slice(sectionStart, sectionEnd).join("\n");
+  }
+  /**
+   * Create a simple prompt for basic operations
+   */
+  buildSimplePrompt(instruction, context) {
+    const systemPrompt = `You are Nova, an AI writing partner. Provide helpful, concise responses to user requests. Focus on being practical and actionable.`;
+    let userPrompt = instruction;
+    if (context) {
+      userPrompt = `Context: ${context}
+
+Request: ${instruction}`;
+    }
+    return {
+      systemPrompt,
+      userPrompt,
+      context: context || "",
+      config: {
+        temperature: 0.7,
+        maxTokens: 500
+      }
+    };
+  }
+  /**
+   * Build prompt for conversation context
+   */
+  buildConversationPrompt(message, documentContext, recentHistory = []) {
+    let systemPrompt = `You are Nova, an AI writing partner that helps users with their documents. You can:
+- Answer questions about writing and editing
+- Provide suggestions for improvement
+- Help plan document structure
+- Assist with research and content development
+
+Be helpful, concise, and practical in your responses.`;
+    let userPrompt = message;
+    let context = "";
+    if (documentContext) {
+      context += `Current document: ${documentContext.filename}
+`;
+      if (documentContext.headings.length > 0) {
+        context += "Document structure:\n";
+        documentContext.headings.forEach((heading) => {
+          const indent = "  ".repeat(heading.level - 1);
+          context += `${indent}- ${heading.text}
+`;
+        });
+      }
+    }
+    if (recentHistory.length > 0) {
+      context += "\nRecent conversation:\n";
+      recentHistory.slice(-3).forEach((msg) => {
+        if (msg.role === "user") {
+          context += `You: ${msg.content}
+`;
+        } else if (msg.role === "assistant") {
+          context += `Nova: ${msg.content}
+`;
+        }
+      });
+    }
+    if (context) {
+      userPrompt = `${context}
+
+Current message: ${message}`;
+    }
+    return {
+      systemPrompt,
+      userPrompt,
+      context,
+      config: {
+        temperature: 0.8,
+        maxTokens: 800
+      }
+    };
+  }
+  /**
+   * Estimate token count for a prompt
+   */
+  estimateTokenCount(prompt) {
+    const totalText = prompt.systemPrompt + prompt.userPrompt + prompt.context;
+    return Math.ceil(totalText.length / 4);
+  }
+  /**
+   * Validate prompt generation
+   */
+  validatePrompt(prompt) {
+    const issues = [];
+    if (!prompt.systemPrompt || prompt.systemPrompt.trim().length === 0) {
+      issues.push("System prompt is empty");
+    }
+    if (!prompt.userPrompt || prompt.userPrompt.trim().length === 0) {
+      issues.push("User prompt is empty");
+    }
+    const tokenCount = this.estimateTokenCount(prompt);
+    if (tokenCount > 8e3) {
+      issues.push(`Prompt is too long (${tokenCount} tokens, max 8000)`);
+    }
+    if (prompt.config.temperature < 0 || prompt.config.temperature > 1) {
+      issues.push("Temperature must be between 0 and 1");
+    }
+    if (prompt.config.maxTokens < 10 || prompt.config.maxTokens > 4e3) {
+      issues.push("Max tokens must be between 10 and 4000");
+    }
+    return {
+      valid: issues.length === 0,
+      issues
+    };
+  }
+};
+
+// src/core/command-parser.ts
+var COMMAND_PATTERNS = [
+  {
+    action: "grammar",
+    patterns: [
+      /\b(grammar|spell|spelling|proofread|polish)\b/i,
+      /\bcheck\b.*\b(grammar|spelling|errors)\b/i,
+      /\bmake\s+.*\b(grammatical|correct|proper)\b/i,
+      /\bfix\s+.*\b(grammar|errors|mistakes|typos)\b/i,
+      /\bcorrect\b.*\b(grammar|spelling|errors)\b/i
+    ],
+    targets: ["selection", "document", "paragraph"]
+  },
+  {
+    action: "rewrite",
+    patterns: [
+      /\b(rewrite|reword|rephrase|restructure|reorganize)\b/i,
+      /\bwrite\s+.*\b(new|different|alternative)\b/i,
+      /\bgenerate\s+.*\b(sections|parts|multiple)\b/i,
+      /\bmake\s+.*\b(sections|parts|multiple)\b/i
+    ],
+    targets: ["document", "end"]
+  },
+  {
+    action: "delete",
+    patterns: [
+      /\b(delete|remove|eliminate|cut|erase)\b/i,
+      /\bget\s+rid\s+of\b/i,
+      /\btake\s+out\b/i,
+      /\bdrop\b.*\b(section|paragraph|part)\b/i
+    ],
+    targets: ["selection", "section", "line"]
+  },
+  {
+    action: "add",
+    patterns: [
+      /\b(add|create|write|insert|include)\b.*\b(section|paragraph|heading|content|text|part)\b/i,
+      /\b(add|create|write|insert)\b(?!\s+.*\b(better|clearer|more|less)\b)/i,
+      /\bmake\s+.*\b(section|part)\b/i,
+      /\bgenerate\b.*\b(section|content|text)\b/i
+    ],
+    targets: ["end", "section", "paragraph"]
+  },
+  {
+    action: "edit",
+    patterns: [
+      /\b(edit|modify|change|update|revise|improve|enhance)\b/i,
+      /\bmake\s+.*\b(better|clearer|more|less|formal|professional|detailed|comprehensive)\b/i,
+      /\b(fix|correct|adjust)\b(?!.*\b(grammar|spelling|errors)\b)/i,
+      /\b(expand|shorten|condense)\b/i
+    ],
+    targets: ["selection", "section", "paragraph"]
+  }
+];
+var LOCATION_PATTERNS = [
+  /\b(?:to|in|at|under|within|inside)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
+  /\b(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
+  /\b(?:section|heading|part)\s+["']([^"']+?)["']/i,
+  /\b(?:section|heading)\s+(?:called|titled|named)\s+["']([^"']+?)["']/i,
+  /\b(?:called|titled|named)\s+["']([^"']+?)["']/i,
+  /\b(?:the\s+)?([a-zA-Z][a-zA-Z\s&]*?)\s+(?:section|heading)\b/i
+];
+var TARGET_PATTERNS = [
+  { pattern: /\b(?:selected|highlighted|chosen)\s+(?:text|content)/i, target: "selection" },
+  { pattern: /\b(?:this|current|selected)\s+(?:paragraph|line)/i, target: "paragraph" },
+  { pattern: /\b(?:entire|whole|full)\s+(?:document|file|note)/i, target: "document" },
+  { pattern: /\b(?:end|bottom|conclusion)/i, target: "end" },
+  { pattern: /\b(?:section|heading|part)/i, target: "section" }
+];
+var CommandParser = class {
+  /**
+   * Parse natural language input into an EditCommand
+   */
+  parseCommand(input, hasSelection = false) {
+    const normalizedInput = input.trim().toLowerCase();
+    const action = this.detectAction(normalizedInput);
+    const target = this.detectTarget(normalizedInput, hasSelection, action);
+    const location = this.extractLocation(input);
+    const context = this.extractContext(input);
+    return {
+      action,
+      target,
+      location,
+      instruction: input,
+      context
+    };
+  }
+  /**
+   * Detect the action type from the input
+   */
+  detectAction(input) {
+    for (const commandPattern of COMMAND_PATTERNS) {
+      for (const pattern of commandPattern.patterns) {
+        if (pattern.test(input)) {
+          return commandPattern.action;
+        }
+      }
+    }
+    if (/\b(add|create|write|insert|include|generate.*section)\b/i.test(input)) {
+      return "add";
+    }
+    if (/\b(fix|correct|grammar|spell|proofread|polish)\b/i.test(input)) {
+      return "grammar";
+    }
+    if (/\b(delete|remove|eliminate)\b/i.test(input)) {
+      return "delete";
+    }
+    if (/\b(rewrite|rephrase|restructure|generate.*new)\b/i.test(input)) {
+      return "rewrite";
+    }
+    return "edit";
+  }
+  /**
+   * Detect the target type from the input
+   */
+  detectTarget(input, hasSelection, action) {
+    for (const targetPattern of TARGET_PATTERNS) {
+      if (targetPattern.pattern.test(input)) {
+        return targetPattern.target;
+      }
+    }
+    if (hasSelection && (action === "edit" || action === "grammar" || action === "delete")) {
+      return "selection";
+    }
+    switch (action) {
+      case "add":
+        return input.includes("section") || input.includes("heading") ? "section" : "end";
+      case "edit":
+        return hasSelection ? "selection" : "paragraph";
+      case "delete":
+        return hasSelection ? "selection" : "section";
+      case "grammar":
+        return hasSelection ? "selection" : "document";
+      case "rewrite":
+        return "end";
+      default:
+        return "paragraph";
+    }
+  }
+  /**
+   * Extract location information from the input
+   */
+  extractLocation(input) {
+    for (const pattern of LOCATION_PATTERNS) {
+      const match = pattern.exec(input);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Extract additional context from the input
+   */
+  extractContext(input) {
+    const styleIndicators = [
+      "formal",
+      "informal",
+      "casual",
+      "professional",
+      "academic",
+      "technical",
+      "simple",
+      "complex",
+      "detailed",
+      "brief",
+      "concise",
+      "verbose",
+      "friendly",
+      "serious",
+      "humorous",
+      "creative",
+      "analytical"
+    ];
+    const foundStyles = styleIndicators.filter(
+      (style) => input.toLowerCase().includes(style)
+    );
+    let context = "";
+    if (foundStyles.length > 0) {
+      context += `Style: ${foundStyles.join(", ")}. `;
+    }
+    if (input.includes("short") || input.includes("brief") || input.includes("concise")) {
+      context += "Keep it brief. ";
+    }
+    if (input.includes("long") || input.includes("detailed") || input.includes("comprehensive")) {
+      context += "Provide detailed content. ";
+    }
+    if (input.includes("bullet") || input.includes("list")) {
+      context += "Use bullet points or lists. ";
+    }
+    if (input.includes("example") || input.includes("examples")) {
+      context += "Include examples. ";
+    }
+    if (input.includes("number") || input.includes("numbered")) {
+      context += "Use numbered lists. ";
+    }
+    return context.trim();
+  }
+  /**
+   * Validate if a command can be executed
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection" && !hasSelection) {
+      return {
+        valid: false,
+        error: "This command requires text to be selected first"
+      };
+    }
+    if (command.target === "section" && command.action === "delete" && !command.location) {
+      return {
+        valid: false,
+        error: "Please specify which section to delete"
+      };
+    }
+    if (command.action === "add" && command.target === "selection") {
+      return {
+        valid: false,
+        error: 'Cannot add content to a selection. Use "edit" to modify selected text'
+      };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggested commands based on context
+   */
+  getSuggestions(hasSelection, hasHeadings) {
+    const suggestions = [];
+    if (hasSelection) {
+      suggestions.push(
+        "Make this more concise",
+        "Fix grammar in this text",
+        "Make this more professional",
+        "Expand on this point"
+      );
+    } else {
+      suggestions.push(
+        "Add a conclusion section",
+        "Fix grammar in this document",
+        "Add an introduction",
+        "Create a summary"
+      );
+    }
+    if (hasHeadings) {
+      suggestions.push(
+        "Add content to the introduction section",
+        "Expand the methodology section"
+      );
+    }
+    return suggestions;
+  }
+  /**
+   * Parse multiple commands from a single input
+   */
+  parseMultipleCommands(input) {
+    const separators = /\b(?:then|also|and then|after that|next|additionally)\b/i;
+    const parts = input.split(separators);
+    if (parts.length === 1) {
+      return [this.parseCommand(input)];
+    }
+    return parts.map((part) => part.trim()).filter((part) => part.length > 0).map((part) => this.parseCommand(part));
+  }
+  /**
+   * Get command description for display
+   */
+  getCommandDescription(command) {
+    const { action, target, location } = command;
+    let description = "";
+    switch (action) {
+      case "add":
+        description = "Add new content";
+        break;
+      case "edit":
+        description = "Edit existing content";
+        break;
+      case "delete":
+        description = "Remove content";
+        break;
+      case "grammar":
+        description = "Fix grammar and spelling";
+        break;
+      case "rewrite":
+        description = "Generate new sections";
+        break;
+    }
+    if (location) {
+      description += ` in "${location}"`;
+    } else {
+      switch (target) {
+        case "selection":
+          description += " in selected text";
+          break;
+        case "section":
+          description += " in current section";
+          break;
+        case "paragraph":
+          description += " in current paragraph";
+          break;
+        case "document":
+          description += " in entire document";
+          break;
+        case "end":
+          description += " at end of document";
+          break;
+      }
+    }
+    return description;
+  }
+};
+
+// src/core/commands/add-command.ts
+var AddCommand = class {
+  constructor(app, documentEngine, contextBuilder, providerManager) {
+    this.app = app;
+    this.documentEngine = documentEngine;
+    this.contextBuilder = contextBuilder;
+    this.providerManager = providerManager;
+  }
+  /**
+   * Execute add command
+   */
+  async execute(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found",
+          editType: "insert"
+        };
+      }
+      const conversationContext = this.documentEngine.getConversationContext();
+      const promptConfig = conversationContext ? { includeHistory: true } : {};
+      const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
+      const validation = this.contextBuilder.validatePrompt(prompt);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: `Prompt validation failed: ${validation.issues.join(", ")}`,
+          editType: "insert"
+        };
+      }
+      try {
+        await this.documentEngine.addUserMessage(command.instruction, command);
+        const content = await this.providerManager.generateText(
+          prompt.userPrompt,
+          {
+            systemPrompt: prompt.systemPrompt,
+            temperature: prompt.config.temperature,
+            maxTokens: prompt.config.maxTokens
+          }
+        );
+        if (!content || content.trim().length === 0) {
+          const result2 = {
+            success: false,
+            error: "AI provider returned empty content",
+            editType: "insert"
+          };
+          await this.documentEngine.addAssistantMessage("Failed to generate content", result2);
+          return result2;
+        }
+        const result = await this.documentEngine.applyEdit(
+          content,
+          await this.determineInsertPosition(command, documentContext),
+          {
+            scrollToEdit: true,
+            selectNewText: false
+          }
+        );
+        await this.documentEngine.addAssistantMessage(
+          result.success ? "Added content successfully" : "Failed to add content",
+          result
+        );
+        return result;
+      } catch (error) {
+        const result = {
+          success: false,
+          error: error instanceof Error ? error.message : "AI generation failed",
+          editType: "insert"
+        };
+        await this.documentEngine.addAssistantMessage(
+          `Error: ${result.error}`,
+          result
+        );
+        return result;
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "insert"
+      };
+    }
+  }
+  /**
+   * Determine where to insert new content
+   */
+  async determineInsertPosition(command, documentContext) {
+    switch (command.target) {
+      case "end":
+        return "end";
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            return { line: section.range.end, ch: 0 };
+          }
+        }
+        return "cursor";
+      case "paragraph":
+        return "cursor";
+      case "document":
+        return "end";
+      default:
+        return "cursor";
+    }
+  }
+  /**
+   * Validate add command requirements
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection") {
+      return {
+        valid: false,
+        error: 'Cannot add content to a selection. Use "edit" to modify selected text'
+      };
+    }
+    if (command.target === "section" && !command.location) {
+      return { valid: true };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggestions for add commands
+   */
+  getSuggestions(documentContext) {
+    const suggestions = [
+      "Add a conclusion section",
+      "Add an introduction",
+      "Create a summary",
+      "Add examples",
+      "Create a methodology section"
+    ];
+    if (documentContext.headings.length > 0) {
+      const sectionNames = documentContext.headings.map((h) => h.text);
+      if (!sectionNames.some((name) => name.toLowerCase().includes("introduction"))) {
+        suggestions.unshift("Add an introduction section");
+      }
+      if (!sectionNames.some((name) => name.toLowerCase().includes("conclusion"))) {
+        suggestions.push("Add a conclusion section");
+      }
+      if (!sectionNames.some((name) => name.toLowerCase().includes("summary"))) {
+        suggestions.push("Add a summary section");
+      }
+    }
+    return suggestions.slice(0, 8);
+  }
+  /**
+   * Preview what content would be added (without actually adding it)
+   */
+  async preview(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found"
+        };
+      }
+      let positionDescription = "";
+      switch (command.target) {
+        case "end":
+          positionDescription = "at the end of the document";
+          break;
+        case "section":
+          if (command.location) {
+            positionDescription = `in the "${command.location}" section`;
+          } else {
+            positionDescription = "in the current section";
+          }
+          break;
+        case "paragraph":
+          positionDescription = "at the cursor position";
+          break;
+        case "document":
+          positionDescription = "at the end of the document";
+          break;
+        default:
+          positionDescription = "at the cursor position";
+      }
+      return {
+        success: true,
+        preview: `Will add new content ${positionDescription}`,
+        position: positionDescription
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+};
+
+// src/core/commands/edit-command.ts
+var EditCommand = class {
+  constructor(app, documentEngine, contextBuilder, providerManager) {
+    this.app = app;
+    this.documentEngine = documentEngine;
+    this.contextBuilder = contextBuilder;
+    this.providerManager = providerManager;
+  }
+  /**
+   * Execute edit command
+   */
+  async execute(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found",
+          editType: "replace"
+        };
+      }
+      const validation = this.validateCommand(command, !!documentContext.selectedText);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error,
+          editType: "replace"
+        };
+      }
+      const conversationContext = this.documentEngine.getConversationContext();
+      const promptConfig = conversationContext ? { includeHistory: true } : {};
+      const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
+      const promptValidation = this.contextBuilder.validatePrompt(prompt);
+      if (!promptValidation.valid) {
+        return {
+          success: false,
+          error: `Prompt validation failed: ${promptValidation.issues.join(", ")}`,
+          editType: "replace"
+        };
+      }
+      try {
+        await this.documentEngine.addUserMessage(command.instruction, command);
+        const content = await this.providerManager.generateText(
+          prompt.userPrompt,
+          {
+            systemPrompt: prompt.systemPrompt,
+            temperature: prompt.config.temperature,
+            maxTokens: prompt.config.maxTokens
+          }
+        );
+        if (!content || content.trim().length === 0) {
+          const result2 = {
+            success: false,
+            error: "AI provider returned empty content",
+            editType: "replace"
+          };
+          await this.documentEngine.addAssistantMessage("Failed to generate content", result2);
+          return result2;
+        }
+        const result = await this.applyEdit(command, documentContext, content);
+        await this.documentEngine.addAssistantMessage(
+          result.success ? "Edited content successfully" : "Failed to edit content",
+          result
+        );
+        return result;
+      } catch (error) {
+        const result = {
+          success: false,
+          error: error instanceof Error ? error.message : "AI generation failed",
+          editType: "replace"
+        };
+        await this.documentEngine.addAssistantMessage(
+          `Error: ${result.error}`,
+          result
+        );
+        return result;
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "replace"
+      };
+    }
+  }
+  /**
+   * Apply edit based on command target
+   */
+  async applyEdit(command, documentContext, content) {
+    switch (command.target) {
+      case "selection":
+        return await this.documentEngine.applyEdit(
+          content,
+          "selection",
+          {
+            scrollToEdit: true,
+            selectNewText: true
+          }
+        );
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            const newSectionContent = `${section.heading}
+
+${content}`;
+            const startPos = { line: section.range.start, ch: 0 };
+            const endPos = { line: section.range.end + 1, ch: 0 };
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+              return {
+                success: false,
+                error: "No active editor",
+                editType: "replace"
+              };
+            }
+            editor.replaceRange(newSectionContent, startPos, endPos);
+            return {
+              success: true,
+              content: newSectionContent,
+              editType: "replace",
+              appliedAt: startPos
+            };
+          } else {
+            return {
+              success: false,
+              error: `Section "${command.location}" not found`,
+              editType: "replace"
+            };
+          }
+        }
+      // Fall through to paragraph if no location specified
+      case "paragraph":
+        return await this.documentEngine.applyEdit(
+          content,
+          "cursor",
+          {
+            scrollToEdit: true,
+            selectNewText: true
+          }
+        );
+      case "document":
+        return await this.documentEngine.setDocumentContent(content);
+      case "end":
+        return await this.documentEngine.applyEdit(
+          content,
+          "end",
+          {
+            scrollToEdit: true,
+            selectNewText: false
+          }
+        );
+      default:
+        return {
+          success: false,
+          error: "Invalid edit target",
+          editType: "replace"
+        };
+    }
+  }
+  /**
+   * Validate edit command requirements
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection" && !hasSelection) {
+      return {
+        valid: false,
+        error: "This command requires text to be selected first"
+      };
+    }
+    if (command.target === "section" && command.action === "edit" && command.location) {
+      return { valid: true };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggestions for edit commands
+   */
+  getSuggestions(documentContext, hasSelection) {
+    const suggestions = [];
+    if (hasSelection) {
+      suggestions.push(
+        "Make this more concise",
+        "Make this more professional",
+        "Make this more detailed",
+        "Improve clarity and flow",
+        "Make this more formal",
+        "Simplify this text",
+        "Expand on this point",
+        "Make this more engaging"
+      );
+    } else {
+      suggestions.push(
+        "Improve the writing style",
+        "Make the document more professional",
+        "Enhance clarity throughout",
+        "Improve the introduction",
+        "Polish the conclusion",
+        "Make it more concise",
+        "Add more detail",
+        "Improve the flow between sections"
+      );
+      if (documentContext.headings.length > 0) {
+        documentContext.headings.forEach((heading) => {
+          suggestions.push(`Improve the "${heading.text}" section`);
+        });
+      }
+    }
+    return suggestions.slice(0, 10);
+  }
+  /**
+   * Preview what would be edited
+   */
+  async preview(command) {
+    var _a, _b;
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found"
+        };
+      }
+      let affectedContent = "";
+      let previewText = "";
+      switch (command.target) {
+        case "selection":
+          if (documentContext.selectedText) {
+            affectedContent = documentContext.selectedText;
+            previewText = "Will edit the selected text";
+          } else {
+            return {
+              success: false,
+              error: "No text is currently selected"
+            };
+          }
+          break;
+        case "section":
+          if (command.location) {
+            const section = await this.documentEngine.findSection(command.location);
+            if (section) {
+              affectedContent = section.content;
+              previewText = `Will edit the entire "${command.location}" section`;
+            } else {
+              return {
+                success: false,
+                error: `Section "${command.location}" not found`
+              };
+            }
+          } else {
+            previewText = "Will edit content at cursor position";
+          }
+          break;
+        case "paragraph":
+          previewText = "Will edit content at cursor position";
+          if (documentContext.surroundingLines) {
+            const currentLine = (_b = (_a = documentContext.cursorPosition) == null ? void 0 : _a.line) != null ? _b : 0;
+            const editor = this.documentEngine.getActiveEditor();
+            if (editor) {
+              affectedContent = editor.getLine(currentLine);
+            }
+          }
+          break;
+        case "document":
+          affectedContent = documentContext.content;
+          previewText = "Will edit the entire document";
+          break;
+        case "end":
+          previewText = "Will add edited content at the end of the document";
+          break;
+        default:
+          return {
+            success: false,
+            error: "Invalid edit target"
+          };
+      }
+      return {
+        success: true,
+        preview: previewText,
+        affectedContent: affectedContent.length > 200 ? affectedContent.substring(0, 200) + "..." : affectedContent
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  /**
+   * Get edit targets available for current context
+   */
+  getAvailableTargets(documentContext) {
+    const targets = ["paragraph", "document", "end"];
+    if (documentContext.selectedText) {
+      targets.unshift("selection");
+    }
+    if (documentContext.headings.length > 0) {
+      targets.splice(-2, 0, "section");
+    }
+    return targets;
+  }
+  /**
+   * Estimate the scope of changes
+   */
+  async estimateScope(command) {
+    const documentContext = await this.documentEngine.getDocumentContext();
+    if (!documentContext) {
+      return {
+        charactersAffected: 0,
+        linesAffected: 0,
+        scopeDescription: "No document available"
+      };
+    }
+    let charactersAffected = 0;
+    let linesAffected = 0;
+    let scopeDescription = "";
+    switch (command.target) {
+      case "selection":
+        if (documentContext.selectedText) {
+          charactersAffected = documentContext.selectedText.length;
+          linesAffected = documentContext.selectedText.split("\n").length;
+          scopeDescription = "Selected text only";
+        }
+        break;
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            charactersAffected = section.content.length;
+            linesAffected = section.range.end - section.range.start;
+            scopeDescription = `"${command.location}" section`;
+          }
+        }
+        break;
+      case "paragraph":
+        charactersAffected = 100;
+        linesAffected = 1;
+        scopeDescription = "Current paragraph";
+        break;
+      case "document":
+        charactersAffected = documentContext.content.length;
+        linesAffected = documentContext.content.split("\n").length;
+        scopeDescription = "Entire document";
+        break;
+      case "end":
+        charactersAffected = 0;
+        linesAffected = 0;
+        scopeDescription = "New content at end";
+        break;
+    }
+    return {
+      charactersAffected,
+      linesAffected,
+      scopeDescription
+    };
+  }
+};
+
+// src/core/commands/delete-command.ts
+var DeleteCommand = class {
+  constructor(app, documentEngine, contextBuilder, providerManager) {
+    this.app = app;
+    this.documentEngine = documentEngine;
+    this.contextBuilder = contextBuilder;
+    this.providerManager = providerManager;
+  }
+  /**
+   * Execute delete command
+   */
+  async execute(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found",
+          editType: "delete"
+        };
+      }
+      const validation = this.validateCommand(command, !!documentContext.selectedText);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error,
+          editType: "delete"
+        };
+      }
+      if (command.instruction && command.instruction.trim().length > 0) {
+        await this.documentEngine.addUserMessage(command.instruction, command);
+        const conversationContext = this.documentEngine.getConversationContext();
+        const promptConfig = conversationContext ? { includeHistory: true } : {};
+        const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
+        const promptValidation = this.contextBuilder.validatePrompt(prompt);
+        if (!promptValidation.valid) {
+          return {
+            success: false,
+            error: `Prompt validation failed: ${promptValidation.issues.join(", ")}`,
+            editType: "delete"
+          };
+        }
+        try {
+          const aiResponse = await this.providerManager.generateText(
+            prompt.userPrompt,
+            {
+              systemPrompt: prompt.systemPrompt,
+              temperature: prompt.config.temperature,
+              maxTokens: prompt.config.maxTokens
+            }
+          );
+        } catch (error) {
+          const result2 = {
+            success: false,
+            error: error instanceof Error ? error.message : "AI analysis failed",
+            editType: "delete"
+          };
+          await this.documentEngine.addAssistantMessage(
+            `Error: ${result2.error}`,
+            result2
+          );
+          return result2;
+        }
+      }
+      const result = await this.applyDeletion(command, documentContext);
+      if (command.instruction && command.instruction.trim().length > 0) {
+        await this.documentEngine.addAssistantMessage(
+          result.success ? "Deleted content successfully" : "Failed to delete content",
+          result
+        );
+      }
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "delete"
+      };
+    }
+  }
+  /**
+   * Apply deletion based on command target
+   */
+  async applyDeletion(command, documentContext) {
+    switch (command.target) {
+      case "selection":
+        if (documentContext.selectedText) {
+          return await this.documentEngine.applyEdit(
+            "",
+            "selection",
+            {
+              scrollToEdit: true,
+              selectNewText: false
+            }
+          );
+        } else {
+          return {
+            success: false,
+            error: "No text selected for deletion",
+            editType: "delete"
+          };
+        }
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            const startPos = { line: section.range.start, ch: 0 };
+            const endPos = { line: section.range.end + 1, ch: 0 };
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+              return {
+                success: false,
+                error: "No active editor",
+                editType: "delete"
+              };
+            }
+            editor.replaceRange("", startPos, endPos);
+            return {
+              success: true,
+              content: "",
+              editType: "delete",
+              appliedAt: startPos
+            };
+          } else {
+            return {
+              success: false,
+              error: `Section "${command.location}" not found`,
+              editType: "delete"
+            };
+          }
+        } else {
+          return {
+            success: false,
+            error: "Section name required for section deletion",
+            editType: "delete"
+          };
+        }
+      case "paragraph":
+        if (documentContext.cursorPosition) {
+          const editor = this.documentEngine.getActiveEditor();
+          if (!editor) {
+            return {
+              success: false,
+              error: "No active editor",
+              editType: "delete"
+            };
+          }
+          const currentLine = documentContext.cursorPosition.line;
+          const lineContent = editor.getLine(currentLine);
+          let startLine = currentLine;
+          let endLine = currentLine;
+          while (startLine > 0) {
+            const prevLine = editor.getLine(startLine - 1);
+            if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+              break;
+            }
+            startLine--;
+          }
+          const lineCount = editor.lineCount();
+          while (endLine < lineCount - 1) {
+            const nextLine = editor.getLine(endLine + 1);
+            if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+              break;
+            }
+            endLine++;
+          }
+          const startPos = { line: startLine, ch: 0 };
+          const endPos = { line: endLine + 1, ch: 0 };
+          editor.replaceRange("", startPos, endPos);
+          return {
+            success: true,
+            content: "",
+            editType: "delete",
+            appliedAt: startPos
+          };
+        } else {
+          return {
+            success: false,
+            error: "No cursor position available",
+            editType: "delete"
+          };
+        }
+      case "document":
+        return await this.documentEngine.setDocumentContent("");
+      case "end":
+        return {
+          success: false,
+          error: "Cannot delete from end of document. Use a different target.",
+          editType: "delete"
+        };
+      default:
+        return {
+          success: false,
+          error: "Invalid deletion target",
+          editType: "delete"
+        };
+    }
+  }
+  /**
+   * Validate delete command requirements
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection" && !hasSelection) {
+      return {
+        valid: false,
+        error: "This command requires text to be selected first"
+      };
+    }
+    if (command.target === "section" && !command.location) {
+      return {
+        valid: false,
+        error: "Section name required for section deletion"
+      };
+    }
+    if (command.target === "end") {
+      return {
+        valid: false,
+        error: "Cannot delete from end of document. Use a different target."
+      };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggestions for delete commands
+   */
+  getSuggestions(documentContext, hasSelection) {
+    const suggestions = [];
+    if (hasSelection) {
+      suggestions.push(
+        "Delete the selected text",
+        "Remove this content",
+        "Clear the selection"
+      );
+    } else {
+      suggestions.push(
+        "Delete the current paragraph",
+        "Remove empty sections",
+        "Clear redundant content",
+        "Delete duplicate information"
+      );
+      if (documentContext.headings.length > 0) {
+        documentContext.headings.forEach((heading) => {
+          suggestions.push(`Delete the "${heading.text}" section`);
+        });
+      }
+    }
+    return suggestions.slice(0, 8);
+  }
+  /**
+   * Preview what would be deleted
+   */
+  async preview(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found"
+        };
+      }
+      let affectedContent = "";
+      let previewText = "";
+      switch (command.target) {
+        case "selection":
+          if (documentContext.selectedText) {
+            affectedContent = documentContext.selectedText;
+            previewText = "Will delete the selected text";
+          } else {
+            return {
+              success: false,
+              error: "No text is currently selected"
+            };
+          }
+          break;
+        case "section":
+          if (command.location) {
+            const section = await this.documentEngine.findSection(command.location);
+            if (section) {
+              affectedContent = `${section.heading}
+
+${section.content}`;
+              previewText = `Will delete the entire "${command.location}" section`;
+            } else {
+              return {
+                success: false,
+                error: `Section "${command.location}" not found`
+              };
+            }
+          } else {
+            return {
+              success: false,
+              error: "Section name required for preview"
+            };
+          }
+          break;
+        case "paragraph":
+          previewText = "Will delete the current paragraph";
+          if (documentContext.cursorPosition) {
+            const editor = this.documentEngine.getActiveEditor();
+            if (editor) {
+              const currentLine = documentContext.cursorPosition.line;
+              let paragraphLines = [];
+              let startLine = currentLine;
+              let endLine = currentLine;
+              while (startLine > 0) {
+                const prevLine = editor.getLine(startLine - 1);
+                if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+                  break;
+                }
+                startLine--;
+              }
+              const lineCount = editor.lineCount();
+              while (endLine < lineCount - 1) {
+                const nextLine = editor.getLine(endLine + 1);
+                if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+                  break;
+                }
+                endLine++;
+              }
+              for (let i = startLine; i <= endLine; i++) {
+                paragraphLines.push(editor.getLine(i));
+              }
+              affectedContent = paragraphLines.join("\n");
+            }
+          }
+          break;
+        case "document":
+          affectedContent = documentContext.content;
+          previewText = "Will delete all document content";
+          break;
+        case "end":
+          return {
+            success: false,
+            error: "Cannot delete from end of document"
+          };
+        default:
+          return {
+            success: false,
+            error: "Invalid deletion target"
+          };
+      }
+      return {
+        success: true,
+        preview: previewText,
+        affectedContent: affectedContent.length > 200 ? affectedContent.substring(0, 200) + "..." : affectedContent
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  /**
+   * Get delete targets available for current context
+   */
+  getAvailableTargets(documentContext) {
+    const targets = ["paragraph", "document"];
+    if (documentContext.selectedText) {
+      targets.unshift("selection");
+    }
+    if (documentContext.headings.length > 0) {
+      targets.splice(-1, 0, "section");
+    }
+    return targets;
+  }
+  /**
+   * Estimate the scope of deletion
+   */
+  async estimateScope(command) {
+    const documentContext = await this.documentEngine.getDocumentContext();
+    if (!documentContext) {
+      return {
+        charactersAffected: 0,
+        linesAffected: 0,
+        scopeDescription: "No document available"
+      };
+    }
+    let charactersAffected = 0;
+    let linesAffected = 0;
+    let scopeDescription = "";
+    switch (command.target) {
+      case "selection":
+        if (documentContext.selectedText) {
+          charactersAffected = documentContext.selectedText.length;
+          linesAffected = documentContext.selectedText.split("\n").length;
+          scopeDescription = "Selected text only";
+        }
+        break;
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            charactersAffected = section.content.length + section.heading.length;
+            linesAffected = section.range.end - section.range.start + 1;
+            scopeDescription = `"${command.location}" section`;
+          }
+        }
+        break;
+      case "paragraph":
+        charactersAffected = 100;
+        linesAffected = 1;
+        scopeDescription = "Current paragraph";
+        break;
+      case "document":
+        charactersAffected = documentContext.content.length;
+        linesAffected = documentContext.content.split("\n").length;
+        scopeDescription = "Entire document";
+        break;
+      case "end":
+        charactersAffected = 0;
+        linesAffected = 0;
+        scopeDescription = "Invalid target for deletion";
+        break;
+    }
+    return {
+      charactersAffected,
+      linesAffected,
+      scopeDescription
+    };
+  }
+};
+
+// src/core/commands/grammar-command.ts
+var GrammarCommand = class {
+  constructor(app, documentEngine, contextBuilder, providerManager) {
+    this.app = app;
+    this.documentEngine = documentEngine;
+    this.contextBuilder = contextBuilder;
+    this.providerManager = providerManager;
+  }
+  /**
+   * Execute grammar command
+   */
+  async execute(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found",
+          editType: "replace"
+        };
+      }
+      const validation = this.validateCommand(command, !!documentContext.selectedText);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error,
+          editType: "replace"
+        };
+      }
+      const conversationContext = this.documentEngine.getConversationContext();
+      const promptConfig = conversationContext ? { includeHistory: true } : {};
+      const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
+      const promptValidation = this.contextBuilder.validatePrompt(prompt);
+      if (!promptValidation.valid) {
+        return {
+          success: false,
+          error: `Prompt validation failed: ${promptValidation.issues.join(", ")}`,
+          editType: "replace"
+        };
+      }
+      try {
+        await this.documentEngine.addUserMessage(command.instruction, command);
+        const correctedContent = await this.providerManager.generateText(
+          prompt.userPrompt,
+          {
+            systemPrompt: prompt.systemPrompt,
+            temperature: 0.3,
+            // Lower temperature for grammar corrections
+            maxTokens: prompt.config.maxTokens
+          }
+        );
+        if (!correctedContent || correctedContent.trim().length === 0) {
+          const result2 = {
+            success: false,
+            error: "AI provider returned empty content",
+            editType: "replace"
+          };
+          await this.documentEngine.addAssistantMessage("Failed to generate corrected content", result2);
+          return result2;
+        }
+        const result = await this.applyGrammarCorrection(command, documentContext, correctedContent);
+        await this.documentEngine.addAssistantMessage(
+          result.success ? "Grammar corrected successfully" : "Failed to correct grammar",
+          result
+        );
+        return result;
+      } catch (error) {
+        const result = {
+          success: false,
+          error: error instanceof Error ? error.message : "Grammar correction failed",
+          editType: "replace"
+        };
+        await this.documentEngine.addAssistantMessage(
+          `Error: ${result.error}`,
+          result
+        );
+        return result;
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "replace"
+      };
+    }
+  }
+  /**
+   * Apply grammar correction based on command target
+   */
+  async applyGrammarCorrection(command, documentContext, correctedContent) {
+    switch (command.target) {
+      case "selection":
+        return await this.documentEngine.applyEdit(
+          correctedContent,
+          "selection",
+          {
+            scrollToEdit: true,
+            selectNewText: true
+          }
+        );
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            const newSectionContent = `${section.heading}
+
+${correctedContent}`;
+            const startPos = { line: section.range.start, ch: 0 };
+            const endPos = { line: section.range.end + 1, ch: 0 };
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+              return {
+                success: false,
+                error: "No active editor",
+                editType: "replace"
+              };
+            }
+            editor.replaceRange(newSectionContent, startPos, endPos);
+            return {
+              success: true,
+              content: newSectionContent,
+              editType: "replace",
+              appliedAt: startPos
+            };
+          } else {
+            return {
+              success: false,
+              error: `Section "${command.location}" not found`,
+              editType: "replace"
+            };
+          }
+        }
+      // Fall through to paragraph if no location specified
+      case "paragraph":
+        if (documentContext.cursorPosition) {
+          const editor = this.documentEngine.getActiveEditor();
+          if (!editor) {
+            return {
+              success: false,
+              error: "No active editor",
+              editType: "replace"
+            };
+          }
+          const currentLine = documentContext.cursorPosition.line;
+          let startLine = currentLine;
+          let endLine = currentLine;
+          while (startLine > 0) {
+            const prevLine = editor.getLine(startLine - 1);
+            if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+              break;
+            }
+            startLine--;
+          }
+          const lineCount = editor.lineCount();
+          while (endLine < lineCount - 1) {
+            const nextLine = editor.getLine(endLine + 1);
+            if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+              break;
+            }
+            endLine++;
+          }
+          const startPos = { line: startLine, ch: 0 };
+          const endPos = { line: endLine, ch: editor.getLine(endLine).length };
+          editor.replaceRange(correctedContent, startPos, endPos);
+          return {
+            success: true,
+            content: correctedContent,
+            editType: "replace",
+            appliedAt: startPos
+          };
+        } else {
+          return {
+            success: false,
+            error: "No cursor position available",
+            editType: "replace"
+          };
+        }
+      case "document":
+        return await this.documentEngine.setDocumentContent(correctedContent);
+      case "end":
+        return await this.documentEngine.applyEdit(
+          correctedContent,
+          "end",
+          {
+            scrollToEdit: true,
+            selectNewText: false
+          }
+        );
+      default:
+        return {
+          success: false,
+          error: "Invalid grammar correction target",
+          editType: "replace"
+        };
+    }
+  }
+  /**
+   * Validate grammar command requirements
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection" && !hasSelection) {
+      return {
+        valid: false,
+        error: "This command requires text to be selected first"
+      };
+    }
+    if (command.target === "section" && command.action === "grammar" && command.location) {
+      return { valid: true };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggestions for grammar commands
+   */
+  getSuggestions(documentContext, hasSelection) {
+    const suggestions = [];
+    if (hasSelection) {
+      suggestions.push(
+        "Fix grammar in selected text",
+        "Correct spelling and punctuation",
+        "Improve sentence structure",
+        "Fix capitalization errors",
+        "Correct verb tenses",
+        "Fix subject-verb agreement",
+        "Improve readability"
+      );
+    } else {
+      suggestions.push(
+        "Check grammar throughout document",
+        "Fix spelling errors",
+        "Correct punctuation",
+        "Improve sentence structure",
+        "Fix grammatical errors in current paragraph",
+        "Check for common mistakes",
+        "Proofread the document"
+      );
+      if (documentContext.headings.length > 0) {
+        documentContext.headings.forEach((heading) => {
+          suggestions.push(`Check grammar in "${heading.text}" section`);
+        });
+      }
+    }
+    return suggestions.slice(0, 10);
+  }
+  /**
+   * Preview what would be grammar-corrected
+   */
+  async preview(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found"
+        };
+      }
+      let affectedContent = "";
+      let previewText = "";
+      const potentialIssues = [];
+      switch (command.target) {
+        case "selection":
+          if (documentContext.selectedText) {
+            affectedContent = documentContext.selectedText;
+            previewText = "Will check grammar in the selected text";
+            potentialIssues.push(...this.detectPotentialIssues(affectedContent));
+          } else {
+            return {
+              success: false,
+              error: "No text is currently selected"
+            };
+          }
+          break;
+        case "section":
+          if (command.location) {
+            const section = await this.documentEngine.findSection(command.location);
+            if (section) {
+              affectedContent = section.content;
+              previewText = `Will check grammar in the "${command.location}" section`;
+              potentialIssues.push(...this.detectPotentialIssues(affectedContent));
+            } else {
+              return {
+                success: false,
+                error: `Section "${command.location}" not found`
+              };
+            }
+          } else {
+            previewText = "Will check grammar at cursor position";
+          }
+          break;
+        case "paragraph":
+          previewText = "Will check grammar in the current paragraph";
+          if (documentContext.cursorPosition) {
+            const editor = this.documentEngine.getActiveEditor();
+            if (editor) {
+              const currentLine = documentContext.cursorPosition.line;
+              let paragraphLines = [];
+              let startLine = currentLine;
+              let endLine = currentLine;
+              while (startLine > 0) {
+                const prevLine = editor.getLine(startLine - 1);
+                if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+                  break;
+                }
+                startLine--;
+              }
+              const lineCount = editor.lineCount();
+              while (endLine < lineCount - 1) {
+                const nextLine = editor.getLine(endLine + 1);
+                if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+                  break;
+                }
+                endLine++;
+              }
+              for (let i = startLine; i <= endLine; i++) {
+                paragraphLines.push(editor.getLine(i));
+              }
+              affectedContent = paragraphLines.join("\n");
+              potentialIssues.push(...this.detectPotentialIssues(affectedContent));
+            }
+          }
+          break;
+        case "document":
+          affectedContent = documentContext.content;
+          previewText = "Will check grammar throughout the entire document";
+          potentialIssues.push(...this.detectPotentialIssues(affectedContent));
+          break;
+        case "end":
+          previewText = "Will add grammar-corrected content at the end of the document";
+          break;
+        default:
+          return {
+            success: false,
+            error: "Invalid grammar correction target"
+          };
+      }
+      return {
+        success: true,
+        preview: previewText,
+        affectedContent: affectedContent.length > 200 ? affectedContent.substring(0, 200) + "..." : affectedContent,
+        potentialIssues: potentialIssues.slice(0, 5)
+        // Limit to 5 issues
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  /**
+   * Detect potential grammar issues in text
+   */
+  detectPotentialIssues(text) {
+    const issues = [];
+    const patterns = [
+      { pattern: /\bi\s/gi, issue: 'Lowercase "i" should be capitalized' },
+      { pattern: /\.\s*[a-z]/g, issue: "Sentence should start with capital letter" },
+      { pattern: /\s{2,}/g, issue: "Multiple spaces detected" },
+      { pattern: /[.!?]{2,}/g, issue: "Multiple punctuation marks" },
+      { pattern: /\s+[.!?,:;]/g, issue: "Space before punctuation" },
+      { pattern: /[.!?]\w/g, issue: "Missing space after punctuation" },
+      { pattern: /\bteh\b/gi, issue: 'Common typo: "teh" should be "the"' },
+      { pattern: /\band\s+and\b/gi, issue: 'Duplicate "and"' },
+      { pattern: /\bthe\s+the\b/gi, issue: 'Duplicate "the"' },
+      { pattern: /\bis\s+is\b/gi, issue: 'Duplicate "is"' }
+    ];
+    patterns.forEach(({ pattern, issue }) => {
+      if (pattern.test(text)) {
+        issues.push(issue);
+      }
+    });
+    return issues;
+  }
+  /**
+   * Get grammar check targets available for current context
+   */
+  getAvailableTargets(documentContext) {
+    const targets = ["paragraph", "document", "end"];
+    if (documentContext.selectedText) {
+      targets.unshift("selection");
+    }
+    if (documentContext.headings.length > 0) {
+      targets.splice(-2, 0, "section");
+    }
+    return targets;
+  }
+  /**
+   * Estimate the scope of grammar correction
+   */
+  async estimateScope(command) {
+    const documentContext = await this.documentEngine.getDocumentContext();
+    if (!documentContext) {
+      return {
+        charactersAffected: 0,
+        linesAffected: 0,
+        scopeDescription: "No document available",
+        estimatedIssues: 0
+      };
+    }
+    let charactersAffected = 0;
+    let linesAffected = 0;
+    let scopeDescription = "";
+    let contentToAnalyze = "";
+    switch (command.target) {
+      case "selection":
+        if (documentContext.selectedText) {
+          charactersAffected = documentContext.selectedText.length;
+          linesAffected = documentContext.selectedText.split("\n").length;
+          scopeDescription = "Selected text only";
+          contentToAnalyze = documentContext.selectedText;
+        }
+        break;
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            charactersAffected = section.content.length;
+            linesAffected = section.range.end - section.range.start;
+            scopeDescription = `"${command.location}" section`;
+            contentToAnalyze = section.content;
+          }
+        }
+        break;
+      case "paragraph":
+        charactersAffected = 100;
+        linesAffected = 1;
+        scopeDescription = "Current paragraph";
+        if (documentContext.surroundingLines) {
+          contentToAnalyze = documentContext.surroundingLines.before.join("\n") + "\n" + documentContext.surroundingLines.after.join("\n");
+        }
+        break;
+      case "document":
+        charactersAffected = documentContext.content.length;
+        linesAffected = documentContext.content.split("\n").length;
+        scopeDescription = "Entire document";
+        contentToAnalyze = documentContext.content;
+        break;
+      case "end":
+        charactersAffected = 0;
+        linesAffected = 0;
+        scopeDescription = "New content at end";
+        break;
+    }
+    const estimatedIssues = this.detectPotentialIssues(contentToAnalyze).length;
+    return {
+      charactersAffected,
+      linesAffected,
+      scopeDescription,
+      estimatedIssues
+    };
+  }
+};
+
+// src/core/commands/rewrite-command.ts
+var RewriteCommand = class {
+  constructor(app, documentEngine, contextBuilder, providerManager) {
+    this.app = app;
+    this.documentEngine = documentEngine;
+    this.contextBuilder = contextBuilder;
+    this.providerManager = providerManager;
+  }
+  /**
+   * Execute rewrite command
+   */
+  async execute(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found",
+          editType: "replace"
+        };
+      }
+      const validation = this.validateCommand(command, !!documentContext.selectedText);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error,
+          editType: "replace"
+        };
+      }
+      const conversationContext = this.documentEngine.getConversationContext();
+      const promptConfig = conversationContext ? { includeHistory: true } : {};
+      const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
+      const promptValidation = this.contextBuilder.validatePrompt(prompt);
+      if (!promptValidation.valid) {
+        return {
+          success: false,
+          error: `Prompt validation failed: ${promptValidation.issues.join(", ")}`,
+          editType: "replace"
+        };
+      }
+      try {
+        await this.documentEngine.addUserMessage(command.instruction, command);
+        const rewrittenContent = await this.providerManager.generateText(
+          prompt.userPrompt,
+          {
+            systemPrompt: prompt.systemPrompt,
+            temperature: prompt.config.temperature,
+            maxTokens: prompt.config.maxTokens
+          }
+        );
+        if (!rewrittenContent || rewrittenContent.trim().length === 0) {
+          const result2 = {
+            success: false,
+            error: "AI provider returned empty content",
+            editType: "replace"
+          };
+          await this.documentEngine.addAssistantMessage("Failed to generate rewritten content", result2);
+          return result2;
+        }
+        const result = await this.applyRewrite(command, documentContext, rewrittenContent);
+        await this.documentEngine.addAssistantMessage(
+          result.success ? "Rewritten content successfully" : "Failed to rewrite content",
+          result
+        );
+        return result;
+      } catch (error) {
+        const result = {
+          success: false,
+          error: error instanceof Error ? error.message : "Rewrite generation failed",
+          editType: "replace"
+        };
+        await this.documentEngine.addAssistantMessage(
+          `Error: ${result.error}`,
+          result
+        );
+        return result;
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "replace"
+      };
+    }
+  }
+  /**
+   * Apply rewrite based on command target
+   */
+  async applyRewrite(command, documentContext, rewrittenContent) {
+    switch (command.target) {
+      case "selection":
+        return await this.documentEngine.applyEdit(
+          rewrittenContent,
+          "selection",
+          {
+            scrollToEdit: true,
+            selectNewText: true
+          }
+        );
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            const newSectionContent = `${section.heading}
+
+${rewrittenContent}`;
+            const startPos = { line: section.range.start, ch: 0 };
+            const endPos = { line: section.range.end + 1, ch: 0 };
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+              return {
+                success: false,
+                error: "No active editor",
+                editType: "replace"
+              };
+            }
+            editor.replaceRange(newSectionContent, startPos, endPos);
+            return {
+              success: true,
+              content: newSectionContent,
+              editType: "replace",
+              appliedAt: startPos
+            };
+          } else {
+            return {
+              success: false,
+              error: `Section "${command.location}" not found`,
+              editType: "replace"
+            };
+          }
+        }
+      // Fall through to paragraph if no location specified
+      case "paragraph":
+        if (documentContext.cursorPosition) {
+          const editor = this.documentEngine.getActiveEditor();
+          if (!editor) {
+            return {
+              success: false,
+              error: "No active editor",
+              editType: "replace"
+            };
+          }
+          const currentLine = documentContext.cursorPosition.line;
+          let startLine = currentLine;
+          let endLine = currentLine;
+          while (startLine > 0) {
+            const prevLine = editor.getLine(startLine - 1);
+            if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+              break;
+            }
+            startLine--;
+          }
+          const lineCount = editor.lineCount();
+          while (endLine < lineCount - 1) {
+            const nextLine = editor.getLine(endLine + 1);
+            if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+              break;
+            }
+            endLine++;
+          }
+          const startPos = { line: startLine, ch: 0 };
+          const endPos = { line: endLine, ch: editor.getLine(endLine).length };
+          editor.replaceRange(rewrittenContent, startPos, endPos);
+          return {
+            success: true,
+            content: rewrittenContent,
+            editType: "replace",
+            appliedAt: startPos
+          };
+        } else {
+          return {
+            success: false,
+            error: "No cursor position available",
+            editType: "replace"
+          };
+        }
+      case "document":
+        return await this.documentEngine.setDocumentContent(rewrittenContent);
+      case "end":
+        return await this.documentEngine.applyEdit(
+          rewrittenContent,
+          "end",
+          {
+            scrollToEdit: true,
+            selectNewText: false
+          }
+        );
+      default:
+        return {
+          success: false,
+          error: "Invalid rewrite target",
+          editType: "replace"
+        };
+    }
+  }
+  /**
+   * Validate rewrite command requirements
+   */
+  validateCommand(command, hasSelection) {
+    if (command.target === "selection" && !hasSelection) {
+      return {
+        valid: false,
+        error: "This command requires text to be selected first"
+      };
+    }
+    if (command.target === "section" && command.action === "rewrite" && command.location) {
+      return { valid: true };
+    }
+    return { valid: true };
+  }
+  /**
+   * Get suggestions for rewrite commands
+   */
+  getSuggestions(documentContext, hasSelection) {
+    const suggestions = [];
+    if (hasSelection) {
+      suggestions.push(
+        "Rewrite in a more formal tone",
+        "Rewrite in a casual tone",
+        "Make this more concise",
+        "Expand with more detail",
+        "Rewrite for clarity",
+        "Simplify the language",
+        "Make it more engaging",
+        "Rewrite in bullet points",
+        "Convert to narrative form"
+      );
+    } else {
+      suggestions.push(
+        "Rewrite the current paragraph",
+        "Rewrite in a different style",
+        "Make the writing more engaging",
+        "Simplify complex language",
+        "Rewrite for different audience",
+        "Convert to more formal tone",
+        "Make the content more concise"
+      );
+      if (documentContext.headings.length > 0) {
+        documentContext.headings.forEach((heading) => {
+          suggestions.push(`Rewrite the "${heading.text}" section`);
+        });
+      }
+    }
+    return suggestions.slice(0, 10);
+  }
+  /**
+   * Preview what would be rewritten
+   */
+  async preview(command) {
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      if (!documentContext) {
+        return {
+          success: false,
+          error: "No active document found"
+        };
+      }
+      let affectedContent = "";
+      let previewText = "";
+      const rewriteStyle = this.inferRewriteStyle(command.instruction);
+      switch (command.target) {
+        case "selection":
+          if (documentContext.selectedText) {
+            affectedContent = documentContext.selectedText;
+            previewText = `Will rewrite the selected text`;
+            if (rewriteStyle) {
+              previewText += ` (${rewriteStyle})`;
+            }
+          } else {
+            return {
+              success: false,
+              error: "No text is currently selected"
+            };
+          }
+          break;
+        case "section":
+          if (command.location) {
+            const section = await this.documentEngine.findSection(command.location);
+            if (section) {
+              affectedContent = section.content;
+              previewText = `Will rewrite the "${command.location}" section`;
+              if (rewriteStyle) {
+                previewText += ` (${rewriteStyle})`;
+              }
+            } else {
+              return {
+                success: false,
+                error: `Section "${command.location}" not found`
+              };
+            }
+          } else {
+            previewText = "Will rewrite content at cursor position";
+          }
+          break;
+        case "paragraph":
+          previewText = "Will rewrite the current paragraph";
+          if (rewriteStyle) {
+            previewText += ` (${rewriteStyle})`;
+          }
+          if (documentContext.cursorPosition) {
+            const editor = this.documentEngine.getActiveEditor();
+            if (editor) {
+              const currentLine = documentContext.cursorPosition.line;
+              let paragraphLines = [];
+              let startLine = currentLine;
+              let endLine = currentLine;
+              while (startLine > 0) {
+                const prevLine = editor.getLine(startLine - 1);
+                if (prevLine.trim() === "" || prevLine.startsWith("#")) {
+                  break;
+                }
+                startLine--;
+              }
+              const lineCount = editor.lineCount();
+              while (endLine < lineCount - 1) {
+                const nextLine = editor.getLine(endLine + 1);
+                if (nextLine.trim() === "" || nextLine.startsWith("#")) {
+                  break;
+                }
+                endLine++;
+              }
+              for (let i = startLine; i <= endLine; i++) {
+                paragraphLines.push(editor.getLine(i));
+              }
+              affectedContent = paragraphLines.join("\n");
+            }
+          }
+          break;
+        case "document":
+          affectedContent = documentContext.content;
+          previewText = "Will rewrite the entire document";
+          if (rewriteStyle) {
+            previewText += ` (${rewriteStyle})`;
+          }
+          break;
+        case "end":
+          previewText = "Will add rewritten content at the end of the document";
+          if (rewriteStyle) {
+            previewText += ` (${rewriteStyle})`;
+          }
+          break;
+        default:
+          return {
+            success: false,
+            error: "Invalid rewrite target"
+          };
+      }
+      return {
+        success: true,
+        preview: previewText,
+        affectedContent: affectedContent.length > 200 ? affectedContent.substring(0, 200) + "..." : affectedContent,
+        rewriteStyle
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  /**
+   * Infer rewrite style from instruction
+   */
+  inferRewriteStyle(instruction) {
+    const lowerInstruction = instruction.toLowerCase();
+    if (lowerInstruction.includes("formal")) return "formal tone";
+    if (lowerInstruction.includes("casual") || lowerInstruction.includes("informal")) return "casual tone";
+    if (lowerInstruction.includes("concise") || lowerInstruction.includes("shorter")) return "more concise";
+    if (lowerInstruction.includes("expand") || lowerInstruction.includes("detail")) return "more detailed";
+    if (lowerInstruction.includes("simple") || lowerInstruction.includes("simplify")) return "simplified language";
+    if (lowerInstruction.includes("engaging") || lowerInstruction.includes("interesting")) return "more engaging";
+    if (lowerInstruction.includes("professional")) return "professional tone";
+    if (lowerInstruction.includes("bullet") || lowerInstruction.includes("list")) return "bullet point format";
+    if (lowerInstruction.includes("narrative") || lowerInstruction.includes("story")) return "narrative style";
+    if (lowerInstruction.includes("technical")) return "technical style";
+    if (lowerInstruction.includes("creative")) return "creative style";
+    return "";
+  }
+  /**
+   * Get rewrite targets available for current context
+   */
+  getAvailableTargets(documentContext) {
+    const targets = ["paragraph", "document", "end"];
+    if (documentContext.selectedText) {
+      targets.unshift("selection");
+    }
+    if (documentContext.headings.length > 0) {
+      targets.splice(-2, 0, "section");
+    }
+    return targets;
+  }
+  /**
+   * Estimate the scope of rewriting
+   */
+  async estimateScope(command) {
+    const documentContext = await this.documentEngine.getDocumentContext();
+    if (!documentContext) {
+      return {
+        charactersAffected: 0,
+        linesAffected: 0,
+        scopeDescription: "No document available",
+        rewriteComplexity: "low"
+      };
+    }
+    let charactersAffected = 0;
+    let linesAffected = 0;
+    let scopeDescription = "";
+    let contentToAnalyze = "";
+    switch (command.target) {
+      case "selection":
+        if (documentContext.selectedText) {
+          charactersAffected = documentContext.selectedText.length;
+          linesAffected = documentContext.selectedText.split("\n").length;
+          scopeDescription = "Selected text only";
+          contentToAnalyze = documentContext.selectedText;
+        }
+        break;
+      case "section":
+        if (command.location) {
+          const section = await this.documentEngine.findSection(command.location);
+          if (section) {
+            charactersAffected = section.content.length;
+            linesAffected = section.range.end - section.range.start;
+            scopeDescription = `"${command.location}" section`;
+            contentToAnalyze = section.content;
+          }
+        }
+        break;
+      case "paragraph":
+        charactersAffected = 100;
+        linesAffected = 1;
+        scopeDescription = "Current paragraph";
+        if (documentContext.surroundingLines) {
+          contentToAnalyze = documentContext.surroundingLines.before.join("\n") + "\n" + documentContext.surroundingLines.after.join("\n");
+        }
+        break;
+      case "document":
+        charactersAffected = documentContext.content.length;
+        linesAffected = documentContext.content.split("\n").length;
+        scopeDescription = "Entire document";
+        contentToAnalyze = documentContext.content;
+        break;
+      case "end":
+        charactersAffected = 0;
+        linesAffected = 0;
+        scopeDescription = "New content at end";
+        break;
+    }
+    const rewriteComplexity = this.estimateComplexity(contentToAnalyze, command.instruction);
+    return {
+      charactersAffected,
+      linesAffected,
+      scopeDescription,
+      rewriteComplexity
+    };
+  }
+  /**
+   * Estimate rewrite complexity
+   */
+  estimateComplexity(content, instruction) {
+    const contentLength = content.length;
+    const lowerInstruction = instruction.toLowerCase();
+    let complexity = "low";
+    if (contentLength > 1e3) complexity = "high";
+    else if (contentLength > 300) complexity = "medium";
+    const complexInstructions = [
+      "restructure",
+      "reorganize",
+      "completely rewrite",
+      "transform",
+      "change style",
+      "different audience",
+      "technical",
+      "academic"
+    ];
+    if (complexInstructions.some((term) => lowerInstruction.includes(term))) {
+      if (complexity === "low") complexity = "medium";
+      else if (complexity === "medium") complexity = "high";
+    }
+    return complexity;
+  }
+};
+
 // main.ts
 var NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -945,17 +4178,26 @@ var NOVA_ICON_SVG = `
   <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
   <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 </svg>`;
-var NovaPlugin = class extends import_obsidian4.Plugin {
+var NovaPlugin = class extends import_obsidian5.Plugin {
   async onload() {
     try {
       console.log("Nova: onload starting...");
       await this.loadSettings();
       console.log("Nova: settings loaded");
-      (0, import_obsidian4.addIcon)("nova-star", NOVA_ICON_SVG);
+      (0, import_obsidian5.addIcon)("nova-star", NOVA_ICON_SVG);
       console.log("Nova: icon registered");
       this.aiProviderManager = new AIProviderManager(this.settings);
       await this.aiProviderManager.initialize();
       console.log("Nova: AI provider manager initialized");
+      this.documentEngine = new DocumentEngine(this.app, this);
+      this.contextBuilder = new ContextBuilder();
+      this.commandParser = new CommandParser();
+      this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+      this.editCommandHandler = new EditCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+      this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+      this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+      this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+      console.log("Nova: document engine and commands initialized");
       this.registerView(
         VIEW_TYPE_NOVA_SIDEBAR,
         (leaf) => new NovaSidebarView(leaf, this)
@@ -969,13 +4211,48 @@ var NovaPlugin = class extends import_obsidian4.Plugin {
       console.log("Nova: ribbon icon innerHTML:", ribbonIcon.innerHTML);
       console.log("Nova: ribbon icon classList:", ribbonIcon.classList.toString());
       this.addCommand({
+        id: "nova-add-content",
+        name: "Nova: Add content",
+        editorCallback: async (editor, ctx) => {
+          await this.handleAddCommand();
+        }
+      });
+      this.addCommand({
+        id: "nova-edit-content",
+        name: "Nova: Edit content",
+        editorCallback: async (editor, ctx) => {
+          await this.handleEditCommand();
+        }
+      });
+      this.addCommand({
+        id: "nova-delete-content",
+        name: "Nova: Delete content",
+        editorCallback: async (editor, ctx) => {
+          await this.handleDeleteCommand();
+        }
+      });
+      this.addCommand({
+        id: "nova-fix-grammar",
+        name: "Nova: Fix grammar",
+        editorCallback: async (editor, ctx) => {
+          await this.handleGrammarCommand();
+        }
+      });
+      this.addCommand({
+        id: "nova-rewrite-content",
+        name: "Nova: Rewrite content",
+        editorCallback: async (editor, ctx) => {
+          await this.handleRewriteCommand();
+        }
+      });
+      this.addCommand({
         id: "open-nova-sidebar",
-        name: "Open Nova sidebar",
+        name: "Nova: Open sidebar",
         callback: () => {
           this.activateView();
         }
       });
-      console.log("Nova: command added");
+      console.log("Nova: commands registered");
       this.addSettingTab(new NovaSettingTab(this.app, this));
       console.log("Nova: settings tab added");
       console.log("Nova: onload completed successfully");
@@ -1006,5 +4283,168 @@ var NovaPlugin = class extends import_obsidian4.Plugin {
       await (leaf == null ? void 0 : leaf.setViewState({ type: VIEW_TYPE_NOVA_SIDEBAR, active: true }));
     }
     workspace.revealLeaf(leaf);
+  }
+  /**
+   * Handle add content command with user input
+   */
+  async handleAddCommand() {
+    const instruction = await this.promptForInstruction("What would you like to add?");
+    if (!instruction) return;
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      const hasSelection = !!(documentContext == null ? void 0 : documentContext.selectedText);
+      const command = this.commandParser.parseCommand(instruction, hasSelection);
+      const result = await this.addCommandHandler.execute(command);
+      if (result.success) {
+        new import_obsidian5.Notice("Content added successfully");
+      } else {
+        new import_obsidian5.Notice(`Failed to add content: ${result.error}`);
+      }
+    } catch (error) {
+      new import_obsidian5.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  /**
+   * Handle edit content command with user input
+   */
+  async handleEditCommand() {
+    const instruction = await this.promptForInstruction("How would you like to edit the content?");
+    if (!instruction) return;
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      const hasSelection = !!(documentContext == null ? void 0 : documentContext.selectedText);
+      const command = this.commandParser.parseCommand(instruction, hasSelection);
+      const result = await this.editCommandHandler.execute(command);
+      if (result.success) {
+        new import_obsidian5.Notice("Content edited successfully");
+      } else {
+        new import_obsidian5.Notice(`Failed to edit content: ${result.error}`);
+      }
+    } catch (error) {
+      new import_obsidian5.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  /**
+   * Handle delete content command with user input
+   */
+  async handleDeleteCommand() {
+    const instruction = await this.promptForInstruction("What would you like to delete?");
+    if (!instruction) return;
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      const hasSelection = !!(documentContext == null ? void 0 : documentContext.selectedText);
+      const command = this.commandParser.parseCommand(instruction, hasSelection);
+      const result = await this.deleteCommandHandler.execute(command);
+      if (result.success) {
+        new import_obsidian5.Notice("Content deleted successfully");
+      } else {
+        new import_obsidian5.Notice(`Failed to delete content: ${result.error}`);
+      }
+    } catch (error) {
+      new import_obsidian5.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  /**
+   * Handle grammar correction command
+   */
+  async handleGrammarCommand() {
+    const documentContext = await this.documentEngine.getDocumentContext();
+    if (!documentContext) {
+      new import_obsidian5.Notice("No active document found");
+      return;
+    }
+    let target = "document";
+    let instruction = "Fix grammar and spelling errors";
+    if (documentContext.selectedText) {
+      target = "selection";
+      instruction = "Fix grammar and spelling errors in the selected text";
+    }
+    try {
+      const command = {
+        action: "grammar",
+        target,
+        instruction
+      };
+      const result = await this.grammarCommandHandler.execute(command);
+      if (result.success) {
+        new import_obsidian5.Notice("Grammar corrected successfully");
+      } else {
+        new import_obsidian5.Notice(`Failed to correct grammar: ${result.error}`);
+      }
+    } catch (error) {
+      new import_obsidian5.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  /**
+   * Handle rewrite content command with user input
+   */
+  async handleRewriteCommand() {
+    const instruction = await this.promptForInstruction("How would you like to rewrite the content?");
+    if (!instruction) return;
+    try {
+      const documentContext = await this.documentEngine.getDocumentContext();
+      const hasSelection = !!(documentContext == null ? void 0 : documentContext.selectedText);
+      const command = this.commandParser.parseCommand(instruction, hasSelection);
+      const result = await this.rewriteCommandHandler.execute(command);
+      if (result.success) {
+        new import_obsidian5.Notice("Content rewritten successfully");
+      } else {
+        new import_obsidian5.Notice(`Failed to rewrite content: ${result.error}`);
+      }
+    } catch (error) {
+      new import_obsidian5.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  /**
+   * Prompt user for instruction input
+   */
+  async promptForInstruction(placeholder) {
+    return new Promise((resolve) => {
+      const modal = document.createElement("div");
+      modal.className = "modal nova-input-modal";
+      modal.innerHTML = `
+				<div class="modal-container">
+					<div class="modal-bg" onclick="this.parentElement.parentElement.remove(); resolve(null);"></div>
+					<div class="modal-content">
+						<div class="modal-header">
+							<h3>Nova AI Command</h3>
+							<button class="modal-close-button" onclick="this.closest('.modal').remove(); resolve(null);">\xD7</button>
+						</div>
+						<div class="modal-body">
+							<input type="text" class="nova-instruction-input" placeholder="${placeholder}" autofocus>
+						</div>
+						<div class="modal-footer">
+							<button class="mod-cta nova-submit-btn">Execute</button>
+							<button class="nova-cancel-btn">Cancel</button>
+						</div>
+					</div>
+				</div>
+			`;
+      const input = modal.querySelector(".nova-instruction-input");
+      const submitBtn = modal.querySelector(".nova-submit-btn");
+      const cancelBtn = modal.querySelector(".nova-cancel-btn");
+      const handleSubmit = () => {
+        const value = input.value.trim();
+        modal.remove();
+        resolve(value || null);
+      };
+      const handleCancel = () => {
+        modal.remove();
+        resolve(null);
+      };
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSubmit();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          handleCancel();
+        }
+      });
+      submitBtn.addEventListener("click", handleSubmit);
+      cancelBtn.addEventListener("click", handleCancel);
+      document.body.appendChild(modal);
+      input.focus();
+    });
   }
 };
