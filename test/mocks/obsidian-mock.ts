@@ -52,10 +52,6 @@ export class Editor {
         return 'selected text';
     }
     
-    getCursor(): EditorPosition {
-        return this.cursor;
-    }
-    
     setCursor(pos: EditorPosition): void {
         this.cursor = pos;
     }
@@ -78,6 +74,22 @@ export class Editor {
     lineCount(): number {
         return this.content.split('\n').length;
     }
+    
+    lastLine(): number {
+        return this.lineCount() - 1;
+    }
+    
+    getCursor(from?: string): EditorPosition {
+        return this.cursor;
+    }
+    
+    setSelection(from: EditorPosition, to: EditorPosition): void {
+        this.selection = { from, to };
+    }
+    
+    scrollIntoView(range: any, center?: boolean): void {
+        // Mock implementation
+    }
 }
 
 export interface EditorPosition {
@@ -89,11 +101,27 @@ export class App {
     vault: Vault;
     workspace: Workspace;
     metadataCache: MetadataCache;
+    keymap: any;
+    scope: any;
+    fileManager: any;
+    lastEvent: any;
     
     constructor() {
         this.vault = new Vault();
         this.workspace = new Workspace();
         this.metadataCache = new MetadataCache();
+        this.keymap = {};
+        this.scope = {};
+        this.fileManager = {};
+        this.lastEvent = null;
+    }
+    
+    loadLocalStorage(key: string): string | null {
+        return null;
+    }
+    
+    saveLocalStorage(key: string, value: string): void {
+        // Mock implementation
     }
 }
 
@@ -160,6 +188,17 @@ export class ItemView {
     async onClose(): Promise<void> {}
     getViewType(): string { return ''; }
     getDisplayText(): string { return ''; }
+}
+
+export class MarkdownView extends ItemView {
+    editor: Editor | null = null;
+    file: TFile | null = null;
+    
+    constructor(leaf: any) {
+        super(leaf);
+    }
+    
+    getViewType(): string { return 'markdown'; }
 }
 
 export class Plugin {
@@ -258,6 +297,7 @@ export default {
     App,
     Editor,
     ItemView,
+    MarkdownView,
     Plugin,
     PluginSettingTab,
     Setting,
