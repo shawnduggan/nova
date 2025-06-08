@@ -32,8 +32,10 @@ export class AddCommand {
                 };
             }
 
-            // Generate AI prompt
-            const prompt = this.contextBuilder.buildPrompt(command, documentContext);
+            // Generate AI prompt with conversation context
+            const conversationContext = this.documentEngine.getConversationContext();
+            const promptConfig = conversationContext ? { includeHistory: true } : {};
+            const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
             
             // Validate prompt
             const validation = this.contextBuilder.validatePrompt(prompt);
@@ -47,6 +49,9 @@ export class AddCommand {
 
             // Get AI completion
             try {
+                // Log user request
+                await this.documentEngine.addUserMessage(command.instruction, command);
+
                 const content = await this.providerManager.generateText(
                     prompt.userPrompt,
                     {
@@ -57,15 +62,19 @@ export class AddCommand {
                 );
 
                 if (!content || content.trim().length === 0) {
-                    return {
+                    const result = {
                         success: false,
                         error: 'AI provider returned empty content',
-                        editType: 'insert'
+                        editType: 'insert' as const
                     };
+                    
+                    // Log failed response
+                    await this.documentEngine.addAssistantMessage('Failed to generate content', result);
+                    return result;
                 }
 
                 // Apply the edit
-                return await this.documentEngine.applyEdit(
+                const result = await this.documentEngine.applyEdit(
                     content,
                     await this.determineInsertPosition(command, documentContext),
                     {
@@ -74,12 +83,28 @@ export class AddCommand {
                     }
                 );
 
+                // Log successful response
+                await this.documentEngine.addAssistantMessage(
+                    result.success ? 'Added content successfully' : 'Failed to add content',
+                    result
+                );
+
+                return result;
+
             } catch (error) {
-                return {
+                const result = {
                     success: false,
                     error: error instanceof Error ? error.message : 'AI generation failed',
-                    editType: 'insert'
+                    editType: 'insert' as const
                 };
+                
+                // Log error response
+                await this.documentEngine.addAssistantMessage(
+                    `Error: ${result.error}`,
+                    result
+                );
+                
+                return result;
             }
 
         } catch (error) {

@@ -44,12 +44,12 @@ export class ContextBuilder {
         command: EditCommand,
         documentContext: DocumentContext,
         options: Partial<PromptConfig> = {},
-        conversationHistory: ConversationMessage[] = []
+        conversationContext?: string
     ): GeneratedPrompt {
         const config = { ...this.defaultConfig, ...options };
         
         const systemPrompt = this.buildSystemPrompt(command.action, config);
-        const contextInfo = this.buildContextInfo(documentContext, command, config);
+        const contextInfo = this.buildContextInfo(documentContext, command, config, conversationContext);
         const userPrompt = this.buildUserPrompt(command, contextInfo);
         
         return {
@@ -203,9 +203,15 @@ TASK: Rewrite or restructure content.
     private buildContextInfo(
         documentContext: DocumentContext,
         command: EditCommand,
-        config: PromptConfig
+        config: PromptConfig,
+        conversationContext?: string
     ): string {
         let context = `DOCUMENT: ${documentContext.filename}\n`;
+
+        // Add conversation context if available and requested
+        if (config.includeHistory && conversationContext && conversationContext.trim()) {
+            context += `\n${conversationContext}\n`;
+        }
 
         // Add document structure if requested
         if (config.includeStructure && documentContext.headings.length > 0) {

@@ -123,6 +123,14 @@ export class App {
     saveLocalStorage(key: string, value: string): void {
         // Mock implementation
     }
+    
+    async loadData(key: string): Promise<any> {
+        return null;
+    }
+    
+    async saveData(key: string, data: any): Promise<void> {
+        // Mock implementation
+    }
 }
 
 export class Vault {

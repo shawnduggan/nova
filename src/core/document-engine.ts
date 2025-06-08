@@ -4,10 +4,24 @@
  */
 
 import { App, Editor, MarkdownView, TFile, EditorPosition, Notice } from 'obsidian';
-import { DocumentContext, HeadingInfo, EditResult, EditOptions, DocumentSection } from './types';
+import { DocumentContext, HeadingInfo, EditResult, EditOptions, DocumentSection, EditCommand } from './types';
+import { ConversationManager, DataStore } from './conversation-manager';
 
 export class DocumentEngine {
-    constructor(private app: App) {}
+    private conversationManager: ConversationManager | null = null;
+
+    constructor(private app: App, dataStore?: DataStore) {
+        if (dataStore) {
+            this.conversationManager = new ConversationManager(dataStore);
+        }
+    }
+
+    /**
+     * Set conversation manager (for dependency injection)
+     */
+    setConversationManager(conversationManager: ConversationManager): void {
+        this.conversationManager = conversationManager;
+    }
 
     /**
      * Get the active editor instance
@@ -378,5 +392,108 @@ export class DocumentEngine {
                 editType: 'replace'
             };
         }
+    }
+
+    // Conversation management methods
+
+    /**
+     * Add user message to conversation
+     */
+    async addUserMessage(content: string, command?: EditCommand): Promise<void> {
+        if (!this.conversationManager) return;
+        
+        const file = this.getActiveFile();
+        if (file) {
+            await this.conversationManager.addUserMessage(file, content, command);
+        }
+    }
+
+    /**
+     * Add assistant response to conversation
+     */
+    async addAssistantMessage(content: string, result?: EditResult): Promise<void> {
+        if (!this.conversationManager) return;
+        
+        const file = this.getActiveFile();
+        if (file) {
+            await this.conversationManager.addAssistantMessage(file, content, result);
+        }
+    }
+
+    /**
+     * Add system message to conversation
+     */
+    async addSystemMessage(content: string): Promise<void> {
+        if (!this.conversationManager) return;
+        
+        const file = this.getActiveFile();
+        if (file) {
+            await this.conversationManager.addSystemMessage(file, content);
+        }
+    }
+
+    /**
+     * Get conversation context for AI prompts
+     */
+    getConversationContext(maxMessages: number = 6): string {
+        if (!this.conversationManager) return '';
+        
+        const file = this.getActiveFile();
+        if (!file) return '';
+        
+        return this.conversationManager.getConversationContext(file, maxMessages);
+    }
+
+    /**
+     * Clear conversation for current file
+     */
+    async clearConversation(): Promise<void> {
+        if (!this.conversationManager) return;
+        
+        const file = this.getActiveFile();
+        if (file) {
+            await this.conversationManager.clearConversation(file);
+        }
+    }
+
+    /**
+     * Get conversation statistics for current file
+     */
+    getConversationStats(): {
+        messageCount: number;
+        editCount: number;
+        mostUsedCommand: string | null;
+        conversationAge: number;
+    } | null {
+        if (!this.conversationManager) return null;
+        
+        const file = this.getActiveFile();
+        if (!file) return null;
+        
+        return this.conversationManager.getStats(file);
+    }
+
+    /**
+     * Check if current file has an active conversation
+     */
+    hasConversation(): boolean {
+        if (!this.conversationManager) return false;
+        
+        const file = this.getActiveFile();
+        if (!file) return false;
+        
+        return this.conversationManager.hasConversation(file);
+    }
+
+    /**
+     * Export conversation for current file
+     */
+    exportConversation(): string | null {
+        if (!this.conversationManager) return null;
+        
+        const file = this.getActiveFile();
+        if (!file) return null;
+        
+        return this.conversationManager.exportConversation(file);
     }
 }
