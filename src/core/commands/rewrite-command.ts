@@ -42,8 +42,10 @@ export class RewriteCommand {
                 };
             }
 
-            // Generate AI prompt for rewriting
-            const prompt = this.contextBuilder.buildPrompt(command, documentContext);
+            // Generate AI prompt for rewriting with conversation context
+            const conversationContext = this.documentEngine.getConversationContext();
+            const promptConfig = conversationContext ? { includeHistory: true } : {};
+            const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
             
             // Validate prompt
             const promptValidation = this.contextBuilder.validatePrompt(prompt);
@@ -57,6 +59,9 @@ export class RewriteCommand {
 
             // Get AI completion for rewriting
             try {
+                // Log user request
+                await this.documentEngine.addUserMessage(command.instruction, command);
+
                 const rewrittenContent = await this.providerManager.generateText(
                     prompt.userPrompt,
                     {
@@ -67,22 +72,42 @@ export class RewriteCommand {
                 );
 
                 if (!rewrittenContent || rewrittenContent.trim().length === 0) {
-                    return {
+                    const result = {
                         success: false,
                         error: 'AI provider returned empty content',
-                        editType: 'replace'
+                        editType: 'replace' as const
                     };
+                    
+                    // Log failed response
+                    await this.documentEngine.addAssistantMessage('Failed to generate rewritten content', result);
+                    return result;
                 }
 
                 // Apply the rewrite based on target
-                return await this.applyRewrite(command, documentContext, rewrittenContent);
+                const result = await this.applyRewrite(command, documentContext, rewrittenContent);
+
+                // Log successful response
+                await this.documentEngine.addAssistantMessage(
+                    result.success ? 'Rewritten content successfully' : 'Failed to rewrite content',
+                    result
+                );
+
+                return result;
 
             } catch (error) {
-                return {
+                const result = {
                     success: false,
                     error: error instanceof Error ? error.message : 'Rewrite generation failed',
-                    editType: 'replace'
+                    editType: 'replace' as const
                 };
+                
+                // Log error response
+                await this.documentEngine.addAssistantMessage(
+                    `Error: ${result.error}`,
+                    result
+                );
+                
+                return result;
             }
 
         } catch (error) {

@@ -42,8 +42,10 @@ export class GrammarCommand {
                 };
             }
 
-            // Generate AI prompt for grammar correction
-            const prompt = this.contextBuilder.buildPrompt(command, documentContext);
+            // Generate AI prompt for grammar correction with conversation context
+            const conversationContext = this.documentEngine.getConversationContext();
+            const promptConfig = conversationContext ? { includeHistory: true } : {};
+            const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
             
             // Validate prompt
             const promptValidation = this.contextBuilder.validatePrompt(prompt);
@@ -57,6 +59,9 @@ export class GrammarCommand {
 
             // Get AI completion for grammar correction
             try {
+                // Log user request
+                await this.documentEngine.addUserMessage(command.instruction, command);
+
                 const correctedContent = await this.providerManager.generateText(
                     prompt.userPrompt,
                     {
@@ -67,22 +72,42 @@ export class GrammarCommand {
                 );
 
                 if (!correctedContent || correctedContent.trim().length === 0) {
-                    return {
+                    const result = {
                         success: false,
                         error: 'AI provider returned empty content',
-                        editType: 'replace'
+                        editType: 'replace' as const
                     };
+                    
+                    // Log failed response
+                    await this.documentEngine.addAssistantMessage('Failed to generate corrected content', result);
+                    return result;
                 }
 
                 // Apply the grammar correction based on target
-                return await this.applyGrammarCorrection(command, documentContext, correctedContent);
+                const result = await this.applyGrammarCorrection(command, documentContext, correctedContent);
+
+                // Log successful response
+                await this.documentEngine.addAssistantMessage(
+                    result.success ? 'Grammar corrected successfully' : 'Failed to correct grammar',
+                    result
+                );
+
+                return result;
 
             } catch (error) {
-                return {
+                const result = {
                     success: false,
                     error: error instanceof Error ? error.message : 'Grammar correction failed',
-                    editType: 'replace'
+                    editType: 'replace' as const
                 };
+                
+                // Log error response
+                await this.documentEngine.addAssistantMessage(
+                    `Error: ${result.error}`,
+                    result
+                );
+                
+                return result;
             }
 
         } catch (error) {

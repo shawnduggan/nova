@@ -42,8 +42,10 @@ export class EditCommand {
                 };
             }
 
-            // Generate AI prompt
-            const prompt = this.contextBuilder.buildPrompt(command, documentContext);
+            // Generate AI prompt with conversation context
+            const conversationContext = this.documentEngine.getConversationContext();
+            const promptConfig = conversationContext ? { includeHistory: true } : {};
+            const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
             
             // Validate prompt
             const promptValidation = this.contextBuilder.validatePrompt(prompt);
@@ -57,6 +59,9 @@ export class EditCommand {
 
             // Get AI completion
             try {
+                // Log user request
+                await this.documentEngine.addUserMessage(command.instruction, command);
+
                 const content = await this.providerManager.generateText(
                     prompt.userPrompt,
                     {
@@ -67,22 +72,42 @@ export class EditCommand {
                 );
 
                 if (!content || content.trim().length === 0) {
-                    return {
+                    const result = {
                         success: false,
                         error: 'AI provider returned empty content',
-                        editType: 'replace'
+                        editType: 'replace' as const
                     };
+                    
+                    // Log failed response
+                    await this.documentEngine.addAssistantMessage('Failed to generate content', result);
+                    return result;
                 }
 
                 // Apply the edit based on target
-                return await this.applyEdit(command, documentContext, content);
+                const result = await this.applyEdit(command, documentContext, content);
+
+                // Log successful response
+                await this.documentEngine.addAssistantMessage(
+                    result.success ? 'Edited content successfully' : 'Failed to edit content',
+                    result
+                );
+
+                return result;
 
             } catch (error) {
-                return {
+                const result = {
                     success: false,
                     error: error instanceof Error ? error.message : 'AI generation failed',
-                    editType: 'replace'
+                    editType: 'replace' as const
                 };
+                
+                // Log error response
+                await this.documentEngine.addAssistantMessage(
+                    `Error: ${result.error}`,
+                    result
+                );
+                
+                return result;
             }
 
         } catch (error) {

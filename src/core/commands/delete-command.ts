@@ -44,8 +44,13 @@ export class DeleteCommand {
 
             // For smart deletion, we may need AI to determine what to delete
             if (command.instruction && command.instruction.trim().length > 0) {
+                // Log user request
+                await this.documentEngine.addUserMessage(command.instruction, command);
+
                 // Generate AI prompt to identify what should be deleted
-                const prompt = this.contextBuilder.buildPrompt(command, documentContext);
+                const conversationContext = this.documentEngine.getConversationContext();
+                const promptConfig = conversationContext ? { includeHistory: true } : {};
+                const prompt = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
                 
                 // Validate prompt
                 const promptValidation = this.contextBuilder.validatePrompt(prompt);
@@ -71,16 +76,34 @@ export class DeleteCommand {
                     // Parse AI response to determine deletion action
                     // For MVP, we'll proceed with the target-based deletion
                 } catch (error) {
-                    return {
+                    const result = {
                         success: false,
                         error: error instanceof Error ? error.message : 'AI analysis failed',
-                        editType: 'delete'
+                        editType: 'delete' as const
                     };
+                    
+                    // Log error response
+                    await this.documentEngine.addAssistantMessage(
+                        `Error: ${result.error}`,
+                        result
+                    );
+                    
+                    return result;
                 }
             }
 
             // Apply the deletion based on target
-            return await this.applyDeletion(command, documentContext);
+            const result = await this.applyDeletion(command, documentContext);
+            
+            // Log deletion result
+            if (command.instruction && command.instruction.trim().length > 0) {
+                await this.documentEngine.addAssistantMessage(
+                    result.success ? 'Deleted content successfully' : 'Failed to delete content',
+                    result
+                );
+            }
+            
+            return result;
 
         } catch (error) {
             return {
