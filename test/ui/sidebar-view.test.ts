@@ -1,6 +1,9 @@
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from '../../src/ui/sidebar-view';
-import { WorkspaceLeaf, ButtonComponent, TextAreaComponent } from 'obsidian';
+import { WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile } from 'obsidian';
 import NovaPlugin from '../../main';
+import { PromptBuilder } from '../../src/core/prompt-builder';
+import { ConversationManager } from '../../src/core/conversation-manager';
+import { DocumentEngine } from '../../src/core/document-engine';
 
 // Mock the entire Obsidian module
 jest.mock('obsidian');
@@ -74,7 +77,24 @@ describe('NovaSidebarView', () => {
             },
             aiProviderManager: {
                 generateText: jest.fn().mockResolvedValue('AI response'),
-                getCurrentProviderName: jest.fn().mockResolvedValue('Claude')
+                getCurrentProviderName: jest.fn().mockResolvedValue('Claude'),
+                complete: jest.fn().mockResolvedValue('AI response')
+            },
+            promptBuilder: {
+                buildPromptForMessage: jest.fn().mockResolvedValue({
+                    systemPrompt: 'System prompt',
+                    userPrompt: 'User prompt',
+                    context: 'Context',
+                    config: { temperature: 0.7, maxTokens: 1000 }
+                })
+            },
+            conversationManager: {
+                getRecentMessages: jest.fn().mockResolvedValue([]),
+                clearConversation: jest.fn().mockResolvedValue(undefined)
+            },
+            documentEngine: {
+                addUserMessage: jest.fn().mockResolvedValue(undefined),
+                addAssistantMessage: jest.fn().mockResolvedValue(undefined)
             },
             app: {
                 workspace: {
@@ -325,9 +345,159 @@ describe('NovaSidebarView', () => {
         });
     });
 
-    // Conversation loading tests will be added when conversation manager is integrated
-    describe.skip('Conversation Loading', () => {
-        // Tests skipped until conversation manager is integrated into the plugin
+    describe('Command Parser Integration', () => {
+        beforeEach(() => {
+            // Mock required UI elements for all tests
+            sidebar['textArea'] = { getValue: jest.fn(), setValue: jest.fn() } as any;
+            sidebar['sendButton'] = { setDisabled: jest.fn() } as any;
+            sidebar['chatContainer'] = { 
+                createDiv: jest.fn().mockReturnValue({ style: {}, textContent: '', remove: jest.fn() }),
+                querySelector: jest.fn().mockReturnValue(null),
+                scrollHeight: 100, 
+                scrollTop: 0 
+            } as any;
+            jest.spyOn(sidebar as any, 'addMessage').mockImplementation();
+        });
+
+        test('should use PromptBuilder to build prompts from user messages', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            
+            // Create a new mock textArea and assign it directly
+            const mockTextArea = {
+                getValue: jest.fn().mockReturnValue('add a conclusion section'),
+                setValue: jest.fn()
+            };
+            sidebar['textArea'] = mockTextArea as any;
+
+            console.log('Before handleSend - textArea.getValue returns:', sidebar['textArea'].getValue());
+
+            await sidebar['handleSend']();
+
+            console.log('textArea.getValue was called:', (sidebar['textArea'].getValue as jest.Mock).mock.calls.length, 'times');
+            console.log('textArea.getValue call args:', (sidebar['textArea'].getValue as jest.Mock).mock.calls);
+
+            expect(mockPlugin.promptBuilder.buildPromptForMessage).toHaveBeenCalledWith(
+                'add a conclusion section',
+                mockFile
+            );
+        });
+
+        test('should handle messages without active file', async () => {
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(null);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('general question');
+
+            await sidebar['handleSend']();
+
+            expect(mockPlugin.promptBuilder.buildPromptForMessage).toHaveBeenCalledWith(
+                'general question',
+                undefined
+            );
+        });
+
+        test('should call AI provider with built prompt', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+
+            await sidebar['handleSend']();
+
+            expect(mockPlugin.aiProviderManager.complete).toHaveBeenCalledWith(
+                'System prompt',
+                'User prompt',
+                {
+                    temperature: 0.7,
+                    maxTokens: 1000
+                }
+            );
+        });
+
+        test('should store messages in conversation manager when file is active', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+
+            await sidebar['handleSend']();
+
+            expect(mockPlugin.documentEngine.addUserMessage).toHaveBeenCalledWith('test message');
+            expect(mockPlugin.documentEngine.addAssistantMessage).toHaveBeenCalledWith('AI response');
+        });
+
+        test('should not store messages when no active file', async () => {
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(null);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+
+            await sidebar['handleSend']();
+
+            expect(mockPlugin.documentEngine.addUserMessage).not.toHaveBeenCalled();
+            expect(mockPlugin.documentEngine.addAssistantMessage).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Conversation Loading', () => {
+        beforeEach(() => {
+            // Mock required UI elements for all tests
+            sidebar['chatContainer'] = { empty: jest.fn() } as any;
+            jest.spyOn(sidebar as any, 'addMessage').mockImplementation();
+        });
+
+        test('should load recent messages when file changes', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            const mockMessages = [
+                { id: '1', role: 'user', content: 'Hello', timestamp: Date.now() },
+                { id: '2', role: 'assistant', content: 'Hi there!', timestamp: Date.now() }
+            ];
+            
+            (mockPlugin.conversationManager.getRecentMessages as jest.Mock).mockResolvedValue(mockMessages as any);
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+
+            // Reset current file and trigger load
+            sidebar['currentFile'] = null;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+
+            await sidebar['loadConversationForActiveFile']();
+
+            expect(mockPlugin.conversationManager.getRecentMessages).toHaveBeenCalledWith(mockFile, 10);
+            expect(addMessageSpy).toHaveBeenCalledWith('user', 'Hello');
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', 'Hi there!');
+        });
+
+        test('should show welcome message for new files', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.conversationManager.getRecentMessages as jest.Mock).mockResolvedValue([]);
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+
+            // Reset current file and trigger load
+            sidebar['currentFile'] = null;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+
+            await sidebar['loadConversationForActiveFile']();
+
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', 'Welcome! I\'m ready to help you with "test.md". What would you like to do?');
+        });
+
+        test('should skip system messages when loading history', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            const mockMessages = [
+                { id: '1', role: 'system', content: 'System message', timestamp: Date.now() },
+                { id: '2', role: 'user', content: 'User message', timestamp: Date.now() }
+            ];
+            
+            (mockPlugin.conversationManager.getRecentMessages as jest.Mock).mockResolvedValue(mockMessages as any);
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+
+            // Reset current file and trigger load
+            sidebar['currentFile'] = null;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+
+            await sidebar['loadConversationForActiveFile']();
+
+            expect(addMessageSpy).toHaveBeenCalledTimes(1);
+            expect(addMessageSpy).toHaveBeenCalledWith('user', 'User message');
+        });
     });
 
     describe('Clear Chat Feature', () => {
@@ -351,14 +521,38 @@ describe('NovaSidebarView', () => {
             expect(messages[0].textContent).toContain('Chat cleared!');
         });
 
-        test('should show file-specific message when current file exists', () => {
+        test('should show file-specific message when current file exists', async () => {
             const mockFile = { basename: 'test-file' } as any;
             sidebar['currentFile'] = mockFile;
             
-            sidebar['clearChat']();
+            await sidebar['clearChat']();
             
             const messages = mockContainer.querySelectorAll('.nova-message');
             expect(messages[0].textContent).toContain('test-file');
+        });
+
+        test('should clear conversation in conversation manager', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            sidebar['currentFile'] = mockFile;
+            
+            await sidebar['clearChat']();
+
+            expect(mockPlugin.conversationManager.clearConversation).toHaveBeenCalledWith(mockFile);
+        });
+
+        test('should handle clear conversation errors gracefully', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            sidebar['currentFile'] = mockFile;
+            
+            (mockPlugin.conversationManager.clearConversation as jest.Mock).mockRejectedValue(new Error('Clear failed'));
+            
+            // Mock console.warn to avoid test output
+            const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+            await sidebar['clearChat']();
+
+            expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to clear conversation:', expect.any(Error));
+            consoleWarnSpy.mockRestore();
         });
     });
 

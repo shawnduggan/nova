@@ -5,6 +5,8 @@ import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
 import { DocumentEngine } from './src/core/document-engine';
 import { ContextBuilder } from './src/core/context-builder';
 import { CommandParser } from './src/core/command-parser';
+import { PromptBuilder } from './src/core/prompt-builder';
+import { ConversationManager } from './src/core/conversation-manager';
 import { AddCommand } from './src/core/commands/add-command';
 import { EditCommand } from './src/core/commands/edit-command';
 import { DeleteCommand } from './src/core/commands/delete-command';
@@ -35,6 +37,8 @@ export default class NovaPlugin extends Plugin {
 	documentEngine!: DocumentEngine;
 	contextBuilder!: ContextBuilder;
 	commandParser!: CommandParser;
+	promptBuilder!: PromptBuilder;
+	conversationManager!: ConversationManager;
 	addCommandHandler!: AddCommand;
 	editCommandHandler!: EditCommand;
 	deleteCommandHandler!: DeleteCommand;
@@ -55,10 +59,17 @@ export default class NovaPlugin extends Plugin {
 			await this.aiProviderManager.initialize();
 			console.log('Nova: AI provider manager initialized');
 
-			// Initialize document engine and commands
-			this.documentEngine = new DocumentEngine(this.app, this);
+			// Initialize conversation manager and document engine
+			const dataStore = {
+				loadData: (key: string) => this.loadDataWithKey(key),
+				saveData: (key: string, data: any) => this.saveDataWithKey(key, data)
+			};
+			this.conversationManager = new ConversationManager(dataStore);
+			this.documentEngine = new DocumentEngine(this.app, dataStore);
+			this.documentEngine.setConversationManager(this.conversationManager);
 			this.contextBuilder = new ContextBuilder();
 			this.commandParser = new CommandParser();
+			this.promptBuilder = new PromptBuilder(this.documentEngine, this.conversationManager);
 			
 			// Initialize command implementations
 			this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
@@ -358,4 +369,15 @@ export default class NovaPlugin extends Plugin {
 		});
 	}
 
+	// DataStore interface implementation for ConversationManager
+	async loadDataWithKey(key: string): Promise<any> {
+		const allData = await this.loadData();
+		return allData ? allData[key] : undefined;
+	}
+
+	async saveDataWithKey(key: string, data: any): Promise<void> {
+		const allData = await this.loadData() || {};
+		allData[key] = data;
+		return await this.saveData(allData);
+	}
 }

@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
+import { EditCommand } from '../core/types';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -200,11 +201,28 @@ export class NovaSidebarView extends ItemView {
 			`;
 			loadingEl.textContent = 'Nova is thinking...';
 
-			// Get AI response
-			const response = await this.plugin.aiProviderManager.generateText(message);
+			// Store message in conversation manager
+			const activeFile = this.app.workspace.getActiveFile();
+			if (activeFile) {
+				await this.plugin.documentEngine.addUserMessage(message);
+			}
+
+			// Use PromptBuilder to build the appropriate prompt
+			const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+			
+			// Get AI response using the provider manager
+			const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
+				temperature: prompt.config.temperature,
+				maxTokens: prompt.config.maxTokens
+			});
 			
 			// Remove loading indicator
 			loadingEl.remove();
+			
+			// Store response in conversation manager
+			if (activeFile) {
+				await this.plugin.documentEngine.addAssistantMessage(response);
+			}
 			
 			// Add AI response
 			this.addMessage('assistant', response);
@@ -243,17 +261,40 @@ export class NovaSidebarView extends ItemView {
 		// Clear current chat
 		this.chatContainer.empty();
 		
-		// Show welcome message for new file
-		// TODO: Implement conversation loading when conversation manager is integrated
-		this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+		try {
+			// Load conversation history if it exists
+			const recentMessages = await this.plugin.conversationManager.getRecentMessages(activeFile, 10);
+			
+			if (recentMessages.length > 0) {
+				// Display recent conversation history
+				recentMessages.forEach(msg => {
+					if (msg.role !== 'system') {
+						this.addMessage(msg.role as 'user' | 'assistant', msg.content);
+					}
+				});
+			} else {
+				// Show welcome message for new file
+				this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+			}
+		} catch (error) {
+			console.warn('Failed to load conversation history:', error);
+			// Show welcome message on error
+			this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+		}
 	}
 
-	private clearChat() {
+	private async clearChat() {
 		// Clear the chat container
 		this.chatContainer.empty();
 		
-		// TODO: Clear conversation in conversation manager when integrated
-		// this.plugin.conversationManager?.clearConversation(this.currentFile);
+		// Clear conversation in conversation manager
+		if (this.currentFile) {
+			try {
+				await this.plugin.conversationManager.clearConversation(this.currentFile);
+			} catch (error) {
+				console.warn('Failed to clear conversation:', error);
+			}
+		}
 		
 		// Show fresh welcome message
 		if (this.currentFile) {
