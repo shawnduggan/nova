@@ -86,11 +86,10 @@ export class RewriteCommand {
                 // Apply the rewrite based on target
                 const result = await this.applyRewrite(command, documentContext, rewrittenContent);
 
-                // Log successful response
-                await this.documentEngine.addAssistantMessage(
-                    result.success ? 'Rewritten content successfully' : 'Failed to rewrite content',
-                    result
-                );
+                // Don't log success messages - handled by UI
+                if (!result.success) {
+                    await this.documentEngine.addAssistantMessage('Failed to rewrite content', result);
+                }
 
                 return result;
 

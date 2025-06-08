@@ -83,11 +83,10 @@ export class AddCommand {
                     }
                 );
 
-                // Log successful response
-                await this.documentEngine.addAssistantMessage(
-                    result.success ? 'Added content successfully' : 'Failed to add content',
-                    result
-                );
+                // Don't log success messages - handled by UI
+                if (!result.success) {
+                    await this.documentEngine.addAssistantMessage('Failed to add content', result);
+                }
 
                 return result;
 

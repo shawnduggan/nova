@@ -95,12 +95,9 @@ export class DeleteCommand {
             // Apply the deletion based on target
             const result = await this.applyDeletion(command, documentContext);
             
-            // Log deletion result
-            if (command.instruction && command.instruction.trim().length > 0) {
-                await this.documentEngine.addAssistantMessage(
-                    result.success ? 'Deleted content successfully' : 'Failed to delete content',
-                    result
-                );
+            // Log deletion result (only failures)
+            if (command.instruction && command.instruction.trim().length > 0 && !result.success) {
+                await this.documentEngine.addAssistantMessage('Failed to delete content', result);
             }
             
             return result;

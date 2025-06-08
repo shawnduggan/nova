@@ -870,30 +870,42 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
 			border-bottom: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 		`;
-    const titleProviderContainer = headerEl.createDiv();
-    titleProviderContainer.style.cssText = "display: flex; flex-direction: column; gap: 4px;";
-    const titleEl = titleProviderContainer.createEl("h4", { text: "Nova AI" });
-    titleEl.style.cssText = "margin: 0; font-size: 1.1em;";
-    const providerEl = titleProviderContainer.createDiv({ cls: "nova-provider-status" });
-    providerEl.style.cssText = `
+    const titleEl = headerEl.createEl("h4");
+    titleEl.style.cssText = "margin: 0; font-size: 1.1em; display: flex; align-items: center; gap: 6px;";
+    titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px;">
+			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+		</svg>Nova`;
+    const rightContainer = headerEl.createDiv();
+    rightContainer.style.cssText = "display: flex; align-items: center; gap: 8px;";
+    const providerStatus = rightContainer.createDiv({ cls: "nova-header-provider" });
+    providerStatus.style.cssText = `
 			display: flex;
 			align-items: center;
-			gap: 5px;
-			font-size: 0.8em;
+			gap: 4px;
+			font-size: 0.75em;
 			color: var(--text-muted);
+			opacity: 0.8;
 		`;
-    const statusDot = providerEl.createSpan({ cls: "nova-status-dot" });
-    statusDot.style.cssText = `
+    const headerStatusDot = providerStatus.createSpan({ cls: "nova-status-dot-small" });
+    headerStatusDot.style.cssText = `
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
 			background: #4caf50;
 		`;
-    const providerNameSpan = providerEl.createSpan({ text: "Loading..." });
+    const headerProviderName = providerStatus.createSpan({ text: "Loading..." });
     this.plugin.aiProviderManager.getCurrentProviderName().then((name) => {
-      providerNameSpan.setText(name);
+      headerProviderName.setText(name);
     });
-    const clearButton = new import_obsidian3.ButtonComponent(headerEl);
+    const clearButton = new import_obsidian3.ButtonComponent(rightContainer);
     clearButton.setButtonText("Clear").setTooltip("Clear conversation history").onClick(() => this.clearChat());
     this.createChatInterface(wrapperEl);
     this.createInputInterface(wrapperEl);
@@ -917,7 +929,7 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
 			flex-direction: column;
 			gap: 8px;
 		`;
-    this.addMessage("assistant", "Hello! I'm Nova, your AI Thinking Partner. How can I assist you today?");
+    this.addWelcomeMessage();
   }
   createInputInterface(container) {
     this.inputContainer = container.createDiv({ cls: "nova-input-container" });
@@ -929,24 +941,42 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
 			border-top: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 		`;
-    const textAreaContainer = this.inputContainer.createDiv();
+    const inputRow = this.inputContainer.createDiv({ cls: "nova-input-row" });
+    inputRow.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		`;
+    const textAreaContainer = inputRow.createDiv();
+    textAreaContainer.style.cssText = "flex: 1;";
     this.textArea = new import_obsidian3.TextAreaComponent(textAreaContainer);
     this.textArea.setPlaceholder("Ask Nova to help edit your document...");
     this.textArea.inputEl.style.cssText = `
 			width: 100%;
-			min-height: 60px;
+			min-height: 38px;
 			max-height: 120px;
 			resize: vertical;
 			border: 1px solid var(--background-modifier-border);
-			border-radius: 4px;
-			padding: 8px;
+			border-radius: 8px;
+			padding: 10px;
+			font-size: var(--font-text-size);
+			line-height: var(--line-height-normal);
 		`;
-    const buttonContainer = this.inputContainer.createDiv();
-    buttonContainer.style.cssText = "display: flex; justify-content: flex-end;";
-    this.sendButton = new import_obsidian3.ButtonComponent(buttonContainer);
-    this.sendButton.setButtonText("Send");
+    this.sendButton = new import_obsidian3.ButtonComponent(inputRow);
+    this.sendButton.setIcon("send");
+    this.sendButton.setTooltip("Send message");
     this.sendButton.setCta();
     this.sendButton.onClick(() => this.handleSend());
+    this.sendButton.buttonEl.style.cssText = `
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0;
+			flex-shrink: 0;
+		`;
     this.textArea.inputEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
@@ -975,7 +1005,115 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
 		`;
     const contentEl = messageEl.createEl("div", { cls: "nova-message-content" });
     contentEl.textContent = content;
-    this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+    setTimeout(() => {
+      this.chatContainer.scrollTo({
+        top: this.chatContainer.scrollHeight,
+        behavior: "smooth"
+      });
+    }, 50);
+  }
+  addWelcomeMessage(message) {
+    const welcomeEl = this.chatContainer.createDiv({ cls: "nova-welcome" });
+    welcomeEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin: 16px auto;
+			padding: 16px 20px;
+			background: var(--background-primary);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 18px;
+			max-width: 90%;
+			animation: fadeIn 0.5s ease-in;
+		`;
+    const iconContainer = welcomeEl.createDiv({ cls: "nova-welcome-icon" });
+    iconContainer.style.cssText = `
+			position: relative;
+			width: 32px;
+			height: 32px;
+			flex-shrink: 0;
+		`;
+    iconContainer.innerHTML = `
+			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: var(--interactive-accent);">
+				<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+				<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+				<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+				<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+				<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+				<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+				<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+				<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+				<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			</svg>
+		`;
+    const textContainer = welcomeEl.createDiv();
+    textContainer.style.cssText = `
+			flex: 1;
+			line-height: 1.4;
+		`;
+    const titleEl = textContainer.createDiv({ text: "Welcome to Nova" });
+    titleEl.style.cssText = `
+			font-weight: 600;
+			color: var(--text-normal);
+			margin-bottom: 4px;
+			font-size: var(--font-text-size);
+		`;
+    const subtitleEl = textContainer.createDiv({ text: message || "Your AI thinking partner. Ask me to help edit your document!" });
+    subtitleEl.style.cssText = `
+			color: var(--text-muted);
+			font-size: 0.9em;
+		`;
+    setTimeout(() => {
+      this.chatContainer.scrollTo({
+        top: this.chatContainer.scrollHeight,
+        behavior: "smooth"
+      });
+    }, 50);
+  }
+  addSuccessIndicator(action) {
+    const indicatorEl = this.chatContainer.createDiv({ cls: "nova-success-indicator" });
+    indicatorEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 8px auto;
+			padding: 6px 12px;
+			background: rgba(76, 175, 80, 0.1);
+			border: 1px solid rgba(76, 175, 80, 0.3);
+			border-radius: 16px;
+			font-size: 0.8em;
+			color: var(--text-muted);
+			max-width: 200px;
+			animation: fadeIn 0.3s ease-in;
+		`;
+    indicatorEl.innerHTML = `
+			<div style="width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; background: #4caf50; display: flex; align-items: center; justify-content: center;">
+				<div style="width: 4px; height: 2px; border-left: 1px solid white; border-bottom: 1px solid white; transform: rotate(-45deg) translate(-0.5px, -0.5px);"></div>
+			</div>
+			${this.getCompactSuccessMessage(action)}
+		`;
+    setTimeout(() => {
+      this.chatContainer.scrollTo({
+        top: this.chatContainer.scrollHeight,
+        behavior: "smooth"
+      });
+    }, 50);
+  }
+  getCompactSuccessMessage(action) {
+    switch (action) {
+      case "add":
+        return "Content added";
+      case "edit":
+        return "Content edited";
+      case "delete":
+        return "Content deleted";
+      case "grammar":
+        return "Grammar fixed";
+      case "rewrite":
+        return "Content rewritten";
+      default:
+        return "Command completed";
+    }
   }
   async handleSend() {
     const message = this.textArea.getValue().trim();
@@ -986,20 +1124,33 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
     try {
       const loadingEl = this.chatContainer.createDiv({ cls: "nova-loading" });
       loadingEl.style.cssText = `
-				padding: 8px 12px;
+				padding: 12px 16px;
 				background: var(--background-primary);
 				border: 1px solid var(--background-modifier-border);
-				border-radius: 8px;
-				margin-bottom: 10px;
-				max-width: 85%;
+				border-radius: 12px;
+				margin-bottom: 8px;
+				max-width: 80%;
+				display: flex;
+				align-items: center;
+				gap: 10px;
 			`;
-      loadingEl.textContent = "Nova is thinking...";
+      const novaContainer = loadingEl.createDiv({ cls: "nova-burst-container" });
+      novaContainer.innerHTML = `
+				<div class="nova-burst">
+					<div class="nova-core"></div>
+					<div class="nova-ring nova-ring-1"></div>
+					<div class="nova-ring nova-ring-2"></div>
+					<div class="nova-ring nova-ring-3"></div>
+				</div>
+			`;
+      const textEl = loadingEl.createSpan({ text: "Nova is thinking..." });
+      textEl.style.cssText = "color: var(--text-muted); font-size: 0.9em;";
       const activeFile = this.app.workspace.getActiveFile();
       if (activeFile) {
         await this.plugin.documentEngine.addUserMessage(message);
       }
       const isLikelyCommand = this.plugin.promptBuilder["isLikelyCommand"](message);
-      let response;
+      let response = null;
       if (isLikelyCommand && activeFile) {
         const parsedCommand = this.plugin.commandParser.parseCommand(message);
         response = await this.executeCommand(parsedCommand);
@@ -1011,10 +1162,12 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
         });
       }
       loadingEl.remove();
-      if (activeFile) {
+      if (activeFile && response) {
         await this.plugin.documentEngine.addAssistantMessage(response);
       }
-      this.addMessage("assistant", response);
+      if (response) {
+        this.addMessage("assistant", response);
+      }
     } catch (error) {
       const loadingEl = this.chatContainer.querySelector(".nova-loading");
       if (loadingEl) loadingEl.remove();
@@ -1078,28 +1231,13 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
           return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, or rewrite content.`;
       }
       if (result.success) {
-        return `\u2705 ${this.getSuccessMessage(command.action)}`;
+        this.addSuccessIndicator(command.action);
+        return null;
       } else {
-        return `\u274C Failed to ${command.action}: ${result.error}`;
+        return `Failed to ${command.action}: ${result.error}`;
       }
     } catch (error) {
       return `\u274C Error executing command: ${error.message}`;
-    }
-  }
-  getSuccessMessage(action) {
-    switch (action) {
-      case "add":
-        return "Content added successfully";
-      case "edit":
-        return "Content edited successfully";
-      case "delete":
-        return "Content deleted successfully";
-      case "grammar":
-        return "Grammar corrected successfully";
-      case "rewrite":
-        return "Content rewritten successfully";
-      default:
-        return "Command executed successfully";
     }
   }
   async loadConversationForActiveFile() {
@@ -1126,11 +1264,11 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
           }
         });
       } else {
-        this.addMessage("assistant", `Welcome! I'm ready to help you with "${targetFile.basename}". What would you like to do?`);
+        this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
       }
     } catch (error) {
       console.warn("Failed to load conversation history:", error);
-      this.addMessage("assistant", `Welcome! I'm ready to help you with "${targetFile.basename}". What would you like to do?`);
+      this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
     }
   }
   async clearChat() {
@@ -1143,9 +1281,9 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
       }
     }
     if (this.currentFile) {
-      this.addMessage("assistant", `Chat cleared! I'm ready to help you with "${this.currentFile.basename}". What would you like to do?`);
+      this.addWelcomeMessage(`Chat cleared! Ready to help you with "${this.currentFile.basename}". What would you like to do?`);
     } else {
-      this.addMessage("assistant", "Chat cleared! I'm ready to help. What would you like to do?");
+      this.addWelcomeMessage("Chat cleared! Ready to help. What would you like to do?");
     }
     new import_obsidian3.Notice("Chat history cleared");
   }
@@ -2744,10 +2882,9 @@ var AddCommand = class {
             selectNewText: false
           }
         );
-        await this.documentEngine.addAssistantMessage(
-          result.success ? "Added content successfully" : "Failed to add content",
-          result
-        );
+        if (!result.success) {
+          await this.documentEngine.addAssistantMessage("Failed to add content", result);
+        }
         return result;
       } catch (error) {
         const result = {
@@ -2939,10 +3076,9 @@ var EditCommand = class {
           return result2;
         }
         const result = await this.applyEdit(command, documentContext, content);
-        await this.documentEngine.addAssistantMessage(
-          result.success ? "Edited content successfully" : "Failed to edit content",
-          result
-        );
+        if (!result.success) {
+          await this.documentEngine.addAssistantMessage("Failed to edit content", result);
+        }
         return result;
       } catch (error) {
         const result = {
@@ -3302,11 +3438,8 @@ var DeleteCommand = class {
         }
       }
       const result = await this.applyDeletion(command, documentContext);
-      if (command.instruction && command.instruction.trim().length > 0) {
-        await this.documentEngine.addAssistantMessage(
-          result.success ? "Deleted content successfully" : "Failed to delete content",
-          result
-        );
+      if (command.instruction && command.instruction.trim().length > 0 && !result.success) {
+        await this.documentEngine.addAssistantMessage("Failed to delete content", result);
       }
       return result;
     } catch (error) {
@@ -3721,10 +3854,9 @@ var GrammarCommand = class {
           return result2;
         }
         const result = await this.applyGrammarCorrection(command, documentContext, correctedContent);
-        await this.documentEngine.addAssistantMessage(
-          result.success ? "Grammar corrected successfully" : "Failed to correct grammar",
-          result
-        );
+        if (!result.success) {
+          await this.documentEngine.addAssistantMessage("Failed to correct grammar", result);
+        }
         return result;
       } catch (error) {
         const result = {
@@ -4173,10 +4305,9 @@ var RewriteCommand = class {
           return result2;
         }
         const result = await this.applyRewrite(command, documentContext, rewrittenContent);
-        await this.documentEngine.addAssistantMessage(
-          result.success ? "Rewritten content successfully" : "Failed to rewrite content",
-          result
-        );
+        if (!result.success) {
+          await this.documentEngine.addAssistantMessage("Failed to rewrite content", result);
+        }
         return result;
       } catch (error) {
         const result = {

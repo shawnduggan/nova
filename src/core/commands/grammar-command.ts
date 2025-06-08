@@ -86,11 +86,10 @@ export class GrammarCommand {
                 // Apply the grammar correction based on target
                 const result = await this.applyGrammarCorrection(command, documentContext, correctedContent);
 
-                // Log successful response
-                await this.documentEngine.addAssistantMessage(
-                    result.success ? 'Grammar corrected successfully' : 'Failed to correct grammar',
-                    result
-                );
+                // Don't log success messages - handled by UI
+                if (!result.success) {
+                    await this.documentEngine.addAssistantMessage('Failed to correct grammar', result);
+                }
 
                 return result;
 

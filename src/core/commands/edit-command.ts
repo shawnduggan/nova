@@ -86,11 +86,10 @@ export class EditCommand {
                 // Apply the edit based on target
                 const result = await this.applyEdit(command, documentContext, content);
 
-                // Log successful response
-                await this.documentEngine.addAssistantMessage(
-                    result.success ? 'Edited content successfully' : 'Failed to edit content',
-                    result
-                );
+                // Don't log success messages - handled by UI
+                if (!result.success) {
+                    await this.documentEngine.addAssistantMessage('Failed to edit content', result);
+                }
 
                 return result;
 
