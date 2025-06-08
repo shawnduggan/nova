@@ -150,6 +150,14 @@ export class OllamaProvider implements AIProvider {
 		return data.message.content;
 	}
 
+	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+		const messages: AIMessage[] = [
+			{ role: 'system', content: systemPrompt },
+			{ role: 'user', content: userPrompt }
+		];
+		return this.chatCompletion(messages, options);
+	}
+
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
 		const model = options?.model || this.config.model;

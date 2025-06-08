@@ -77,6 +77,12 @@ export class GoogleProvider implements AIProvider {
 		return data.candidates[0].content.parts[0].text;
 	}
 
+	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+		const messages: AIMessage[] = [{ role: 'user', content: userPrompt }];
+		const completeOptions = { ...options, systemPrompt };
+		return this.chatCompletion(messages, completeOptions);
+	}
+
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		if (!this.config.apiKey) {
 			throw new Error('Google API key not configured');

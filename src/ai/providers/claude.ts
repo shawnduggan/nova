@@ -58,6 +58,12 @@ export class ClaudeProvider implements AIProvider {
 		return data.content[0].text;
 	}
 
+	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+		const messages: AIMessage[] = [{ role: 'user', content: userPrompt }];
+		const completeOptions = { ...options, systemPrompt };
+		return this.chatCompletion(messages, completeOptions);
+	}
+
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		if (!this.config.apiKey) {
 			throw new Error('Claude API key not configured');

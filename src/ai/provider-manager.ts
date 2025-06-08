@@ -96,6 +96,14 @@ export class AIProviderManager {
 		return provider ? provider.name : 'None';
 	}
 
+	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+		const provider = await this.getAvailableProvider();
+		if (!provider) {
+			throw new Error('Nova is disabled or no AI provider is available');
+		}
+		return provider.complete(systemPrompt, userPrompt, options);
+	}
+
 	cleanup() {
 		this.providers.clear();
 	}

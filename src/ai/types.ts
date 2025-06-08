@@ -16,6 +16,7 @@ export interface AIProvider {
 	generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse>;
 	chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string>;
 	chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse>;
+	complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string>;
 	updateConfig?(config: ProviderConfig): void;
 }
 

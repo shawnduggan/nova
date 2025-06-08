@@ -58,6 +58,14 @@ export class OpenAIProvider implements AIProvider {
 		return data.choices[0].message.content;
 	}
 
+	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+		const messages: AIMessage[] = [
+			{ role: 'system', content: systemPrompt },
+			{ role: 'user', content: userPrompt }
+		];
+		return this.chatCompletion(messages, options);
+	}
+
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		if (!this.config.apiKey) {
 			throw new Error('OpenAI API key not configured');
