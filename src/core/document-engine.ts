@@ -27,8 +27,35 @@ export class DocumentEngine {
      * Get the active editor instance
      */
     getActiveEditor(): Editor | null {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        return view?.editor || null;
+        // First try the workspace method
+        const activeEditor = this.app.workspace.activeEditor;
+        if (activeEditor?.editor) {
+            return activeEditor.editor;
+        }
+        
+        // Try to get the active markdown view
+        let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        
+        // If no active markdown view, try to find any markdown view
+        if (!view) {
+            const leaves = this.app.workspace.getLeavesOfType('markdown');
+            for (const leaf of leaves) {
+                const leafView = leaf.view;
+                if (leafView instanceof MarkdownView) {
+                    view = leafView;
+                    break;
+                }
+            }
+        }
+        
+        if (!view) {
+            return null;
+        }
+        
+        // Try different ways to get the editor
+        const editor = view.editor;
+        
+        return editor || null;
     }
 
     /**

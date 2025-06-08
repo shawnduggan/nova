@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 
@@ -32,35 +32,49 @@ export class NovaSidebarView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
+		container.addClass('nova-sidebar-container');
+		
+		// Create wrapper with proper flex layout
+		const wrapperEl = container.createDiv({ cls: 'nova-wrapper' });
+		wrapperEl.style.cssText = `
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+			overflow: hidden;
+		`;
 		
 		// Header with provider info
-		const headerEl = container.createDiv({ cls: 'nova-header' });
+		const headerEl = wrapperEl.createDiv({ cls: 'nova-header' });
 		headerEl.style.cssText = `
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			margin-bottom: 10px;
-			padding-bottom: 10px;
+			padding: 10px;
 			border-bottom: 1px solid var(--background-modifier-border);
+			flex-shrink: 0;
 		`;
 		
-		const titleEl = headerEl.createEl('h4', { text: 'Nova - Your AI Thinking Partner' });
-		titleEl.style.margin = '0';
+		// Title and provider container
+		const titleProviderContainer = headerEl.createDiv();
+		titleProviderContainer.style.cssText = 'display: flex; flex-direction: column; gap: 4px;';
+		
+		const titleEl = titleProviderContainer.createEl('h4', { text: 'Nova AI' });
+		titleEl.style.cssText = 'margin: 0; font-size: 1.1em;';
 		
 		// Provider status
-		const providerEl = headerEl.createDiv({ cls: 'nova-provider-status' });
+		const providerEl = titleProviderContainer.createDiv({ cls: 'nova-provider-status' });
 		providerEl.style.cssText = `
 			display: flex;
 			align-items: center;
 			gap: 5px;
-			font-size: 0.9em;
+			font-size: 0.8em;
 			color: var(--text-muted);
 		`;
 		
 		const statusDot = providerEl.createSpan({ cls: 'nova-status-dot' });
 		statusDot.style.cssText = `
-			width: 8px;
-			height: 8px;
+			width: 6px;
+			height: 6px;
 			border-radius: 50%;
 			background: #4caf50;
 		`;
@@ -75,12 +89,12 @@ export class NovaSidebarView extends ItemView {
 		
 		// Clear Chat button
 		const clearButton = new ButtonComponent(headerEl);
-		clearButton.setButtonText('Clear Chat')
+		clearButton.setButtonText('Clear')
 			.setTooltip('Clear conversation history')
 			.onClick(() => this.clearChat());
 
-		this.createChatInterface(container);
-		this.createInputInterface(container);
+		this.createChatInterface(wrapperEl);
+		this.createInputInterface(wrapperEl);
 		
 		// Register event listener for active file changes
 		this.registerEvent(
@@ -100,13 +114,13 @@ export class NovaSidebarView extends ItemView {
 	private createChatInterface(container: HTMLElement) {
 		this.chatContainer = container.createDiv({ cls: 'nova-chat-container' });
 		this.chatContainer.style.cssText = `
-			height: 60vh;
+			flex: 1;
 			overflow-y: auto;
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 4px;
 			padding: 10px;
-			margin-bottom: 10px;
 			background: var(--background-secondary);
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
 		`;
 
 		// Welcome message
@@ -118,17 +132,24 @@ export class NovaSidebarView extends ItemView {
 		this.inputContainer.style.cssText = `
 			display: flex;
 			flex-direction: column;
-			gap: 10px;
+			gap: 8px;
+			padding: 10px;
+			border-top: 1px solid var(--background-modifier-border);
+			flex-shrink: 0;
 		`;
 
 		// Text area for user input
 		const textAreaContainer = this.inputContainer.createDiv();
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('Ask Nova anything...');
+		this.textArea.setPlaceholder('Ask Nova to help edit your document...');
 		this.textArea.inputEl.style.cssText = `
 			width: 100%;
-			min-height: 80px;
+			min-height: 60px;
+			max-height: 120px;
 			resize: vertical;
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 4px;
+			padding: 8px;
 		`;
 
 		// Send button
@@ -260,6 +281,37 @@ export class NovaSidebarView extends ItemView {
 
 	private async executeCommand(command: EditCommand): Promise<string> {
 		try {
+			// Check if there's a current file (the one we're chatting about)
+			if (!this.currentFile) {
+				return `❌ No markdown file is open. Please open a file in the editor to use editing commands.`;
+			}
+			
+			// Ensure there's a markdown view with this file
+			const leaves = this.app.workspace.getLeavesOfType('markdown');
+			let markdownView: MarkdownView | null = null;
+			
+			// Find the view with our file
+			for (const leaf of leaves) {
+				const view = leaf.view as MarkdownView;
+				if (view.file === this.currentFile) {
+					markdownView = view;
+					break;
+				}
+			}
+			
+			// If not found, try to open the file
+			if (!markdownView) {
+				const leaf = this.app.workspace.getLeaf(false);
+				if (leaf) {
+					await leaf.openFile(this.currentFile);
+					markdownView = leaf.view as MarkdownView;
+				}
+			}
+			
+			if (!markdownView) {
+				return `❌ Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`;
+			}
+			
 			let result;
 			
 			switch (command.action) {
@@ -312,19 +364,29 @@ export class NovaSidebarView extends ItemView {
 	private async loadConversationForActiveFile() {
 		const activeFile = this.app.workspace.getActiveFile();
 		
+		// If no active file, try to find any open markdown file
+		let targetFile = activeFile;
+		if (!targetFile) {
+			const leaves = this.app.workspace.getLeavesOfType('markdown');
+			if (leaves.length > 0) {
+				const view = leaves[0].view as MarkdownView;
+				targetFile = view.file;
+			}
+		}
+		
 		// If no file or same file, do nothing
-		if (!activeFile || activeFile === this.currentFile) {
+		if (!targetFile || targetFile === this.currentFile) {
 			return;
 		}
 		
-		this.currentFile = activeFile;
+		this.currentFile = targetFile;
 		
 		// Clear current chat
 		this.chatContainer.empty();
 		
 		try {
 			// Load conversation history if it exists
-			const recentMessages = await this.plugin.conversationManager.getRecentMessages(activeFile, 10);
+			const recentMessages = await this.plugin.conversationManager.getRecentMessages(targetFile, 10);
 			
 			if (recentMessages.length > 0) {
 				// Display recent conversation history
@@ -335,12 +397,12 @@ export class NovaSidebarView extends ItemView {
 				});
 			} else {
 				// Show welcome message for new file
-				this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+				this.addMessage('assistant', `Welcome! I'm ready to help you with "${targetFile.basename}". What would you like to do?`);
 			}
 		} catch (error) {
 			console.warn('Failed to load conversation history:', error);
 			// Show welcome message on error
-			this.addMessage('assistant', `Welcome! I'm ready to help you with "${activeFile.basename}". What would you like to do?`);
+			this.addMessage('assistant', `Welcome! I'm ready to help you with "${targetFile.basename}". What would you like to do?`);
 		}
 	}
 

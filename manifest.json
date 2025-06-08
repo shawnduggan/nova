@@ -7,5 +7,6 @@
 	"author": "Shawn Duggan",
 	"authorUrl": "https://github.com/shawnduggan",
 	"fundingUrl": "https://github.com/sponsors/shawnduggan",
-	"isDesktopOnly": false
+	"isDesktopOnly": false,
+	"css": "styles.css"
 }

@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		},
 		google: {
 			apiKey: '',
-			model: 'gemini-2.5-flash',
+			model: 'gemini-2.5-flash-preview-05-20',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
@@ -220,11 +220,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Model')
 			.setDesc('Gemini model to use')
 			.addDropdown(dropdown => dropdown
-				.addOption('gemini-2.5-flash', 'Gemini 2.5 Flash')
-				.addOption('gemini-2.5-pro', 'Gemini 2.5 Pro')
-				.addOption('gemini-pro', 'Gemini Pro')
-				.addOption('gemini-pro-vision', 'Gemini Pro Vision')
-				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash')
+				.addOption('gemini-2.5-flash-preview-05-20', 'Gemini 2.5 Flash Preview')
+				.addOption('gemini-2.5-pro-preview-06-05', 'Gemini 2.5 Pro Preview')
+				.addOption('gemini-1.5-flash', 'Gemini 1.5 Flash')
+				.addOption('gemini-1.5-pro', 'Gemini 1.5 Pro')
+				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash-preview-05-20')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.google.model = value;
 					await this.plugin.saveSettings();

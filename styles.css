@@ -1,0 +1,190 @@
+/* Nova Plugin Styles */
+
+/* Sidebar Container */
+.nova-sidebar-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.nova-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.nova-header {
+    background: var(--background-primary);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Chat Container */
+.nova-chat-container {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--background-secondary);
+}
+
+/* Message Styles */
+.nova-message {
+    animation: fadeIn 0.3s ease-in;
+    word-wrap: break-word;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.nova-message-user {
+    margin-left: auto;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    padding: 8px 12px;
+    border-radius: 12px 12px 4px 12px;
+    max-width: 80%;
+}
+
+.nova-message-assistant {
+    margin-right: auto;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    padding: 8px 12px;
+    border-radius: 12px 12px 12px 4px;
+    max-width: 80%;
+}
+
+.nova-message-role {
+    font-size: 0.75em;
+    opacity: 0.7;
+    margin-bottom: 2px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nova-message-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Loading State */
+.nova-loading {
+    animation: pulse 1.5s infinite;
+    padding: 8px 12px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    max-width: 80%;
+}
+
+/* Provider Status */
+.nova-provider-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nova-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #4caf50;
+}
+
+.nova-status-dot.error {
+    background-color: #f44336;
+}
+
+.nova-status-dot.loading {
+    background-color: #ff9800;
+    animation: pulse 1s infinite;
+}
+
+/* Input Container */
+.nova-input-container {
+    background: var(--background-primary);
+    border-top: 1px solid var(--background-modifier-border);
+    padding: 10px;
+}
+
+.nova-input-container textarea {
+    font-family: inherit;
+    background: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.nova-input-container textarea:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+/* Buttons */
+.nova-input-container button {
+    align-self: flex-end;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Code blocks in messages */
+.nova-message-content pre {
+    background-color: var(--code-background);
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.nova-message-content code {
+    background-color: var(--code-background);
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+/* Scrollbar styling */
+.nova-chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nova-chat-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nova-chat-container::-webkit-scrollbar-thumb {
+    background-color: var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.nova-chat-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--background-modifier-border-hover);
+}
+
+/* Improve button styling */
+.nova-header button {
+    font-size: 0.85em;
+    padding: 4px 8px;
+}
