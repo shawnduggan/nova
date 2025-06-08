@@ -96,6 +96,11 @@ styles.css                      # Add chat styles (Task 9)
 2. Explain in 1-2 lines what it does
 3. Move to next task only when asked
 
+### Commit Messages
+- Do NOT add "Generated with Claude Code" text to commits
+- Keep commit messages clean and professional
+- Focus on what was changed and why
+
 ### If Something Breaks
 - Revert the last change
 - Try a different approach

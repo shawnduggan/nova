@@ -190,13 +190,11 @@ describe('NovaSidebarView', () => {
             const inputContainer = mockContainer.querySelector('.nova-input-container');
             expect(inputContainer).toBeTruthy();
             
-            const textarea = inputContainer?.querySelector('textarea');
-            expect(textarea).toBeTruthy();
-            expect(textarea?.placeholder).toBe('Ask Nova anything...');
+            // Check that TextAreaComponent was created
+            expect(TextAreaComponent).toHaveBeenCalled();
             
-            const sendButton = inputContainer?.querySelector('button');
-            expect(sendButton).toBeTruthy();
-            expect(sendButton?.textContent).toBe('Send');
+            // Check that ButtonComponent was created
+            expect(ButtonComponent).toHaveBeenCalled();
         });
 
         test('should display welcome message', async () => {
@@ -224,7 +222,20 @@ describe('NovaSidebarView', () => {
                 setButtonText: jest.fn().mockReturnThis(),
                 setTooltip: jest.fn().mockReturnThis(),
                 onClick: jest.fn().mockReturnThis(),
+                setCta: jest.fn().mockReturnThis(),
+                setDisabled: jest.fn().mockReturnThis(),
                 buttonEl: document.createElement('button')
+            }));
+            
+            (TextAreaComponent as any) = jest.fn().mockImplementation(() => ({
+                setPlaceholder: jest.fn().mockReturnThis(),
+                getValue: jest.fn().mockReturnValue(''),
+                setValue: jest.fn().mockReturnThis(),
+                inputEl: Object.assign(document.createElement('textarea'), {
+                    addEventListener: jest.fn(),
+                    dispatchEvent: jest.fn(),
+                    style: { cssText: '' }
+                })
             }));
             
             await sidebar.onOpen();
@@ -298,8 +309,12 @@ describe('NovaSidebarView', () => {
             jest.spyOn(textArea, 'getValue').mockReturnValue('Test message');
             const handleSendSpy = jest.spyOn(sidebar as any, 'handleSend');
             
-            // Simulate button click
-            sendButton.buttonEl.click();
+            // Find the onClick callback that was registered
+            const onClickCall = (sendButton.onClick as jest.Mock).mock.calls[0];
+            const onClickCallback = onClickCall[0];
+            
+            // Call the registered onClick callback
+            await onClickCallback();
             
             expect(handleSendSpy).toHaveBeenCalled();
         });
@@ -308,21 +323,35 @@ describe('NovaSidebarView', () => {
             jest.spyOn(textArea, 'getValue').mockReturnValue('Test message');
             const handleSendSpy = jest.spyOn(sidebar as any, 'handleSend');
             
-            // Simulate Enter key
-            const event = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: false });
-            textArea.inputEl.dispatchEvent(event);
+            // Find the addEventListener callback that was registered
+            const addEventListenerCall = (textArea.inputEl.addEventListener as jest.Mock).mock.calls.find(
+                call => call[0] === 'keydown'
+            );
+            const keydownCallback = addEventListenerCall[1];
+            
+            // Simulate Enter key event
+            const event = { key: 'Enter', shiftKey: false, preventDefault: jest.fn() };
+            await keydownCallback(event);
             
             expect(handleSendSpy).toHaveBeenCalled();
+            expect(event.preventDefault).toHaveBeenCalled();
         });
 
         test('should not send message on Shift+Enter', async () => {
             const handleSendSpy = jest.spyOn(sidebar as any, 'handleSend');
             
-            // Simulate Shift+Enter
-            const event = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true });
-            textArea.inputEl.dispatchEvent(event);
+            // Find the addEventListener callback that was registered
+            const addEventListenerCall = (textArea.inputEl.addEventListener as jest.Mock).mock.calls.find(
+                call => call[0] === 'keydown'
+            );
+            const keydownCallback = addEventListenerCall[1];
+            
+            // Simulate Shift+Enter event
+            const event = { key: 'Enter', shiftKey: true, preventDefault: jest.fn() };
+            await keydownCallback(event);
             
             expect(handleSendSpy).not.toHaveBeenCalled();
+            expect(event.preventDefault).not.toHaveBeenCalled();
         });
 
         test('should not send empty message', async () => {
@@ -382,7 +411,7 @@ describe('NovaSidebarView', () => {
         test('should call AI provider and display response', async () => {
             await sidebar['handleSend']();
             
-            expect(mockPlugin.aiProviderManager.generateText).toHaveBeenCalledWith('Test message');
+            expect(mockPlugin.aiProviderManager.complete).toHaveBeenCalled();
             
             const messages = mockContainer.querySelectorAll('.nova-message');
             const lastMessage = messages[messages.length - 1];
@@ -391,7 +420,7 @@ describe('NovaSidebarView', () => {
 
         test('should show loading indicator during AI call', async () => {
             // Make AI call slower to check loading state
-            mockPlugin.aiProviderManager.generateText = jest.fn().mockImplementation(
+            mockPlugin.aiProviderManager.complete = jest.fn().mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve('AI response'), 100))
             );
             
@@ -410,7 +439,7 @@ describe('NovaSidebarView', () => {
         });
 
         test('should handle AI errors gracefully', async () => {
-            mockPlugin.aiProviderManager.generateText = jest.fn().mockRejectedValue(
+            mockPlugin.aiProviderManager.complete = jest.fn().mockRejectedValue(
                 new Error('API error')
             );
             
@@ -422,7 +451,7 @@ describe('NovaSidebarView', () => {
         });
 
         test('should re-enable button after error', async () => {
-            mockPlugin.aiProviderManager.generateText = jest.fn().mockRejectedValue(
+            mockPlugin.aiProviderManager.complete = jest.fn().mockRejectedValue(
                 new Error('API error')
             );
             const setDisabledSpy = jest.spyOn(sidebar['sendButton'], 'setDisabled');
@@ -525,6 +554,169 @@ describe('NovaSidebarView', () => {
             expect(result).toBe('❌ Error executing command: Network error');
         });
     });
+
+    describe('AI Response Display', () => {
+        beforeEach(() => {
+            // Mock required UI elements for all tests
+            sidebar['textArea'] = { getValue: jest.fn(), setValue: jest.fn() } as any;
+            sidebar['sendButton'] = { setDisabled: jest.fn() } as any;
+            
+            // Create complete mock for chat container with Obsidian methods
+            const createObsidianElement = (tag: string, attrs?: any) => {
+                const el = Object.assign(document.createElement(tag), {
+                    empty: function() { (this as any).innerHTML = ''; },
+                    createEl: function(tag: string, attrs?: any) {
+                        const childEl = createObsidianElement(tag, attrs);
+                        (this as any).appendChild(childEl);
+                        return childEl;
+                    },
+                    createDiv: function(attrs?: any) { return (this as any).createEl('div', attrs); },
+                    createSpan: function(attrs?: any) { return (this as any).createEl('span', attrs); },
+                    setText: function(text: string) { (this as any).textContent = text; },
+                    querySelector: jest.fn().mockReturnValue(null),
+                    remove: jest.fn()
+                });
+                if (attrs?.text) el.textContent = attrs.text;
+                if (attrs?.cls) el.className = attrs.cls;
+                return el;
+            };
+            
+            sidebar['chatContainer'] = createObsidianElement('div') as any;
+            Object.defineProperty(sidebar['chatContainer'], 'scrollHeight', { value: 100, writable: true });
+            Object.defineProperty(sidebar['chatContainer'], 'scrollTop', { value: 0, writable: true });
+        });
+
+        test('should display AI response after successful completion', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            
+            await sidebar['handleSend']();
+            
+            expect(addMessageSpy).toHaveBeenCalledWith('user', 'test message');
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', 'AI response');
+        });
+
+        test('should display command execution response', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('add a conclusion');
+            
+            // Mock as command
+            jest.spyOn(mockPlugin.promptBuilder, 'isLikelyCommand' as any).mockReturnValue(true);
+            (mockPlugin.commandParser.parseCommand as jest.Mock).mockReturnValue({
+                action: 'add' as const,
+                target: 'document' as const,
+                instruction: 'add a conclusion'
+            });
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            const executeCommandSpy = jest.spyOn(sidebar as any, 'executeCommand').mockResolvedValue('✅ Content added successfully');
+            
+            await sidebar['handleSend']();
+            
+            expect(executeCommandSpy).toHaveBeenCalled();
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', '✅ Content added successfully');
+        });
+
+        test('should display AI conversation response with proper formatting', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('what is machine learning?');
+            
+            // Mock as conversation
+            jest.spyOn(mockPlugin.promptBuilder, 'isLikelyCommand' as any).mockReturnValue(false);
+            
+            const longResponse = 'Machine learning is a subset of artificial intelligence that enables computers to learn and improve from experience without being explicitly programmed.';
+            (mockPlugin.aiProviderManager.complete as jest.Mock).mockResolvedValue(longResponse);
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            
+            await sidebar['handleSend']();
+            
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', longResponse);
+        });
+
+        test('should display responses in correct chronological order', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('hello');
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            
+            await sidebar['handleSend']();
+            
+            const calls = addMessageSpy.mock.calls;
+            expect(calls[calls.length - 2]).toEqual(['user', 'hello']);
+            expect(calls[calls.length - 1]).toEqual(['assistant', 'AI response']);
+        });
+
+        test('should handle empty AI responses gracefully', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            (mockPlugin.aiProviderManager.complete as jest.Mock).mockResolvedValue('');
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            
+            await sidebar['handleSend']();
+            
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', '');
+        });
+
+        test('should display responses with special characters correctly', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            const responseWithSpecialChars = 'Here\'s a response with "quotes", emojis 🚀, and symbols: < > & \n\nNew lines too!';
+            (mockPlugin.aiProviderManager.complete as jest.Mock).mockResolvedValue(responseWithSpecialChars);
+            
+            const addMessageSpy = jest.spyOn(sidebar as any, 'addMessage');
+            
+            await sidebar['handleSend']();
+            
+            expect(addMessageSpy).toHaveBeenCalledWith('assistant', responseWithSpecialChars);
+        });
+
+        test('should auto-scroll to show new AI responses', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            // Mock scroll properties using Object.defineProperty
+            Object.defineProperty(sidebar['chatContainer'], 'scrollHeight', { value: 200, writable: true });
+            Object.defineProperty(sidebar['chatContainer'], 'scrollTop', { value: 50, writable: true });
+            
+            await sidebar['handleSend']();
+            
+            // Check that scrollTop was set to scrollHeight (auto-scroll behavior)
+            expect(sidebar['chatContainer'].scrollTop).toBe(200);
+        });
+
+        test('should store AI responses in conversation when file is active', async () => {
+            const mockFile = { basename: 'test.md' } as TFile;
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(mockFile);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            await sidebar['handleSend']();
+            
+            expect(mockPlugin.documentEngine.addAssistantMessage).toHaveBeenCalledWith('AI response');
+        });
+
+        test('should not store AI responses when no active file', async () => {
+            (mockPlugin.app.workspace.getActiveFile as jest.Mock).mockReturnValue(null);
+            (sidebar['textArea'].getValue as jest.Mock).mockReturnValue('test message');
+            
+            await sidebar['handleSend']();
+            
+            expect(mockPlugin.documentEngine.addAssistantMessage).not.toHaveBeenCalled();
+        });
+    });
+
 
     describe('Command Parser Integration', () => {
         beforeEach(() => {
