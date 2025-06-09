@@ -41,6 +41,12 @@ describe('AIProviderManager', () => {
                 defaultTemperature: 0.7,
                 defaultMaxTokens: 1000,
                 autoSave: true
+            },
+            licensing: {
+                licenseKey: '',
+                debugSettings: {
+                    enabled: false
+                }
             }
         } as NovaSettings;
 

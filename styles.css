@@ -1,5 +1,167 @@
 /* Nova Plugin Styles */
 
+/* License Settings Styles */
+.nova-license-section {
+    margin-bottom: 2em;
+    padding: 1em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-secondary);
+}
+
+.nova-tier-display {
+    margin-bottom: 1em;
+}
+
+.nova-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.nova-tier-badge.core {
+    background: var(--color-base-30);
+    color: var(--text-normal);
+}
+
+.nova-tier-badge.supernova {
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #000;
+}
+
+.nova-license-status {
+    margin-bottom: 1em;
+    padding: 0.5em;
+    background: var(--background-primary);
+    border-radius: 4px;
+}
+
+.license-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+}
+
+.license-email {
+    font-weight: bold;
+    color: var(--text-accent);
+}
+
+.license-expiry {
+    color: var(--text-muted);
+}
+
+.nova-validate-btn {
+    margin-left: 0.5em;
+    padding: 0.3em 0.8em;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.nova-validate-btn:hover {
+    background: var(--interactive-accent-hover);
+}
+
+.nova-validate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.nova-license-message {
+    margin: 0.5em 0;
+    padding: 0.5em;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.nova-license-message.success {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.nova-license-message.error {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.nova-feature-comparison {
+    margin-top: 1.5em;
+}
+
+.nova-comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.nova-comparison-table th,
+.nova-comparison-table td {
+    padding: 0.5em;
+    text-align: left;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nova-comparison-table th {
+    background: var(--background-modifier-hover);
+    font-weight: bold;
+}
+
+.feature-yes {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.feature-no {
+    color: #f44336;
+}
+
+.nova-upgrade-container {
+    text-align: center;
+    margin-top: 1em;
+}
+
+.nova-upgrade-btn {
+    padding: 0.8em 1.5em;
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1em;
+    transition: transform 0.2s ease;
+}
+
+.nova-upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+}
+
+.nova-debug-section {
+    margin-top: 1.5em;
+    padding: 1em;
+    background: var(--color-base-20);
+    border-radius: 4px;
+    border: 1px dashed var(--text-muted);
+}
+
+.nova-debug-section h4 {
+    margin-top: 0;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
 /* Sidebar Container */
 .nova-sidebar-container {
     height: 100%;

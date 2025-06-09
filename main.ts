@@ -12,6 +12,8 @@ import { EditCommand } from './src/core/commands/edit-command';
 import { DeleteCommand } from './src/core/commands/delete-command';
 import { GrammarCommand } from './src/core/commands/grammar-command';
 import { RewriteCommand } from './src/core/commands/rewrite-command';
+import { FeatureManager } from './src/licensing/feature-manager';
+import { LicenseValidator } from './src/licensing/license-validator';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -44,12 +46,27 @@ export default class NovaPlugin extends Plugin {
 	deleteCommandHandler!: DeleteCommand;
 	grammarCommandHandler!: GrammarCommand;
 	rewriteCommandHandler!: RewriteCommand;
+	featureManager!: FeatureManager;
+	licenseValidator!: LicenseValidator;
 
 	async onload() {
 		try {
 			console.log('Nova: onload starting...');
 			await this.loadSettings();
 			console.log('Nova: settings loaded');
+
+			// Initialize licensing system
+			this.licenseValidator = new LicenseValidator();
+			this.featureManager = new FeatureManager(
+				this.licenseValidator,
+				this.settings.licensing.debugSettings
+			);
+			
+			// Update license from settings
+			if (this.settings.licensing.licenseKey) {
+				await this.featureManager.updateLicense(this.settings.licensing.licenseKey);
+			}
+			console.log('Nova: feature manager initialized');
 
 			// Register custom icon
 			addIcon('nova-star', NOVA_ICON_SVG);
