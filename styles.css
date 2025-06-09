@@ -567,58 +567,112 @@
     background: var(--background-modifier-border-hover);
 }
 
-/* Mobile Blocked Sidebar */
-.nova-mobile-blocked {
+/* Mobile Upgrade Interface */
+.nova-mobile-upgrade {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.nova-mobile-upgrade-content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--background-secondary);
+    padding: 2em;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    padding: 2em;
 }
 
-.nova-mobile-block-container {
-    width: 100%;
-    max-width: 400px;
-}
-
-.nova-mobile-block-content {
+.nova-upgrade-container {
     text-align: center;
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 12px;
-    padding: 2em;
+    max-width: 400px;
+    width: 100%;
 }
 
-.nova-block-icon {
-    font-size: 3em;
+.nova-mobile-icon {
+    font-size: 4em;
     margin-bottom: 0.5em;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-.nova-mobile-block-content h3 {
+.nova-upgrade-container h2 {
     margin: 0.5em 0;
     color: var(--text-normal);
+    font-size: 1.5em;
+    font-weight: 600;
 }
 
-.nova-mobile-block-content p {
-    margin: 0.8em 0;
+.nova-upgrade-subtitle {
+    margin: 0.8em 0 1.5em 0;
     color: var(--text-muted);
     line-height: 1.4;
+    font-size: 1.1em;
 }
 
-.nova-mobile-block-content .nova-tier-badge {
-    display: inline-flex;
-    margin: 1em 0;
-}
-
-.nova-mobile-block-content .nova-feature-list {
-    text-align: left;
+.nova-feature-preview {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    padding: 1.5em;
     margin: 1.5em 0;
+    text-align: left;
 }
 
-.nova-mobile-block-content .nova-upgrade-btn {
-    margin-top: 1.5em;
-    padding: 0.8em 1.5em;
+.nova-feature-preview h4 {
+    margin: 0 0 1em 0;
+    color: var(--text-accent);
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.nova-feature-preview ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.nova-feature-preview li {
+    margin-bottom: 0.8em;
+    color: var(--text-normal);
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
     font-size: 1em;
+}
+
+.nova-upgrade-actions {
+    margin-top: 2em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    align-items: center;
+}
+
+.nova-upgrade-actions .nova-upgrade-btn {
+    padding: 1em 2em;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.nova-upgrade-actions .nova-upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 140, 0, 0.3);
+}
+
+.nova-learn-more {
+    color: var(--text-accent);
+    text-decoration: underline;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.nova-learn-more:hover {
+    color: var(--text-accent-hover);
 }
 
 /* Provider Dropdown Styles */

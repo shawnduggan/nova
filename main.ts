@@ -68,13 +68,8 @@ export default class NovaPlugin extends Plugin {
 			}
 			console.log('Nova: feature manager initialized');
 
-			// Check mobile access for Core tier users
-			if (Platform.isMobile && this.featureManager.getCurrentTier() === 'core') {
-				if (!this.featureManager.isFeatureEnabled('mobile_access')) {
-					this.showMobileUpgradePrompt();
-					return; // Stop plugin initialization for Core mobile users
-				}
-			}
+			// Note: Mobile access restrictions are now handled in sidebar UI
+			// This allows Core mobile users to see the upgrade interface rather than a broken plugin
 
 			// Register custom icon
 			addIcon('nova-star', NOVA_ICON_SVG);

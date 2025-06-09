@@ -23,7 +23,7 @@ jest.mock('obsidian', () => ({
     }
 }));
 
-describe('Mobile Platform Blocking Integration Tests', () => {
+describe('Mobile Platform Access Integration Tests', () => {
     let aiProviderManager: AIProviderManager;
     let featureManager: FeatureManager;
     let licenseValidator: LicenseValidator;
@@ -66,7 +66,7 @@ describe('Mobile Platform Blocking Integration Tests', () => {
     });
 
     describe('Mobile Access Restrictions', () => {
-        test('should block Core tier users on mobile', () => {
+        test('should restrict Core tier users on mobile to upgrade interface', () => {
             (Platform as any).isMobile = true;
             
             // Core tier (default)
@@ -103,12 +103,15 @@ describe('Mobile Platform Blocking Integration Tests', () => {
             expect(coreAccess.fallbackBehavior).toBe('prompt_upgrade');
         });
 
-        test('should handle mobile platform detection in provider manager', async () => {
-            // Test mobile blocking with Core tier
+        test('should show upgrade interface with Core tier on mobile', async () => {
+            // Test mobile restrictions with Core tier - plugin loads but shows upgrade interface
             (Platform as any).isMobile = true;
             
             const currentProviderName = await aiProviderManager.getCurrentProviderName();
             expect(currentProviderName).toBe('None'); // No providers available on mobile for Core tier
+            
+            // Note: Sidebar would show upgrade interface instead of chat interface
+            // Backend restrictions remain the same - only UI/UX has changed
         });
     });
 
@@ -119,19 +122,19 @@ describe('Mobile Platform Blocking Integration Tests', () => {
             let allowedProviders = aiProviderManager.getAllowedProviders();
             expect(allowedProviders.length).toBeGreaterThan(1);
             
-            // Switch to mobile
+            // Switch to mobile - providers restricted but UI shows upgrade interface
             (Platform as any).isMobile = true;
             allowedProviders = aiProviderManager.getAllowedProviders();
-            expect(allowedProviders).toEqual(['none']); // Should be blocked
+            expect(allowedProviders).toEqual(['none']); // Backend restriction remains
         });
 
         test('should handle platform change from mobile to desktop for Core tier', () => {
-            // Start on mobile
+            // Start on mobile - shows upgrade interface
             (Platform as any).isMobile = true;
             let allowedProviders = aiProviderManager.getAllowedProviders();
             expect(allowedProviders).toEqual(['none']);
             
-            // Switch to desktop
+            // Switch to desktop - full functionality restored
             (Platform as any).isMobile = false;
             allowedProviders = aiProviderManager.getAllowedProviders();
             expect(allowedProviders.length).toBeGreaterThan(1); // Should have providers again
@@ -191,7 +194,7 @@ describe('Mobile Platform Blocking Integration Tests', () => {
         test('should handle undefined feature manager gracefully', () => {
             const managerWithoutFeatures = new AIProviderManager(settings);
             
-            // Should not crash and should allow providers (no restrictions)
+            // Should not crash and should allow providers (no restrictions when no feature manager)
             (Platform as any).isMobile = true;
             const allowedProviders = managerWithoutFeatures.getAllowedProviders();
             expect(allowedProviders.length).toBeGreaterThan(0); // Should have providers without feature manager
@@ -200,7 +203,7 @@ describe('Mobile Platform Blocking Integration Tests', () => {
         test('should handle tier changes on mobile platform', async () => {
             (Platform as any).isMobile = true;
             
-            // Start as Core tier
+            // Start as Core tier - shows upgrade interface
             expect(aiProviderManager.getAllowedProviders()).toEqual(['none']);
             
             // Upgrade to SuperNova
@@ -210,7 +213,7 @@ describe('Mobile Platform Blocking Integration Tests', () => {
             // Create new manager instance (simulating app restart or re-initialization)
             aiProviderManager = new AIProviderManager(settings, featureManager);
             
-            // Should now have access
+            // Should now have full access (no more upgrade interface)
             const allowedProviders = aiProviderManager.getAllowedProviders();
             expect(allowedProviders).not.toEqual(['none']);
             expect(allowedProviders.length).toBeGreaterThan(1);
