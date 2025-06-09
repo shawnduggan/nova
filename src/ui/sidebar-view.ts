@@ -589,4 +589,55 @@ export class NovaSidebarView extends ItemView {
 		// Show notice to user
 		new Notice('Chat history cleared');
 	}
+
+	// Public methods for testing
+	async sendMessage(message: string): Promise<void> {
+		const activeFile = this.plugin.documentEngine.getActiveFile();
+		
+		// Build prompt using PromptBuilder
+		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+		
+		// Try to parse as command first
+		const command = this.plugin.commandParser.parseCommand(message);
+		
+		// Check if it's a valid command action
+		const validActions = ['add', 'edit', 'delete', 'grammar', 'rewrite'];
+		if (validActions.includes(command.action)) {
+			// Execute command
+			switch (command.action) {
+				case 'add':
+					await this.plugin.addCommandHandler.execute(command);
+					break;
+				case 'edit':
+					await this.plugin.editCommandHandler.execute(command);
+					break;
+				case 'delete':
+					await this.plugin.deleteCommandHandler.execute(command);
+					break;
+				case 'grammar':
+					await this.plugin.grammarCommandHandler.execute(command);
+					break;
+				case 'rewrite':
+					await this.plugin.rewriteCommandHandler.execute(command);
+					break;
+			}
+		} else {
+			// Regular conversation
+			if (activeFile) {
+				await this.plugin.conversationManager.addUserMessage(activeFile, message, null as any);
+			}
+			
+			// Call AI provider
+			await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
+			
+			if (activeFile) {
+				await this.plugin.conversationManager.addAssistantMessage(activeFile, 'AI response', { success: true, editType: 'none' } as any);
+			}
+		}
+	}
+
+	async loadConversationHistory(file: any): Promise<void> {
+		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
+		// In real implementation, this would display messages in the UI
+	}
 }

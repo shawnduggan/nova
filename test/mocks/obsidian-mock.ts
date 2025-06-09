@@ -167,6 +167,10 @@ export class Workspace {
         return null;
     }
     
+    getLeavesOfType(type: string): any[] {
+        return [];
+    }
+    
     on(event: string, handler: () => void): { unsubscribe: () => void } {
         if (!this.eventHandlers.has(event)) {
             this.eventHandlers.set(event, []);
@@ -241,6 +245,18 @@ class ExtendedHTMLElement extends HTMLElement {
     setText(text: string): void {
         this.textContent = text;
     }
+    
+    addClass(cls: string): void {
+        this.classList.add(cls);
+    }
+    
+    removeClass(cls: string): void {
+        this.classList.remove(cls);
+    }
+    
+    hasClass(cls: string): boolean {
+        return this.classList.contains(cls);
+    }
 }
 
 export class ItemView {
@@ -266,8 +282,15 @@ export class ItemView {
     }
     
     private createExtendedElement(tag: string): ExtendedHTMLElement {
-        const element = document.createElement(tag);
-        return Object.assign(element, ExtendedHTMLElement.prototype);
+        const element = document.createElement(tag) as any;
+        // Copy all methods from ExtendedHTMLElement prototype
+        Object.setPrototypeOf(element, ExtendedHTMLElement.prototype);
+        Object.getOwnPropertyNames(ExtendedHTMLElement.prototype).forEach(name => {
+            if (name !== 'constructor' && typeof (ExtendedHTMLElement.prototype as any)[name] === 'function') {
+                element[name] = (ExtendedHTMLElement.prototype as any)[name];
+            }
+        });
+        return element as ExtendedHTMLElement;
     }
     
     async onOpen(): Promise<void> {}

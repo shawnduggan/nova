@@ -41,6 +41,8 @@ describe('DocumentEngine', () => {
 
         it('should return null when no editor is active', () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             const editor = engine.getActiveEditor();
             expect(editor).toBeNull();
         });
@@ -74,6 +76,8 @@ describe('DocumentEngine', () => {
 
         it('should return empty string when no editor', () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             const text = engine.getSelectedText();
             expect(text).toBe('');
         });
@@ -90,6 +94,8 @@ describe('DocumentEngine', () => {
 
         it('should return null when no editor', () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             const position = engine.getCursorPosition();
             expect(position).toBeNull();
         });
@@ -131,6 +137,9 @@ describe('DocumentEngine', () => {
 
         it('should return null when no editor or file', async () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
+            app.workspace.getActiveFile = jest.fn().mockReturnValue(null);
             const context = await engine.getDocumentContext();
             expect(context).toBeNull();
         });
@@ -199,6 +208,8 @@ describe('DocumentEngine', () => {
 
         it('should return error when no editor', async () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             
             const result = await engine.applyEdit('text', 'cursor');
             
@@ -289,6 +300,8 @@ describe('DocumentEngine', () => {
 
         it('should return null when no editor', async () => {
             app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             
             const content = await engine.getDocumentContent();
             expect(content).toBeNull();
