@@ -621,6 +621,81 @@
     font-size: 1em;
 }
 
+/* Provider Dropdown Styles */
+.nova-provider-dropdown-container {
+    position: relative;
+}
+
+.nova-provider-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    color: var(--text-muted);
+    background: var(--background-modifier-hover);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.nova-provider-button:hover {
+    background: var(--background-modifier-border-hover);
+}
+
+.nova-provider-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 150px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.nova-provider-dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    transition: background-color 0.2s ease;
+}
+
+.nova-provider-dropdown-item:hover {
+    background: var(--background-modifier-border-hover);
+}
+
+.nova-provider-dropdown-item:first-child {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.nova-provider-dropdown-item:last-child {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* System Message Styles */
+.nova-message-system {
+    margin: 0 auto !important;
+    background: var(--background-modifier-hover) !important;
+    color: var(--text-muted) !important;
+    text-align: center !important;
+    font-size: 0.9em !important;
+    border-radius: 12px !important;
+    max-width: 70% !important;
+}
+
+.nova-message-system .nova-message-role {
+    display: none; /* Hide role for system messages */
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
     .nova-input-container button {

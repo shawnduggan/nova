@@ -81,31 +81,17 @@ export class NovaSidebarView extends ItemView {
 		const rightContainer = headerEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
 		
-		// Provider status in header (compact)
-		const providerStatus = rightContainer.createDiv({ cls: 'nova-header-provider' });
-		providerStatus.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			font-size: 0.75em;
-			color: var(--text-muted);
-			opacity: 0.8;
-		`;
+		// Check if user can switch providers (SuperNova only)
+		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
+		const canSwitchProviders = this.plugin.featureManager?.isFeatureEnabled('provider_switching') || false;
 		
-		const headerStatusDot = providerStatus.createSpan({ cls: 'nova-status-dot-small' });
-		headerStatusDot.style.cssText = `
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: #4caf50;
-		`;
-		
-		const headerProviderName = providerStatus.createSpan({ text: 'Loading...' });
-		
-		// Update provider name asynchronously
-		this.plugin.aiProviderManager.getCurrentProviderName().then(name => {
-			headerProviderName.setText(name);
-		});
+		if (canSwitchProviders) {
+			// SuperNova: Provider dropdown with switching capability
+			this.createProviderDropdown(rightContainer);
+		} else {
+			// Core: Static provider status display
+			this.createStaticProviderStatus(rightContainer);
+		}
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
@@ -128,7 +114,10 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	async onClose() {
-		// Clean up if needed
+		// Clean up provider dropdown event listener
+		if ((this as any).currentProviderDropdown?.cleanup) {
+			(this as any).currentProviderDropdown.cleanup();
+		}
 	}
 
 	private createChatInterface(container: HTMLElement) {
@@ -209,7 +198,7 @@ export class NovaSidebarView extends ItemView {
 		});
 	}
 
-	private addMessage(role: 'user' | 'assistant', content: string) {
+	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 		messageEl.style.cssText = `
 			margin-bottom: 10px;
@@ -218,12 +207,14 @@ export class NovaSidebarView extends ItemView {
 			max-width: 85%;
 			${role === 'user' 
 				? 'margin-left: auto; background: var(--interactive-accent); color: var(--text-on-accent);' 
+				: role === 'system'
+				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: 0.9em;'
 				: 'background: var(--background-primary); border: 1px solid var(--background-modifier-border);'
 			}
 		`;
 
 		const roleEl = messageEl.createEl('div', { 
-			text: role === 'user' ? 'You' : 'Nova',
+			text: role === 'user' ? 'You' : role === 'system' ? 'System' : 'Nova',
 			cls: 'nova-message-role'
 		});
 		roleEl.style.cssText = `
@@ -647,6 +638,266 @@ export class NovaSidebarView extends ItemView {
 	async loadConversationHistory(file: any): Promise<void> {
 		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
 		// In real implementation, this would display messages in the UI
+	}
+
+	/**
+	 * Create static provider status for Core tier users
+	 */
+	private createStaticProviderStatus(container: HTMLElement): void {
+		const providerStatus = container.createDiv({ cls: 'nova-header-provider' });
+		providerStatus.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			font-size: 0.75em;
+			color: var(--text-muted);
+			opacity: 0.8;
+		`;
+		
+		const headerStatusDot = providerStatus.createSpan({ cls: 'nova-status-dot-small' });
+		headerStatusDot.style.cssText = `
+			width: 6px;
+			height: 6px;
+			border-radius: 50%;
+			background: #4caf50;
+		`;
+		
+		const headerProviderName = providerStatus.createSpan({ text: 'Loading...' });
+		
+		// Update provider name asynchronously
+		this.plugin.aiProviderManager.getCurrentProviderName().then(name => {
+			headerProviderName.setText(name);
+		});
+	}
+
+	/**
+	 * Create provider dropdown for SuperNova tier users
+	 */
+	private createProviderDropdown(container: HTMLElement): void {
+		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
+		dropdownContainer.style.cssText = `
+			position: relative;
+			display: flex;
+			align-items: center;
+		`;
+
+		// Current provider button
+		const providerButton = dropdownContainer.createEl('button', { cls: 'nova-provider-button' });
+		providerButton.style.cssText = `
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			padding: 4px 8px;
+			font-size: 0.75em;
+			color: var(--text-muted);
+			background: var(--background-modifier-hover);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 4px;
+			cursor: pointer;
+			transition: background-color 0.2s ease;
+		`;
+
+		// Status dot
+		const statusDot = providerButton.createSpan({ cls: 'nova-status-dot-small' });
+		statusDot.style.cssText = `
+			width: 6px;
+			height: 6px;
+			border-radius: 50%;
+			background: #4caf50;
+		`;
+
+		// Provider name
+		const providerName = providerButton.createSpan({ text: 'Loading...' });
+
+		// Dropdown arrow
+		const dropdownArrow = providerButton.createSpan({ text: '▼' });
+		dropdownArrow.style.cssText = `
+			font-size: 0.6em;
+			margin-left: 4px;
+			transition: transform 0.2s ease;
+		`;
+
+		// Dropdown menu (initially hidden)
+		const dropdownMenu = dropdownContainer.createDiv({ cls: 'nova-provider-dropdown-menu' });
+		dropdownMenu.style.cssText = `
+			position: absolute;
+			top: 100%;
+			right: 0;
+			min-width: 150px;
+			background: var(--background-primary);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 6px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			z-index: 1000;
+			display: none;
+			overflow: hidden;
+		`;
+
+		let isDropdownOpen = false;
+
+		// Update current provider display
+		const updateCurrentProvider = async () => {
+			const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+			providerName.setText(currentProviderName);
+		};
+
+		// Toggle dropdown
+		const toggleDropdown = () => {
+			isDropdownOpen = !isDropdownOpen;
+			dropdownMenu.style.display = isDropdownOpen ? 'block' : 'none';
+			dropdownArrow.style.transform = isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+			
+			if (isDropdownOpen) {
+				this.populateProviderDropdown(dropdownMenu);
+			}
+		};
+
+		// Close dropdown when clicking outside
+		const closeDropdown = (event: MouseEvent) => {
+			if (!dropdownContainer.contains(event.target as Node)) {
+				isDropdownOpen = false;
+				dropdownMenu.style.display = 'none';
+				dropdownArrow.style.transform = 'rotate(0deg)';
+			}
+		};
+
+		providerButton.addEventListener('click', (e) => {
+			e.stopPropagation();
+			toggleDropdown();
+		});
+
+		// Add global click listener
+		document.addEventListener('click', closeDropdown);
+
+		// Update provider name initially
+		updateCurrentProvider();
+
+		// Store reference for cleanup
+		(this as any).currentProviderDropdown = {
+			updateCurrentProvider,
+			cleanup: () => document.removeEventListener('click', closeDropdown)
+		};
+	}
+
+	/**
+	 * Populate provider dropdown with available providers
+	 */
+	private async populateProviderDropdown(dropdownMenu: HTMLElement): Promise<void> {
+		dropdownMenu.empty();
+
+		const allowedProviders = this.plugin.aiProviderManager.getAllowedProviders();
+		const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+
+		for (const providerType of allowedProviders) {
+			if (providerType === 'none') continue;
+
+			const providerItem = dropdownMenu.createDiv({ cls: 'nova-provider-dropdown-item' });
+			providerItem.style.cssText = `
+				padding: 8px 12px;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: 0.85em;
+				transition: background-color 0.2s ease;
+			`;
+
+			// Provider icon/dot
+			const providerDot = providerItem.createSpan();
+			providerDot.style.cssText = `
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: ${this.getProviderColor(providerType)};
+			`;
+
+			// Provider name
+			const displayName = this.getProviderDisplayName(providerType);
+			const nameSpan = providerItem.createSpan({ text: displayName });
+
+			// Mark current provider
+			const isCurrent = displayName === currentProviderName;
+			if (isCurrent) {
+				providerItem.style.background = 'var(--background-modifier-hover)';
+				nameSpan.style.fontWeight = 'bold';
+			}
+
+			// Click handler
+			providerItem.addEventListener('click', async () => {
+				if (!isCurrent) {
+					await this.switchToProvider(providerType);
+					// Close dropdown
+					dropdownMenu.style.display = 'none';
+					if ((this as any).currentProviderDropdown) {
+						(this as any).currentProviderDropdown.updateCurrentProvider();
+					}
+				}
+			});
+
+			// Hover effect
+			providerItem.addEventListener('mouseenter', () => {
+				if (!isCurrent) {
+					providerItem.style.background = 'var(--background-modifier-border-hover)';
+				}
+			});
+
+			providerItem.addEventListener('mouseleave', () => {
+				if (!isCurrent) {
+					providerItem.style.background = 'transparent';
+				}
+			});
+		}
+	}
+
+	/**
+	 * Get display name for provider
+	 */
+	private getProviderDisplayName(providerType: string): string {
+		const names: Record<string, string> = {
+			'claude': 'Claude',
+			'openai': 'OpenAI',
+			'google': 'Gemini',
+			'ollama': 'Ollama',
+			'none': 'None'
+		};
+		return names[providerType] || providerType;
+	}
+
+	/**
+	 * Get color for provider type
+	 */
+	private getProviderColor(providerType: string): string {
+		const colors: Record<string, string> = {
+			'claude': '#D2691E',
+			'openai': '#10A37F',
+			'google': '#4285F4',
+			'ollama': '#7C3AED',
+			'none': '#999'
+		};
+		return colors[providerType] || '#4caf50';
+	}
+
+	/**
+	 * Switch to a different provider and update conversation context
+	 */
+	private async switchToProvider(providerType: string): Promise<void> {
+		try {
+			// Add a system message about provider switching
+			const switchMessage = `🔄 Switched to ${this.getProviderDisplayName(providerType)}`;
+			this.addMessage('system', switchMessage);
+			
+			// Update the platform settings to use the new provider
+			const platform = Platform.isMobile ? 'mobile' : 'desktop';
+			this.plugin.settings.platformSettings[platform].primaryProvider = providerType as any;
+			await this.plugin.saveSettings();
+			
+			// Re-initialize the provider manager with new settings
+			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+			
+		} catch (error) {
+			console.error('Error switching provider:', error);
+			this.addMessage('system', `❌ Failed to switch to ${this.getProviderDisplayName(providerType)}`);
+		}
 	}
 
 	/**
