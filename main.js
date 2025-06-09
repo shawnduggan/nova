@@ -1287,6 +1287,43 @@ var NovaSidebarView = class extends import_obsidian3.ItemView {
     }
     new import_obsidian3.Notice("Chat history cleared");
   }
+  // Public methods for testing
+  async sendMessage(message) {
+    const activeFile = this.plugin.documentEngine.getActiveFile();
+    const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || void 0);
+    const command = this.plugin.commandParser.parseCommand(message);
+    const validActions = ["add", "edit", "delete", "grammar", "rewrite"];
+    if (validActions.includes(command.action)) {
+      switch (command.action) {
+        case "add":
+          await this.plugin.addCommandHandler.execute(command);
+          break;
+        case "edit":
+          await this.plugin.editCommandHandler.execute(command);
+          break;
+        case "delete":
+          await this.plugin.deleteCommandHandler.execute(command);
+          break;
+        case "grammar":
+          await this.plugin.grammarCommandHandler.execute(command);
+          break;
+        case "rewrite":
+          await this.plugin.rewriteCommandHandler.execute(command);
+          break;
+      }
+    } else {
+      if (activeFile) {
+        await this.plugin.conversationManager.addUserMessage(activeFile, message, null);
+      }
+      await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
+      if (activeFile) {
+        await this.plugin.conversationManager.addAssistantMessage(activeFile, "AI response", { success: true, editType: "none" });
+      }
+    }
+  }
+  async loadConversationHistory(file) {
+    const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
+  }
 };
 
 // src/core/document-engine.ts

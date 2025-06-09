@@ -40,33 +40,54 @@
 
 ### 🔴 CURRENT PHASE: Freemium Architecture
 
-#### Step 1: License Types & Validation Foundation
-**Status: Not started**
-- [ ] 1.1: Create license interface types
-- [ ] 1.2: Implement offline HMAC license validator
-- [ ] 1.3: Write comprehensive unit tests
-- [ ] 1.4: Validate license detection works
+#### Step 1: License Types & Validation Foundation ✅
+**Status: COMPLETED**
+- [x] 1.1: Create license interface types
+- [x] 1.2: Implement offline HMAC license validator
+- [x] 1.3: Write comprehensive unit tests (13 test cases)
+- [x] 1.4: Validate license detection works
 
-#### Step 2: Feature Flag Manager
-**Status: Pending Step 1**
-- [ ] 2.1: Create feature manager with tier-based access
-- [ ] 2.2: Define Core vs SuperNova feature flags
-- [ ] 2.3: Write feature access tests
-- [ ] 2.4: Validate feature restriction works
+#### Step 2: Feature Flag Manager ✅
+**Status: COMPLETED**
+- [x] 2.1: Create feature manager with tier-based access
+- [x] 2.2: Define Core vs SuperNova feature flags
+- [x] 2.3: Write feature access tests (22 test cases)
+- [x] 2.4: Validate feature restriction works
 
-#### Step 3: Settings Integration
-**Status: Pending Step 2**
-- [ ] 3.1: Add license key input to settings
-- [ ] 3.2: Add license validation feedback
-- [ ] 3.3: Add tier status display
-- [ ] 3.4: Test settings UI integration
+#### Step 3: Settings Integration ✅
+**Status: COMPLETED**
+- [x] 3.1: Add license key input to settings
+- [x] 3.2: Add license validation feedback
+- [x] 3.3: Add tier status display
+- [x] 3.4: Test settings UI integration
 
-#### Step 4: Development Testing Framework
-**Status: Pending Step 3**
-- [ ] 4.1: Add debug mode toggle
-- [ ] 4.2: Add tier override functionality
-- [ ] 4.3: Test easy tier switching
-- [ ] 4.4: Validate development workflow
+#### Step 4: Development Testing Framework ✅
+**Status: COMPLETED (Integrated in Steps 2-3)**
+- [x] 4.1: Add debug mode toggle
+- [x] 4.2: Add tier override functionality
+- [x] 4.3: Test easy tier switching
+- [x] 4.4: Validate development workflow
+
+#### Step 5: Provider Restrictions
+**Status: Ready to start**
+- [ ] 5.1: Implement Core tier provider limits
+- [ ] 5.2: Block additional provider configurations for Core
+- [ ] 5.3: Add provider selection validation in settings
+- [ ] 5.4: Test provider restrictions work
+
+#### Step 6: Mobile Platform Blocking
+**Status: Ready to start**
+- [ ] 6.1: Add platform detection in main plugin
+- [ ] 6.2: Block mobile users entirely for Core tier
+- [ ] 6.3: Show upgrade prompt for mobile Core users
+- [ ] 6.4: Allow mobile access only for SuperNova
+
+#### Step 7: Sidebar Provider Switching UI
+**Status: Ready to start**
+- [ ] 7.1: Remove provider switching from Core tier chat UI
+- [ ] 7.2: Add in-chat provider dropdown for SuperNova
+- [ ] 7.3: Implement conversation continuation on provider switch
+- [ ] 7.4: Update sidebar UI based on tier
 
 ---
 

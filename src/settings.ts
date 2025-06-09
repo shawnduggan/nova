@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
-import { DebugSettings } from './licensing/types';
+import { DebugSettings, LicenseTier } from './licensing/types';
 
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
@@ -264,7 +264,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					.addOption('supernova', 'Force SuperNova Tier')
 					.setValue(this.plugin.settings.licensing.debugSettings.overrideTier || '')
 					.onChange(async (value) => {
-						this.plugin.settings.licensing.debugSettings.overrideTier = value || undefined;
+						this.plugin.settings.licensing.debugSettings.overrideTier = (value as LicenseTier) || undefined;
 						await this.plugin.saveSettings();
 						
 						if (this.plugin.featureManager) {
@@ -340,14 +340,41 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.createEl('h3', { text: 'AI Provider Settings' });
 
+		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
+		const isCoreTier = currentTier === 'core';
+		
+		if (isCoreTier) {
+			const restrictionNotice = containerEl.createDiv({ cls: 'nova-license-message' });
+			restrictionNotice.innerHTML = `
+				<strong>Core Tier Restrictions:</strong> You can configure 1 local provider (Ollama) and 1 cloud provider. 
+				<a href="#" class="upgrade-link">Upgrade to SuperNova</a> for unlimited providers.
+			`;
+			
+			// Add click handler for upgrade link
+			const upgradeLink = restrictionNotice.querySelector('.upgrade-link');
+			upgradeLink?.addEventListener('click', (e) => {
+				e.preventDefault();
+				window.open('https://novawriter.ai/upgrade', '_blank');
+			});
+		}
+
+		// Always show Ollama (local provider)
 		this.createOllamaSettings();
-		this.createClaudeSettings();
-		this.createGoogleSettings();
-		this.createOpenAISettings();
+		
+		// Show cloud providers based on tier
+		this.createClaudeSettings(isCoreTier);
+		this.createGoogleSettings(isCoreTier);
+		this.createOpenAISettings(isCoreTier);
 	}
 
-	private createClaudeSettings() {
+	private createClaudeSettings(isRestricted: boolean = false) {
 		const { containerEl } = this;
+		
+		// Check if this provider should be shown for Core tier
+		if (isRestricted && !this.isProviderAllowedForCoreTier('claude')) {
+			return this.createRestrictedProviderNotice(containerEl, 'Claude (Anthropic)');
+		}
+		
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
 
@@ -378,8 +405,27 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private createOpenAISettings() {
+	private isProviderAllowedForCoreTier(providerType: ProviderType): boolean {
+		if (!this.plugin.aiProviderManager) return true;
+		return this.plugin.aiProviderManager.isProviderAllowed(providerType);
+	}
+
+	private createRestrictedProviderNotice(container: HTMLElement, providerName: string) {
+		const restrictedContainer = container.createDiv({ cls: 'nova-provider-section nova-provider-restricted' });
+		restrictedContainer.innerHTML = `
+			<h4>${providerName} <span class="restriction-badge">SuperNova Only</span></h4>
+			<p class="restriction-text">This provider requires a SuperNova license.</p>
+		`;
+	}
+
+	private createOpenAISettings(isRestricted: boolean = false) {
 		const { containerEl } = this;
+		
+		// Check if this provider should be shown for Core tier
+		if (isRestricted && !this.isProviderAllowedForCoreTier('openai')) {
+			return this.createRestrictedProviderNotice(containerEl, 'OpenAI');
+		}
+		
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		openaiContainer.createEl('h4', { text: 'OpenAI' });
 
@@ -420,8 +466,14 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private createGoogleSettings() {
+	private createGoogleSettings(isRestricted: boolean = false) {
 		const { containerEl } = this;
+		
+		// Check if this provider should be shown for Core tier
+		if (isRestricted && !this.isProviderAllowedForCoreTier('google')) {
+			return this.createRestrictedProviderNotice(containerEl, 'Google (Gemini)');
+		}
+		
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
 
@@ -483,28 +535,61 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.createEl('h3', { text: 'Platform Settings' });
 
+		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
+		const isCoreTier = currentTier === 'core';
+
 		const platformContainer = containerEl.createDiv({ cls: 'nova-platform-section' });
 		
+		if (isCoreTier) {
+			const restrictionNotice = platformContainer.createDiv({ cls: 'nova-license-message' });
+			restrictionNotice.innerHTML = `
+				<strong>Platform Restrictions:</strong> Core tier allows 1 local + 1 cloud provider on desktop. 
+				Mobile is disabled for Core tier users.
+			`;
+		}
+		
 		platformContainer.createEl('h4', { text: 'Desktop' });
-		new Setting(platformContainer)
+		const desktopDropdown = new Setting(platformContainer)
 			.setName('Primary Provider')
 			.setDesc('Primary AI provider for desktop')
-			.addDropdown(dropdown => dropdown
-				.addOption('claude', 'Claude')
-				.addOption('openai', 'OpenAI')
-				.addOption('google', 'Google')
-				.addOption('ollama', 'Ollama')
-				.setValue(this.plugin.settings.platformSettings.desktop.primaryProvider)
-				.onChange(async (value: string) => {
-					this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
-					await this.plugin.saveSettings();
-				}));
+			.addDropdown(dropdown => {
+				const allowedProviders = this.getAllowedProvidersForPlatform('desktop');
+				
+				allowedProviders.forEach(provider => {
+					const label = this.getProviderDisplayName(provider);
+					dropdown.addOption(provider, label);
+				});
+				
+				return dropdown
+					.setValue(this.plugin.settings.platformSettings.desktop.primaryProvider)
+					.onChange(async (value: string) => {
+						if (this.validateProviderSelection(value as ProviderType, 'desktop')) {
+							this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
+							await this.plugin.saveSettings();
+							if (this.plugin.aiProviderManager) {
+								this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+							}
+						}
+					});
+			});
 
 		platformContainer.createEl('h4', { text: 'Mobile' });
-		new Setting(platformContainer)
+		const mobileDesc = isCoreTier 
+			? 'Mobile access requires SuperNova license'
+			: 'Primary AI provider for mobile';
+			
+		const mobileSetting = new Setting(platformContainer)
 			.setName('Primary Provider')
-			.setDesc('Primary AI provider for mobile')
-			.addDropdown(dropdown => dropdown
+			.setDesc(mobileDesc);
+			
+		if (isCoreTier) {
+			// For Core tier, show disabled dropdown with upgrade message
+			mobileSetting.addDropdown(dropdown => dropdown
+				.addOption('none', 'Upgrade to SuperNova for Mobile Access')
+				.setValue('none')
+				.setDisabled(true));
+		} else {
+			mobileSetting.addDropdown(dropdown => dropdown
 				.addOption('none', 'None (Disabled)')
 				.addOption('claude', 'Claude')
 				.addOption('openai', 'OpenAI')
@@ -514,5 +599,57 @@ export class NovaSettingTab extends PluginSettingTab {
 					this.plugin.settings.platformSettings.mobile.primaryProvider = value as ProviderType;
 					await this.plugin.saveSettings();
 				}));
+		}
+	}
+
+	private getAllowedProvidersForPlatform(platform: 'desktop' | 'mobile'): ProviderType[] {
+		if (!this.plugin.aiProviderManager) {
+			return ['claude', 'openai', 'google', 'ollama'];
+		}
+		
+		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
+		
+		if (platform === 'mobile' && currentTier === 'core') {
+			return ['none'];
+		}
+		
+		const allowedProviders = this.plugin.aiProviderManager.getAllowedProviders();
+		return allowedProviders.length > 0 ? allowedProviders : ['claude', 'openai', 'google', 'ollama'];
+	}
+
+	private getProviderDisplayName(provider: ProviderType): string {
+		const names: Record<ProviderType, string> = {
+			'claude': 'Claude (Anthropic)',
+			'openai': 'OpenAI',
+			'google': 'Google (Gemini)', 
+			'ollama': 'Ollama (Local)',
+			'none': 'None (Disabled)'
+		};
+		return names[provider] || provider;
+	}
+
+	private validateProviderSelection(provider: ProviderType, platform: 'desktop' | 'mobile'): boolean {
+		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
+		
+		// SuperNova users can select any provider
+		if (currentTier === 'supernova') {
+			return true;
+		}
+		
+		// Core tier restrictions
+		if (platform === 'mobile' && provider !== 'none') {
+			this.showLicenseMessage('❌ Mobile access requires SuperNova license.', 'error');
+			return false;
+		}
+		
+		// For desktop, check if provider is allowed
+		if (platform === 'desktop' && this.plugin.aiProviderManager) {
+			if (!this.plugin.aiProviderManager.isProviderAllowed(provider)) {
+				this.showLicenseMessage('❌ This provider requires SuperNova license.', 'error');
+				return false;
+			}
+		}
+		
+		return true;
 	}
 }

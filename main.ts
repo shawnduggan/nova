@@ -72,7 +72,7 @@ export default class NovaPlugin extends Plugin {
 			addIcon('nova-star', NOVA_ICON_SVG);
 			console.log('Nova: icon registered');
 
-			this.aiProviderManager = new AIProviderManager(this.settings);
+			this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
 			await this.aiProviderManager.initialize();
 			console.log('Nova: AI provider manager initialized');
 

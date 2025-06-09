@@ -5,13 +5,16 @@ import { OpenAIProvider } from './providers/openai';
 import { GoogleProvider } from './providers/google';
 import { OllamaProvider } from './providers/ollama';
 import { NovaSettings } from '../settings';
+import { FeatureManager } from '../licensing/feature-manager';
 
 export class AIProviderManager {
 	private providers: Map<ProviderType, AIProvider> = new Map();
 	private settings: NovaSettings;
+	private featureManager?: FeatureManager;
 
-	constructor(settings: NovaSettings) {
+	constructor(settings: NovaSettings, featureManager?: FeatureManager) {
 		this.settings = settings;
+		this.featureManager = featureManager;
 	}
 
 	async initialize() {
@@ -33,7 +36,43 @@ export class AIProviderManager {
 	private getPlatformProviders(): ProviderType[] {
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
 		const platformSettings = this.settings.platformSettings[platform];
-		return [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
+		let providers = [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
+		
+		// Apply Core tier restrictions if applicable
+		if (this.featureManager && !this.featureManager.isFeatureEnabled('unlimited_cloud_ai')) {
+			providers = this.filterProvidersForCoreTier(providers);
+		}
+		
+		return providers;
+	}
+
+	private filterProvidersForCoreTier(providers: ProviderType[]): ProviderType[] {
+		const localProviders: ProviderType[] = ['ollama'];
+		const cloudProviders: ProviderType[] = ['claude', 'openai', 'google'];
+		
+		let allowedLocal: ProviderType[] = [];
+		let allowedCloud: ProviderType[] = [];
+		
+		// Allow 1 local provider (first found)
+		for (const provider of providers) {
+			if (localProviders.includes(provider) && allowedLocal.length === 0) {
+				allowedLocal.push(provider);
+				break;
+			}
+		}
+		
+		// Allow 1 cloud provider (first found)
+		for (const provider of providers) {
+			if (cloudProviders.includes(provider) && allowedCloud.length === 0) {
+				allowedCloud.push(provider);
+				break;
+			}
+		}
+		
+		// Preserve order and include 'none' if present
+		return providers.filter(p => 
+			p === 'none' || allowedLocal.includes(p) || allowedCloud.includes(p)
+		);
 	}
 
 	private async getAvailableProvider(): Promise<AIProvider | null> {
@@ -102,6 +141,21 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		return provider.complete(systemPrompt, userPrompt, options);
+	}
+
+	getAllowedProviders(): ProviderType[] {
+		return this.getPlatformProviders();
+	}
+
+	isProviderAllowed(providerType: ProviderType): boolean {
+		return this.getAllowedProviders().includes(providerType);
+	}
+
+	getProviderLimits(): { local: number; cloud: number } {
+		if (this.featureManager && this.featureManager.isFeatureEnabled('unlimited_cloud_ai')) {
+			return { local: Infinity, cloud: Infinity };
+		}
+		return { local: 1, cloud: 1 };
 	}
 
 	cleanup() {
