@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 
@@ -33,6 +33,14 @@ export class NovaSidebarView extends ItemView {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-sidebar-container');
+
+		// Check mobile access for Core tier users
+		if (Platform.isMobile && this.plugin.featureManager?.getCurrentTier() === 'core') {
+			if (!this.plugin.featureManager.isFeatureEnabled('mobile_access')) {
+				this.showMobileBlockedMessage(container);
+				return;
+			}
+		}
 		
 		// Create wrapper with proper flex layout
 		const wrapperEl = container.createDiv({ cls: 'nova-wrapper' });
@@ -639,5 +647,46 @@ export class NovaSidebarView extends ItemView {
 	async loadConversationHistory(file: any): Promise<void> {
 		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
 		// In real implementation, this would display messages in the UI
+	}
+
+	/**
+	 * Show blocked message for Core tier mobile users
+	 */
+	private showMobileBlockedMessage(container: HTMLElement): void {
+		container.addClass('nova-mobile-blocked');
+		
+		const messageContainer = container.createDiv({ cls: 'nova-mobile-block-container' });
+		messageContainer.innerHTML = `
+			<div class="nova-mobile-block-content">
+				<div class="nova-block-icon">🚫</div>
+				<h3>Mobile Access Restricted</h3>
+				<div class="nova-tier-badge core">
+					<span class="tier-icon">🆓</span>
+					<span class="tier-name">Core (Free)</span>
+				</div>
+				<p>Nova Core is designed for desktop use only.</p>
+				<p>Mobile access is available with Nova SuperNova.</p>
+				
+				<div class="nova-feature-list">
+					<h4>SuperNova includes:</h4>
+					<ul>
+						<li>✅ Mobile device support</li>
+						<li>✅ Multiple AI providers</li>
+						<li>✅ In-chat provider switching</li>
+						<li>✅ Advanced templates</li>
+					</ul>
+				</div>
+				
+				<button class="mod-cta nova-upgrade-btn">
+					⭐ Upgrade to SuperNova
+				</button>
+			</div>
+		`;
+
+		// Add upgrade button functionality
+		const upgradeBtn = messageContainer.querySelector('.nova-upgrade-btn') as HTMLButtonElement;
+		upgradeBtn.addEventListener('click', () => {
+			window.open('https://novawriter.ai/upgrade', '_blank');
+		});
 	}
 }

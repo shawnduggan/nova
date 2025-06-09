@@ -525,6 +525,102 @@
     margin: 0 !important;
 }
 
+/* Mobile Upgrade Modal */
+.nova-mobile-upgrade-modal .modal-content {
+    max-width: 500px;
+    width: 90%;
+}
+
+.nova-feature-list {
+    margin-top: 1em;
+    padding: 1em;
+    background: var(--background-modifier-hover);
+    border-radius: 6px;
+}
+
+.nova-feature-list h4 {
+    margin: 0 0 0.5em 0;
+    color: var(--text-accent);
+}
+
+.nova-feature-list ul {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.nova-feature-list li {
+    margin-bottom: 0.3em;
+    color: var(--text-normal);
+}
+
+.nova-close-btn {
+    padding: 0.5em 1em;
+    background: var(--background-modifier-border);
+    color: var(--text-normal);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0.5em;
+}
+
+.nova-close-btn:hover {
+    background: var(--background-modifier-border-hover);
+}
+
+/* Mobile Blocked Sidebar */
+.nova-mobile-blocked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2em;
+}
+
+.nova-mobile-block-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+.nova-mobile-block-content {
+    text-align: center;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    padding: 2em;
+}
+
+.nova-block-icon {
+    font-size: 3em;
+    margin-bottom: 0.5em;
+}
+
+.nova-mobile-block-content h3 {
+    margin: 0.5em 0;
+    color: var(--text-normal);
+}
+
+.nova-mobile-block-content p {
+    margin: 0.8em 0;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.nova-mobile-block-content .nova-tier-badge {
+    display: inline-flex;
+    margin: 1em 0;
+}
+
+.nova-mobile-block-content .nova-feature-list {
+    text-align: left;
+    margin: 1.5em 0;
+}
+
+.nova-mobile-block-content .nova-upgrade-btn {
+    margin-top: 1.5em;
+    padding: 0.8em 1.5em;
+    font-size: 1em;
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
     .nova-input-container button {
@@ -535,5 +631,14 @@
     .nova-input-container button svg {
         width: 14px;
         height: 14px;
+    }
+    
+    .nova-mobile-upgrade-modal .modal-content {
+        width: 95%;
+        margin: 1em;
+    }
+    
+    .nova-feature-list {
+        padding: 0.8em;
     }
 }

@@ -34,6 +34,13 @@ export class AIProviderManager {
 	}
 
 	private getPlatformProviders(): ProviderType[] {
+		// Check mobile access for Core tier users
+		if (Platform.isMobile && this.featureManager) {
+			if (!this.featureManager.isFeatureEnabled('mobile_access')) {
+				return ['none']; // Block all providers for Core mobile users
+			}
+		}
+
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
 		const platformSettings = this.settings.platformSettings[platform];
 		let providers = [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
