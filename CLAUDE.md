@@ -21,7 +21,7 @@
 
 ---
 
-## Current Project State (Updated: Dec 8, 2024)
+## Current Project State (Updated: June 9, 2025)
 
 ### ✅ COMPLETED Components
 - Plugin structure and TypeScript setup
@@ -34,41 +34,39 @@
 - Context builder for document analysis
 - Platform-aware provider switching
 - Custom Nova icon
+- **Complete sidebar chat UI implementation**
+- **Full AI provider connections and command routing**
+- **Professional chat interface with loading states**
 
-### 🔴 MISSING for MVP (Must Complete)
+### 🔴 CURRENT PHASE: Freemium Architecture
 
-#### Task 7: Wire Up Sidebar Chat UI
-**Status: Sidebar exists but no chat UI**
-- [ ] 7.1: Add message container div to sidebar
-- [ ] 7.2: Add message display function (user/assistant/system)
-- [ ] 7.3: Add input field at bottom of sidebar
-- [ ] 7.4: Add send button next to input
-- [ ] 7.5: Wire Enter key to send message
-- [ ] 7.6: Display provider name and status icon in header
-- [ ] 7.7: Load conversation history on file change
-- [ ] 7.8: Add "Clear Chat" button to header
+#### Step 1: License Types & Validation Foundation
+**Status: Not started**
+- [ ] 1.1: Create license interface types
+- [ ] 1.2: Implement offline HMAC license validator
+- [ ] 1.3: Write comprehensive unit tests
+- [ ] 1.4: Validate license detection works
 
-#### Task 8: Connect AI Providers to Commands
-**Status: Providers exist but not connected**
-- [ ] 8.1: Implement Claude provider complete() method
-- [ ] 8.2: Add system/user prompt building
-- [ ] 8.3: Connect sidebar input to command parser
-- [ ] 8.4: Route parsed commands to appropriate handler
-- [ ] 8.5: Display AI response in chat
-- [ ] 8.6: Show loading indicator during AI call
-- [ ] 8.7: Handle and display errors gracefully
-- [ ] 8.8: Test with real Claude API key
+#### Step 2: Feature Flag Manager
+**Status: Pending Step 1**
+- [ ] 2.1: Create feature manager with tier-based access
+- [ ] 2.2: Define Core vs SuperNova feature flags
+- [ ] 2.3: Write feature access tests
+- [ ] 2.4: Validate feature restriction works
 
-#### Task 9: Test Core Functionality
-**Status: Ready to test once 7&8 complete**
-- [ ] 9.1: Test "add a section about X" command
-- [ ] 9.2: Test "edit this paragraph" with selection
-- [ ] 9.3: Test "fix grammar" on whole document
-- [ ] 9.4: Test "delete section X"
-- [ ] 9.5: Test "rewrite this" with selection
-- [ ] 9.6: Verify Cmd+Z undo works
-- [ ] 9.7: Test provider switching
-- [ ] 9.8: Add basic CSS styling
+#### Step 3: Settings Integration
+**Status: Pending Step 2**
+- [ ] 3.1: Add license key input to settings
+- [ ] 3.2: Add license validation feedback
+- [ ] 3.3: Add tier status display
+- [ ] 3.4: Test settings UI integration
+
+#### Step 4: Development Testing Framework
+**Status: Pending Step 3**
+- [ ] 4.1: Add debug mode toggle
+- [ ] 4.2: Add tier override functionality
+- [ ] 4.3: Test easy tier switching
+- [ ] 4.4: Validate development workflow
 
 ---
 
@@ -80,6 +78,24 @@ src/ai/providers/claude.ts      # Then here (Task 8)
 src/core/document-engine.ts     # Already complete
 styles.css                      # Add chat styles (Task 9)
 ```
+
+---
+
+## Development Workflow (Freemium Implementation)
+
+### Strict Step-by-Step Process
+1. **Single Step Focus**: Complete one step fully before next
+2. **Unit Tests Required**: Write tests for all new functionality  
+3. **Test Validation**: `npm test` must pass 100%
+4. **User Review**: Present changes for validation
+5. **Clean Commits**: Descriptive commit messages, push immediately
+6. **Sequential Progress**: No parallel work, maintain linear progression
+
+### Quality Gates
+- No step complete without passing tests
+- No commits without user validation
+- No shortcuts or rushing ahead
+- Maintain working state at all times
 
 ---
 
