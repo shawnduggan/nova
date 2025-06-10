@@ -21,7 +21,7 @@
 
 ---
 
-## Current Project State (Updated: June 9, 2025)
+## Current Project State (Updated: June 10, 2025)
 
 ### ✅ COMPLETED Components
 - Plugin structure and TypeScript setup
@@ -37,129 +37,96 @@
 - **Complete sidebar chat UI implementation**
 - **Full AI provider connections and command routing**
 - **Professional chat interface with loading states**
+- **License validation system (ready for Catalyst model)**
 
-### ✅ COMPLETED PHASE: Freemium Architecture (PRODUCTION READY)
+### 🔄 CURRENT PHASE: Monetization Pivot to Catalyst Model
 
-#### Step 1: License Types & Validation Foundation ✅
-**Status: COMPLETED**
-- [x] 1.1: Create license interface types
-- [x] 1.2: Implement offline HMAC license validator
-- [x] 1.3: Write comprehensive unit tests (13 test cases)
-- [x] 1.4: Validate license detection works
+#### New Business Model
+**FROM**: Feature-tier model (Core free with limits, Supernova paid with features)  
+**TO**: Community-supported model (ALL features free with user API keys, Catalyst supporters get early access)
 
-#### Step 2: Feature Flag Manager ✅
-**Status: COMPLETED**
-- [x] 2.1: Create feature manager with tier-based access
-- [x] 2.2: Define Core vs Supernova feature flags
-- [x] 2.3: Write feature access tests (22 test cases)
-- [x] 2.4: Validate feature restriction works
+#### Catalyst Supporter Tiers
+- **Nova (Free)**: All features available with user-provided API keys
+- **Catalyst ($29/year or $199 lifetime)**: 3-6 month early access to new features, priority support, supporter badge
 
-#### Step 3: Settings Integration ✅
-**Status: COMPLETED**
-- [x] 3.1: Add license key input to settings
-- [x] 3.2: Add license validation feedback
-- [x] 3.3: Add tier status display
-- [x] 3.4: Test settings UI integration
-
-#### Step 4: Development Testing Framework ✅
-**Status: COMPLETED (Integrated in Steps 2-3)**
-- [x] 4.1: Add debug mode toggle
-- [x] 4.2: Add tier override functionality
-- [x] 4.3: Test easy tier switching
-- [x] 4.4: Validate development workflow
-
-#### Step 5: Provider Restrictions ✅
-**Status: COMPLETED**
-- [x] 5.1: Implement Core tier provider limits
-- [x] 5.2: Block additional provider configurations for Core
-- [x] 5.3: Add provider selection validation in settings
-- [x] 5.4: Test provider restrictions work
-
-#### Step 6: Mobile Upgrade Interface ✅
-**Status: COMPLETED (UX Breakthrough)**
-- [x] 6.1: Add platform detection in main plugin
-- [x] 6.2: Show professional upgrade interface for Core mobile users
-- [x] 6.3: Transform mobile "blocking" to "upgrade opportunity"
-- [x] 6.4: Allow mobile access only for Supernova
-
-#### Step 7: Sidebar Provider Switching UI ✅
-**Status: COMPLETED**
-- [x] 7.1: Remove provider switching from Core tier chat UI
-- [x] 7.2: Add in-chat provider dropdown for Supernova
-- [x] 7.3: Implement conversation continuation on provider switch
-- [x] 7.4: Update sidebar UI based on tier
-
-### 🎉 FREEMIUM ARCHITECTURE: 100% COMPLETE
-**All 476 tests passing ✅ | Production build working ✅ | Ready for market deployment**
-
-### 🚀 CURRENT STATUS: PRODUCTION READY
-
-#### Validation Complete (June 9, 2025)
-- [x] All 476 tests passing (comprehensive validation)
-- [x] Production build successful  
-- [x] Documentation updated (CLAUDE.md + README.md)
-- [x] UX breakthrough: Mobile "blocking" → "upgrade interface"
-- [x] All freemium features tested and working
+#### Technical Infrastructure Status
+- [x] License validation system built and tested
+- [x] Feature flag system ready for conversion to time-based
+- [x] Provider system supports all users (needs gate removal)
+- [x] 476 tests ready for update
+- [ ] Time-based feature release system to implement
+- [ ] Catalyst supporter UI elements to add
+- [ ] Remove all Core/Supernova tier restrictions
 
 ---
 
 ## 🎯 NEXT DEVELOPMENT PHASES
 
-### **Phase 0: Technical Features** (Immediate - Next 2-3 weeks)
+### **Phase 0: Monetization Pivot & Feature Implementation** (2-3 weeks)
 **Priority: IMMEDIATE**
 
-#### Week 1: Core Infrastructure
-- [ ] **Update SuperNova to Supernova Branding** (PRIORITY 1)
-  - [ ] Find/replace across 14 files (77 occurrences)
-  - [ ] Run all tests to ensure nothing broke
-  - [ ] Build project to verify
-  - [ ] Quick 15-20 minute task before other features
+#### Week 1: Remove Feature Gates & Build Core Features
+- [ ] **Day 1-2: Monetization Infrastructure**
+  - [ ] Transform feature-manager.ts from tier-based to time-based gating
+  - [ ] Update license system to validate Catalyst supporter status only
+  - [ ] Remove all Core/Supernova tier restrictions
+  - [ ] Add Catalyst badge and early access UI elements
+  - [ ] Update settings to remove tier selection, add Catalyst status
+  - [ ] Remove all "upgrade to Supernova" prompts
 
-- [ ] **Custom Command System (Core Feature)**
-  - [ ] Implement dual trigger system (`:` for desktop, ⚡ button universal)
-  - [ ] Create command picker (dropdown desktop, bottom sheet mobile)
-  - [ ] Add system commands with full names (`:claude`, `:gemini`, `:gpt4`, `:ollama`)
-  - [ ] Add universal commands (`:process`, `:yolo`)
-  - [ ] Build settings UI with table-based command management
-  - [ ] Write unit and integration tests
+- [ ] **Day 3-4: Command System Implementation**
+  - [ ] Implement `:` trigger system for all commands
+  - [ ] Create command picker dropdown UI
+  - [ ] Add provider switching commands (`:claude`, `:gemini`, `:gpt4`, `:ollama`)
+  - [ ] Add custom command system with user-defined shortcuts
+  - [ ] Add command button (⚡) for mobile/discovery
+  - [ ] Build settings UI for command management
 
-- [ ] **Auto-Growing Input Area**
+- [ ] **Day 5: Auto-Growing Input Area**
   - [ ] Replace current input with auto-growing textarea
   - [ ] Platform-aware defaults (1 line desktop, 2 lines mobile)
   - [ ] Implement smooth height transitions (max 6-8 lines)
-  - [ ] Integrate command button (⚡) in input container
-  - [ ] Cross-platform testing (desktop, mobile, tablet)
+  - [ ] Integrate with command button
+  - [ ] Cross-platform testing
 
-#### Week 2: Advanced Features
-- [ ] **Multi-Document Context (Supernova Feature)**
+#### Week 2: Advanced Features & Time Gates
+- [ ] **Day 6-7: Multi-Document Context**
   - [ ] Parse `[[doc]]` syntax for temporary context (current request only)
   - [ ] Parse `+[[doc]]` syntax for persistent context (conversation-wide)
   - [ ] Implement token counting with 80% limit warnings
-  - [ ] Fix metadata property reading from cache
   - [ ] Add visual context indicators in sidebar
-  - [ ] Feature gate with Supernova upgrade prompts
+  - [ ] Handle metadata property reading from cache
   - [ ] Write comprehensive tests
 
-- [ ] **Settings Reorganization**
-  - [ ] Create collapsible sections component
-  - [ ] Build provider configuration table
-  - [ ] Build command management table
-  - [ ] Implement automatic settings migration
-  - [ ] Test UI interactions and persistence
+- [ ] **Day 8-9: Time Gate Configuration**
+  - [ ] Create feature-config.ts with flexible date settings
+  - [ ] Implement isFeatureEnabled() with date checking
+  - [ ] Add "Early Access" indicators for Catalyst features
+  - [ ] Test time gate functionality
+  - [ ] Ensure easy date modification for feature releases
 
-#### Week 3: Integration & Polish
-- [ ] **Comprehensive Testing Suite**
-  - [ ] Unit tests for all new components (target: 500+ total tests)
-  - [ ] Integration tests for cross-feature workflows
-  - [ ] Performance benchmarks (command picker <200ms, context loading <1s)
-  - [ ] Mobile-specific touch interaction tests
-  - [ ] End-to-end user workflow validation
+- [ ] **Day 10: Settings & Debug Mode**
+  - [ ] Remove tier-based settings UI
+  - [ ] Add Catalyst license input and validation
+  - [ ] Implement debug mode for development builds only
+  - [ ] Add feature date overrides for testing
+  - [ ] Ensure debug stripped from production builds
 
-- [ ] **Documentation Updates**
-  - [ ] Update technical architecture docs
-  - [ ] Create user guides for new features
-  - [ ] Document API changes and interfaces
-  - [ ] Prepare beta testing instructions
+#### Week 3: Testing, Documentation & Launch Prep
+- [ ] **Day 11-12: Update Test Suite**
+  - [ ] Remove all tier-based tests
+  - [ ] Add Catalyst supporter validation tests
+  - [ ] Add time-based feature release tests
+  - [ ] Test all features work with user API keys
+  - [ ] Ensure 476+ tests passing
+
+- [ ] **Day 13-14: Documentation & Repository Prep**
+  - [ ] Update README.md with Catalyst model
+  - [ ] Remove all Core/Supernova references
+  - [ ] Update this CLAUDE.md file
+  - [ ] Prepare LICENSE.md for public repository
+  - [ ] Create CONTRIBUTING.md
+  - [ ] Clean repository history of sensitive data
 
 ### **Phase 1: Ship Preparation** (Next 1-2 weeks)
 **Priority: HIGH**
@@ -205,13 +172,61 @@
   - [ ] Documentation site setup
   - [ ] Update README.md with all new features
 
-### **Phase 3: Advanced Features** (Future)
-**Priority: LOW**
-- [ ] Templates system implementation
-- [ ] Command usage analytics and smart sorting
-- [ ] Usage insights dashboard
-- [ ] Enterprise features development
-- [ ] Advanced conversation management
+### **Phase 3: Advanced Features** (DEFERRED - Based on User Feedback)
+**Priority: NONE - Not planned for initial development**
+- Templates system implementation
+- Command usage analytics and smart sorting
+- Usage insights dashboard
+- Enterprise features development
+- Advanced conversation management
+
+---
+
+## Implementation Details for Catalyst Model
+
+### Feature Release Configuration
+```typescript
+// feature-config.ts - Easy to modify post-launch
+export const CATALYST_FEATURES = {
+  'command-system': {
+    catalystDate: '2025-06-15',  // Launch day
+    generalDate: '2025-09-15',   // 3 months later
+  },
+  'multi-doc-context': {
+    catalystDate: '2025-06-15',  // Launch day  
+    generalDate: '2025-08-15',   // 2 months later
+  },
+  'auto-input': {
+    catalystDate: '2025-06-15',  // Launch day
+    generalDate: '2025-07-15',   // 1 month later
+  }
+};
+```
+
+### New Settings Structure
+```typescript
+interface NovaSettings {
+  // No more tier selection
+  providers: Record<string, ProviderConfig>;
+  customCommands: CustomCommand[];
+  catalystLicense?: CatalystLicense;
+  isCatalyst: boolean;
+  // ... other settings
+}
+```
+
+### Feature Checking Logic
+```typescript
+function isFeatureEnabled(featureId: string, user: User): boolean {
+  const feature = CATALYST_FEATURES[featureId];
+  const now = new Date();
+  
+  if (now >= new Date(feature.generalDate)) return true;
+  if (user.isCatalyst && now >= new Date(feature.catalystDate)) return true;
+  
+  return false;
+}
+```
 
 ---
 
@@ -226,30 +241,30 @@ styles.css                      # All UI styles (complete)
 
 ---
 
-## Development Workflow (Current Phase: Technical Features)
+## Development Workflow (Current Phase: Monetization Pivot)
 
-### Current Focus: Phase 0 Implementation
-1. **Feature Development**: Custom commands, multi-doc context, UI improvements
-2. **Core vs Supernova**: Properly gate premium features
-3. **Test Coverage**: Maintain 100% coverage with new features
-4. **Atomic Changes**: One small testable change per response
-5. **Integration**: Ensure new features work with existing code
+### Current Focus: Catalyst Model Implementation
+1. **Remove Feature Gates**: All features free with user API keys
+2. **Build Catalyst System**: Time-based early access for supporters
+3. **Implement New Features**: Command system, multi-doc context, UI
+4. **Test Coverage**: Update 476 tests for new model
+5. **Atomic Changes**: One small testable change per response
 
 ---
 
 ## Session Instructions
 
-### Starting a Session (Technical Features Phase)
+### Starting a Session (Monetization Pivot Phase)
 1. Load this file first
-2. Check current production status (all tests passing)
-3. Focus on Phase 0 tasks: custom commands, multi-doc context, UI
+2. Review Catalyst model requirements
+3. Focus on Phase 0 tasks in order
 4. One atomic change at a time only
 
-### Making Changes (Feature Development)
-1. Test before and after every change
-2. Properly gate Supernova features
-3. Maintain 100% test coverage
-4. Follow existing code patterns
+### Making Changes (Catalyst Implementation)
+1. Remove tier restrictions systematically
+2. Implement time-based feature gates
+3. Build all features, gate for Catalyst early access
+4. Update tests as you go
 
 ### Commit Messages
 - Do NOT add "Generated with Claude Code" text to commits
@@ -263,19 +278,22 @@ styles.css                      # All UI styles (complete)
 
 ---
 
-## Example Prompts for Next Session (Technical Features)
+## Example Prompts for Next Session (Monetization Pivot)
 
 ### Good First Prompt:
-"Start Phase 0: Create the custom command system types and interfaces"
+"Start Phase 0 Day 1: Transform feature-manager.ts to time-based gating"
 
-### Good Follow-up:
-"Implement the colon trigger for desktop command picker"
+### Removing Tier Gates:
+"Remove Core/Supernova tier restrictions from sidebar-view.ts"
 
-### Feature Implementation:
-"Add multi-document context parsing for [[doc]] syntax"
+### Building New Features:
+"Implement : command trigger system for provider switching"
+
+### Time Gate Implementation:
+"Create feature-config.ts with Catalyst early access dates"
 
 ### If Issues Found:
-"Fix failing tests while maintaining feature functionality"
+"Fix failing tests after removing tier logic"
 
 ---
 
@@ -308,8 +326,32 @@ interface ChatMessage {
 
 ---
 
+## Feature Availability Summary
+
+### MVP Features (Available to ALL users at launch)
+- ✅ 5 core editing commands (add, edit, delete, grammar, rewrite)
+- ✅ Sidebar chat interface with conversations
+- ✅ File-scoped conversation memory
+- ✅ 4 AI providers with user's own API keys
+- ✅ Settings UI with API key configuration
+- ✅ Desktop and mobile support
+
+### Catalyst Early Access Features (Built but time-gated)
+- ⏰ `:` command system (provider switching + custom commands)
+- ⏰ Multi-document context (`[[doc]]` and `+[[doc]]`)
+- ⏰ Auto-growing input area
+- ⏰ Command button (⚡)
+- ⏰ Enhanced provider management
+
+### Key Principles
+- ALL features free with user API keys
+- Catalyst supporters get 3-6 month early access
+- Time gates are flexible and can be adjusted
+- No permanent feature restrictions
+- Debug mode only in development builds
+
 ## Remember
 - MVP only - no extra features
-- Working > Perfect
-- Ship in 3-4 days
+- Working > Perfect  
 - One atomic change at a time
+- Build everything, gate for Catalyst value
