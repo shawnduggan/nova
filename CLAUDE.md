@@ -105,7 +105,57 @@
 
 ## 🎯 NEXT DEVELOPMENT PHASES
 
-### **Phase 1: Ship Preparation** (Immediate - Next 1-2 weeks)
+### **Phase 0: Technical Features** (Immediate - Next 2-3 weeks)
+**Priority: IMMEDIATE**
+
+#### Week 1: Core Infrastructure
+- [ ] **Custom Command System (Core Feature)**
+  - [ ] Implement dual trigger system (`:` for desktop, ⚡ button universal)
+  - [ ] Create command picker (dropdown desktop, bottom sheet mobile)
+  - [ ] Add system commands with full names (`:claude`, `:gemini`, `:gpt4`, `:ollama`)
+  - [ ] Add universal commands (`:process`, `:yolo`)
+  - [ ] Build settings UI with table-based command management
+  - [ ] Write unit and integration tests
+
+- [ ] **Auto-Growing Input Area**
+  - [ ] Replace current input with auto-growing textarea
+  - [ ] Platform-aware defaults (1 line desktop, 2 lines mobile)
+  - [ ] Implement smooth height transitions (max 6-8 lines)
+  - [ ] Integrate command button (⚡) in input container
+  - [ ] Cross-platform testing (desktop, mobile, tablet)
+
+#### Week 2: Advanced Features
+- [ ] **Multi-Document Context (SuperNova Feature)**
+  - [ ] Parse `[[doc]]` syntax for temporary context (current request only)
+  - [ ] Parse `+[[doc]]` syntax for persistent context (conversation-wide)
+  - [ ] Implement token counting with 80% limit warnings
+  - [ ] Fix metadata property reading from cache
+  - [ ] Add visual context indicators in sidebar
+  - [ ] Feature gate with SuperNova upgrade prompts
+  - [ ] Write comprehensive tests
+
+- [ ] **Settings Reorganization**
+  - [ ] Create collapsible sections component
+  - [ ] Build provider configuration table
+  - [ ] Build command management table
+  - [ ] Implement automatic settings migration
+  - [ ] Test UI interactions and persistence
+
+#### Week 3: Integration & Polish
+- [ ] **Comprehensive Testing Suite**
+  - [ ] Unit tests for all new components (target: 500+ total tests)
+  - [ ] Integration tests for cross-feature workflows
+  - [ ] Performance benchmarks (command picker <200ms, context loading <1s)
+  - [ ] Mobile-specific touch interaction tests
+  - [ ] End-to-end user workflow validation
+
+- [ ] **Documentation Updates**
+  - [ ] Update technical architecture docs
+  - [ ] Create user guides for new features
+  - [ ] Document API changes and interfaces
+  - [ ] Prepare beta testing instructions
+
+### **Phase 1: Ship Preparation** (Next 1-2 weeks)
 **Priority: HIGH**
 
 - [ ] **Comprehensive Manual Testing**
@@ -147,11 +197,13 @@
   - [ ] Obsidian Community Plugin submission
   - [ ] Marketing materials creation
   - [ ] Documentation site setup
+  - [ ] Update README.md with all new features
 
 ### **Phase 3: Advanced Features** (Future)
 **Priority: LOW**
 - [ ] Templates system implementation
-- [ ] Usage analytics and insights
+- [ ] Command usage analytics and smart sorting
+- [ ] Usage insights dashboard
 - [ ] Enterprise features development
 - [ ] Advanced conversation management
 
@@ -168,30 +220,30 @@ styles.css                      # All UI styles (complete)
 
 ---
 
-## Development Workflow (Current Phase: Ship Preparation)
+## Development Workflow (Current Phase: Technical Features)
 
-### Current Focus: Performance & Polish
-1. **Performance First**: Optimize before adding features
-2. **Real Device Testing**: Validate mobile experience
-3. **User Feedback**: Incorporate beta testing
-4. **Quality Assurance**: Maintain 100% test coverage
-5. **Documentation**: Keep all docs current
+### Current Focus: Phase 0 Implementation
+1. **Feature Development**: Custom commands, multi-doc context, UI improvements
+2. **Core vs SuperNova**: Properly gate premium features
+3. **Test Coverage**: Maintain 100% coverage with new features
+4. **Atomic Changes**: One small testable change per response
+5. **Integration**: Ensure new features work with existing code
 
 ---
 
 ## Session Instructions
 
-### Starting a Session (Ship Preparation Phase)
+### Starting a Session (Technical Features Phase)
 1. Load this file first
 2. Check current production status (all tests passing)
-3. Focus on Phase 1 tasks: performance, testing, polish
-4. One task at a time only
+3. Focus on Phase 0 tasks: custom commands, multi-doc context, UI
+4. One atomic change at a time only
 
-### Making Changes (Production Focus)
+### Making Changes (Feature Development)
 1. Test before and after every change
-2. Validate on real devices when possible
+2. Properly gate SuperNova features
 3. Maintain 100% test coverage
-4. Document performance impacts
+4. Follow existing code patterns
 
 ### Commit Messages
 - Do NOT add "Generated with Claude Code" text to commits
@@ -205,19 +257,19 @@ styles.css                      # All UI styles (complete)
 
 ---
 
-## Example Prompts for Next Session (Ship Preparation)
+## Example Prompts for Next Session (Technical Features)
 
 ### Good First Prompt:
-"Start Phase 1: Run bundle size analysis and check performance"
+"Start Phase 0: Create the custom command system types and interfaces"
 
 ### Good Follow-up:
-"Test mobile upgrade interface on actual mobile device"
+"Implement the colon trigger for desktop command picker"
 
-### Performance Focus:
-"Optimize loading times and memory usage for large documents"
+### Feature Implementation:
+"Add multi-document context parsing for [[doc]] syntax"
 
 ### If Issues Found:
-"Fix performance issue X while maintaining test coverage"
+"Fix failing tests while maintaining feature functionality"
 
 ---
 
