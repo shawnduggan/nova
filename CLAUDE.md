@@ -50,7 +50,7 @@
 #### Step 2: Feature Flag Manager ✅
 **Status: COMPLETED**
 - [x] 2.1: Create feature manager with tier-based access
-- [x] 2.2: Define Core vs SuperNova feature flags
+- [x] 2.2: Define Core vs Supernova feature flags
 - [x] 2.3: Write feature access tests (22 test cases)
 - [x] 2.4: Validate feature restriction works
 
@@ -80,12 +80,12 @@
 - [x] 6.1: Add platform detection in main plugin
 - [x] 6.2: Show professional upgrade interface for Core mobile users
 - [x] 6.3: Transform mobile "blocking" to "upgrade opportunity"
-- [x] 6.4: Allow mobile access only for SuperNova
+- [x] 6.4: Allow mobile access only for Supernova
 
 #### Step 7: Sidebar Provider Switching UI ✅
 **Status: COMPLETED**
 - [x] 7.1: Remove provider switching from Core tier chat UI
-- [x] 7.2: Add in-chat provider dropdown for SuperNova
+- [x] 7.2: Add in-chat provider dropdown for Supernova
 - [x] 7.3: Implement conversation continuation on provider switch
 - [x] 7.4: Update sidebar UI based on tier
 
@@ -109,6 +109,12 @@
 **Priority: IMMEDIATE**
 
 #### Week 1: Core Infrastructure
+- [ ] **Update SuperNova to Supernova Branding** (PRIORITY 1)
+  - [ ] Find/replace across 14 files (77 occurrences)
+  - [ ] Run all tests to ensure nothing broke
+  - [ ] Build project to verify
+  - [ ] Quick 15-20 minute task before other features
+
 - [ ] **Custom Command System (Core Feature)**
   - [ ] Implement dual trigger system (`:` for desktop, ⚡ button universal)
   - [ ] Create command picker (dropdown desktop, bottom sheet mobile)
@@ -125,13 +131,13 @@
   - [ ] Cross-platform testing (desktop, mobile, tablet)
 
 #### Week 2: Advanced Features
-- [ ] **Multi-Document Context (SuperNova Feature)**
+- [ ] **Multi-Document Context (Supernova Feature)**
   - [ ] Parse `[[doc]]` syntax for temporary context (current request only)
   - [ ] Parse `+[[doc]]` syntax for persistent context (conversation-wide)
   - [ ] Implement token counting with 80% limit warnings
   - [ ] Fix metadata property reading from cache
   - [ ] Add visual context indicators in sidebar
-  - [ ] Feature gate with SuperNova upgrade prompts
+  - [ ] Feature gate with Supernova upgrade prompts
   - [ ] Write comprehensive tests
 
 - [ ] **Settings Reorganization**
@@ -167,7 +173,7 @@
 
 - [ ] **Bug Tracking & Resolution System**
   - [ ] Document bug reporting workflow
-  - [ ] Test licensing features thoroughly (Core vs SuperNova)
+  - [ ] Test licensing features thoroughly (Core vs Supernova)
   - [ ] Validate mobile upgrade interface on real devices
   - [ ] Performance testing with large documents
 
@@ -178,7 +184,7 @@
 
 - [ ] Final testing validation
   - [ ] Test Core tier mobile upgrade interface on real devices
-  - [ ] Test SuperNova provider switching on mobile
+  - [ ] Test Supernova provider switching on mobile
   - [ ] Cross-platform compatibility check
 
 - [ ] User experience polish
@@ -224,7 +230,7 @@ styles.css                      # All UI styles (complete)
 
 ### Current Focus: Phase 0 Implementation
 1. **Feature Development**: Custom commands, multi-doc context, UI improvements
-2. **Core vs SuperNova**: Properly gate premium features
+2. **Core vs Supernova**: Properly gate premium features
 3. **Test Coverage**: Maintain 100% coverage with new features
 4. **Atomic Changes**: One small testable change per response
 5. **Integration**: Ensure new features work with existing code
@@ -241,7 +247,7 @@ styles.css                      # All UI styles (complete)
 
 ### Making Changes (Feature Development)
 1. Test before and after every change
-2. Properly gate SuperNova features
+2. Properly gate Supernova features
 3. Maintain 100% test coverage
 4. Follow existing code patterns
 
