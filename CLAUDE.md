@@ -19,6 +19,12 @@
 - Every function must work when implemented
 - Make reasonable decisions instead of asking
 
+### Progress Tracking
+- **ALWAYS use this CLAUDE.md file for tracking progress**
+- Do NOT use TodoWrite/TodoRead or any session-based tracking
+- Update checkboxes in this file when completing tasks
+- Add new bugs/tasks to the appropriate phase section
+
 ---
 
 ## Current Project State (Updated: June 10, 2025)
@@ -143,6 +149,9 @@
   - [ ] Test licensing features thoroughly (Core vs Supernova)
   - [ ] Validate mobile upgrade interface on real devices
   - [ ] Performance testing with large documents
+  - [ ] **FIX: File context tracking bug** - Nova shows wrong file in context when multiple files are open
+    - Issue: In `sidebar-view.ts` line 531, fallback uses `leaves[0]` instead of active leaf
+    - Fix: Update `loadConversationForActiveFile()` to check `app.workspace.activeLeaf` before falling back to first file
 
 - [ ] Performance optimization review
   - [ ] Bundle size analysis (`npm run build` + size check)
@@ -243,6 +252,10 @@ styles.css                      # All UI styles (complete)
 
 ## Development Workflow (Current Phase: Monetization Pivot)
 
+### ⚠️ IMPORTANT: Progress Tracking
+**All progress tracking must be done in this CLAUDE.md file by updating checkboxes.**
+**Do NOT use TodoWrite/TodoRead or any other session-based tracking tools.**
+
 ### Current Focus: Catalyst Model Implementation
 1. **Remove Feature Gates**: All features free with user API keys
 2. **Build Catalyst System**: Time-based early access for supporters
@@ -259,12 +272,15 @@ styles.css                      # All UI styles (complete)
 2. Review Catalyst model requirements
 3. Focus on Phase 0 tasks in order
 4. One atomic change at a time only
+5. **Track all progress by updating checkboxes in this file**
 
 ### Making Changes (Catalyst Implementation)
 1. Remove tier restrictions systematically
 2. Implement time-based feature gates
 3. Build all features, gate for Catalyst early access
 4. Update tests as you go
+5. **Mark completed tasks with [x] in this CLAUDE.md file**
+6. **Add any new bugs/tasks to the appropriate phase section**
 
 ### Commit Messages
 - Do NOT add "Generated with Claude Code" text to commits
