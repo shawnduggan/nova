@@ -85,7 +85,7 @@
   - [x] Create command picker dropdown UI
   - [x] Add provider switching commands (`:claude`, `:chatgpt`, `:gemini`, `:ollama`)
   - [x] Add custom command system with user-defined shortcuts
-  - [ ] Add command button (⚡) for mobile/discovery
+  - [x] Add command button (⚡) for mobile/discovery
   - [ ] Build settings UI for command management
 
 - [ ] **Day 5: Auto-Growing Input Area**

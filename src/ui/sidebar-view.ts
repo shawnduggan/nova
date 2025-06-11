@@ -10,10 +10,13 @@ export class NovaSidebarView extends ItemView {
 	private inputContainer!: HTMLElement;
 	private textArea!: TextAreaComponent;
 	private sendButton!: ButtonComponent;
+	private commandButton!: ButtonComponent;
 	private currentFile: TFile | null = null;
 	private commandPicker!: HTMLElement;
 	private commandPickerItems: HTMLElement[] = [];
 	private selectedCommandIndex: number = -1;
+	private commandMenu!: HTMLElement;
+	private isCommandMenuVisible: boolean = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -161,6 +164,23 @@ export class NovaSidebarView extends ItemView {
 			line-height: var(--line-height-normal);
 		`;
 
+		// Command button (⚡) - conditionally shown
+		this.commandButton = new ButtonComponent(inputRow);
+		this.commandButton.setIcon('zap');
+		this.commandButton.setTooltip('Commands');
+		this.commandButton.onClick(() => this.toggleCommandMenu());
+		this.commandButton.buttonEl.style.cssText = `
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			display: ${this.plugin.featureManager.isFeatureEnabled('command-button') ? 'flex' : 'none'};
+			align-items: center;
+			justify-content: center;
+			padding: 0;
+			flex-shrink: 0;
+			margin-right: 8px;
+		`;
+
 		// Send button vertically centered
 		this.sendButton = new ButtonComponent(inputRow);
 		this.sendButton.setIcon('send');
@@ -200,6 +220,9 @@ export class NovaSidebarView extends ItemView {
 
 		// Create command picker
 		this.createCommandPicker();
+
+		// Create command menu
+		this.createCommandMenu();
 	}
 
 	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
@@ -570,6 +593,130 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		return commands;
+	}
+
+	private createCommandMenu(): void {
+		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu' });
+		this.commandMenu.style.cssText = `
+			position: absolute;
+			bottom: 100%;
+			right: 0;
+			background: var(--background-primary);
+			border: 1px solid var(--background-modifier-border);
+			border-bottom: none;
+			border-radius: 8px 8px 0 0;
+			min-width: 240px;
+			max-height: 300px;
+			overflow-y: auto;
+			z-index: 1000;
+			display: none;
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+		`;
+
+		// Close menu when clicking outside
+		document.addEventListener('click', (event) => {
+			if (!this.commandMenu.contains(event.target as Node) && 
+				!this.commandButton.buttonEl.contains(event.target as Node)) {
+				this.hideCommandMenu();
+			}
+		});
+	}
+
+	private toggleCommandMenu(): void {
+		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
+			this.addMessage('system', '⚡ Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025.');
+			return;
+		}
+
+		if (this.isCommandMenuVisible) {
+			this.hideCommandMenu();
+		} else {
+			this.showCommandMenu();
+		}
+	}
+
+	private showCommandMenu(): void {
+		const commands = this.getAvailableCommands();
+		
+		this.commandMenu.empty();
+		
+		// Header
+		const headerEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-header' });
+		headerEl.style.cssText = `
+			padding: 12px 16px;
+			border-bottom: 1px solid var(--background-modifier-border);
+			font-weight: 600;
+			font-size: 0.9em;
+			color: var(--text-normal);
+		`;
+		headerEl.textContent = '⚡ Commands';
+
+		// Commands list
+		commands.forEach(command => {
+			const item = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
+			item.style.cssText = `
+				padding: 12px 16px;
+				cursor: pointer;
+				border-bottom: 1px solid var(--background-modifier-border-hover);
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				transition: background-color 0.2s;
+			`;
+
+			const nameEl = item.createDiv({ cls: 'nova-command-menu-name' });
+			nameEl.textContent = command.name;
+			nameEl.style.cssText = `
+				font-weight: 500;
+				color: var(--text-normal);
+			`;
+
+			const triggerEl = item.createDiv({ cls: 'nova-command-menu-trigger' });
+			triggerEl.textContent = `:${command.trigger}`;
+			triggerEl.style.cssText = `
+				font-family: var(--font-monospace);
+				font-size: 0.8em;
+				color: var(--interactive-accent);
+				opacity: 0.8;
+			`;
+
+			if (command.description) {
+				const descEl = item.createDiv({ cls: 'nova-command-menu-desc' });
+				descEl.textContent = command.description;
+				descEl.style.cssText = `
+					font-size: 0.8em;
+					color: var(--text-muted);
+				`;
+			}
+
+			item.addEventListener('mouseenter', () => {
+				item.style.backgroundColor = 'var(--background-modifier-hover)';
+			});
+
+			item.addEventListener('mouseleave', () => {
+				item.style.backgroundColor = '';
+			});
+
+			item.addEventListener('click', () => {
+				this.executeCommandFromMenu(command.trigger);
+			});
+		});
+
+		this.commandMenu.style.display = 'block';
+		this.isCommandMenuVisible = true;
+	}
+
+	private hideCommandMenu(): void {
+		this.commandMenu.style.display = 'none';
+		this.isCommandMenuVisible = false;
+	}
+
+	private executeCommandFromMenu(trigger: string): void {
+		this.hideCommandMenu();
+		
+		// Execute the command directly
+		this.textArea.setValue(`:${trigger}`);
+		this.handleSend();
 	}
 
 	private async handleSend() {
