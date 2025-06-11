@@ -1,17 +1,31 @@
 export interface License {
 	email: string;
-	tier: LicenseTier;
 	expiresAt: Date | null; // null for lifetime licenses
 	issuedAt: Date;
 	signature: string; // HMAC-SHA256 signature for validation
 	licenseKey: string; // The original license key string
 }
 
-export type LicenseTier = 'core' | 'supernova';
+// Removed LicenseTier - no longer using tier-based system
+
+export interface CatalystLicense {
+	email: string;
+	type: 'annual' | 'lifetime';
+	expiresAt: Date | null; // null for lifetime
+	issuedAt: Date;
+	signature: string;
+	licenseKey: string;
+}
 
 export interface LicenseValidationResult {
 	valid: boolean;
 	license?: License;
+	error?: LicenseError;
+}
+
+export interface CatalystValidationResult {
+	valid: boolean;
+	license?: CatalystLicense;
 	error?: LicenseError;
 }
 
@@ -25,26 +39,24 @@ export enum LicenseError {
 
 export interface FeatureFlag {
 	key: string;
-	requiredTier: LicenseTier;
 	enabled: boolean;
 	description: string;
-	fallbackBehavior?: 'disable' | 'prompt_upgrade' | 'limited_usage';
+	isTimeGated?: boolean;
+	earlyAccessOnly?: boolean;
 }
 
-export enum FeatureTier {
-	CORE = 'core',
-	SUPERNOVA = 'supernova'
-}
+// Removed FeatureTier enum - using time-based feature release instead
 
 export interface FeatureAccessResult {
 	allowed: boolean;
 	reason?: string;
-	fallbackBehavior?: 'disable' | 'prompt_upgrade' | 'limited_usage';
-	upgradePrompt?: string;
+	isCatalystFeature?: boolean;
+	availableDate?: Date;
 }
 
 // Debug mode interfaces for development
 export interface DebugSettings {
 	enabled: boolean;
-	overrideTier?: LicenseTier;
+	overrideDate?: string; // Allow date override for testing time gates
+	forceCatalyst?: boolean; // Force Catalyst status for testing
 }

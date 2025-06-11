@@ -34,53 +34,14 @@ export class AIProviderManager {
 	}
 
 	private getPlatformProviders(): ProviderType[] {
-		// Check mobile access for Core tier users
-		if (Platform.isMobile && this.featureManager) {
-			if (!this.featureManager.isFeatureEnabled('mobile_access')) {
-				return ['none']; // Block all providers for Core mobile users
-			}
-		}
-
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
 		const platformSettings = this.settings.platformSettings[platform];
-		let providers = [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
+		const providers = [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
 		
-		// Apply Core tier restrictions if applicable
-		if (this.featureManager && !this.featureManager.isFeatureEnabled('unlimited_cloud_ai')) {
-			providers = this.filterProvidersForCoreTier(providers);
-		}
-		
+		// No restrictions - all users can use all providers with their own API keys
 		return providers;
 	}
 
-	private filterProvidersForCoreTier(providers: ProviderType[]): ProviderType[] {
-		const localProviders: ProviderType[] = ['ollama'];
-		const cloudProviders: ProviderType[] = ['claude', 'openai', 'google'];
-		
-		let allowedLocal: ProviderType[] = [];
-		let allowedCloud: ProviderType[] = [];
-		
-		// Allow 1 local provider (first found)
-		for (const provider of providers) {
-			if (localProviders.includes(provider) && allowedLocal.length === 0) {
-				allowedLocal.push(provider);
-				break;
-			}
-		}
-		
-		// Allow 1 cloud provider (first found)
-		for (const provider of providers) {
-			if (cloudProviders.includes(provider) && allowedCloud.length === 0) {
-				allowedCloud.push(provider);
-				break;
-			}
-		}
-		
-		// Preserve order and include 'none' if present
-		return providers.filter(p => 
-			p === 'none' || allowedLocal.includes(p) || allowedCloud.includes(p)
-		);
-	}
 
 	private async getAvailableProvider(): Promise<AIProvider | null> {
 		const orderedProviders = this.getPlatformProviders();
@@ -151,18 +112,18 @@ export class AIProviderManager {
 	}
 
 	getAllowedProviders(): ProviderType[] {
-		return this.getPlatformProviders();
+		// All providers are allowed for all users
+		return ['claude', 'openai', 'google', 'ollama'];
 	}
 
 	isProviderAllowed(providerType: ProviderType): boolean {
-		return this.getAllowedProviders().includes(providerType);
+		// All providers are allowed
+		return true;
 	}
 
 	getProviderLimits(): { local: number; cloud: number } {
-		if (this.featureManager && this.featureManager.isFeatureEnabled('unlimited_cloud_ai')) {
-			return { local: Infinity, cloud: Infinity };
-		}
-		return { local: 1, cloud: 1 };
+		// No limits in the Catalyst model
+		return { local: Infinity, cloud: Infinity };
 	}
 
 	cleanup() {

@@ -178,48 +178,52 @@ describe('AIProviderManager', () => {
         });
     });
 
-    describe('Provider Restrictions (Core Tier)', () => {
-        test('should limit Core tier to 1 local + 1 cloud provider', () => {
-            // Core tier by default
+    describe('Provider Access (Catalyst Model)', () => {
+        test('should allow all providers for all users', () => {
+            // In the Catalyst model, all users have access to all providers
             const allowedProviders = manager.getAllowedProviders();
             const limits = manager.getProviderLimits();
             
-            expect(limits.local).toBe(1);
-            expect(limits.cloud).toBe(1);
-            
-            // Should only allow first cloud provider (claude) and first local (none in fallbacks)
-            expect(allowedProviders).toContain('claude');
-            expect(allowedProviders).not.toContain('openai');
-            expect(allowedProviders).not.toContain('google');
-        });
-
-        test('should allow unlimited providers for SuperNova tier', async () => {
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            
-            // Recreate manager with SuperNova tier
-            manager = new AIProviderManager(mockSettings, featureManager);
-            
-            const limits = manager.getProviderLimits();
             expect(limits.local).toBe(Infinity);
             expect(limits.cloud).toBe(Infinity);
             
-            const allowedProviders = manager.getAllowedProviders();
+            // All providers should be allowed
             expect(allowedProviders).toContain('claude');
             expect(allowedProviders).toContain('openai');
             expect(allowedProviders).toContain('google');
             expect(allowedProviders).toContain('ollama');
         });
 
-        test('should check if specific provider is allowed', () => {
+        test('should not restrict any provider', () => {
+            // No provider should be restricted in the Catalyst model
             expect(manager.isProviderAllowed('claude')).toBe(true);
-            expect(manager.isProviderAllowed('openai')).toBe(false); // Second cloud provider blocked
-            expect(manager.isProviderAllowed('google')).toBe(false); // Third cloud provider blocked
+            expect(manager.isProviderAllowed('openai')).toBe(true);
+            expect(manager.isProviderAllowed('google')).toBe(true);
             expect(manager.isProviderAllowed('ollama')).toBe(true);
         });
 
-        test('should preserve provider order in restrictions', () => {
-            // Mock settings with different order
+        test('should work the same regardless of Catalyst status', async () => {
+            // Test without Catalyst license (default state)
+            const limitsWithoutCatalyst = manager.getProviderLimits();
+            const providersWithoutCatalyst = manager.getAllowedProviders();
+            
+            // Add Catalyst license
+            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
+            await featureManager.updateCatalystLicense(catalystLicense);
+            
+            const limitsWithCatalyst = manager.getProviderLimits();
+            const providersWithCatalyst = manager.getAllowedProviders();
+            
+            // Should be identical - Catalyst doesn't affect provider access
+            expect(limitsWithCatalyst).toEqual(limitsWithoutCatalyst);
+            expect(providersWithCatalyst).toEqual(providersWithoutCatalyst);
+            
+            expect(limitsWithCatalyst.local).toBe(Infinity);
+            expect(limitsWithCatalyst.cloud).toBe(Infinity);
+        });
+
+        test('should handle different provider configurations', () => {
+            // Mock settings with different provider order
             const reorderedSettings: NovaSettings = {
                 ...mockSettings,
                 platformSettings: {
@@ -228,8 +232,8 @@ describe('AIProviderManager', () => {
                         fallbackProviders: ['google', 'claude', 'ollama']
                     },
                     mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
+                        primaryProvider: 'claude',
+                        fallbackProviders: ['openai', 'google']
                     }
                 }
             };
@@ -237,11 +241,11 @@ describe('AIProviderManager', () => {
             const reorderedManager = new AIProviderManager(reorderedSettings, featureManager);
             const allowedProviders = reorderedManager.getAllowedProviders();
             
-            // Should allow first cloud (openai) and first local (ollama)
+            // In Catalyst model, all providers should be allowed regardless of order
             expect(allowedProviders).toContain('openai');
             expect(allowedProviders).toContain('ollama');
-            expect(allowedProviders).not.toContain('google');
-            expect(allowedProviders).not.toContain('claude');
+            expect(allowedProviders).toContain('google');
+            expect(allowedProviders).toContain('claude');
         });
     });
 });

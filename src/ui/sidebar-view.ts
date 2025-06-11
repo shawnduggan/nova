@@ -34,13 +34,7 @@ export class NovaSidebarView extends ItemView {
 		container.empty();
 		container.addClass('nova-sidebar-container');
 
-		// Check mobile access for Core tier users
-		if (Platform.isMobile && this.plugin.featureManager?.getCurrentTier() === 'core') {
-			if (!this.plugin.featureManager.isFeatureEnabled('mobile_access')) {
-				this.showMobileUpgradeInterface(container);
-				return;
-			}
-		}
+		// Mobile access is now available to all users with their own API keys
 		
 		// Create wrapper with proper flex layout
 		const wrapperEl = container.createDiv({ cls: 'nova-wrapper' });
@@ -81,17 +75,8 @@ export class NovaSidebarView extends ItemView {
 		const rightContainer = headerEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
 		
-		// Check if user can switch providers (SuperNova only)
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		const canSwitchProviders = this.plugin.featureManager?.isFeatureEnabled('provider_switching') || false;
-		
-		if (canSwitchProviders) {
-			// SuperNova: Provider dropdown with switching capability
-			this.createProviderDropdown(rightContainer);
-		} else {
-			// Core: Static provider status display
-			this.createStaticProviderStatus(rightContainer);
-		}
+		// All users can switch providers freely
+		this.createProviderDropdown(rightContainer);
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
@@ -671,7 +656,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	/**
-	 * Create provider dropdown for SuperNova tier users
+	 * Create provider dropdown for all users with their own API keys
 	 */
 	private createProviderDropdown(container: HTMLElement): void {
 		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
@@ -900,118 +885,4 @@ export class NovaSidebarView extends ItemView {
 		}
 	}
 
-	/**
-	 * Show mobile upgrade interface for Core tier mobile users
-	 */
-	private showMobileUpgradeInterface(container: HTMLElement): void {
-		container.addClass('nova-mobile-upgrade');
-		
-		// Create wrapper with proper flex layout (same as normal interface)
-		const wrapperEl = container.createDiv({ cls: 'nova-wrapper' });
-		wrapperEl.style.cssText = `
-			display: flex;
-			flex-direction: column;
-			height: 100%;
-			overflow: hidden;
-		`;
-		
-		// Header with Nova branding (consistent with normal interface)
-		const headerEl = wrapperEl.createDiv({ cls: 'nova-header' });
-		headerEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 10px;
-			border-bottom: 1px solid var(--background-modifier-border);
-			flex-shrink: 0;
-		`;
-		
-		// Left side: Title with Nova icon
-		const titleEl = headerEl.createEl('h4');
-		titleEl.style.cssText = 'margin: 0; font-size: 1.1em; display: flex; align-items: center; gap: 6px;';
-		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px;">
-			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-		</svg>Nova`;
-		
-		// Right side: Core tier badge
-		const tierBadge = headerEl.createDiv({ cls: 'nova-tier-badge core' });
-		tierBadge.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 0.5em;
-			padding: 0.3em 0.8em;
-			border-radius: 20px;
-			font-size: 0.75em;
-			font-weight: bold;
-		`;
-		tierBadge.innerHTML = `
-			<span class="tier-icon">🆓</span>
-			<span class="tier-name">Core</span>
-		`;
-		
-		// Main content area (replaces chat interface)
-		const contentEl = wrapperEl.createDiv({ cls: 'nova-mobile-upgrade-content' });
-		contentEl.style.cssText = `
-			flex: 1;
-			overflow-y: auto;
-			padding: 2em;
-			background: var(--background-secondary);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		`;
-		
-		const upgradeContainer = contentEl.createDiv({ cls: 'nova-upgrade-container' });
-		upgradeContainer.style.cssText = `
-			text-align: center;
-			max-width: 400px;
-			width: 100%;
-		`;
-		
-		upgradeContainer.innerHTML = `
-			<div class="nova-mobile-icon">📱</div>
-			<h2>Nova Mobile requires SuperNova</h2>
-			<p class="nova-upgrade-subtitle">Get AI editing on mobile + unlimited cloud providers</p>
-			
-			<div class="nova-feature-preview">
-				<h4>SuperNova includes:</h4>
-				<ul>
-					<li>📱 Mobile device access</li>
-					<li>🧠 Multiple AI providers</li>
-					<li>🔄 In-chat provider switching</li>
-					<li>⚡ Advanced templates</li>
-					<li>🎯 Priority support</li>
-				</ul>
-			</div>
-			
-			<div class="nova-upgrade-actions">
-				<button class="mod-cta nova-upgrade-btn">
-					⭐ Upgrade to SuperNova
-				</button>
-				<a href="#" class="nova-learn-more">Learn more about features</a>
-			</div>
-		`;
-
-		// Add functionality
-		const upgradeBtn = upgradeContainer.querySelector('.nova-upgrade-btn') as HTMLButtonElement;
-		const learnMoreLink = upgradeContainer.querySelector('.nova-learn-more') as HTMLAnchorElement;
-		
-		upgradeBtn.addEventListener('click', () => {
-			window.open('https://novawriter.ai/upgrade', '_blank');
-		});
-		
-		learnMoreLink.addEventListener('click', (e) => {
-			e.preventDefault();
-			// Open external feature comparison page
-			window.open('https://novawriter.ai/features', '_blank');
-		});
-	}
 }

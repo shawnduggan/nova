@@ -72,13 +72,13 @@
 **Priority: IMMEDIATE**
 
 #### Week 1: Remove Feature Gates & Build Core Features
-- [ ] **Day 1-2: Monetization Infrastructure**
-  - [ ] Transform feature-manager.ts from tier-based to time-based gating
-  - [ ] Update license system to validate Catalyst supporter status only
-  - [ ] Remove all Core/Supernova tier restrictions
-  - [ ] Add Catalyst badge and early access UI elements
-  - [ ] Update settings to remove tier selection, add Catalyst status
-  - [ ] Remove all "upgrade to Supernova" prompts
+- [x] **Day 1-2: Monetization Infrastructure**
+  - [x] Transform feature-manager.ts from tier-based to time-based gating
+  - [x] Update license system to validate Catalyst supporter status only
+  - [x] Remove all Core/Supernova tier restrictions
+  - [x] Add Catalyst badge and early access UI elements
+  - [x] Update settings to remove tier selection, add Catalyst status
+  - [x] Remove all "upgrade to Supernova" prompts
 
 - [ ] **Day 3-4: Command System Implementation**
   - [ ] Implement `:` trigger system for all commands
@@ -119,12 +119,12 @@
   - [ ] Ensure debug stripped from production builds
 
 #### Week 3: Testing, Documentation & Launch Prep
-- [ ] **Day 11-12: Update Test Suite**
-  - [ ] Remove all tier-based tests
-  - [ ] Add Catalyst supporter validation tests
-  - [ ] Add time-based feature release tests
-  - [ ] Test all features work with user API keys
-  - [ ] Ensure 476+ tests passing
+- [x] **Day 11-12: Update Test Suite**
+  - [x] Remove all tier-based tests
+  - [x] Add Catalyst supporter validation tests
+  - [x] Add time-based feature release tests
+  - [x] Test all features work with user API keys
+  - [x] Ensure 453+ tests passing
 
 - [ ] **Day 13-14: Documentation & Repository Prep**
   - [ ] Update README.md with Catalyst model

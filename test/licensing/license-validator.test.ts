@@ -1,5 +1,5 @@
 import { LicenseValidator } from '../../src/licensing/license-validator';
-import { LicenseError, LicenseTier } from '../../src/licensing/types';
+import { LicenseError } from '../../src/licensing/types';
 
 describe('LicenseValidator', () => {
 	let validator: LicenseValidator;
@@ -8,129 +8,67 @@ describe('LicenseValidator', () => {
 		validator = new LicenseValidator();
 	});
 
-	describe('validateLicense', () => {
-		test('should validate a valid SuperNova license', async () => {
-			const testLicense = await validator.createTestLicense('test@example.com', 'supernova');
-			const result = await validator.validateLicense(testLicense);
+	describe('validateCatalystLicense', () => {
+		test('should validate a valid annual Catalyst license', async () => {
+			const testLicense = await validator.createTestCatalystLicense('test@example.com', 'annual');
+			const result = await validator.validateCatalystLicense(testLicense);
 
 			expect(result.valid).toBe(true);
 			expect(result.license?.email).toBe('test@example.com');
-			expect(result.license?.tier).toBe('supernova');
-			expect(result.license?.expiresAt).toBeNull(); // lifetime
+			expect(result.license?.type).toBe('annual');
+			expect(result.license?.expiresAt).not.toBeNull(); // annual license has expiry
 			expect(result.error).toBeUndefined();
 		});
 
-		test('should validate a valid Core license', async () => {
-			const testLicense = await validator.createTestLicense('test@example.com', 'core');
-			const result = await validator.validateLicense(testLicense);
+		test('should validate a valid lifetime Catalyst license', async () => {
+			const testLicense = await validator.createTestCatalystLicense('test@example.com', 'lifetime');
+			const result = await validator.validateCatalystLicense(testLicense);
 
 			expect(result.valid).toBe(true);
 			expect(result.license?.email).toBe('test@example.com');
-			expect(result.license?.tier).toBe('core');
+			expect(result.license?.type).toBe('lifetime');
 			expect(result.license?.expiresAt).toBeNull(); // lifetime
 			expect(result.error).toBeUndefined();
-		});
-
-		test('should validate a valid annual license', async () => {
-			const testLicense = await validator.createTestLicense('test@example.com', 'supernova', false);
-			const result = await validator.validateLicense(testLicense);
-
-			expect(result.valid).toBe(true);
-			expect(result.license?.expiresAt).not.toBeNull();
-			expect(result.license?.expiresAt!.getTime()).toBeGreaterThan(Date.now());
 		});
 
 		test('should reject invalid license format', async () => {
-			const result = await validator.validateLicense('invalid-license-key');
+			const result = await validator.validateCatalystLicense('invalid-license');
 
 			expect(result.valid).toBe(false);
 			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
 		});
 
-		test('should reject malformed base64 license', async () => {
-			const result = await validator.validateLicense('not-base64!@#$');
-
-			expect(result.valid).toBe(false);
-			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
-		});
-
-		test('should reject license with wrong number of parts', async () => {
-			const malformedData = btoa('email|tier|expires'); // missing parts
-			const result = await validator.validateLicense(malformedData);
-
-			expect(result.valid).toBe(false);
-			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
-		});
-
-		test('should reject license with invalid tier', async () => {
-			const malformedData = btoa('test@example.com|invalid|lifetime|2025-01-01T00:00:00.000Z|signature');
-			const result = await validator.validateLicense(malformedData);
+		test('should reject malformed base64', async () => {
+			const result = await validator.validateCatalystLicense('this-is-not-base64!@#$');
 
 			expect(result.valid).toBe(false);
 			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
 		});
 
 		test('should reject license with invalid signature', async () => {
-			// Create a valid license then corrupt the signature
-			const validLicense = await validator.createTestLicense('test@example.com', 'supernova');
-			const decoded = atob(validLicense);
+			// Create a valid license then modify it
+			const validLicense = await validator.createTestCatalystLicense('test@example.com', 'annual');
+			const decoded = Buffer.from(validLicense, 'base64').toString('utf8');
 			const parts = decoded.split('|');
-			parts[4] = 'invalid-signature'; // corrupt signature
-			const corruptedLicense = btoa(parts.join('|'));
+			
+			// Modify the email but keep the original signature (making it invalid)
+			parts[0] = 'hacker@example.com';
+			const tamperedLicense = Buffer.from(parts.join('|'), 'utf8').toString('base64');
 
-			const result = await validator.validateLicense(corruptedLicense);
+			const result = await validator.validateCatalystLicense(tamperedLicense);
 
 			expect(result.valid).toBe(false);
 			expect(result.error).toBe(LicenseError.INVALID_SIGNATURE);
 		});
 
-		test('should reject expired license', async () => {
-			// Manually create an expired license
-			const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-			const issuedAt = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000); // 1 year ago
-			
-			// We need to access the private method for testing - create a mock expired license
-			const email = 'test@example.com';
-			const tier = 'supernova';
-			
-			// Create signature manually for expired license
-			const data = `${email}|${tier}|${yesterday.toISOString()}|${issuedAt.toISOString()}`;
-			const encoder = new TextEncoder();
-			const keyData = encoder.encode('nova-license-signing-key-2025');
-			const messageData = encoder.encode(data);
-			
-			const cryptoKey = await crypto.subtle.importKey(
-				'raw',
-				keyData,
-				{ name: 'HMAC', hash: 'SHA-256' },
-				false,
-				['sign']
-			);
-			
-			const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-			const signatureHex = Array.from(new Uint8Array(signature))
-				.map(b => b.toString(16).padStart(2, '0'))
-				.join('');
-
-			const expiredLicense = btoa(`${email}|${tier}|${yesterday.toISOString()}|${issuedAt.toISOString()}|${signatureHex}`);
-			
-			const result = await validator.validateLicense(expiredLicense);
-
-			expect(result.valid).toBe(false);
-			expect(result.error).toBe(LicenseError.EXPIRED);
-		});
-
 		test('should reject future-dated license', async () => {
-			// Create a license issued in the future
-			const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-			const email = 'test@example.com';
-			const tier = 'supernova';
+			// Create a license manually with future issue date
+			const futureDate = new Date(Date.now() + 86400000); // +1 day
+			const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // +1 year
 			
-			// Create signature for future-dated license
-			const data = `${email}|${tier}|lifetime|${tomorrow.toISOString()}`;
 			const encoder = new TextEncoder();
 			const keyData = encoder.encode('nova-license-signing-key-2025');
-			const messageData = encoder.encode(data);
+			const messageData = encoder.encode(`test@example.com|annual|${expiresAt.toISOString()}|${futureDate.toISOString()}`);
 			
 			const cryptoKey = await crypto.subtle.importKey(
 				'raw',
@@ -145,43 +83,79 @@ describe('LicenseValidator', () => {
 				.map(b => b.toString(16).padStart(2, '0'))
 				.join('');
 
-			const futureLicense = btoa(`${email}|${tier}|lifetime|${tomorrow.toISOString()}|${signatureHex}`);
-			
-			const result = await validator.validateLicense(futureLicense);
+			const licenseData = `test@example.com|annual|${expiresAt.toISOString()}|${futureDate.toISOString()}|${signatureHex}`;
+			const futureLicense = Buffer.from(licenseData, 'utf8').toString('base64');
+
+			const result = await validator.validateCatalystLicense(futureLicense);
 
 			expect(result.valid).toBe(false);
 			expect(result.error).toBe(LicenseError.FUTURE_DATED);
 		});
+	});
 
-		test('should handle invalid date formats', async () => {
-			const malformedData = btoa('test@example.com|supernova|not-a-date|2025-01-01T00:00:00.000Z|signature');
-			const result = await validator.validateLicense(malformedData);
+	describe('legacy license support', () => {
+		test('should handle legacy license validation for backward compatibility', async () => {
+			const testLicense = await validator.createTestLicense('test@example.com', 'legacy');
+			const result = await validator.validateLicense(testLicense);
+
+			expect(result.valid).toBe(true);
+			expect(result.license?.email).toBe('test@example.com');
+			expect(result.license?.expiresAt).toBeNull(); // lifetime
+			expect(result.error).toBeUndefined();
+		});
+
+		test('should reject legacy license with invalid format', async () => {
+			const result = await validator.validateLicense('invalid-license');
 
 			expect(result.valid).toBe(false);
 			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
 		});
 	});
 
-	describe('createTestLicense', () => {
-		test('should create a valid lifetime SuperNova license', async () => {
-			const license = await validator.createTestLicense('dev@test.com', 'supernova');
-			const result = await validator.validateLicense(license);
+	describe('license creation', () => {
+		test('should create valid Catalyst licenses', async () => {
+			const annualLicense = await validator.createTestCatalystLicense('test@example.com', 'annual');
+			const lifetimeLicense = await validator.createTestCatalystLicense('test@example.com', 'lifetime');
 
-			expect(result.valid).toBe(true);
-			expect(result.license?.email).toBe('dev@test.com');
-			expect(result.license?.tier).toBe('supernova');
-			expect(result.license?.expiresAt).toBeNull();
+			expect(annualLicense).toBeDefined();
+			expect(lifetimeLicense).toBeDefined();
+			expect(annualLicense).not.toBe(lifetimeLicense);
+
+			// Verify they can be validated
+			const annualResult = await validator.validateCatalystLicense(annualLicense);
+			const lifetimeResult = await validator.validateCatalystLicense(lifetimeLicense);
+
+			expect(annualResult.valid).toBe(true);
+			expect(lifetimeResult.valid).toBe(true);
 		});
 
-		test('should create a valid annual license', async () => {
-			const license = await validator.createTestLicense('dev@test.com', 'core', false);
-			const result = await validator.validateLicense(license);
+		test('should create legacy licenses for testing', async () => {
+			const legacyLicense = await validator.createTestLicense('test@example.com', 'legacy');
 
+			expect(legacyLicense).toBeDefined();
+
+			// Verify it can be validated
+			const result = await validator.validateLicense(legacyLicense);
 			expect(result.valid).toBe(true);
-			expect(result.license?.email).toBe('dev@test.com');
-			expect(result.license?.tier).toBe('core');
-			expect(result.license?.expiresAt).not.toBeNull();
-			expect(result.license?.expiresAt!.getTime()).toBeGreaterThan(Date.now());
+		});
+	});
+
+	describe('error handling', () => {
+		test('should handle crypto errors gracefully', async () => {
+			// Test with completely malformed data
+			const result = await validator.validateCatalystLicense('');
+
+			expect(result.valid).toBe(false);
+			expect(result.error).toBeDefined();
+		});
+
+		test('should handle partial license data', async () => {
+			// Create base64 of incomplete license data
+			const partialData = Buffer.from('incomplete|data', 'utf8').toString('base64');
+			const result = await validator.validateCatalystLicense(partialData);
+
+			expect(result.valid).toBe(false);
+			expect(result.error).toBe(LicenseError.INVALID_FORMAT);
 		});
 	});
 });

@@ -1,10 +1,11 @@
 import { LicenseValidator } from './license-validator';
-import { License, LicenseTier, FeatureFlag, FeatureAccessResult, FeatureTier, DebugSettings } from './types';
+import { CatalystLicense, FeatureFlag, FeatureAccessResult, DebugSettings, CatalystValidationResult } from './types';
+import { CATALYST_FEATURES, CORE_FEATURES, TimeGatedFeature } from './feature-config';
 
 export class FeatureManager {
 	private features: Map<string, FeatureFlag> = new Map();
-	private currentLicense: License | null = null;
-	private currentTier: FeatureTier = FeatureTier.CORE;
+	private catalystLicense: CatalystLicense | null = null;
+	private isCatalyst: boolean = false;
 	private debugSettings: DebugSettings = { enabled: false };
 
 	constructor(
@@ -18,94 +19,98 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Initialize all feature flags for Core vs SuperNova tiers
+	 * Initialize all feature flags
+	 * Core features are always enabled
+	 * Time-gated features depend on current date and Catalyst status
 	 */
 	private initializeFeatureFlags(): void {
-		// Core features (always available)
-		this.registerFeature({
-			key: 'basic_editing',
-			requiredTier: FeatureTier.CORE,
-			enabled: true,
-			description: 'Basic document editing commands (add, edit, delete, grammar, rewrite)'
+		// Core features - always available to all users
+		CORE_FEATURES.forEach(featureKey => {
+			this.registerFeature({
+				key: featureKey,
+				enabled: true,
+				description: this.getCoreFeatureDescription(featureKey)
+			});
 		});
 
-		this.registerFeature({
-			key: 'local_ai_providers',
-			requiredTier: FeatureTier.CORE,
-			enabled: true,
-			description: 'Local AI providers (Ollama, LM Studio)'
+		// Time-gated features - available based on date
+		Object.entries(CATALYST_FEATURES).forEach(([key, config]) => {
+			const enabled = this.isTimeGatedFeatureEnabled(key, config);
+			this.registerFeature({
+				key,
+				enabled,
+				description: config.description,
+				isTimeGated: true,
+				earlyAccessOnly: !this.isGenerallyAvailable(config)
+			});
 		});
+	}
 
-		this.registerFeature({
-			key: 'file_conversations',
-			requiredTier: FeatureTier.CORE,
-			enabled: true,
-			description: 'File-scoped conversation history'
-		});
+	/**
+	 * Get description for core features
+	 */
+	private getCoreFeatureDescription(key: string): string {
+		const descriptions: Record<string, string> = {
+			'basic_editing': 'Basic document editing commands (add, edit, delete, grammar, rewrite)',
+			'all_ai_providers': 'Access to all AI providers (Claude, OpenAI, Google, Ollama)',
+			'file_conversations': 'File-scoped conversation history',
+			'provider_switching': 'Switch AI providers directly in chat interface',
+			'mobile_access': 'Full mobile device support',
+			'api_key_config': 'Configure your own API keys',
+			'sidebar_chat': 'Chat interface in sidebar',
+			'document_context': 'Current document context in conversations'
+		};
+		return descriptions[key] || key;
+	}
 
-		this.registerFeature({
-			key: 'single_cloud_provider',
-			requiredTier: FeatureTier.CORE,
-			enabled: true,
-			description: 'One cloud AI provider (user choice: Claude, OpenAI, or Google)'
-		});
+	/**
+	 * Check if a time-gated feature should be enabled
+	 */
+	private isTimeGatedFeatureEnabled(featureKey: string, config: TimeGatedFeature): boolean {
+		const now = this.getCurrentDate();
+		const catalystDate = new Date(config.catalystDate);
+		const generalDate = new Date(config.generalDate);
 
-		// SuperNova features (premium only)
-		this.registerFeature({
-			key: 'unlimited_cloud_ai',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Unlimited access to all cloud AI providers',
-			fallbackBehavior: 'prompt_upgrade'
-		});
+		// Feature is available to everyone after general date
+		if (now >= generalDate) {
+			return true;
+		}
 
-		this.registerFeature({
-			key: 'provider_switching',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Switch AI providers directly in chat interface',
-			fallbackBehavior: 'prompt_upgrade'
-		});
+		// Feature is available to Catalyst supporters after catalyst date
+		if (this.getIsCatalyst() && now >= catalystDate) {
+			return true;
+		}
 
-		this.registerFeature({
-			key: 'mobile_access',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Mobile device support (iOS/Android)',
-			fallbackBehavior: 'prompt_upgrade'
-		});
+		return false;
+	}
 
-		this.registerFeature({
-			key: 'advanced_templates',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Advanced template integration and custom prompts',
-			fallbackBehavior: 'prompt_upgrade'
-		});
+	/**
+	 * Check if feature is generally available (past general date)
+	 */
+	private isGenerallyAvailable(config: TimeGatedFeature): boolean {
+		const now = this.getCurrentDate();
+		const generalDate = new Date(config.generalDate);
+		return now >= generalDate;
+	}
 
-		this.registerFeature({
-			key: 'batch_operations',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Batch document processing',
-			fallbackBehavior: 'limited_usage'
-		});
+	/**
+	 * Get current date (can be overridden in debug mode)
+	 */
+	private getCurrentDate(): Date {
+		if (this.debugSettings.enabled && this.debugSettings.overrideDate) {
+			return new Date(this.debugSettings.overrideDate);
+		}
+		return new Date();
+	}
 
-		this.registerFeature({
-			key: 'cross_document_context',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Reference other vault notes during editing',
-			fallbackBehavior: 'disable'
-		});
-
-		this.registerFeature({
-			key: 'priority_support',
-			requiredTier: FeatureTier.SUPERNOVA,
-			enabled: false,
-			description: 'Priority email support and feature requests',
-			fallbackBehavior: 'disable'
-		});
+	/**
+	 * Get Catalyst status (can be overridden in debug mode)
+	 */
+	private getIsCatalyst(): boolean {
+		if (this.debugSettings.enabled && this.debugSettings.forceCatalyst !== undefined) {
+			return this.debugSettings.forceCatalyst;
+		}
+		return this.isCatalyst;
 	}
 
 	/**
@@ -113,65 +118,86 @@ export class FeatureManager {
 	 */
 	registerFeature(flag: FeatureFlag): void {
 		this.features.set(flag.key, flag);
-		this.updateFeatureAvailability();
 	}
 
 	/**
-	 * Update license and recalculate feature availability
+	 * Update Catalyst license and recalculate feature availability
 	 */
-	async updateLicense(licenseKey: string | null): Promise<void> {
+	async updateCatalystLicense(licenseKey: string | null): Promise<void> {
 		if (!licenseKey) {
-			this.currentLicense = null;
-			this.currentTier = FeatureTier.CORE;
+			this.catalystLicense = null;
+			this.isCatalyst = false;
 		} else {
-			const validation = await this.licenseValidator.validateLicense(licenseKey);
+			const validation = await this.licenseValidator.validateCatalystLicense(licenseKey);
 			if (validation.valid && validation.license) {
-				this.currentLicense = validation.license;
-				this.currentTier = validation.license.tier === 'supernova' 
-					? FeatureTier.SUPERNOVA 
-					: FeatureTier.CORE;
+				this.catalystLicense = validation.license;
+				this.isCatalyst = true;
 			} else {
-				this.currentLicense = null;
-				this.currentTier = FeatureTier.CORE;
+				this.catalystLicense = null;
+				this.isCatalyst = false;
 			}
 		}
 
-		this.updateFeatureAvailability();
+		// Reinitialize features with updated Catalyst status
+		this.initializeFeatureFlags();
 	}
 
 	/**
-	 * Get current user's license tier
+	 * Get current Catalyst status
 	 */
-	getCurrentTier(): FeatureTier {
-		// Development override
-		if (this.debugSettings.enabled && this.debugSettings.overrideTier) {
-			return this.debugSettings.overrideTier === 'supernova' 
-				? FeatureTier.SUPERNOVA 
-				: FeatureTier.CORE;
-		}
-
-		return this.currentTier;
+	getIsCatalystSupporter(): boolean {
+		return this.getIsCatalyst();
 	}
 
 	/**
-	 * Get current license information
+	 * Get current Catalyst license
 	 */
-	getCurrentLicense(): License | null {
-		return this.currentLicense;
+	getCatalystLicense(): CatalystLicense | null {
+		return this.catalystLicense;
 	}
 
 	/**
-	 * Check if a feature is enabled for current tier
+	 * Check if a feature is enabled
 	 */
 	isFeatureEnabled(featureKey: string): boolean {
+		// Handle old feature keys that might still be referenced
+		if (this.isLegacyFeatureKey(featureKey)) {
+			return true; // All legacy features are now enabled for everyone
+		}
+
 		const feature = this.features.get(featureKey);
 		return feature?.enabled ?? false;
+	}
+
+	/**
+	 * Check if this is a legacy feature key that should always be enabled
+	 */
+	private isLegacyFeatureKey(key: string): boolean {
+		const legacyKeys = [
+			'basic_editing',
+			'local_ai_providers',
+			'file_conversations',
+			'single_cloud_provider',
+			'unlimited_cloud_ai',
+			'provider_switching',
+			'mobile_access',
+			'advanced_templates',
+			'batch_operations',
+			'cross_document_context',
+			'priority_support'
+		];
+		return legacyKeys.includes(key);
 	}
 
 	/**
 	 * Check feature access with detailed result
 	 */
 	checkFeatureAccess(featureKey: string): FeatureAccessResult {
+		// Handle legacy features
+		if (this.isLegacyFeatureKey(featureKey)) {
+			return { allowed: true };
+		}
+
 		const feature = this.features.get(featureKey);
 		
 		if (!feature) {
@@ -185,23 +211,51 @@ export class FeatureManager {
 			return { allowed: true };
 		}
 
-		const currentTier = this.getCurrentTier();
-		const requiredTier = feature.requiredTier;
+		// For time-gated features, provide more information
+		if (feature.isTimeGated) {
+			const config = CATALYST_FEATURES[featureKey];
+			if (config) {
+				const now = this.getCurrentDate();
+				const generalDate = new Date(config.generalDate);
+				const catalystDate = new Date(config.catalystDate);
+
+				if (this.getIsCatalyst() && now < catalystDate) {
+					return {
+						allowed: false,
+						reason: `This feature will be available to Catalyst supporters on ${config.catalystDate}`,
+						isCatalystFeature: true,
+						availableDate: catalystDate
+					};
+				} else if (!this.getIsCatalyst() && now < generalDate) {
+					return {
+						allowed: false,
+						reason: `This feature is currently in early access for Catalyst supporters. It will be available to all users on ${config.generalDate}`,
+						isCatalystFeature: true,
+						availableDate: generalDate
+					};
+				}
+			}
+		}
 
 		return {
 			allowed: false,
-			reason: `Feature requires ${requiredTier} tier (current: ${currentTier})`,
-			fallbackBehavior: feature.fallbackBehavior,
-			upgradePrompt: this.getUpgradePrompt(feature)
+			reason: 'Feature is not available'
 		};
 	}
 
 	/**
-	 * Get all features for a specific tier
+	 * Get all enabled features
 	 */
-	getFeaturesForTier(tier: FeatureTier): FeatureFlag[] {
+	getEnabledFeatures(): FeatureFlag[] {
+		return Array.from(this.features.values()).filter(feature => feature.enabled);
+	}
+
+	/**
+	 * Get all Catalyst early access features
+	 */
+	getCatalystFeatures(): FeatureFlag[] {
 		return Array.from(this.features.values()).filter(feature => 
-			tier === FeatureTier.SUPERNOVA ? true : feature.requiredTier === FeatureTier.CORE
+			feature.isTimeGated && feature.earlyAccessOnly
 		);
 	}
 
@@ -210,7 +264,8 @@ export class FeatureManager {
 	 */
 	updateDebugSettings(settings: DebugSettings): void {
 		this.debugSettings = settings;
-		this.updateFeatureAvailability();
+		// Reinitialize features with new debug settings
+		this.initializeFeatureFlags();
 	}
 
 	/**
@@ -221,43 +276,36 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Update feature availability based on current tier
+	 * Get feature summary
 	 */
-	private updateFeatureAvailability(): void {
-		const currentTier = this.getCurrentTier();
-		
-		for (const [key, feature] of this.features) {
-			const shouldEnable = currentTier === FeatureTier.SUPERNOVA || 
-							   feature.requiredTier === FeatureTier.CORE;
-			
-			this.features.set(key, { ...feature, enabled: shouldEnable });
-		}
-	}
-
-	/**
-	 * Generate upgrade prompt for blocked feature
-	 */
-	private getUpgradePrompt(feature: FeatureFlag): string {
-		return `${feature.description} is available with Nova SuperNova. ` +
-			   `Upgrade to unlock this feature and support Nova development.`;
-	}
-
-	/**
-	 * Get feature usage summary for current tier
-	 */
-	getFeatureSummary(): { tier: FeatureTier; enabled: string[]; disabled: string[] } {
-		const currentTier = this.getCurrentTier();
+	getFeatureSummary(): { 
+		isCatalyst: boolean; 
+		enabled: string[]; 
+		comingSoon: Array<{key: string; availableDate: string; isCatalyst: boolean}> 
+	} {
 		const enabled: string[] = [];
-		const disabled: string[] = [];
+		const comingSoon: Array<{key: string; availableDate: string; isCatalyst: boolean}> = [];
 
 		for (const [key, feature] of this.features) {
 			if (feature.enabled) {
 				enabled.push(key);
-			} else {
-				disabled.push(key);
+			} else if (feature.isTimeGated) {
+				const config = CATALYST_FEATURES[key];
+				if (config) {
+					const isCatalystUser = this.getIsCatalyst();
+					comingSoon.push({
+						key,
+						availableDate: isCatalystUser ? config.catalystDate : config.generalDate,
+						isCatalyst: isCatalystUser
+					});
+				}
 			}
 		}
 
-		return { tier: currentTier, enabled, disabled };
+		return { 
+			isCatalyst: this.getIsCatalyst(), 
+			enabled, 
+			comingSoon 
+		};
 	}
 }

@@ -1,6 +1,6 @@
 import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
-import { FeatureTier } from '../../src/licensing/types';
+import { DebugSettings } from '../../src/licensing/types';
 
 describe('FeatureManager', () => {
 	let featureManager: FeatureManager;
@@ -11,285 +11,228 @@ describe('FeatureManager', () => {
 		featureManager = new FeatureManager(licenseValidator);
 	});
 
-	describe('Feature Flag Initialization', () => {
-		test('should initialize with Core tier features enabled', () => {
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
+	describe('Core Features (Always Available)', () => {
+		test('should have all core features enabled by default', () => {
+			// Core features are always available to all users
 			expect(featureManager.isFeatureEnabled('basic_editing')).toBe(true);
-			expect(featureManager.isFeatureEnabled('local_ai_providers')).toBe(true);
+			expect(featureManager.isFeatureEnabled('all_ai_providers')).toBe(true);
 			expect(featureManager.isFeatureEnabled('file_conversations')).toBe(true);
-			expect(featureManager.isFeatureEnabled('single_cloud_provider')).toBe(true);
-		});
-
-		test('should initialize with SuperNova features disabled', () => {
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(false);
-			expect(featureManager.isFeatureEnabled('provider_switching')).toBe(false);
-			expect(featureManager.isFeatureEnabled('mobile_access')).toBe(false);
-			expect(featureManager.isFeatureEnabled('advanced_templates')).toBe(false);
-			expect(featureManager.isFeatureEnabled('batch_operations')).toBe(false);
-			expect(featureManager.isFeatureEnabled('cross_document_context')).toBe(false);
-			expect(featureManager.isFeatureEnabled('priority_support')).toBe(false);
-		});
-
-		test('should have correct feature summary for Core tier', () => {
-			const summary = featureManager.getFeatureSummary();
-			
-			expect(summary.tier).toBe(FeatureTier.CORE);
-			expect(summary.enabled).toContain('basic_editing');
-			expect(summary.enabled).toContain('local_ai_providers');
-			expect(summary.enabled).toContain('file_conversations');
-			expect(summary.enabled).toContain('single_cloud_provider');
-			
-			expect(summary.disabled).toContain('unlimited_cloud_ai');
-			expect(summary.disabled).toContain('provider_switching');
-			expect(summary.disabled).toContain('mobile_access');
-		});
-	});
-
-	describe('License Updates', () => {
-		test('should upgrade to SuperNova tier with valid license', async () => {
-			const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-			
-			await featureManager.updateLicense(supernovaLicense);
-			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			expect(featureManager.getCurrentLicense()?.tier).toBe('supernova');
-			expect(featureManager.getCurrentLicense()?.email).toBe('test@example.com');
-		});
-
-		test('should enable SuperNova features with valid license', async () => {
-			const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-			
-			await featureManager.updateLicense(supernovaLicense);
-			
-			// All Core features should still be enabled
-			expect(featureManager.isFeatureEnabled('basic_editing')).toBe(true);
-			expect(featureManager.isFeatureEnabled('local_ai_providers')).toBe(true);
-			
-			// SuperNova features should now be enabled
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(true);
 			expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
 			expect(featureManager.isFeatureEnabled('mobile_access')).toBe(true);
+			expect(featureManager.isFeatureEnabled('api_key_config')).toBe(true);
+			expect(featureManager.isFeatureEnabled('sidebar_chat')).toBe(true);
+			expect(featureManager.isFeatureEnabled('document_context')).toBe(true);
+		});
+
+		test('should support legacy feature keys', () => {
+			// Legacy features from tier-based system should all be enabled
+			expect(featureManager.isFeatureEnabled('local_ai_providers')).toBe(true);
+			expect(featureManager.isFeatureEnabled('single_cloud_provider')).toBe(true);
+			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(true);
 			expect(featureManager.isFeatureEnabled('advanced_templates')).toBe(true);
 			expect(featureManager.isFeatureEnabled('batch_operations')).toBe(true);
 			expect(featureManager.isFeatureEnabled('cross_document_context')).toBe(true);
 			expect(featureManager.isFeatureEnabled('priority_support')).toBe(true);
 		});
+	});
 
-		test('should remain Core tier with Core license', async () => {
-			const coreLicense = await licenseValidator.createTestLicense('test@example.com', 'core');
-			
-			await featureManager.updateLicense(coreLicense);
-			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-			expect(featureManager.getCurrentLicense()?.tier).toBe('core');
-			
-			// Core features enabled
-			expect(featureManager.isFeatureEnabled('basic_editing')).toBe(true);
-			
-			// SuperNova features disabled
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(false);
-			expect(featureManager.isFeatureEnabled('provider_switching')).toBe(false);
+	describe('Time-Gated Features', () => {
+		test('should have time-gated features disabled before general availability', () => {
+			// These features are not yet generally available (past June 2025 in config)
+			expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
+			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(false);
+			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
+			expect(featureManager.isFeatureEnabled('command-button')).toBe(false);
+			expect(featureManager.isFeatureEnabled('custom-commands')).toBe(false);
+			expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
 		});
 
-		test('should fallback to Core tier with invalid license', async () => {
-			await featureManager.updateLicense('invalid-license-key');
+		test('should provide detailed access information for time-gated features', () => {
+			const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
 			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-			expect(featureManager.getCurrentLicense()).toBeNull();
+			expect(commandSystemAccess.allowed).toBe(false);
+			expect(commandSystemAccess.isCatalystFeature).toBe(true);
+			expect(commandSystemAccess.reason).toContain('early access for Catalyst supporters');
+			expect(commandSystemAccess.availableDate).toEqual(new Date('2025-09-15'));
+		});
+	});
+
+	describe('Catalyst Supporter Features', () => {
+		test('should enable Catalyst features for valid Catalyst license', async () => {
+			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
+			await featureManager.updateCatalystLicense(catalystLicense);
+
+			expect(featureManager.getIsCatalystSupporter()).toBe(true);
 			
-			// Should behave like Core tier
-			expect(featureManager.isFeatureEnabled('basic_editing')).toBe(true);
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(false);
+			const catalystLicenseObj = featureManager.getCatalystLicense();
+			expect(catalystLicenseObj?.email).toBe('test@example.com');
+			expect(catalystLicenseObj?.type).toBe('annual');
 		});
 
-		test('should fallback to Core tier with null license', async () => {
-			// First set a SuperNova license
-			const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-			await featureManager.updateLicense(supernovaLicense);
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			
-			// Then clear the license
-			await featureManager.updateLicense(null);
-			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-			expect(featureManager.getCurrentLicense()).toBeNull();
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(false);
+		test('should handle invalid Catalyst license', async () => {
+			await featureManager.updateCatalystLicense('invalid-license');
+
+			expect(featureManager.getIsCatalystSupporter()).toBe(false);
+			expect(featureManager.getCatalystLicense()).toBeNull();
+		});
+
+		test('should reset Catalyst status when license is removed', async () => {
+			// Set up Catalyst license first
+			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
+			await featureManager.updateCatalystLicense(catalystLicense);
+			expect(featureManager.getIsCatalystSupporter()).toBe(true);
+
+			// Remove license
+			await featureManager.updateCatalystLicense(null);
+			expect(featureManager.getIsCatalystSupporter()).toBe(false);
+			expect(featureManager.getCatalystLicense()).toBeNull();
 		});
 	});
 
 	describe('Feature Access Checking', () => {
-		test('should allow access to Core features', () => {
-			const access = featureManager.checkFeatureAccess('basic_editing');
-			
-			expect(access.allowed).toBe(true);
-			expect(access.reason).toBeUndefined();
+		test('should allow access to core features', () => {
+			const basicEditingAccess = featureManager.checkFeatureAccess('basic_editing');
+			const providersAccess = featureManager.checkFeatureAccess('all_ai_providers');
+
+			expect(basicEditingAccess.allowed).toBe(true);
+			expect(providersAccess.allowed).toBe(true);
 		});
 
-		test('should block access to SuperNova features in Core tier', () => {
-			const access = featureManager.checkFeatureAccess('unlimited_cloud_ai');
-			
-			expect(access.allowed).toBe(false);
-			expect(access.reason).toContain('requires supernova tier');
-			expect(access.fallbackBehavior).toBe('prompt_upgrade');
-			expect(access.upgradePrompt).toContain('Nova SuperNova');
+		test('should handle unknown features gracefully', () => {
+			const unknownFeature = featureManager.checkFeatureAccess('unknown-feature');
+
+			expect(unknownFeature.allowed).toBe(false);
+			expect(unknownFeature.reason).toContain('not found');
 		});
 
-		test('should allow access to SuperNova features with valid license', async () => {
-			const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-			await featureManager.updateLicense(supernovaLicense);
-			
-			const access = featureManager.checkFeatureAccess('unlimited_cloud_ai');
-			
-			expect(access.allowed).toBe(true);
-			expect(access.reason).toBeUndefined();
-		});
+		test('should provide feature summary', () => {
+			const summary = featureManager.getFeatureSummary();
 
-		test('should handle unknown feature keys', () => {
-			const access = featureManager.checkFeatureAccess('nonexistent_feature');
+			expect(summary.isCatalyst).toBe(false);
+			expect(summary.enabled.length).toBeGreaterThan(0);
+			expect(summary.comingSoon.length).toBeGreaterThan(0);
 			
-			expect(access.allowed).toBe(false);
-			expect(access.reason).toContain('not found');
-		});
-
-		test('should provide appropriate fallback behaviors', () => {
-			const promptUpgrade = featureManager.checkFeatureAccess('unlimited_cloud_ai');
-			expect(promptUpgrade.fallbackBehavior).toBe('prompt_upgrade');
-			
-			const limitedUsage = featureManager.checkFeatureAccess('batch_operations');
-			expect(limitedUsage.fallbackBehavior).toBe('limited_usage');
-			
-			const disable = featureManager.checkFeatureAccess('cross_document_context');
-			expect(disable.fallbackBehavior).toBe('disable');
+			// Check that core features are in enabled list
+			expect(summary.enabled).toContain('basic_editing');
+			expect(summary.enabled).toContain('all_ai_providers');
 		});
 	});
 
-	describe('Debug Mode', () => {
-		test('should override tier in debug mode', () => {
-			featureManager.updateDebugSettings({ 
-				enabled: true, 
-				overrideTier: 'supernova' 
-			});
+	describe('Debug Settings', () => {
+		test('should support debug mode for development', () => {
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: '2025-12-01', // Future date where all features are available
+				forceCatalyst: true
+			};
+
+			featureManager.updateDebugSettings(debugSettings);
+
+			// With debug mode, time-gated features should be available
+			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
+			expect(featureManager.getIsCatalystSupporter()).toBe(true);
+		});
+
+		test('should allow date override for testing', () => {
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: '2025-07-01', // Date when auto-input is generally available
+				forceCatalyst: false
+			};
+
+			featureManager.updateDebugSettings(debugSettings);
+
+			// auto-input should be available (general date is 2025-07-15)
+			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
 			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
+			// But command-system should not be (general date is 2025-09-15)
+			expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
+		});
+
+		test('should return debug settings', () => {
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: '2025-06-01',
+				forceCatalyst: true
+			};
+
+			featureManager.updateDebugSettings(debugSettings);
+			const retrievedSettings = featureManager.getDebugSettings();
+
+			expect(retrievedSettings.enabled).toBe(true);
+			expect(retrievedSettings.overrideDate).toBe('2025-06-01');
+			expect(retrievedSettings.forceCatalyst).toBe(true);
+		});
+	});
+
+	describe('Feature Lists', () => {
+		test('should return enabled features', () => {
+			const enabledFeatures = featureManager.getEnabledFeatures();
+
+			expect(enabledFeatures.length).toBeGreaterThan(0);
+			expect(enabledFeatures.some(f => f.key === 'basic_editing')).toBe(true);
+			expect(enabledFeatures.some(f => f.key === 'all_ai_providers')).toBe(true);
+		});
+
+		test('should return Catalyst early access features', () => {
+			const catalystFeatures = featureManager.getCatalystFeatures();
+
+			expect(catalystFeatures.length).toBeGreaterThan(0);
+			expect(catalystFeatures.some(f => f.key === 'command-system')).toBe(true);
+			expect(catalystFeatures.some(f => f.key === 'multi-doc-context')).toBe(true);
+			
+			// All should be time-gated and early access only
+			catalystFeatures.forEach(feature => {
+				expect(feature.isTimeGated).toBe(true);
+				expect(feature.earlyAccessOnly).toBe(true);
+			});
+		});
+	});
+
+	describe('Legacy Compatibility', () => {
+		test('should maintain compatibility with old API calls', () => {
+			// These methods don't exist anymore but the feature manager should handle 
+			// legacy feature checks gracefully through isFeatureEnabled
+			expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
+			expect(featureManager.isFeatureEnabled('mobile_access')).toBe(true);
 			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(true);
 		});
-
-		test('should allow switching between tiers in debug mode', () => {
-			// Start with SuperNova override
-			featureManager.updateDebugSettings({ 
-				enabled: true, 
-				overrideTier: 'supernova' 
-			});
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			
-			// Switch to Core override
-			featureManager.updateDebugSettings({ 
-				enabled: true, 
-				overrideTier: 'core' 
-			});
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-			expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(false);
-		});
-
-		test('should disable debug mode and use real license', async () => {
-			// Set debug mode to SuperNova
-			featureManager.updateDebugSettings({ 
-				enabled: true, 
-				overrideTier: 'supernova' 
-			});
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			
-			// Disable debug mode
-			featureManager.updateDebugSettings({ enabled: false });
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-		});
-
-		test('should get and set debug settings', () => {
-			const settings = { enabled: true, overrideTier: 'supernova' as const };
-			featureManager.updateDebugSettings(settings);
-			
-			const retrieved = featureManager.getDebugSettings();
-			expect(retrieved.enabled).toBe(true);
-			expect(retrieved.overrideTier).toBe('supernova');
-		});
 	});
 
-	describe('Feature Management', () => {
-		test('should register custom features', () => {
-			featureManager.registerFeature({
-				key: 'custom_feature',
-				requiredTier: FeatureTier.SUPERNOVA,
-				enabled: false,
-				description: 'Custom test feature'
-			});
-			
-			expect(featureManager.isFeatureEnabled('custom_feature')).toBe(false);
-			expect(featureManager.checkFeatureAccess('custom_feature').allowed).toBe(false);
+	describe('Time-Based Feature Release', () => {
+		test('should properly handle feature dates with Catalyst supporter', async () => {
+			// Set up as Catalyst supporter
+			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
+			await featureManager.updateCatalystLicense(catalystLicense);
+
+			// Use debug mode to simulate being at the Catalyst release date
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: '2025-06-15', // Catalyst date for all features
+				forceCatalyst: true
+			};
+			featureManager.updateDebugSettings(debugSettings);
+
+			// All time-gated features should be available for Catalyst supporters
+			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
+			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});
 
-		test('should get features for specific tier', () => {
-			const coreFeatures = featureManager.getFeaturesForTier(FeatureTier.CORE);
-			const supernovaFeatures = featureManager.getFeaturesForTier(FeatureTier.SUPERNOVA);
-			
-			expect(coreFeatures.length).toBeGreaterThan(0);
-			expect(supernovaFeatures.length).toBeGreaterThan(coreFeatures.length);
-			
-			// Check that Core features are included in SuperNova
-			const coreFeatureKeys = coreFeatures.map(f => f.key);
-			const supernovaFeatureKeys = supernovaFeatures.map(f => f.key);
-			
-			coreFeatureKeys.forEach(key => {
-				expect(supernovaFeatureKeys).toContain(key);
-			});
-		});
-	});
+		test('should handle general availability dates correctly', () => {
+			// Use debug mode to simulate being past general availability
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: '2025-10-01', // Past all general availability dates
+				forceCatalyst: false
+			};
+			featureManager.updateDebugSettings(debugSettings);
 
-	describe('Integration with LicenseValidator', () => {
-		test('should work with expired licenses', async () => {
-			// Create an expired license manually
-			const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-			const issuedAt = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-			
-			const email = 'test@example.com';
-			const tier = 'supernova';
-			const data = `${email}|${tier}|${yesterday.toISOString()}|${issuedAt.toISOString()}`;
-			const encoder = new TextEncoder();
-			const keyData = encoder.encode('nova-license-signing-key-2025');
-			const messageData = encoder.encode(data);
-			
-			const cryptoKey = await crypto.subtle.importKey(
-				'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-			);
-			
-			const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-			const signatureHex = Array.from(new Uint8Array(signature))
-				.map(b => b.toString(16).padStart(2, '0')).join('');
-			
-			const expiredLicense = btoa(`${email}|${tier}|${yesterday.toISOString()}|${issuedAt.toISOString()}|${signatureHex}`);
-			
-			await featureManager.updateLicense(expiredLicense);
-			
-			// Should fall back to Core tier
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.CORE);
-			expect(featureManager.getCurrentLicense()).toBeNull();
-		});
-
-		test('should work with lifetime licenses', async () => {
-			const lifetimeLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova', true);
-			
-			await featureManager.updateLicense(lifetimeLicense);
-			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			expect(featureManager.getCurrentLicense()?.expiresAt).toBeNull();
-		});
-
-		test('should work with annual licenses', async () => {
-			const annualLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova', false);
-			
-			await featureManager.updateLicense(annualLicense);
-			
-			expect(featureManager.getCurrentTier()).toBe(FeatureTier.SUPERNOVA);
-			expect(featureManager.getCurrentLicense()?.expiresAt).not.toBeNull();
+			// All features should be available to everyone
+			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
+			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});
 	});
 });

@@ -1,4 +1,4 @@
-import { License, LicenseValidationResult, LicenseError, LicenseTier } from './types';
+import { License, CatalystLicense, LicenseValidationResult, CatalystValidationResult, LicenseError } from './types';
 
 export class LicenseValidator {
 	// Embedded signing key - in production this would be obfuscated
@@ -53,10 +53,7 @@ export class LicenseValidator {
 
 			const [email, tier, expiresAtStr, issuedAtStr, signature] = parts;
 
-			// Validate tier
-			if (tier !== 'core' && tier !== 'supernova') {
-				return null;
-			}
+			// Skip tier validation since we're removing tiers
 
 			// Parse dates
 			const expiresAt = expiresAtStr === 'lifetime' ? null : new Date(expiresAtStr);
@@ -73,7 +70,6 @@ export class LicenseValidator {
 
 			return {
 				email,
-				tier: tier as LicenseTier,
 				expiresAt,
 				issuedAt,
 				signature,
@@ -113,7 +109,7 @@ export class LicenseValidator {
 		// 1. Verify HMAC signature
 		const expectedSignature = await this.generateSignature(
 			license.email,
-			license.tier,
+			'legacy', // Use legacy for old licenses
 			license.expiresAt,
 			license.issuedAt
 		);
@@ -140,7 +136,7 @@ export class LicenseValidator {
 	 */
 	private async generateSignature(
 		email: string,
-		tier: LicenseTier,
+		tier: string,
 		expiresAt: Date | null,
 		issuedAt: Date
 	): Promise<string> {
@@ -167,13 +163,165 @@ export class LicenseValidator {
 	/**
 	 * Creates a test license for development purposes
 	 */
-	async createTestLicense(email: string, tier: LicenseTier, lifetimeMode = true): Promise<string> {
+	async createTestLicense(email: string, tier: string, lifetimeMode = true): Promise<string> {
 		const issuedAt = new Date();
 		const expiresAt = lifetimeMode ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
 		const signature = await this.generateSignature(email, tier, expiresAt, issuedAt);
 		
 		const licenseData = `${email}|${tier}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}|${signature}`;
+		
+		return this.base64Encode(licenseData);
+	}
+
+	/**
+	 * Validates a Catalyst license key
+	 */
+	async validateCatalystLicense(licenseKey: string): Promise<CatalystValidationResult> {
+		try {
+			const license = this.parseCatalystLicenseKey(licenseKey);
+			if (!license) {
+				return { 
+					valid: false, 
+					error: LicenseError.INVALID_FORMAT 
+				};
+			}
+
+			const validationError = await this.validateCatalystLicenseObject(license);
+			if (validationError) {
+				return { 
+					valid: false, 
+					license,
+					error: validationError 
+				};
+			}
+
+			return { 
+				valid: true, 
+				license 
+			};
+		} catch (error) {
+			return { 
+				valid: false, 
+				error: LicenseError.MALFORMED_DATA 
+			};
+		}
+	}
+
+	/**
+	 * Parses a Catalyst license key string
+	 */
+	private parseCatalystLicenseKey(licenseKey: string): CatalystLicense | null {
+		try {
+			// Catalyst license key format: base64(email|type|expiresAt|issuedAt|signature)
+			const decoded = this.base64Decode(licenseKey);
+			const parts = decoded.split('|');
+			
+			if (parts.length !== 5) {
+				return null;
+			}
+
+			const [email, type, expiresAtStr, issuedAtStr, signature] = parts;
+
+			// Validate type
+			if (type !== 'annual' && type !== 'lifetime') {
+				return null;
+			}
+
+			// Parse dates
+			const expiresAt = expiresAtStr === 'lifetime' ? null : new Date(expiresAtStr);
+			const issuedAt = new Date(issuedAtStr);
+
+			// Validate dates
+			if (isNaN(issuedAt.getTime())) {
+				return null;
+			}
+
+			if (expiresAt && isNaN(expiresAt.getTime())) {
+				return null;
+			}
+
+			return {
+				email,
+				type: type as 'annual' | 'lifetime',
+				expiresAt,
+				issuedAt,
+				signature,
+				licenseKey
+			};
+		} catch (error) {
+			return null;
+		}
+	}
+
+	/**
+	 * Validates a Catalyst license object
+	 */
+	private async validateCatalystLicenseObject(license: CatalystLicense): Promise<LicenseError | null> {
+		// 1. Verify HMAC signature
+		const expectedSignature = await this.generateCatalystSignature(
+			license.email,
+			license.type,
+			license.expiresAt,
+			license.issuedAt
+		);
+
+		if (license.signature !== expectedSignature) {
+			return LicenseError.INVALID_SIGNATURE;
+		}
+
+		// 2. Check expiration
+		if (license.expiresAt && new Date() > license.expiresAt) {
+			return LicenseError.EXPIRED;
+		}
+
+		// 3. Validate issue date
+		if (license.issuedAt > new Date()) {
+			return LicenseError.FUTURE_DATED;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Generates HMAC-SHA256 signature for Catalyst license
+	 */
+	private async generateCatalystSignature(
+		email: string,
+		type: 'annual' | 'lifetime',
+		expiresAt: Date | null,
+		issuedAt: Date
+	): Promise<string> {
+		const data = `${email}|${type}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}`;
+		
+		const encoder = new TextEncoder();
+		const keyData = encoder.encode(this.SECRET_KEY);
+		const messageData = encoder.encode(data);
+		
+		const cryptoKey = await crypto.subtle.importKey(
+			'raw',
+			keyData,
+			{ name: 'HMAC', hash: 'SHA-256' },
+			false,
+			['sign']
+		);
+		
+		const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+		return Array.from(new Uint8Array(signature))
+			.map(b => b.toString(16).padStart(2, '0'))
+			.join('');
+	}
+
+	/**
+	 * Creates a test Catalyst license for development
+	 */
+	async createTestCatalystLicense(email: string, type: 'annual' | 'lifetime'): Promise<string> {
+		const issuedAt = new Date();
+		const expiresAt = type === 'lifetime' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+
+		const signature = await this.generateCatalystSignature(email, type, expiresAt, issuedAt);
+		
+		const licenseData = `${email}|${type}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}|${signature}`;
 		
 		return this.base64Encode(licenseData);
 	}

@@ -2,30 +2,9 @@ import { AIProviderManager } from '../../src/ai/provider-manager';
 import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
 import { NovaSettings, DEFAULT_SETTINGS } from '../../src/settings';
-import { ProviderType } from '../../src/ai/types';
-import { Platform } from 'obsidian';
 
-// Mock Obsidian
-jest.mock('obsidian', () => ({
-    Platform: {
-        isMobile: false
-    },
-    PluginSettingTab: class MockPluginSettingTab {
-        constructor(app: any, plugin: any) {}
-        display() {}
-    },
-    Setting: class MockSetting {
-        setName() { return this; }
-        setDesc() { return this; }
-        addText() { return this; }
-        addToggle() { return this; }
-        addDropdown() { return this; }
-        addSlider() { return this; }
-    }
-}));
-
-describe('Provider Restrictions Integration Tests', () => {
-    let aiProviderManager: AIProviderManager;
+describe('Provider Access in Catalyst Model', () => {
+    let providerManager: AIProviderManager;
     let featureManager: FeatureManager;
     let licenseValidator: LicenseValidator;
     let settings: NovaSettings;
@@ -33,270 +12,141 @@ describe('Provider Restrictions Integration Tests', () => {
     beforeEach(() => {
         licenseValidator = new LicenseValidator();
         featureManager = new FeatureManager(licenseValidator);
-        settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-        aiProviderManager = new AIProviderManager(settings, featureManager);
+        settings = { ...DEFAULT_SETTINGS };
+        providerManager = new AIProviderManager(settings, featureManager);
     });
 
-    describe('Core Tier Provider Restrictions', () => {
-        test('should limit Core tier to 1 local + 1 cloud provider', () => {
-            // Default is Core tier
-            const allowedProviders = aiProviderManager.getAllowedProviders();
-            const limits = aiProviderManager.getProviderLimits();
-
-            expect(limits.local).toBe(1);
-            expect(limits.cloud).toBe(1);
-
-            // Count unique provider types
-            const uniqueProviders = [...new Set(allowedProviders)];
-            const localProviders = uniqueProviders.filter(p => p === 'ollama');
-            const cloudProviders = uniqueProviders.filter(p => ['claude', 'openai', 'google'].includes(p));
-
-            expect(localProviders).toHaveLength(1);
-            expect(cloudProviders).toHaveLength(1);
-        });
-
-        test('should allow only first configured providers', () => {
-            // Default settings have ollama as primary and openai as first fallback cloud
-            const allowedProviders = aiProviderManager.getAllowedProviders();
+    describe('Provider Availability', () => {
+        test('should allow all providers for all users', () => {
+            // In the Catalyst model, all providers are available to all users
+            const allowedProviders = providerManager.getAllowedProviders();
             
-            expect(allowedProviders).toContain('ollama'); // Primary local provider
-            expect(allowedProviders).toContain('openai'); // First cloud provider in fallbacks
-            expect(allowedProviders).not.toContain('google'); // Blocked second cloud
-            expect(allowedProviders).not.toContain('claude'); // Not in default settings
+            expect(allowedProviders).toContain('claude');
+            expect(allowedProviders).toContain('openai');
+            expect(allowedProviders).toContain('google');
+            expect(allowedProviders).toContain('ollama');
         });
 
-        test('should preserve provider priority order', () => {
-            // Test with different provider order
-            const reorderedSettings: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'google',
-                        fallbackProviders: ['openai', 'claude', 'ollama']
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const reorderedManager = new AIProviderManager(reorderedSettings, featureManager);
-            const allowedProviders = reorderedManager.getAllowedProviders();
-
-            expect(allowedProviders).toContain('google'); // First cloud provider
-            expect(allowedProviders).toContain('ollama'); // Local provider
-            expect(allowedProviders).not.toContain('openai'); // Blocked second cloud
-            expect(allowedProviders).not.toContain('claude'); // Blocked third cloud
+        test('should not restrict any provider', () => {
+            // No provider should be restricted in the Catalyst model
+            expect(providerManager.isProviderAllowed('claude')).toBe(true);
+            expect(providerManager.isProviderAllowed('openai')).toBe(true);
+            expect(providerManager.isProviderAllowed('google')).toBe(true);
+            expect(providerManager.isProviderAllowed('ollama')).toBe(true);
         });
 
-        test('should validate provider selections correctly', () => {
-            expect(aiProviderManager.isProviderAllowed('ollama')).toBe(true); // Primary local
-            expect(aiProviderManager.isProviderAllowed('openai')).toBe(true); // First cloud
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(false); // Second cloud - blocked
-            expect(aiProviderManager.isProviderAllowed('claude')).toBe(false); // Not configured
-        });
-    });
-
-    describe('SuperNova Tier Provider Freedom', () => {
-        beforeEach(async () => {
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
+        test('should have no provider limits', () => {
+            const limits = providerManager.getProviderLimits();
             
-            // Recreate manager with SuperNova tier
-            aiProviderManager = new AIProviderManager(settings, featureManager);
-        });
-
-        test('should allow unlimited providers for SuperNova tier', () => {
-            const limits = aiProviderManager.getProviderLimits();
             expect(limits.local).toBe(Infinity);
             expect(limits.cloud).toBe(Infinity);
         });
+    });
 
-        test('should allow all configured providers for SuperNova tier', () => {
-            const allowedProviders = aiProviderManager.getAllowedProviders();
+    describe('Catalyst Status Impact', () => {
+        test('should have same provider access regardless of Catalyst status', async () => {
+            // Test without Catalyst license
+            const providersWithoutCatalyst = providerManager.getAllowedProviders();
             
-            // SuperNova should allow all providers in the settings
-            expect(allowedProviders).toContain('ollama'); // Primary
-            expect(allowedProviders).toContain('openai'); // In fallbacks
-            expect(allowedProviders).toContain('google'); // In fallbacks
-            // claude not in default settings, so won't appear
+            // Add Catalyst license
+            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
+            await featureManager.updateCatalystLicense(catalystLicense);
+            
+            const providersWithCatalyst = providerManager.getAllowedProviders();
+            
+            // Should be identical - Catalyst doesn't affect core provider access
+            expect(providersWithCatalyst).toEqual(providersWithoutCatalyst);
+            expect(providersWithCatalyst).toContain('claude');
+            expect(providersWithCatalyst).toContain('openai');
+            expect(providersWithCatalyst).toContain('google');
+            expect(providersWithCatalyst).toContain('ollama');
         });
 
-        test('should validate configured providers as allowed', () => {
-            expect(aiProviderManager.isProviderAllowed('ollama')).toBe(true);
-            expect(aiProviderManager.isProviderAllowed('openai')).toBe(true);
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(true);
-            // claude not in default settings
+        test('should allow provider switching for all users', () => {
+            // Provider switching is a core feature, available to everyone
+            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
+            
+            const providerSwitchingAccess = featureManager.checkFeatureAccess('provider_switching');
+            expect(providerSwitchingAccess.allowed).toBe(true);
         });
     });
 
-    describe('Provider Type Classification', () => {
-        test('should correctly classify local vs cloud providers', () => {
-            // Create a custom settings to test classification
-            const testSettings: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'ollama',
-                        fallbackProviders: ['claude', 'openai', 'google']
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const testManager = new AIProviderManager(testSettings, featureManager);
-            const allowedProviders = testManager.getAllowedProviders();
-
-            // Should allow 1 local (ollama) + 1 cloud (claude - first in fallbacks)
-            expect(allowedProviders).toContain('ollama');
-            expect(allowedProviders).toContain('claude');
-            expect(allowedProviders).not.toContain('openai');
-            expect(allowedProviders).not.toContain('google');
+    describe('Platform-Specific Behavior', () => {
+        test('should work on desktop with all providers', async () => {
+            // Desktop should have access to all providers including local ones
+            settings.platformSettings.desktop.primaryProvider = 'ollama';
+            settings.platformSettings.desktop.fallbackProviders = ['claude', 'openai', 'google'];
+            
+            providerManager.updateSettings(settings);
+            
+            // Should work without any restrictions
+            expect(() => providerManager.updateSettings(settings)).not.toThrow();
         });
 
-        test('should handle settings with only cloud providers', () => {
-            const cloudOnlySettings: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'claude',
-                        fallbackProviders: ['openai', 'google']
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const cloudOnlyManager = new AIProviderManager(cloudOnlySettings, featureManager);
-            const allowedProviders = cloudOnlyManager.getAllowedProviders();
-
-            // Should allow only 1 cloud provider (claude), no local providers
-            expect(allowedProviders).toContain('claude');
-            expect(allowedProviders).not.toContain('openai');
-            expect(allowedProviders).not.toContain('google');
-            expect(allowedProviders).not.toContain('ollama');
-        });
-
-        test('should handle settings with only local providers', () => {
-            const localOnlySettings: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'ollama',
-                        fallbackProviders: []
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const localOnlyManager = new AIProviderManager(localOnlySettings, featureManager);
-            const allowedProviders = localOnlyManager.getAllowedProviders();
-
-            // Should allow only 1 local provider (ollama), no cloud providers
-            expect(allowedProviders).toContain('ollama');
-            expect(allowedProviders).not.toContain('claude');
-            expect(allowedProviders).not.toContain('openai');
-            expect(allowedProviders).not.toContain('google');
+        test('should work on mobile with cloud providers', async () => {
+            // Mobile should have access to cloud providers
+            settings.platformSettings.mobile.primaryProvider = 'claude';
+            settings.platformSettings.mobile.fallbackProviders = ['openai', 'google'];
+            
+            providerManager.updateSettings(settings);
+            
+            // Should work without any restrictions
+            expect(() => providerManager.updateSettings(settings)).not.toThrow();
         });
     });
 
-    describe('Dynamic Tier Changes', () => {
-        test('should update restrictions when tier changes', async () => {
-            // Start with Core tier restrictions
-            expect(aiProviderManager.getProviderLimits().cloud).toBe(1);
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(false); // Second cloud provider blocked
-
-            // Upgrade to SuperNova
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-
-            // Create new manager with updated feature manager
-            aiProviderManager = new AIProviderManager(settings, featureManager);
-
-            // Should now allow unlimited providers
-            expect(aiProviderManager.getProviderLimits().cloud).toBe(Infinity);
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(true); // Now allowed
+    describe('Legacy Feature Compatibility', () => {
+        test('should treat legacy features as enabled', () => {
+            // These were tier-restricted features that are now available to everyone
+            expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(true);
+            expect(featureManager.isFeatureEnabled('mobile_access')).toBe(true);
+            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
+            expect(featureManager.isFeatureEnabled('advanced_templates')).toBe(true);
+            expect(featureManager.isFeatureEnabled('batch_operations')).toBe(true);
+            expect(featureManager.isFeatureEnabled('cross_document_context')).toBe(true);
+            expect(featureManager.isFeatureEnabled('priority_support')).toBe(true);
         });
 
-        test('should downgrade restrictions when license expires', async () => {
-            // Start with SuperNova license
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            aiProviderManager = new AIProviderManager(settings, featureManager);
+        test('should handle legacy access checks gracefully', () => {
+            // Old code might check these features - they should all be allowed
+            const unlimitedCloudAccess = featureManager.checkFeatureAccess('unlimited_cloud_ai');
+            const mobileAccess = featureManager.checkFeatureAccess('mobile_access');
+            const providerSwitchingAccess = featureManager.checkFeatureAccess('provider_switching');
             
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(true);
-
-            // Simulate license expiration by clearing license
-            await featureManager.updateLicense(null);
-            aiProviderManager = new AIProviderManager(settings, featureManager);
-
-            // Should revert to Core tier restrictions
-            expect(aiProviderManager.getProviderLimits().cloud).toBe(1);
-            expect(aiProviderManager.isProviderAllowed('google')).toBe(false); // Back to blocked
+            expect(unlimitedCloudAccess.allowed).toBe(true);
+            expect(mobileAccess.allowed).toBe(true);
+            expect(providerSwitchingAccess.allowed).toBe(true);
         });
     });
 
-    describe('Edge Cases', () => {
-        test('should handle empty provider lists gracefully', () => {
-            const emptySettings: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const emptyManager = new AIProviderManager(emptySettings, featureManager);
-            const allowedProviders = emptyManager.getAllowedProviders();
-
-            expect(allowedProviders).toContain('none');
-            expect(allowedProviders).toHaveLength(1);
-        });
-
-        test('should handle manager without feature manager', () => {
-            const managerWithoutFeatures = new AIProviderManager(settings);
+    describe('Future Feature Gates', () => {
+        test('should handle new time-gated features appropriately', () => {
+            // These are the new features that will be time-gated for Catalyst early access
+            expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
+            expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(false);
+            expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
             
-            // Should not apply restrictions without feature manager
-            expect(() => managerWithoutFeatures.getAllowedProviders()).not.toThrow();
-            expect(() => managerWithoutFeatures.getProviderLimits()).not.toThrow();
+            const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
+            expect(commandSystemAccess.allowed).toBe(false);
+            expect(commandSystemAccess.isCatalystFeature).toBe(true);
         });
 
-        test('should maintain none provider in allowed list', () => {
-            const settingsWithNone: NovaSettings = {
-                ...settings,
-                platformSettings: {
-                    desktop: {
-                        primaryProvider: 'none',
-                        fallbackProviders: ['claude', 'openai', 'google', 'ollama']
-                    },
-                    mobile: {
-                        primaryProvider: 'none',
-                        fallbackProviders: []
-                    }
-                }
-            };
-
-            const managerWithNone = new AIProviderManager(settingsWithNone, featureManager);
-            const allowedProviders = managerWithNone.getAllowedProviders();
-
-            expect(allowedProviders).toContain('none');
-            expect(allowedProviders).toContain('claude'); // First cloud provider
-            expect(allowedProviders).toContain('ollama'); // Local provider
+        test('should enable time-gated features for Catalyst supporters with debug mode', async () => {
+            // Set up Catalyst license
+            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
+            await featureManager.updateCatalystLicense(catalystLicense);
+            
+            // Use debug mode to simulate being at the Catalyst release date
+            featureManager.updateDebugSettings({
+                enabled: true,
+                overrideDate: '2025-06-15', // Catalyst date
+                forceCatalyst: true
+            });
+            
+            // Time-gated features should now be available
+            expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+            expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
+            expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(true);
         });
     });
 });

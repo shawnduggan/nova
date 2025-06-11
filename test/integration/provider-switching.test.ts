@@ -1,327 +1,196 @@
-import { NovaSidebarView } from '../../src/ui/sidebar-view';
-import NovaPlugin from '../../main';
+import { AIProviderManager } from '../../src/ai/provider-manager';
 import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
 import { NovaSettings, DEFAULT_SETTINGS } from '../../src/settings';
-import { WorkspaceLeaf, Platform } from 'obsidian';
+import { ProviderType } from '../../src/ai/types';
 
-// Mock Obsidian
-const mockLeaf = {
-    view: null,
-    setViewState: jest.fn(),
-    getViewState: jest.fn(),
-    detach: jest.fn(),
-    getContainer: jest.fn(),
-    getRoot: jest.fn(),
-    getGroup: jest.fn()
-} as unknown as WorkspaceLeaf;
-
-const mockApp = {
-    workspace: {
-        on: jest.fn(),
-        off: jest.fn(),
-        getActiveFile: jest.fn(),
-        getLeavesOfType: jest.fn(() => []),
-        getActiveViewOfType: jest.fn()
-    },
-    vault: {
-        on: jest.fn(),
-        off: jest.fn()
-    }
-} as any;
-
-jest.mock('obsidian', () => ({
-    Platform: {
-        isMobile: false
-    },
-    PluginSettingTab: class MockPluginSettingTab {
-        constructor(app: any, plugin: any) {}
-        display() {}
-    },
-    Setting: class MockSetting {
-        setName() { return this; }
-        setDesc() { return this; }
-        addText() { return this; }
-        addToggle() { return this; }
-        addDropdown() { return this; }
-        addSlider() { return this; }
-    },
-    ItemView: class MockItemView {
-        containerEl = {
-            children: [null, { 
-                empty: jest.fn(),
-                addClass: jest.fn(),
-                createDiv: jest.fn(() => ({
-                    style: { cssText: '' },
-                    createDiv: jest.fn(() => ({
-                        style: { cssText: '' },
-                        createEl: jest.fn(() => ({
-                            style: { cssText: '' },
-                            innerHTML: '',
-                            createSpan: jest.fn(() => ({
-                                style: { cssText: '' },
-                                setText: jest.fn()
-                            }))
-                        })),
-                        createSpan: jest.fn(() => ({
-                            style: { cssText: '' },
-                            setText: jest.fn(),
-                            textContent: ''
-                        })),
-                        addEventListener: jest.fn(),
-                        removeEventListener: jest.fn(),
-                        querySelector: jest.fn(),
-                        contains: jest.fn(() => false),
-                        empty: jest.fn()
-                    }))
-                }))
-            }]
-        };
-        app = mockApp;
-        constructor(leaf: WorkspaceLeaf) {}
-        registerEvent = jest.fn();
-    },
-    ButtonComponent: class MockButtonComponent {
-        setButtonText = jest.fn(() => this);
-        setTooltip = jest.fn(() => this);
-        onClick = jest.fn(() => this);
-    },
-    TextAreaComponent: class MockTextAreaComponent {
-        getValue = jest.fn(() => '');
-        setValue = jest.fn();
-        inputEl = { focus: jest.fn() };
-    },
-    Notice: jest.fn()
-}));
-
-describe('Provider Switching Integration Tests', () => {
-    let sidebarView: NovaSidebarView;
-    let mockPlugin: NovaPlugin;
+describe('Provider Switching in Catalyst Model', () => {
+    let providerManager: AIProviderManager;
     let featureManager: FeatureManager;
     let licenseValidator: LicenseValidator;
     let settings: NovaSettings;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         licenseValidator = new LicenseValidator();
         featureManager = new FeatureManager(licenseValidator);
-        settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-        
-        // Create mock plugin
-        mockPlugin = {
-            app: mockApp,
-            featureManager,
-            settings,
-            aiProviderManager: {
-                getCurrentProviderName: jest.fn().mockResolvedValue('Claude'),
-                getAllowedProviders: jest.fn().mockReturnValue(['claude', 'openai', 'google', 'ollama']),
-                updateSettings: jest.fn()
-            },
-            saveSettings: jest.fn(),
-            conversationManager: {
-                getRecentMessages: jest.fn().mockResolvedValue([])
+        settings = { ...DEFAULT_SETTINGS };
+        providerManager = new AIProviderManager(settings, featureManager);
+    });
+
+    describe('Provider Switching Access', () => {
+        test('should allow provider switching for all users', () => {
+            // Provider switching is now a core feature available to everyone
+            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
+            
+            const access = featureManager.checkFeatureAccess('provider_switching');
+            expect(access.allowed).toBe(true);
+        });
+
+        test('should not have tier-based restrictions', () => {
+            // No user should be restricted from provider switching
+            const access = featureManager.checkFeatureAccess('provider_switching');
+            
+            expect(access.allowed).toBe(true);
+            expect(access.reason).toBeUndefined();
+        });
+    });
+
+    describe('Provider Configuration', () => {
+        test('should allow configuration of any provider', async () => {
+            const providers: ProviderType[] = ['claude', 'openai', 'google', 'ollama'];
+            
+            for (const provider of providers) {
+                settings.platformSettings.desktop.primaryProvider = provider;
+                
+                // Should not throw any errors
+                expect(() => {
+                    providerManager.updateSettings(settings);
+                }).not.toThrow();
+                
+                // Should be allowed
+                expect(providerManager.isProviderAllowed(provider)).toBe(true);
             }
-        } as any;
-
-        // Reset platform to desktop
-        (Platform as any).isMobile = false;
-    });
-
-    describe('Core Tier - Static Provider Display', () => {
-        beforeEach(() => {
-            // Ensure Core tier (default)
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
         });
 
-        test('should show static provider status for Core tier users', () => {
-            expect(featureManager.getCurrentTier()).toBe('core');
-            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(false);
+        test('should handle multiple providers simultaneously', () => {
+            // Configure multiple providers
+            settings.platformSettings.desktop.primaryProvider = 'claude';
+            settings.platformSettings.desktop.fallbackProviders = ['openai', 'google', 'ollama'];
+            settings.platformSettings.mobile.primaryProvider = 'openai';
+            settings.platformSettings.mobile.fallbackProviders = ['claude', 'google'];
             
-            // The sidebar should create static provider status, not dropdown
-            // This is verified by the tier check in the UI code
-        });
-
-        test('should not allow provider switching for Core tier', () => {
-            const providerSwitchingAccess = featureManager.checkFeatureAccess('provider_switching');
-            expect(providerSwitchingAccess.allowed).toBe(false);
-            expect(providerSwitchingAccess.reason).toContain('Feature requires supernova tier');
-            expect(providerSwitchingAccess.fallbackBehavior).toBe('prompt_upgrade');
-        });
-    });
-
-    describe('SuperNova Tier - Provider Switching', () => {
-        beforeEach(async () => {
-            // Upgrade to SuperNova tier
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            
-            // Update mock plugin with SuperNova feature manager
-            mockPlugin.featureManager = featureManager;
-            
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
-        });
-
-        test('should enable provider switching for SuperNova tier', () => {
-            expect(featureManager.getCurrentTier()).toBe('supernova');
-            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
-        });
-
-        test('should allow access to provider switching feature', () => {
-            const providerSwitchingAccess = featureManager.checkFeatureAccess('provider_switching');
-            expect(providerSwitchingAccess.allowed).toBe(true);
-        });
-
-        test('should have access to multiple providers for switching', () => {
-            const allowedProviders = mockPlugin.aiProviderManager.getAllowedProviders();
-            expect(allowedProviders.length).toBeGreaterThan(1);
-            expect(allowedProviders).toContain('claude');
-            expect(allowedProviders).toContain('openai');
-            expect(allowedProviders).toContain('google');
-            expect(allowedProviders).toContain('ollama');
-        });
-    });
-
-    describe('Provider Display Names and Colors', () => {
-        beforeEach(async () => {
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            mockPlugin.featureManager = featureManager;
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
-        });
-
-        test('should return correct display names for providers', () => {
-            // Access private method for testing
-            const getDisplayName = (sidebarView as any).getProviderDisplayName.bind(sidebarView);
-            
-            expect(getDisplayName('claude')).toBe('Claude');
-            expect(getDisplayName('openai')).toBe('OpenAI');
-            expect(getDisplayName('google')).toBe('Gemini');
-            expect(getDisplayName('ollama')).toBe('Ollama');
-            expect(getDisplayName('none')).toBe('None');
-            expect(getDisplayName('unknown')).toBe('unknown');
-        });
-
-        test('should return correct colors for providers', () => {
-            // Access private method for testing
-            const getProviderColor = (sidebarView as any).getProviderColor.bind(sidebarView);
-            
-            expect(getProviderColor('claude')).toBe('#D2691E');
-            expect(getProviderColor('openai')).toBe('#10A37F');
-            expect(getProviderColor('google')).toBe('#4285F4');
-            expect(getProviderColor('ollama')).toBe('#7C3AED');
-            expect(getProviderColor('none')).toBe('#999');
-            expect(getProviderColor('unknown')).toBe('#4caf50'); // default color
-        });
-    });
-
-    describe('Provider Switching Logic', () => {
-        beforeEach(async () => {
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            mockPlugin.featureManager = featureManager;
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
-        });
-
-        test('should update settings when switching providers', async () => {
-            // Mock the addMessage method since it's private
-            const addMessageSpy = jest.spyOn(sidebarView as any, 'addMessage').mockImplementation(() => {});
-            
-            // Access private method for testing
-            const switchToProvider = (sidebarView as any).switchToProvider.bind(sidebarView);
-            
-            await switchToProvider('openai');
-            
-            expect(addMessageSpy).toHaveBeenCalledWith('system', '🔄 Switched to OpenAI');
-            expect(mockPlugin.settings.platformSettings.desktop.primaryProvider).toBe('openai');
-            expect(mockPlugin.saveSettings).toHaveBeenCalled();
-            expect(mockPlugin.aiProviderManager.updateSettings).toHaveBeenCalledWith(mockPlugin.settings);
-            
-            addMessageSpy.mockRestore();
-        });
-
-        test('should handle provider switching errors gracefully', async () => {
-            // Mock saveSettings to throw an error
-            mockPlugin.saveSettings = jest.fn().mockRejectedValue(new Error('Save failed'));
-            
-            const addMessageSpy = jest.spyOn(sidebarView as any, 'addMessage').mockImplementation(() => {});
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-            
-            const switchToProvider = (sidebarView as any).switchToProvider.bind(sidebarView);
-            
-            await switchToProvider('google');
-            
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Error switching provider:', expect.any(Error));
-            expect(addMessageSpy).toHaveBeenCalledWith('system', '❌ Failed to switch to Gemini');
-            
-            addMessageSpy.mockRestore();
-            consoleErrorSpy.mockRestore();
-        });
-
-        test('should handle mobile platform correctly when switching', async () => {
-            (Platform as any).isMobile = true;
-            
-            const addMessageSpy = jest.spyOn(sidebarView as any, 'addMessage').mockImplementation(() => {});
-            const switchToProvider = (sidebarView as any).switchToProvider.bind(sidebarView);
-            
-            await switchToProvider('claude');
-            
-            expect(mockPlugin.settings.platformSettings.mobile.primaryProvider).toBe('claude');
-            expect(addMessageSpy).toHaveBeenCalledWith('system', '🔄 Switched to Claude');
-            
-            addMessageSpy.mockRestore();
-        });
-    });
-
-    describe('Feature Flag Integration', () => {
-        test('should respect provider_switching feature flag for UI creation', async () => {
-            // Test Core tier (provider_switching disabled)
-            const coreView = new NovaSidebarView(mockLeaf, mockPlugin);
-            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(false);
-            
-            // Test SuperNova tier (provider_switching enabled)
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            mockPlugin.featureManager = featureManager;
-            
-            const supernovaView = new NovaSidebarView(mockLeaf, mockPlugin);
-            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
-        });
-
-        test('should handle debug mode override for provider switching', () => {
-            // Enable debug mode and override tier
-            const debugSettings = { enabled: true, overrideTier: 'supernova' as const };
-            featureManager.updateDebugSettings(debugSettings);
-            
-            expect(featureManager.getCurrentTier()).toBe('supernova');
-            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
-        });
-    });
-
-    describe('UI Cleanup', () => {
-        test('should clean up event listeners on view close', async () => {
-            const supernovaLicense = await licenseValidator.createTestLicense('test@example.com', 'supernova');
-            await featureManager.updateLicense(supernovaLicense);
-            mockPlugin.featureManager = featureManager;
-            
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
-            
-            // Mock the dropdown cleanup
-            const mockCleanup = jest.fn();
-            (sidebarView as any).currentProviderDropdown = {
-                cleanup: mockCleanup
-            };
-            
-            await sidebarView.onClose();
-            
-            expect(mockCleanup).toHaveBeenCalled();
-        });
-
-        test('should handle missing dropdown cleanup gracefully', async () => {
-            sidebarView = new NovaSidebarView(mockLeaf, mockPlugin);
-            
-            // Should not throw when cleanup is not available
-            expect(async () => {
-                await sidebarView.onClose();
+            expect(() => {
+                providerManager.updateSettings(settings);
             }).not.toThrow();
+            
+            // All should be allowed
+            expect(providerManager.isProviderAllowed('claude')).toBe(true);
+            expect(providerManager.isProviderAllowed('openai')).toBe(true);
+            expect(providerManager.isProviderAllowed('google')).toBe(true);
+            expect(providerManager.isProviderAllowed('ollama')).toBe(true);
+        });
+    });
+
+    describe('Cross-Platform Provider Switching', () => {
+        test('should allow different providers on different platforms', () => {
+            // Desktop with local provider
+            settings.platformSettings.desktop.primaryProvider = 'ollama';
+            settings.platformSettings.desktop.fallbackProviders = ['claude', 'openai'];
+            
+            // Mobile with cloud provider
+            settings.platformSettings.mobile.primaryProvider = 'claude';
+            settings.platformSettings.mobile.fallbackProviders = ['openai', 'google'];
+            
+            expect(() => {
+                providerManager.updateSettings(settings);
+            }).not.toThrow();
+        });
+
+        test('should work regardless of Catalyst status', async () => {
+            // Test without Catalyst license
+            settings.platformSettings.desktop.primaryProvider = 'claude';
+            providerManager.updateSettings(settings);
+            expect(providerManager.isProviderAllowed('claude')).toBe(true);
+            
+            // Test with Catalyst license
+            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
+            await featureManager.updateCatalystLicense(catalystLicense);
+            
+            settings.platformSettings.desktop.primaryProvider = 'openai';
+            providerManager.updateSettings(settings);
+            expect(providerManager.isProviderAllowed('openai')).toBe(true);
+            
+            // Both should work the same way
+            expect(providerManager.isProviderAllowed('claude')).toBe(true);
+            expect(providerManager.isProviderAllowed('openai')).toBe(true);
+        });
+    });
+
+    describe('Provider Availability Checks', () => {
+        test('should return all providers as available', () => {
+            const allowedProviders = providerManager.getAllowedProviders();
+            
+            expect(allowedProviders).toEqual(['claude', 'openai', 'google', 'ollama']);
+        });
+
+        test('should have unlimited provider limits', () => {
+            const limits = providerManager.getProviderLimits();
+            
+            expect(limits.local).toBe(Infinity);
+            expect(limits.cloud).toBe(Infinity);
+        });
+    });
+
+    describe('Legacy Compatibility', () => {
+        test('should handle legacy provider restriction checks', () => {
+            // These features were previously restricted but should now be available
+            expect(featureManager.isFeatureEnabled('unlimited_cloud_ai')).toBe(true);
+            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
+            
+            const unlimitedAccess = featureManager.checkFeatureAccess('unlimited_cloud_ai');
+            const switchingAccess = featureManager.checkFeatureAccess('provider_switching');
+            
+            expect(unlimitedAccess.allowed).toBe(true);
+            expect(switchingAccess.allowed).toBe(true);
+        });
+
+        test('should not have fallback behavior restrictions', () => {
+            // Old tier system had fallback behaviors like 'prompt_upgrade'
+            // These should no longer exist
+            const access = featureManager.checkFeatureAccess('provider_switching');
+            
+            expect(access.allowed).toBe(true);
+            expect(access.reason).toBeUndefined();
+        });
+    });
+
+    describe('Future Feature Integration', () => {
+        test('should support future enhanced provider features', () => {
+            // Enhanced provider management is a time-gated feature
+            expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
+            
+            const access = featureManager.checkFeatureAccess('enhanced-providers');
+            expect(access.isCatalystFeature).toBe(true);
+            expect(access.allowed).toBe(false);
+        });
+
+        test('should enable enhanced features for Catalyst supporters', async () => {
+            // Set up Catalyst license
+            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
+            await featureManager.updateCatalystLicense(catalystLicense);
+            
+            // Use debug mode to simulate being at the Catalyst release date
+            featureManager.updateDebugSettings({
+                enabled: true,
+                overrideDate: '2025-06-15', // Catalyst early access date
+                forceCatalyst: true
+            });
+            
+            // Enhanced provider features should be available
+            expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(true);
+        });
+    });
+
+    describe('Error Handling', () => {
+        test('should handle invalid provider types gracefully', () => {
+            // Try to set an invalid provider
+            const invalidProvider = 'invalid-provider' as ProviderType;
+            
+            // The provider manager should handle this gracefully
+            expect(providerManager.isProviderAllowed(invalidProvider)).toBe(true); // Returns true for unknown providers in Catalyst model
+        });
+
+        test('should handle provider switching when no providers are configured', () => {
+            // Clear all provider configurations
+            settings.aiProviders.claude.apiKey = '';
+            settings.aiProviders.openai.apiKey = '';
+            settings.aiProviders.google.apiKey = '';
+            settings.aiProviders.ollama.baseUrl = '';
+            
+            providerManager.updateSettings(settings);
+            
+            // Should still be allowed to switch, even if not configured
+            expect(featureManager.isFeatureEnabled('provider_switching')).toBe(true);
         });
     });
 });

@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
-import { DebugSettings, LicenseTier } from './licensing/types';
+import { DebugSettings } from './licensing/types';
 
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
@@ -13,6 +13,8 @@ export interface NovaSettings {
 	};
 	licensing: {
 		licenseKey: string;
+		catalystLicenseKey?: string;
+		isCatalyst?: boolean;
 		debugSettings: DebugSettings;
 	};
 }
@@ -62,8 +64,12 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	licensing: {
 		licenseKey: '',
+		catalystLicenseKey: '',
+		isCatalyst: false,
 		debugSettings: {
-			enabled: false
+			enabled: false,
+			overrideDate: undefined,
+			forceCatalyst: false
 		}
 	}
 };
@@ -90,52 +96,62 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createLicenseSettings() {
 		const { containerEl } = this;
 		const licenseContainer = containerEl.createDiv({ cls: 'nova-license-section' });
-		licenseContainer.createEl('h3', { text: 'License & Tier' });
+		licenseContainer.createEl('h3', { text: 'Catalyst Supporter Status' });
 
-		// Current tier display
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		const currentLicense = this.plugin.featureManager?.getCurrentLicense();
-		
-		const tierDisplay = licenseContainer.createDiv({ cls: 'nova-tier-display' });
-		const tierText = currentTier === 'supernova' ? 'SuperNova' : 'Core (Free)';
-		const tierIcon = currentTier === 'supernova' ? '⭐' : '🆓';
-		tierDisplay.innerHTML = `
-			<div class="nova-tier-badge ${currentTier}">
-				<span class="tier-icon">${tierIcon}</span>
-				<span class="tier-name">${tierText}</span>
+		// Info about the new model
+		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<h4>🚀 All Features Available</h4>
+				<p>Nova provides all features for free when you use your own AI provider API keys. 
+				Catalyst supporters get early access to new features before they're released to everyone.</p>
 			</div>
 		`;
 
-		// License status
-		if (currentLicense) {
+		// Current Catalyst status
+		const isCatalyst = this.plugin.featureManager?.getIsCatalystSupporter() || false;
+		const catalystLicense = this.plugin.featureManager?.getCatalystLicense();
+		
+		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-catalyst-status' });
+		const statusText = isCatalyst ? 'Catalyst Supporter ⚡' : 'Nova User';
+		const statusIcon = isCatalyst ? '⚡' : '🌟';
+		statusDisplay.innerHTML = `
+			<div class="nova-status-badge ${isCatalyst ? 'catalyst' : 'nova'}">
+				<span class="status-icon">${statusIcon}</span>
+				<span class="status-name">${statusText}</span>
+			</div>
+		`;
+
+		// Catalyst license status
+		if (catalystLicense) {
 			const statusEl = licenseContainer.createDiv({ cls: 'nova-license-status' });
-			const expiryText = currentLicense.expiresAt 
-				? `Expires: ${currentLicense.expiresAt.toLocaleDateString()}`
-				: 'Lifetime License';
+			const expiryText = catalystLicense.expiresAt 
+				? `Expires: ${catalystLicense.expiresAt.toLocaleDateString()}`
+				: 'Lifetime Support';
 			statusEl.innerHTML = `
 				<div class="license-info">
-					<span class="license-email">${currentLicense.email}</span>
+					<span class="license-email">${catalystLicense.email}</span>
 					<span class="license-expiry">${expiryText}</span>
 				</div>
 			`;
 		}
 
-		// License key input
+		// Catalyst license key input
 		new Setting(licenseContainer)
-			.setName('License Key')
-			.setDesc('Enter your Nova SuperNova license key to unlock premium features')
+			.setName('Catalyst License Key (Optional)')
+			.setDesc('Enter your Catalyst supporter license key for early access to new features')
 			.addText(text => {
 				text.inputEl.type = 'password';
-				text.setPlaceholder('Enter license key...')
-					.setValue(this.plugin.settings.licensing.licenseKey)
+				text.setPlaceholder('Enter Catalyst license key...')
+					.setValue(this.plugin.settings.licensing.catalystLicenseKey || '')
 					.onChange(async (value) => {
-						this.plugin.settings.licensing.licenseKey = value;
+						this.plugin.settings.licensing.catalystLicenseKey = value;
 						await this.plugin.saveSettings();
 						
-						// Update license in feature manager
+						// Update Catalyst license in feature manager
 						if (this.plugin.featureManager) {
-							await this.plugin.featureManager.updateLicense(value || null);
-							// Refresh the display to show updated tier
+							await this.plugin.featureManager.updateCatalystLicense(value || null);
+							// Refresh the display to show updated status
 							this.display();
 						}
 					});
@@ -150,7 +166,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					validateButton.addEventListener('click', async () => {
 						const licenseKey = text.inputEl.value;
 						if (!licenseKey) {
-							this.showLicenseMessage('Please enter a license key first.', 'error');
+							this.showLicenseMessage('Please enter a Catalyst license key first.', 'error');
 							return;
 						}
 
@@ -159,20 +175,20 @@ export class NovaSettingTab extends PluginSettingTab {
 
 						try {
 							if (this.plugin.featureManager) {
-								await this.plugin.featureManager.updateLicense(licenseKey);
-								const tier = this.plugin.featureManager.getCurrentTier();
+								await this.plugin.featureManager.updateCatalystLicense(licenseKey);
+								const isCatalyst = this.plugin.featureManager.getIsCatalystSupporter();
 								
-								if (tier === 'supernova') {
-									this.showLicenseMessage('✅ Valid SuperNova license!', 'success');
+								if (isCatalyst) {
+									this.showLicenseMessage('✅ Valid Catalyst license! You now have early access to new features.', 'success');
 								} else {
-									this.showLicenseMessage('❌ Invalid or expired license key.', 'error');
+									this.showLicenseMessage('❌ Invalid or expired Catalyst license key.', 'error');
 								}
 								
 								// Refresh display
 								this.display();
 							}
 						} catch (error) {
-							this.showLicenseMessage('❌ Error validating license.', 'error');
+							this.showLicenseMessage('❌ Error validating Catalyst license.', 'error');
 						} finally {
 							validateButton.textContent = 'Validate';
 							validateButton.disabled = false;
@@ -192,45 +208,54 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createFeatureComparison(container: HTMLElement) {
 		const comparisonContainer = container.createDiv({ cls: 'nova-feature-comparison' });
-		comparisonContainer.createEl('h4', { text: 'Feature Comparison' });
+		comparisonContainer.createEl('h4', { text: 'Nova Features' });
 
-		const table = comparisonContainer.createEl('table', { cls: 'nova-comparison-table' });
-		
-		// Header
-		const headerRow = table.createEl('tr');
-		headerRow.createEl('th', { text: 'Feature' });
-		headerRow.createEl('th', { text: 'Core (Free)' });
-		headerRow.createEl('th', { text: 'SuperNova' });
+		// Feature summary
+		const summaryEl = comparisonContainer.createDiv({ cls: 'nova-feature-summary' });
+		summaryEl.innerHTML = `
+			<div class="nova-available-now">
+				<h5>✅ Available Now (Free with Your API Keys)</h5>
+				<ul>
+					<li>🤖 All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
+					<li>📝 Complete Document Editing Suite</li>
+					<li>💬 Chat Interface with Conversation History</li>
+					<li>🔄 Provider Switching</li>
+					<li>📱 Full Mobile Support</li>
+					<li>🎯 File-Scoped Conversations</li>
+				</ul>
+			</div>
+		`;
 
-		// Feature rows
-		const features = [
-			['Basic Document Editing', '✅', '✅'],
-			['Local AI (Ollama, LM Studio)', '✅', '✅'],
-			['One Cloud AI Provider', '✅', '✅'],
-			['Multiple Cloud AI Providers', '❌', '✅'],
-			['Provider Switching in Chat', '❌', '✅'],
-			['Mobile Device Support', '❌', '✅'],
-			['Advanced Templates', '❌', '✅'],
-			['Priority Support', '❌', '✅']
-		];
+		// Get upcoming features for Catalyst supporters
+		const featureSummary = this.plugin.featureManager?.getFeatureSummary();
+		if (featureSummary && featureSummary.comingSoon.length > 0) {
+			const upcomingEl = comparisonContainer.createDiv({ cls: 'nova-upcoming-features' });
+			upcomingEl.innerHTML = `
+				<div class="nova-catalyst-preview">
+					<h5>⚡ Coming Soon for Catalyst Supporters</h5>
+					<ul>
+						${featureSummary.comingSoon.map(feature => `
+							<li>Available ${feature.availableDate} ${feature.isCatalyst ? '(You have early access!)' : ''}</li>
+						`).join('')}
+					</ul>
+				</div>
+			`;
+		}
 
-		features.forEach(([feature, core, supernova]) => {
-			const row = table.createEl('tr');
-			row.createEl('td', { text: feature });
-			row.createEl('td', { text: core, cls: core === '✅' ? 'feature-yes' : 'feature-no' });
-			row.createEl('td', { text: supernova, cls: supernova === '✅' ? 'feature-yes' : 'feature-no' });
-		});
-
-		// Upgrade link
-		const upgradeContainer = comparisonContainer.createDiv({ cls: 'nova-upgrade-container' });
-		const upgradeButton = upgradeContainer.createEl('button', {
-			text: '⭐ Upgrade to SuperNova',
-			cls: 'nova-upgrade-btn'
-		});
-		
-		upgradeButton.addEventListener('click', () => {
-			window.open('https://novawriter.ai/upgrade', '_blank');
-		});
+		// Catalyst supporter information
+		const catalystInfo = comparisonContainer.createDiv({ cls: 'nova-catalyst-info' });
+		catalystInfo.innerHTML = `
+			<div class="nova-info-card">
+				<h5>🚀 Become a Catalyst Supporter</h5>
+				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
+				<ul>
+					<li>⚡ Early access to new features (3-6 months before general release)</li>
+					<li>🎯 Priority support and feature requests</li>
+					<li>📱 Supporter badge and recognition</li>
+					<li>💖 Directly support open-source development</li>
+				</ul>
+			</div>
+		`;
 	}
 
 	private createDebugSettings(container: HTMLElement) {
@@ -256,15 +281,30 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		if (this.plugin.settings.licensing.debugSettings.enabled) {
 			new Setting(debugContainer)
-				.setName('Override Tier')
-				.setDesc('Override license tier for testing')
-				.addDropdown(dropdown => dropdown
-					.addOption('', 'Use Real License')
-					.addOption('core', 'Force Core Tier')
-					.addOption('supernova', 'Force SuperNova Tier')
-					.setValue(this.plugin.settings.licensing.debugSettings.overrideTier || '')
+				.setName('Override Date')
+				.setDesc('Override current date for testing time-gated features (YYYY-MM-DD)')
+				.addText(text => text
+					.setPlaceholder('2025-12-01')
+					.setValue(this.plugin.settings.licensing.debugSettings.overrideDate || '')
 					.onChange(async (value) => {
-						this.plugin.settings.licensing.debugSettings.overrideTier = (value as LicenseTier) || undefined;
+						this.plugin.settings.licensing.debugSettings.overrideDate = value || undefined;
+						await this.plugin.saveSettings();
+						
+						if (this.plugin.featureManager) {
+							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
+						}
+						
+						// Refresh display
+						this.display();
+					}));
+
+			new Setting(debugContainer)
+				.setName('Force Catalyst Status')
+				.setDesc('Override Catalyst supporter status for testing')
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.licensing.debugSettings.forceCatalyst || false)
+					.onChange(async (value) => {
+						this.plugin.settings.licensing.debugSettings.forceCatalyst = value;
 						await this.plugin.saveSettings();
 						
 						if (this.plugin.featureManager) {
@@ -340,40 +380,25 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.createEl('h3', { text: 'AI Provider Settings' });
 
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		const isCoreTier = currentTier === 'core';
-		
-		if (isCoreTier) {
-			const restrictionNotice = containerEl.createDiv({ cls: 'nova-license-message' });
-			restrictionNotice.innerHTML = `
-				<strong>Core Tier Restrictions:</strong> You can configure 1 local provider (Ollama) and 1 cloud provider. 
-				<a href="#" class="upgrade-link">Upgrade to SuperNova</a> for unlimited providers.
-			`;
-			
-			// Add click handler for upgrade link
-			const upgradeLink = restrictionNotice.querySelector('.upgrade-link');
-			upgradeLink?.addEventListener('click', (e) => {
-				e.preventDefault();
-				window.open('https://novawriter.ai/upgrade', '_blank');
-			});
-		}
+		// Info about API keys
+		const infoEl = containerEl.createDiv({ cls: 'nova-provider-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<h4>🔑 Configure Your API Keys</h4>
+				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
+				just add your API keys below to get started.</p>
+			</div>
+		`;
 
-		// Always show Ollama (local provider)
+		// Show all providers - no restrictions
 		this.createOllamaSettings();
-		
-		// Show cloud providers based on tier
-		this.createClaudeSettings(isCoreTier);
-		this.createGoogleSettings(isCoreTier);
-		this.createOpenAISettings(isCoreTier);
+		this.createClaudeSettings();
+		this.createGoogleSettings();
+		this.createOpenAISettings();
 	}
 
-	private createClaudeSettings(isRestricted: boolean = false) {
+	private createClaudeSettings() {
 		const { containerEl } = this;
-		
-		// Check if this provider should be shown for Core tier
-		if (isRestricted && !this.isProviderAllowedForCoreTier('claude')) {
-			return this.createRestrictedProviderNotice(containerEl, 'Claude (Anthropic)');
-		}
 		
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
@@ -418,13 +443,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 	}
 
-	private createOpenAISettings(isRestricted: boolean = false) {
+	private createOpenAISettings() {
 		const { containerEl } = this;
-		
-		// Check if this provider should be shown for Core tier
-		if (isRestricted && !this.isProviderAllowedForCoreTier('openai')) {
-			return this.createRestrictedProviderNotice(containerEl, 'OpenAI');
-		}
 		
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		openaiContainer.createEl('h4', { text: 'OpenAI' });
@@ -466,13 +486,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private createGoogleSettings(isRestricted: boolean = false) {
+	private createGoogleSettings() {
 		const { containerEl } = this;
-		
-		// Check if this provider should be shown for Core tier
-		if (isRestricted && !this.isProviderAllowedForCoreTier('google')) {
-			return this.createRestrictedProviderNotice(containerEl, 'Google (Gemini)');
-		}
 		
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
@@ -535,18 +550,17 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.createEl('h3', { text: 'Platform Settings' });
 
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		const isCoreTier = currentTier === 'core';
-
 		const platformContainer = containerEl.createDiv({ cls: 'nova-platform-section' });
 		
-		if (isCoreTier) {
-			const restrictionNotice = platformContainer.createDiv({ cls: 'nova-license-message' });
-			restrictionNotice.innerHTML = `
-				<strong>Platform Restrictions:</strong> Core tier allows 1 local + 1 cloud provider on desktop. 
-				Mobile is disabled for Core tier users.
-			`;
-		}
+		// Info about platform settings
+		const infoEl = platformContainer.createDiv({ cls: 'nova-platform-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<h4>🖥️ Platform Configuration</h4>
+				<p>Configure which AI provider to use as your primary provider on different platforms. 
+				Nova works seamlessly across desktop and mobile with all providers.</p>
+			</div>
+		`;
 		
 		platformContainer.createEl('h4', { text: 'Desktop' });
 		const desktopDropdown = new Setting(platformContainer)
@@ -563,58 +577,39 @@ export class NovaSettingTab extends PluginSettingTab {
 				return dropdown
 					.setValue(this.plugin.settings.platformSettings.desktop.primaryProvider)
 					.onChange(async (value: string) => {
-						if (this.validateProviderSelection(value as ProviderType, 'desktop')) {
-							this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
-							await this.plugin.saveSettings();
-							if (this.plugin.aiProviderManager) {
-								this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
-							}
+						this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
+						await this.plugin.saveSettings();
+						if (this.plugin.aiProviderManager) {
+							this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
 						}
 					});
 			});
 
 		platformContainer.createEl('h4', { text: 'Mobile' });
-		const mobileDesc = isCoreTier 
-			? 'Mobile access requires SuperNova license'
-			: 'Primary AI provider for mobile';
-			
 		const mobileSetting = new Setting(platformContainer)
 			.setName('Primary Provider')
-			.setDesc(mobileDesc);
+			.setDesc('Primary AI provider for mobile devices');
 			
-		if (isCoreTier) {
-			// For Core tier, show disabled dropdown with upgrade message
-			mobileSetting.addDropdown(dropdown => dropdown
-				.addOption('none', 'Upgrade to SuperNova for Mobile Access')
-				.setValue('none')
-				.setDisabled(true));
-		} else {
-			mobileSetting.addDropdown(dropdown => dropdown
-				.addOption('none', 'None (Disabled)')
-				.addOption('claude', 'Claude')
-				.addOption('openai', 'OpenAI')
-				.addOption('google', 'Google')
-				.setValue(this.plugin.settings.platformSettings.mobile.primaryProvider)
-				.onChange(async (value: string) => {
-					this.plugin.settings.platformSettings.mobile.primaryProvider = value as ProviderType;
-					await this.plugin.saveSettings();
-				}));
-		}
+		mobileSetting.addDropdown(dropdown => dropdown
+			.addOption('none', 'None (Disabled)')
+			.addOption('claude', 'Claude')
+			.addOption('openai', 'OpenAI')
+			.addOption('google', 'Google')
+			.setValue(this.plugin.settings.platformSettings.mobile.primaryProvider)
+			.onChange(async (value: string) => {
+				this.plugin.settings.platformSettings.mobile.primaryProvider = value as ProviderType;
+				await this.plugin.saveSettings();
+				if (this.plugin.aiProviderManager) {
+					this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+				}
+			}));
 	}
 
 	private getAllowedProvidersForPlatform(platform: 'desktop' | 'mobile'): ProviderType[] {
-		if (!this.plugin.aiProviderManager) {
-			return ['claude', 'openai', 'google', 'ollama'];
-		}
-		
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		
-		if (platform === 'mobile' && currentTier === 'core') {
-			return ['none'];
-		}
-		
-		const allowedProviders = this.plugin.aiProviderManager.getAllowedProviders();
-		return allowedProviders.length > 0 ? allowedProviders : ['claude', 'openai', 'google', 'ollama'];
+		// All providers are available to all users in the Catalyst model
+		return platform === 'desktop' 
+			? ['claude', 'openai', 'google', 'ollama']
+			: ['claude', 'openai', 'google'];
 	}
 
 	private getProviderDisplayName(provider: ProviderType): string {
@@ -626,30 +621,5 @@ export class NovaSettingTab extends PluginSettingTab {
 			'none': 'None (Disabled)'
 		};
 		return names[provider] || provider;
-	}
-
-	private validateProviderSelection(provider: ProviderType, platform: 'desktop' | 'mobile'): boolean {
-		const currentTier = this.plugin.featureManager?.getCurrentTier() || 'core';
-		
-		// SuperNova users can select any provider
-		if (currentTier === 'supernova') {
-			return true;
-		}
-		
-		// Core tier restrictions
-		if (platform === 'mobile' && provider !== 'none') {
-			this.showLicenseMessage('❌ Mobile access requires SuperNova license.', 'error');
-			return false;
-		}
-		
-		// For desktop, check if provider is allowed
-		if (platform === 'desktop' && this.plugin.aiProviderManager) {
-			if (!this.plugin.aiProviderManager.isProviderAllowed(provider)) {
-				this.showLicenseMessage('❌ This provider requires SuperNova license.', 'error');
-				return false;
-			}
-		}
-		
-		return true;
 	}
 }
