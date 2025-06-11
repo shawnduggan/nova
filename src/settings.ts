@@ -101,6 +101,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		this.createGeneralSettings();
 		this.createPlatformSettings();
 		this.createProviderSettings();
+		this.createCommandSettings();
 	}
 
 	private createLicenseSettings() {
@@ -640,6 +641,180 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Update the provider manager with new settings
 		if (this.plugin.aiProviderManager) {
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+		}
+	}
+
+	private createCommandSettings() {
+		const { containerEl } = this;
+		const commandContainer = containerEl.createDiv({ cls: 'nova-command-section' });
+		commandContainer.createEl('h3', { text: 'Custom Commands' });
+
+		// Feature availability notice
+		if (!this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+			const noticeEl = commandContainer.createDiv({ cls: 'nova-feature-notice' });
+			noticeEl.innerHTML = `
+				<div style="padding: 12px; background: var(--background-modifier-hover); border-radius: 8px; margin-bottom: 16px;">
+					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
+						⚡ Custom commands are currently in early access for Catalyst supporters. 
+						They will be available to all users on September 15, 2025.
+					</p>
+				</div>
+			`;
+			return;
+		}
+
+		// Description
+		const descEl = commandContainer.createDiv({ cls: 'nova-command-description' });
+		descEl.innerHTML = `
+			<p style="color: var(--text-muted); margin-bottom: 16px;">
+				Create custom command shortcuts that insert predefined text templates when triggered with <code>:trigger</code>.
+			</p>
+		`;
+
+		// Commands list
+		this.renderCustomCommandsList(commandContainer);
+
+		// Add new command button
+		const buttonEl = commandContainer.createDiv({ cls: 'nova-add-command' });
+		buttonEl.style.cssText = 'margin-top: 16px;';
+		
+		const addButton = new Setting(buttonEl)
+			.addButton(button => 
+				button
+					.setButtonText('+ Add Custom Command')
+					.setCta()
+					.onClick(() => this.showAddCommandDialog())
+			);
+	}
+
+	private renderCustomCommandsList(container: HTMLElement) {
+		// Clear existing commands list
+		const existingList = container.querySelector('.nova-commands-list');
+		if (existingList) existingList.remove();
+
+		const commandsList = container.createDiv({ cls: 'nova-commands-list' });
+		const commands = this.plugin.settings.customCommands || [];
+
+		if (commands.length === 0) {
+			const emptyEl = commandsList.createDiv({ cls: 'nova-commands-empty' });
+			emptyEl.innerHTML = `
+				<div style="text-align: center; padding: 24px; color: var(--text-muted);">
+					<p>No custom commands yet.</p>
+					<p style="font-size: 0.9em;">Create your first command to get started!</p>
+				</div>
+			`;
+			return;
+		}
+
+		commands.forEach((command, index) => {
+			const commandEl = commandsList.createDiv({ cls: 'nova-command-item' });
+			commandEl.style.cssText = `
+				border: 1px solid var(--background-modifier-border);
+				border-radius: 8px;
+				padding: 16px;
+				margin-bottom: 12px;
+				background: var(--background-primary);
+			`;
+
+			// Command header
+			const headerEl = commandEl.createDiv({ cls: 'nova-command-header' });
+			headerEl.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;';
+
+			const infoEl = headerEl.createDiv({ cls: 'nova-command-info' });
+			
+			const nameEl = infoEl.createDiv({ cls: 'nova-command-name' });
+			nameEl.textContent = command.name;
+			nameEl.style.cssText = 'font-weight: 600; margin-bottom: 4px;';
+
+			const triggerEl = infoEl.createDiv({ cls: 'nova-command-trigger' });
+			triggerEl.innerHTML = `<code>:${command.trigger}</code>`;
+			triggerEl.style.cssText = 'font-family: var(--font-monospace); color: var(--interactive-accent); font-size: 0.9em;';
+
+			// Actions
+			const actionsEl = headerEl.createDiv({ cls: 'nova-command-actions' });
+			actionsEl.style.cssText = 'display: flex; gap: 8px;';
+
+			const editBtn = actionsEl.createEl('button', { text: 'Edit' });
+			editBtn.style.cssText = 'padding: 4px 8px; font-size: 0.8em; border-radius: 4px;';
+			editBtn.onclick = () => this.showEditCommandDialog(index);
+
+			const deleteBtn = actionsEl.createEl('button', { text: 'Delete' });
+			deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 0.8em; border-radius: 4px; background: var(--background-modifier-error); color: var(--text-on-accent);';
+			deleteBtn.onclick = () => this.deleteCommand(index);
+
+			// Description and template preview
+			if (command.description) {
+				const descEl = commandEl.createDiv({ cls: 'nova-command-desc' });
+				descEl.textContent = command.description;
+				descEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em; margin-bottom: 8px;';
+			}
+
+			const templateEl = commandEl.createDiv({ cls: 'nova-command-template' });
+			templateEl.innerHTML = `
+				<div style="background: var(--background-modifier-hover); padding: 8px; border-radius: 4px; font-family: var(--font-monospace); font-size: 0.8em; white-space: pre-wrap; max-height: 60px; overflow-y: auto;">
+					${command.template}
+				</div>
+			`;
+		});
+	}
+
+	private showAddCommandDialog() {
+		this.showCommandDialog();
+	}
+
+	private showEditCommandDialog(index: number) {
+		const command = this.plugin.settings.customCommands?.[index];
+		if (command) {
+			this.showCommandDialog(command, index);
+		}
+	}
+
+	private showCommandDialog(existingCommand?: CustomCommand, editIndex?: number) {
+		// For now, use a simple prompt-based approach
+		// TODO: Implement proper modal when Modal class is properly available
+		const name = prompt('Command name:', existingCommand?.name || '');
+		if (!name) return;
+		
+		const trigger = prompt('Command trigger (without :):', existingCommand?.trigger || '');
+		if (!trigger) return;
+		
+		const description = prompt('Description (optional):', existingCommand?.description || '');
+		
+		const template = prompt('Template content:', existingCommand?.template || '');
+		if (!template) return;
+		
+		const result: CustomCommand = {
+			id: existingCommand?.id || ('cmd_' + Math.random().toString(36).substr(2, 9)),
+			name,
+			trigger: trigger.toLowerCase(),
+			template,
+			description: description || undefined
+		};
+		
+		if (editIndex !== undefined) {
+			// Edit existing command
+			if (!this.plugin.settings.customCommands) this.plugin.settings.customCommands = [];
+			this.plugin.settings.customCommands[editIndex] = result;
+		} else {
+			// Add new command
+			if (!this.plugin.settings.customCommands) this.plugin.settings.customCommands = [];
+			this.plugin.settings.customCommands.push(result);
+		}
+		
+		this.plugin.saveSettings();
+		this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
+	}
+
+	private deleteCommand(index: number) {
+		if (!this.plugin.settings.customCommands) return;
+		
+		const command = this.plugin.settings.customCommands[index];
+		const confirmed = confirm(`Delete command "${command.name}" (${command.trigger})?`);
+		
+		if (confirmed) {
+			this.plugin.settings.customCommands.splice(index, 1);
+			this.plugin.saveSettings();
+			this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
 		}
 	}
 }
