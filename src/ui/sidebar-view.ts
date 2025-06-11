@@ -352,8 +352,7 @@ export class NovaSidebarView extends ItemView {
 		// Provider switching commands
 		const providerCommands: Record<string, string> = {
 			'claude': 'claude',
-			'gpt': 'openai',
-			'gpt4': 'openai', 
+			'chatgpt': 'openai',
 			'openai': 'openai',
 			'gemini': 'google',
 			'google': 'google',
@@ -380,7 +379,7 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Unknown command
-		this.addMessage('system', `❓ Unknown command ':${command}'. Try :claude, :gpt4, :gemini, or :ollama`);
+		this.addMessage('system', `❓ Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`);
 		return true;
 	}
 
