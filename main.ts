@@ -48,6 +48,7 @@ export default class NovaPlugin extends Plugin {
 	rewriteCommandHandler!: RewriteCommand;
 	featureManager!: FeatureManager;
 	licenseValidator!: LicenseValidator;
+	settingTab!: NovaSettingTab;
 
 	async onload() {
 		try {
@@ -163,7 +164,8 @@ export default class NovaPlugin extends Plugin {
 			});
 			console.log('Nova: commands registered');
 
-			this.addSettingTab(new NovaSettingTab(this.app, this));
+			this.settingTab = new NovaSettingTab(this.app, this);
+		this.addSettingTab(this.settingTab);
 			console.log('Nova: settings tab added');
 			console.log('Nova: onload completed successfully');
 		} catch (error) {

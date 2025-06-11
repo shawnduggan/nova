@@ -340,9 +340,63 @@ export class NovaSidebarView extends ItemView {
 		}
 	}
 
+	private async handleColonCommand(message: string): Promise<boolean> {
+		// Check if command system feature is enabled
+		if (!this.plugin.featureManager.isFeatureEnabled('command-system')) {
+			this.addMessage('system', '⚡ Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025.');
+			return true;
+		}
+
+		const command = message.slice(1).toLowerCase(); // Remove ':' and normalize
+
+		// Provider switching commands
+		const providerCommands: Record<string, string> = {
+			'claude': 'claude',
+			'gpt': 'openai',
+			'gpt4': 'openai', 
+			'openai': 'openai',
+			'gemini': 'google',
+			'google': 'google',
+			'ollama': 'ollama'
+		};
+
+		if (providerCommands[command]) {
+			const providerId = providerCommands[command];
+			await this.plugin.settingTab.setCurrentProvider(providerId);
+			await this.plugin.saveSettings();
+			this.addMessage('system', `🔄 Switched to ${this.getProviderDisplayName(providerId)}`);
+			return true;
+		}
+
+		// Check for custom commands (if feature enabled)
+		if (this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+			const customCommand = this.plugin.settings.customCommands?.find(cmd => cmd.trigger === command);
+			if (customCommand) {
+				// Execute custom command
+				this.textArea.setValue(customCommand.template);
+				this.addMessage('system', `📝 Loaded template: ${customCommand.name}`);
+				return true;
+			}
+		}
+
+		// Unknown command
+		this.addMessage('system', `❓ Unknown command ':${command}'. Try :claude, :gpt4, :gemini, or :ollama`);
+		return true;
+	}
+
+
 	private async handleSend() {
 		const message = this.textArea.getValue().trim();
 		if (!message) return;
+
+		// Check for command system feature availability
+		if (message.startsWith(':')) {
+			const commandResult = await this.handleColonCommand(message);
+			if (commandResult) {
+				this.textArea.setValue('');
+				return;
+			}
+		}
 
 		// Add user message
 		this.addMessage('user', message);
@@ -839,10 +893,10 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private getProviderDisplayName(providerType: string): string {
 		const names: Record<string, string> = {
-			'claude': 'Claude',
-			'openai': 'OpenAI',
-			'google': 'Gemini',
-			'ollama': 'Ollama',
+			'claude': 'Claude (Anthropic)',
+			'openai': 'GPT-4 (OpenAI)',
+			'google': 'Gemini (Google)',
+			'ollama': 'Ollama (Local)',
 			'none': 'None'
 		};
 		return names[providerType] || providerType;

@@ -81,10 +81,10 @@
   - [x] Remove all "upgrade to Supernova" prompts
 
 - [ ] **Day 3-4: Command System Implementation**
-  - [ ] Implement `:` trigger system for all commands
+  - [x] Implement `:` trigger system for all commands
   - [ ] Create command picker dropdown UI
-  - [ ] Add provider switching commands (`:claude`, `:gemini`, `:gpt4`, `:ollama`)
-  - [ ] Add custom command system with user-defined shortcuts
+  - [x] Add provider switching commands (`:claude`, `:gemini`, `:gpt4`, `:ollama`)
+  - [x] Add custom command system with user-defined shortcuts
   - [ ] Add command button (⚡) for mobile/discovery
   - [ ] Build settings UI for command management
 

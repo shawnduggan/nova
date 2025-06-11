@@ -1,11 +1,20 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings } from './licensing/types';
 
+export interface CustomCommand {
+	id: string;
+	name: string;
+	trigger: string;
+	template: string;
+	description?: string;
+}
+
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
 	platformSettings: PlatformSettings;
+	customCommands?: CustomCommand[];
 	general: {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
@@ -57,6 +66,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			fallbackProviders: ['openai', 'google']
 		}
 	},
+	customCommands: [],
 	general: {
 		defaultTemperature: 0.7,
 		defaultMaxTokens: 1000,
@@ -621,5 +631,15 @@ export class NovaSettingTab extends PluginSettingTab {
 			'none': 'None (Disabled)'
 		};
 		return names[provider] || provider;
+	}
+
+	async setCurrentProvider(providerId: string): Promise<void> {
+		const platform = Platform.isMobile ? 'mobile' : 'desktop';
+		this.plugin.settings.platformSettings[platform].primaryProvider = providerId as ProviderType;
+		
+		// Update the provider manager with new settings
+		if (this.plugin.aiProviderManager) {
+			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+		}
 	}
 }
