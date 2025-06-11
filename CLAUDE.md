@@ -82,7 +82,7 @@
 
 - [ ] **Day 3-4: Command System Implementation**
   - [x] Implement `:` trigger system for all commands
-  - [ ] Create command picker dropdown UI
+  - [x] Create command picker dropdown UI
   - [x] Add provider switching commands (`:claude`, `:chatgpt`, `:gemini`, `:ollama`)
   - [x] Add custom command system with user-defined shortcuts
   - [ ] Add command button (⚡) for mobile/discovery

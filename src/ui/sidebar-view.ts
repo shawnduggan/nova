@@ -11,6 +11,9 @@ export class NovaSidebarView extends ItemView {
 	private textArea!: TextAreaComponent;
 	private sendButton!: ButtonComponent;
 	private currentFile: TFile | null = null;
+	private commandPicker!: HTMLElement;
+	private commandPickerItems: HTMLElement[] = [];
+	private selectedCommandIndex: number = -1;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -130,6 +133,7 @@ export class NovaSidebarView extends ItemView {
 			padding: 10px;
 			border-top: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
+			position: relative;
 		`;
 
 		// Simplified input row with just textarea and send button
@@ -174,13 +178,28 @@ export class NovaSidebarView extends ItemView {
 			flex-shrink: 0;
 		`;
 
-		// Enter key handling
+		// Enter key handling and command picker
 		this.textArea.inputEl.addEventListener('keydown', (event) => {
 			if (event.key === 'Enter' && !event.shiftKey) {
 				event.preventDefault();
-				this.handleSend();
+				this.handleCommandPickerSelection() || this.handleSend();
+			} else if (event.key === 'Escape') {
+				this.hideCommandPicker();
+			} else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+				if (this.isCommandPickerVisible()) {
+					event.preventDefault();
+					this.navigateCommandPicker(event.key === 'ArrowDown' ? 1 : -1);
+				}
 			}
 		});
+
+		// Input change handling for command picker
+		this.textArea.inputEl.addEventListener('input', () => {
+			this.handleInputChange();
+		});
+
+		// Create command picker
+		this.createCommandPicker();
 	}
 
 	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
@@ -383,6 +402,175 @@ export class NovaSidebarView extends ItemView {
 		return true;
 	}
 
+	private createCommandPicker(): void {
+		this.commandPicker = this.inputContainer.createDiv({ cls: 'nova-command-picker' });
+		this.commandPicker.style.cssText = `
+			position: absolute;
+			bottom: 100%;
+			left: 0;
+			right: 0;
+			background: var(--background-primary);
+			border: 1px solid var(--background-modifier-border);
+			border-bottom: none;
+			border-radius: 8px 8px 0 0;
+			max-height: 200px;
+			overflow-y: auto;
+			z-index: 1000;
+			display: none;
+			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+		`;
+	}
+
+	private handleInputChange(): void {
+		const value = this.textArea.getValue();
+		
+		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('command-system')) {
+			const query = value.slice(1).toLowerCase();
+			this.showCommandPicker(query);
+		} else {
+			this.hideCommandPicker();
+		}
+	}
+
+	private showCommandPicker(query: string): void {
+		const commands = this.getAvailableCommands().filter(cmd => 
+			cmd.trigger.toLowerCase().includes(query) || cmd.name.toLowerCase().includes(query)
+		);
+
+		this.commandPicker.empty();
+		this.commandPickerItems = [];
+		this.selectedCommandIndex = -1;
+
+		if (commands.length === 0) {
+			this.hideCommandPicker();
+			return;
+		}
+
+		commands.forEach((command, index) => {
+			const item = this.commandPicker.createDiv({ cls: 'nova-command-item' });
+			item.style.cssText = `
+				padding: 8px 12px;
+				cursor: pointer;
+				border-bottom: 1px solid var(--background-modifier-border-hover);
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			`;
+
+			const triggerEl = item.createSpan({ cls: 'nova-command-trigger' });
+			triggerEl.textContent = `:${command.trigger}`;
+			triggerEl.style.cssText = `
+				font-family: var(--font-monospace);
+				background: var(--background-modifier-hover);
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-size: 0.9em;
+				color: var(--interactive-accent);
+			`;
+
+			const nameEl = item.createSpan({ cls: 'nova-command-name' });
+			nameEl.textContent = command.name;
+			nameEl.style.cssText = 'flex: 1; color: var(--text-normal);';
+
+			if (command.description) {
+				const descEl = item.createSpan({ cls: 'nova-command-desc' });
+				descEl.textContent = command.description;
+				descEl.style.cssText = 'font-size: 0.8em; color: var(--text-muted);';
+			}
+
+			item.addEventListener('click', () => {
+				this.selectCommand(command.trigger);
+			});
+
+			item.addEventListener('mouseenter', () => {
+				this.setSelectedCommand(index);
+			});
+
+			this.commandPickerItems.push(item);
+		});
+
+		this.commandPicker.style.display = 'block';
+	}
+
+	private hideCommandPicker(): void {
+		this.commandPicker.style.display = 'none';
+		this.selectedCommandIndex = -1;
+	}
+
+	private isCommandPickerVisible(): boolean {
+		return this.commandPicker.style.display === 'block';
+	}
+
+	private navigateCommandPicker(direction: number): void {
+		if (this.commandPickerItems.length === 0) return;
+
+		const newIndex = Math.max(0, Math.min(
+			this.commandPickerItems.length - 1,
+			this.selectedCommandIndex + direction
+		));
+
+		this.setSelectedCommand(newIndex);
+	}
+
+	private setSelectedCommand(index: number): void {
+		// Remove previous selection
+		this.commandPickerItems.forEach(item => {
+			item.style.backgroundColor = '';
+		});
+
+		this.selectedCommandIndex = index;
+
+		if (index >= 0 && index < this.commandPickerItems.length) {
+			this.commandPickerItems[index].style.backgroundColor = 'var(--background-modifier-hover)';
+			this.commandPickerItems[index].scrollIntoView({ block: 'nearest' });
+		}
+	}
+
+	private handleCommandPickerSelection(): boolean {
+		if (!this.isCommandPickerVisible() || this.selectedCommandIndex === -1) {
+			return false;
+		}
+
+		const commands = this.getAvailableCommands();
+		const selectedCommand = commands[this.selectedCommandIndex];
+		
+		if (selectedCommand) {
+			this.selectCommand(selectedCommand.trigger);
+			return true;
+		}
+
+		return false;
+	}
+
+	private selectCommand(trigger: string): void {
+		this.textArea.setValue(`:${trigger}`);
+		this.hideCommandPicker();
+		// Trigger the command immediately
+		this.handleSend();
+	}
+
+	private getAvailableCommands(): Array<{trigger: string, name: string, description?: string}> {
+		const commands: Array<{trigger: string, name: string, description?: string}> = [
+			{ trigger: 'claude', name: 'Switch to Claude', description: 'Anthropic Claude AI' },
+			{ trigger: 'chatgpt', name: 'Switch to ChatGPT', description: 'OpenAI GPT models' },
+			{ trigger: 'gemini', name: 'Switch to Gemini', description: 'Google Gemini AI' },
+			{ trigger: 'ollama', name: 'Switch to Ollama', description: 'Local AI models' }
+		];
+
+		// Add custom commands if feature is enabled
+		if (this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+			const customCommands = this.plugin.settings.customCommands || [];
+			customCommands.forEach(cmd => {
+				commands.push({
+					trigger: cmd.trigger,
+					name: cmd.name,
+					...(cmd.description && { description: cmd.description })
+				});
+			});
+		}
+
+		return commands;
+	}
 
 	private async handleSend() {
 		const message = this.textArea.getValue().trim();
