@@ -69,7 +69,6 @@
 ### Critical Tasks Remaining
 
 #### 📋 **NEXT PRIORITY: Fix Known Bugs**
-- [ ] Move "Show Command Button" setting to Custom Commands section and make it Supernova-only
 - [ ] Fix Claude model refresh not working
 - [ ] Fix OpenAI model refresh showing duplicate models (need unique filtering)
 - [ ] Verify and fix Google/Gemini model refresh functionality

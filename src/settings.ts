@@ -20,8 +20,8 @@ export interface NovaSettings {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
 		autoSave: boolean;
-		showCommandButton: boolean;
 	};
+	showCommandButton: boolean;
 	licensing: {
 		licenseKey: string;
 		supernovaLicenseKey?: string;
@@ -72,9 +72,9 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	general: {
 		defaultTemperature: 0.7,
 		defaultMaxTokens: 1000,
-		autoSave: true,
-		showCommandButton: true
+		autoSave: true
 	},
+	showCommandButton: true,
 	licensing: {
 		licenseKey: '',
 		supernovaLicenseKey: '',
@@ -164,6 +164,14 @@ export class NovaSettingTab extends PluginSettingTab {
 						// Update Supernova license in feature manager
 						if (this.plugin.featureManager) {
 							await this.plugin.featureManager.updateSupernovaLicense(value || null);
+							
+							// Refresh sidebar to update feature availability
+							const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+							if (leaves.length > 0) {
+								const sidebarView = leaves[0].view as NovaSidebarView;
+								sidebarView.refreshSupernovaUI();
+							}
+							
 							// Refresh the display to show updated status
 							this.display();
 						}
@@ -195,6 +203,13 @@ export class NovaSettingTab extends PluginSettingTab {
 									this.showLicenseMessage('Valid Supernova license! You now have early access to new features.', 'success');
 								} else {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
+								}
+								
+								// Refresh sidebar to update feature availability
+								const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+								if (leaves.length > 0) {
+									const sidebarView = leaves[0].view as NovaSidebarView;
+									sidebarView.refreshSupernovaUI();
 								}
 								
 								// Refresh display
@@ -288,6 +303,13 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 						
+						// Refresh sidebar to update feature availability
+						const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+						if (leaves.length > 0) {
+							const sidebarView = leaves[0].view as NovaSidebarView;
+							sidebarView.refreshSupernovaUI();
+						}
+						
 						// Refresh display to show updated feature status
 						this.display();
 					}));
@@ -352,22 +374,6 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName('Show Command Button in Chat')
-			.setDesc('Show the Commands button (⚡) beside the Send button for quick command access')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.general.showCommandButton)
-				.onChange(async (value) => {
-					this.plugin.settings.general.showCommandButton = value;
-					await this.plugin.saveSettings();
-					
-					// Find and refresh sidebar view
-					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-					if (leaves.length > 0) {
-						const sidebarView = leaves[0].view as NovaSidebarView;
-						sidebarView.refreshCommandButton();
-					}
-				}));
 	}
 
 	private createProviderSettings() {
@@ -915,6 +921,24 @@ export class NovaSettingTab extends PluginSettingTab {
 				Create custom command shortcuts that insert predefined text templates when triggered with <code>:trigger</code>.
 			</p>
 		`;
+
+		// Show Command Button setting (Supernova-only)
+		new Setting(commandContainer)
+			.setName('Show Command Button in Chat')
+			.setDesc('Show the Commands button (⚡) beside the Send button for quick command access')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showCommandButton)
+				.onChange(async (value) => {
+					this.plugin.settings.showCommandButton = value;
+					await this.plugin.saveSettings();
+					
+					// Find and refresh sidebar view
+					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+					if (leaves.length > 0) {
+						const sidebarView = leaves[0].view as NovaSidebarView;
+						sidebarView.refreshCommandButton();
+					}
+				}));
 
 		// Add new command button at the top
 		const buttonEl = commandContainer.createDiv({ cls: 'nova-add-command' });

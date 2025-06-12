@@ -73,6 +73,15 @@ export default class NovaPlugin extends Plugin {
 			}
 			console.log('Nova: feature manager initialized');
 
+			// Refresh Supernova UI after license validation to handle expired licenses
+			this.app.workspace.onLayoutReady(() => {
+				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+				if (leaves.length > 0) {
+					const sidebarView = leaves[0].view as NovaSidebarView;
+					sidebarView.refreshSupernovaUI();
+				}
+			});
+
 			// Note: Mobile access restrictions are now handled in sidebar UI
 			// This allows Core mobile users to see the upgrade interface rather than a broken plugin
 

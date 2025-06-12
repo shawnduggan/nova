@@ -2142,7 +2142,19 @@ export class NovaSidebarView extends ItemView {
 	 * Check if the command button should be shown based on feature availability and user preference
 	 */
 	private shouldShowCommandButton(): boolean {
-		return this.plugin.settings.general.showCommandButton;
+		// Command button is gated behind the command-button feature (Supernova-only)
+		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
+			return false;
+		}
+		return this.plugin.settings.showCommandButton;
+	}
+
+	/**
+	 * Refresh all Supernova-gated UI elements when license status changes
+	 */
+	refreshSupernovaUI(): void {
+		this.refreshCommandButton();
+		// Future Supernova features can add their refresh logic here
 	}
 
 	/**

@@ -214,3 +214,51 @@ if (!targetFile && this.currentFile) {
 - Shows appropriate welcome message prompting user to open a document
 - Maintains correct context state management
 - No regressions in existing functionality
+
+## 2025-01-12: Moved Command Button Setting to Supernova-Only Section
+**Task**: Move "Show Command Button" setting to Custom Commands section and make it Supernova-only
+**Status**: ✅ Complete - All 502 tests passing
+
+### Problem:
+The "Show Command Button" setting was in the General settings section, available to all users, but the actual command button functionality was gated behind Supernova access. This created inconsistent UX where non-Supernova users could enable a setting for a feature they couldn't access.
+
+### Solution:
+1. **Moved setting location**: From General section to Custom Commands section
+2. **Applied feature gating**: Setting only visible to Supernova supporters
+3. **Enhanced feature checking**: Command button visibility now checks both feature availability AND user preference
+4. **Created centralized refresh system**: `refreshSupernovaUI()` method handles all Supernova UI updates
+
+### Technical Changes:
+
+**Settings Structure:**
+- Moved `showCommandButton` from `general` to top-level in `NovaSettings`
+- Placed setting UI in Custom Commands section (after feature availability check)
+- Updated test mocks to reflect new structure
+
+**Real-time UI Updates:**
+- Created `refreshSupernovaUI()` method in sidebar-view.ts
+- Added startup refresh after license validation in main.ts
+- Updated all settings handlers to use centralized refresh
+
+**Enhanced Feature Checking:**
+```typescript
+private shouldShowCommandButton(): boolean {
+    // Check both feature availability AND user preference
+    if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
+        return false;
+    }
+    return this.plugin.settings.showCommandButton;
+}
+```
+
+### Files Modified:
+- `src/settings.ts` - Moved setting to Custom Commands section
+- `src/ui/sidebar-view.ts` - Enhanced feature checking and centralized refresh
+- `main.ts` - Added startup UI refresh
+- `test/ai/provider-manager.test.ts` - Updated test structure
+
+### Result:
+- Setting only appears for Supernova supporters
+- Command button properly disappears when Supernova access is lost (immediately for manual changes, on restart for expired licenses)
+- Centralized refresh system ready for future Supernova features
+- Consistent UX across all Supernova-gated functionality

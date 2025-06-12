@@ -2175,7 +2175,16 @@ User Request: ${processedMessage}`;
    * Check if the command button should be shown based on feature availability and user preference
    */
   shouldShowCommandButton() {
-    return this.plugin.settings.general.showCommandButton;
+    if (!this.plugin.featureManager.isFeatureEnabled("command-button")) {
+      return false;
+    }
+    return this.plugin.settings.showCommandButton;
+  }
+  /**
+   * Refresh all Supernova-gated UI elements when license status changes
+   */
+  refreshSupernovaUI() {
+    this.refreshCommandButton();
   }
   /**
    * Refresh the command button visibility when settings change
@@ -2251,9 +2260,9 @@ var DEFAULT_SETTINGS = {
   general: {
     defaultTemperature: 0.7,
     defaultMaxTokens: 1e3,
-    autoSave: true,
-    showCommandButton: true
+    autoSave: true
   },
+  showCommandButton: true,
   licensing: {
     licenseKey: "",
     supernovaLicenseKey: "",
@@ -2321,6 +2330,11 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
         if (this.plugin.featureManager) {
           await this.plugin.featureManager.updateSupernovaLicense(value || null);
+          const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+          if (leaves.length > 0) {
+            const sidebarView = leaves[0].view;
+            sidebarView.refreshSupernovaUI();
+          }
           this.display();
         }
       });
@@ -2345,6 +2359,11 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
                 this.showLicenseMessage("Valid Supernova license! You now have early access to new features.", "success");
               } else {
                 this.showLicenseMessage("Invalid or expired Supernova license key.", "error");
+              }
+              const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+              if (leaves.length > 0) {
+                const sidebarView = leaves[0].view;
+                sidebarView.refreshSupernovaUI();
               }
               this.display();
             }
@@ -2402,6 +2421,11 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
         if (this.plugin.featureManager) {
           this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
         }
+        const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+        if (leaves.length > 0) {
+          const sidebarView = leaves[0].view;
+          sidebarView.refreshSupernovaUI();
+        }
         this.display();
       }));
     }
@@ -2436,15 +2460,6 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
     new import_obsidian3.Setting(containerEl).setName("Auto-save settings").setDesc("Automatically save settings when changed").addToggle((toggle) => toggle.setValue(this.plugin.settings.general.autoSave).onChange(async (value) => {
       this.plugin.settings.general.autoSave = value;
       await this.plugin.saveSettings();
-    }));
-    new import_obsidian3.Setting(containerEl).setName("Show Command Button in Chat").setDesc("Show the Commands button (\u26A1) beside the Send button for quick command access").addToggle((toggle) => toggle.setValue(this.plugin.settings.general.showCommandButton).onChange(async (value) => {
-      this.plugin.settings.general.showCommandButton = value;
-      await this.plugin.saveSettings();
-      const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-      if (leaves.length > 0) {
-        const sidebarView = leaves[0].view;
-        sidebarView.refreshCommandButton();
-      }
     }));
   }
   createProviderSettings() {
@@ -2810,6 +2825,15 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
 				Create custom command shortcuts that insert predefined text templates when triggered with <code>:trigger</code>.
 			</p>
 		`;
+    new import_obsidian3.Setting(commandContainer).setName("Show Command Button in Chat").setDesc("Show the Commands button (\u26A1) beside the Send button for quick command access").addToggle((toggle) => toggle.setValue(this.plugin.settings.showCommandButton).onChange(async (value) => {
+      this.plugin.settings.showCommandButton = value;
+      await this.plugin.saveSettings();
+      const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+      if (leaves.length > 0) {
+        const sidebarView = leaves[0].view;
+        sidebarView.refreshCommandButton();
+      }
+    }));
     const buttonEl = commandContainer.createDiv({ cls: "nova-add-command" });
     buttonEl.style.cssText = "margin-bottom: 16px;";
     new import_obsidian3.Setting(buttonEl).addButton(
@@ -7994,6 +8018,13 @@ var NovaPlugin = class extends import_obsidian6.Plugin {
         await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
       }
       console.log("Nova: feature manager initialized");
+      this.app.workspace.onLayoutReady(() => {
+        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+        if (leaves.length > 0) {
+          const sidebarView = leaves[0].view;
+          sidebarView.refreshSupernovaUI();
+        }
+      });
       (0, import_obsidian6.addIcon)("nova-star", NOVA_ICON_SVG);
       console.log("Nova: icon registered");
       this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
