@@ -406,11 +406,11 @@ export default class NovaPlugin extends Plugin {
 				<div class="modal-bg"></div>
 				<div class="modal-content">
 					<div class="modal-header">
-						<h3>🚀 Nova SuperNova Required</h3>
+						<h3>Nova SuperNova Required</h3>
 					</div>
 					<div class="modal-body">
 						<div class="nova-tier-badge core" style="margin-bottom: 1em;">
-							<span class="tier-icon">🆓</span>
+							<span class="tier-icon">FREE</span>
 							<span class="tier-name">Core (Free)</span>
 						</div>
 						<p>Mobile access is available with Nova SuperNova.</p>
@@ -418,16 +418,16 @@ export default class NovaPlugin extends Plugin {
 						<div class="nova-feature-list">
 							<h4>SuperNova includes:</h4>
 							<ul>
-								<li>✅ Mobile device support</li>
-								<li>✅ Multiple AI providers</li>
-								<li>✅ In-chat provider switching</li>
-								<li>✅ Advanced templates</li>
-								<li>✅ Priority support</li>
+								<li>Mobile device support</li>
+								<li>Multiple AI providers</li>
+								<li>In-chat provider switching</li>
+								<li>Advanced templates</li>
+								<li>Priority support</li>
 							</ul>
 						</div>
 					</div>
 					<div class="modal-footer">
-						<button class="mod-cta nova-upgrade-btn">⭐ Upgrade to SuperNova</button>
+						<button class="mod-cta nova-upgrade-btn">Upgrade to SuperNova</button>
 						<button class="nova-close-btn">Close</button>
 					</div>
 				</div>

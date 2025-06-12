@@ -210,7 +210,7 @@ describe('MultiDocContextHandler', () => {
 			
 			const indicators = multiDocContext.getContextIndicators(result.context);
 			
-			expect(indicators.text).toContain('📚 2');
+			expect(indicators.text).toContain('2 docs');
 			expect(indicators.text).toContain('%');
 			expect(indicators.className).toBe('nova-context-indicator');
 			expect(indicators.tooltip).toContain('2 documents');

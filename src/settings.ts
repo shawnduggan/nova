@@ -113,7 +113,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
-				<h4>🚀 All Features Available</h4>
+				<h4>All Features Available</h4>
 				<p>Nova provides all features for free when you use your own AI provider API keys. 
 				Catalyst supporters get early access to new features before they're released to everyone.</p>
 			</div>
@@ -124,8 +124,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		const catalystLicense = this.plugin.featureManager?.getCatalystLicense();
 		
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-catalyst-status' });
-		const statusText = isCatalyst ? 'Catalyst Supporter ⚡' : 'Nova User';
-		const statusIcon = isCatalyst ? '⚡' : '🌟';
+		const statusText = isCatalyst ? 'Catalyst Supporter' : 'Nova User';
+		const statusIcon = isCatalyst ? '⚡' : '★'; // Lightning for Catalyst, Star for Nova
 		statusDisplay.innerHTML = `
 			<div class="nova-status-badge ${isCatalyst ? 'catalyst' : 'nova'}">
 				<span class="status-icon">${statusIcon}</span>
@@ -190,16 +190,16 @@ export class NovaSettingTab extends PluginSettingTab {
 								const isCatalyst = this.plugin.featureManager.getIsCatalystSupporter();
 								
 								if (isCatalyst) {
-									this.showLicenseMessage('✅ Valid Catalyst license! You now have early access to new features.', 'success');
+									this.showLicenseMessage('Valid Catalyst license! You now have early access to new features.', 'success');
 								} else {
-									this.showLicenseMessage('❌ Invalid or expired Catalyst license key.', 'error');
+									this.showLicenseMessage('Invalid or expired Catalyst license key.', 'error');
 								}
 								
 								// Refresh display
 								this.display();
 							}
 						} catch (error) {
-							this.showLicenseMessage('❌ Error validating Catalyst license.', 'error');
+							this.showLicenseMessage('Error validating Catalyst license.', 'error');
 						} finally {
 							validateButton.textContent = 'Validate';
 							validateButton.disabled = false;
@@ -225,14 +225,14 @@ export class NovaSettingTab extends PluginSettingTab {
 		const summaryEl = comparisonContainer.createDiv({ cls: 'nova-feature-summary' });
 		summaryEl.innerHTML = `
 			<div class="nova-available-now">
-				<h5>✅ Available Now (Free with Your API Keys)</h5>
+				<h5>Available Now (Free with Your API Keys)</h5>
 				<ul>
-					<li>🤖 All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
-					<li>📝 Complete Document Editing Suite</li>
-					<li>💬 Chat Interface with Conversation History</li>
-					<li>🔄 Provider Switching</li>
-					<li>📱 Full Mobile Support</li>
-					<li>🎯 File-Scoped Conversations</li>
+					<li>All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
+					<li>Complete Document Editing Suite</li>
+					<li>Chat Interface with Conversation History</li>
+					<li>Provider Switching</li>
+					<li>Full Mobile Support</li>
+					<li>File-Scoped Conversations</li>
 				</ul>
 			</div>
 		`;
@@ -243,7 +243,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			const upcomingEl = comparisonContainer.createDiv({ cls: 'nova-upcoming-features' });
 			upcomingEl.innerHTML = `
 				<div class="nova-catalyst-preview">
-					<h5>⚡ Coming Soon for Catalyst Supporters</h5>
+					<h5>Coming Soon for Catalyst Supporters</h5>
 					<ul>
 						${featureSummary.comingSoon.map(feature => `
 							<li>Available ${feature.availableDate} ${feature.isCatalyst ? '(You have early access!)' : ''}</li>
@@ -257,13 +257,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		const catalystInfo = comparisonContainer.createDiv({ cls: 'nova-catalyst-info' });
 		catalystInfo.innerHTML = `
 			<div class="nova-info-card">
-				<h5>🚀 Become a Catalyst Supporter</h5>
+				<h5>Become a Catalyst Supporter</h5>
 				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
 				<ul>
-					<li>⚡ Early access to new features (3-6 months before general release)</li>
-					<li>🎯 Priority support and feature requests</li>
-					<li>📱 Supporter badge and recognition</li>
-					<li>💖 Directly support open-source development</li>
+					<li>Early access to new features (3-6 months before general release)</li>
+					<li>Priority support and feature requests</li>
+					<li>Supporter badge and recognition</li>
+					<li>Directly support open-source development</li>
 				</ul>
 			</div>
 		`;
@@ -395,7 +395,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const infoEl = containerEl.createDiv({ cls: 'nova-provider-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
-				<h4>🔑 Configure Your API Keys</h4>
+				<h4>Configure Your API Keys</h4>
 				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
 				just add your API keys below to get started.</p>
 			</div>
@@ -643,7 +643,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			noticeEl.innerHTML = `
 				<div style="padding: 12px; background: var(--background-modifier-hover); border-radius: 8px; margin-bottom: 16px;">
 					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						⚡ Custom commands are currently in early access for Catalyst supporters. 
+						Custom commands are currently in early access for Catalyst supporters. 
 						They will be available to all users on September 15, 2025.
 					</p>
 				</div>

@@ -280,7 +280,7 @@ export class MultiDocContextHandler {
             tooltip += ' (approaching limit)';
         }
         
-        const text = `📚 ${docCount} ${percentage}%`;
+        const text = `${docCount} docs ${percentage}%`;
         
         return { text, className, tooltip };
     }

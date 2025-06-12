@@ -100,7 +100,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
-		clearButton.setButtonText('🧹')
+		clearButton.setIcon('eraser')
 			.setTooltip('Clear conversation history')
 			.onClick(() => this.clearChat());
 
@@ -297,7 +297,7 @@ export class NovaSidebarView extends ItemView {
 			this.updateLiveContextPreview();
 		});
 
-		// Command button (⚡) - conditionally shown
+		// Command button (lightning) - conditionally shown
 		this.commandButton = new ButtonComponent(inputRow);
 		this.commandButton.setIcon('zap');
 		this.commandButton.setTooltip('Commands');
@@ -389,7 +389,12 @@ export class NovaSidebarView extends ItemView {
 		`;
 
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		contentEl.textContent = content;
+		// Use innerHTML for system messages to support icons, textContent for others for security
+		if (role === 'system' && content.includes('<svg')) {
+			contentEl.innerHTML = content;
+		} else {
+			contentEl.textContent = content;
+		}
 
 		// Auto-scroll to bottom with smooth animation
 		setTimeout(() => {
@@ -522,7 +527,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('command-system')) {
-			this.addMessage('system', '⚡ Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025.');
+			this.addMessage('system', this.createIconMessage('zap', 'Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025.'));
 			return true;
 		}
 
@@ -542,7 +547,7 @@ export class NovaSidebarView extends ItemView {
 			const providerId = providerCommands[command];
 			await this.plugin.settingTab.setCurrentProvider(providerId);
 			await this.plugin.saveSettings();
-			this.addMessage('system', `🔄 Switched to ${this.getProviderDisplayName(providerId)}`);
+			this.addMessage('system', this.createIconMessage('refresh-cw', `Switched to ${this.getProviderDisplayName(providerId)}`));
 			return true;
 		}
 
@@ -554,13 +559,13 @@ export class NovaSidebarView extends ItemView {
 				this.textArea.setValue(customCommand.template);
 				// Trigger auto-grow after setting template
 				setTimeout(() => this.autoGrowTextarea(), 0);
-				this.addMessage('system', `📝 Loaded template: ${customCommand.name}`);
+				this.addMessage('system', this.createIconMessage('edit', `Loaded template: ${customCommand.name}`));
 				return true;
 			}
 		}
 
 		// Unknown command
-		this.addMessage('system', `❓ Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`);
+		this.addMessage('system', this.createIconMessage('help-circle', `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
 		return true;
 	}
 
@@ -764,7 +769,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
-			this.addMessage('system', '⚡ Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025.');
+			this.addMessage('system', this.createIconMessage('zap', 'Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025.'));
 			return;
 		}
 
@@ -789,7 +794,7 @@ export class NovaSidebarView extends ItemView {
 			font-size: 0.9em;
 			color: var(--text-normal);
 		`;
-		headerEl.textContent = '⚡ Commands';
+		headerEl.innerHTML = this.createInlineIcon('zap') + ' Commands';
 
 		// Commands list
 		commands.forEach(command => {
@@ -901,7 +906,7 @@ export class NovaSidebarView extends ItemView {
 		`;
 
 		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text' });
-		previewText.textContent = '📚 Context will include: ';
+		previewText.innerHTML = this.createInlineIcon('book-open') + ' Context will include: ';
 		previewText.style.cssText = 'font-weight: 500;';
 
 		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list' });
@@ -1048,14 +1053,14 @@ export class NovaSidebarView extends ItemView {
 		
 		// Mobile-optimized text (shorter on mobile)
 		if (isMobile) {
-			summaryTextEl.textContent = `📚 ${docNames.join(', ')}${moreCount} (${tokenPercent}%)`;
+			summaryTextEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount} (${tokenPercent}%)`;
 		} else {
-			summaryTextEl.textContent = `📚 ${docNames.join(', ')}${moreCount} (${tokenPercent}% tokens)`;
+			summaryTextEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount} (${tokenPercent}% tokens)`;
 		}
 		
 		// Mobile-friendly more menu indicator
 		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
-		expandIndicatorEl.innerHTML = '•••'; // More menu dots - universally understood
+		expandIndicatorEl.innerHTML = this.createInlineIcon('more-horizontal', isMobile ? '16px' : '14px'); // More menu indicator
 		expandIndicatorEl.style.cssText = `
 			color: var(--interactive-accent);
 			font-size: ${isMobile ? '16px' : '14px'};
@@ -1122,11 +1127,21 @@ export class NovaSidebarView extends ItemView {
 		`;
 		
 		const headerTitleEl = expandedHeaderEl.createSpan();
-		headerTitleEl.textContent = `📚 Documents (${allDocs.length})`;
+		headerTitleEl.innerHTML = this.createInlineIcon('book-open') + ` Documents (${allDocs.length})`;
 		
-		// Mobile-optimized clear all button
-		const clearAllBtn = expandedHeaderEl.createEl('button', { cls: 'nova-context-clear-all-btn' });
-		clearAllBtn.innerHTML = '🧹';
+		// Clear all button using same icon as main sidebar
+		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
+		clearAllBtnComponent.setIcon('eraser')
+			.setTooltip('Clear all documents from context')
+			.onClick(async () => {
+				if (this.currentFile) {
+					this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+					await this.refreshContext();
+				}
+			});
+		
+		const clearAllBtn = clearAllBtnComponent.buttonEl;
+		clearAllBtn.addClass('nova-context-clear-all-btn');
 		clearAllBtn.style.cssText = `
 			background: none;
 			border: 1px solid var(--text-faint);
@@ -1142,15 +1157,6 @@ export class NovaSidebarView extends ItemView {
 			align-items: center;
 			justify-content: center;
 		`;
-		clearAllBtn.setAttr('title', 'Clear all documents from context');
-		
-		clearAllBtn.addEventListener('click', async (e) => {
-			e.stopPropagation();
-			if (this.currentFile) {
-				this.multiDocHandler.clearPersistentContext(this.currentFile.path);
-				await this.refreshContext();
-			}
-		});
 		
 		// Touch-friendly feedback for clear button
 		if (isMobile) {
@@ -1203,7 +1209,8 @@ export class NovaSidebarView extends ItemView {
 				min-width: 0;
 			`;
 			
-			const iconEl = docInfoEl.createSpan({ text: '📄' });
+			const iconEl = docInfoEl.createSpan();
+			iconEl.innerHTML = this.createInlineIcon('file-text');
 			iconEl.style.cssText = `font-size: 1em;`;
 			
 			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
@@ -1221,7 +1228,8 @@ export class NovaSidebarView extends ItemView {
 			nameEl.setAttr('title', doc.file.path);
 			
 			// Mobile-optimized remove button with larger touch target
-			const removeBtn = docItemEl.createEl('button', { text: '×', cls: 'nova-context-doc-remove' });
+			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
+			removeBtn.innerHTML = this.createInlineIcon('x', isMobile ? '18px' : '14px');
 			removeBtn.style.cssText = `
 				background: none;
 				border: none;
@@ -1354,7 +1362,7 @@ export class NovaSidebarView extends ItemView {
 			// Check for early access
 			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
 				if (message.includes('[[') || message.includes('+[[')) {
-					this.addMessage('system', '📚 Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025.');
+					this.addMessage('system', this.createIconMessage('book-open', 'Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025.'));
 					return;
 				}
 			} else {
@@ -1377,7 +1385,7 @@ export class NovaSidebarView extends ItemView {
 					if (hasNewPersistentDocs) {
 						const persistentDocs = multiDocContext.temporaryDocs.filter(doc => doc.isPersistent);
 						const docNames = persistentDocs.map(doc => doc.file.basename).join(', ');
-						this.addMessage('system', `✅ Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? 's' : ''} to persistent context: ${docNames}`);
+						this.addMessage('system', this.createIconMessage('check-circle', `Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? 's' : ''} to persistent context: ${docNames}`));
 					}
 					
 					// Clear input and update context indicator
@@ -1397,7 +1405,7 @@ export class NovaSidebarView extends ItemView {
 					const allDocs = [...multiDocContext.temporaryDocs, ...multiDocContext.persistentDocs];
 					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
 					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
-					this.addMessage('system', `📚 Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}`);
+					this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}`));
 				}
 				
 				// Check token limit
@@ -1526,7 +1534,7 @@ export class NovaSidebarView extends ItemView {
 		try {
 			// Check if there's a current file (the one we're chatting about)
 			if (!this.currentFile) {
-				return `❌ No markdown file is open. Please open a file in the editor to use editing commands.`;
+				return this.createIconMessage('x-circle', 'No markdown file is open. Please open a file in the editor to use editing commands.');
 			}
 			
 			// Ensure there's a markdown view with this file
@@ -1552,7 +1560,7 @@ export class NovaSidebarView extends ItemView {
 			}
 			
 			if (!markdownView) {
-				return `❌ Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`;
+				return this.createIconMessage('x-circle', `Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`);
 			}
 			
 			let result;
@@ -1585,7 +1593,7 @@ export class NovaSidebarView extends ItemView {
 				return `Failed to ${command.action}: ${result.error}`;
 			}
 		} catch (error) {
-			return `❌ Error executing command: ${(error as Error).message}`;
+			return this.createIconMessage('x-circle', `Error executing command: ${(error as Error).message}`);
 		}
 	}
 
@@ -1935,6 +1943,80 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	/**
+	 * Create a message with a clean icon (replaces emoji)
+	 */
+	private createIconMessage(iconName: string, message: string): string {
+		const iconSvg = this.getObsidianIcon(iconName, '14px');
+		// Return as HTML that will be interpreted by the message display
+		return `<span style="display: inline-flex; align-items: center; gap: 6px;">${iconSvg}<span>${message}</span></span>`;
+	}
+
+	/**
+	 * Create an inline icon for use in innerHTML
+	 */
+	private createInlineIcon(iconName: string, size: string = '14px'): string {
+		return this.getObsidianIcon(iconName, size);
+	}
+
+	/**
+	 * Get Obsidian-style icon SVG
+	 */
+	private getObsidianIcon(iconName: string, size: string = '14px'): string {
+		const icons: Record<string, string> = {
+			'zap': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'refresh-cw': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M3 12A9 9 0 0 0 21 12A9 9 0 0 0 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M21 12L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M21 12L17 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'edit': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M11 4H4A2 2 0 0 0 2 6V20A2 2 0 0 0 4 22H18A2 2 0 0 0 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M18.5 2.5A2.12 2.12 0 0 1 21 5L12 14L8 15L9 11L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'help-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M9.09 9A3 3 0 0 1 12 6A3 3 0 0 1 15 9C15 10.5 12 11 12 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<circle cx="12" cy="17" r="1" fill="currentColor"/>
+			</svg>`,
+			'book-open': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M2 3H8A4 4 0 0 1 12 7A4 4 0 0 1 16 3H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M2 3V19A2 2 0 0 0 4 21H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M22 3V19A2 2 0 0 1 20 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M12 7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'more-horizontal': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="1" fill="currentColor"/>
+				<circle cx="19" cy="12" r="1" fill="currentColor"/>
+				<circle cx="5" cy="12" r="1" fill="currentColor"/>
+			</svg>`,
+			'file-text': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'x': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'check-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M9 12L11 14L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'x-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`
+		};
+		
+		return icons[iconName] || icons['help-circle']; // Fallback to help-circle if icon not found
+	}
+
+	/**
 	 * Get display name for provider
 	 */
 	private getProviderDisplayName(providerType: string): string {
@@ -1968,7 +2050,7 @@ export class NovaSidebarView extends ItemView {
 	private async switchToProvider(providerType: string): Promise<void> {
 		try {
 			// Add a system message about provider switching
-			const switchMessage = `🔄 Switched to ${this.getProviderDisplayName(providerType)}`;
+			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${this.getProviderDisplayName(providerType)}`);
 			this.addMessage('system', switchMessage);
 			
 			// Update the platform settings to use the new provider
@@ -1981,7 +2063,7 @@ export class NovaSidebarView extends ItemView {
 			
 		} catch (error) {
 			console.error('Error switching provider:', error);
-			this.addMessage('system', `❌ Failed to switch to ${this.getProviderDisplayName(providerType)}`);
+			this.addMessage('system', this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderDisplayName(providerType)}`));
 		}
 	}
 

@@ -37,7 +37,7 @@ export const CATALYST_FEATURES: Record<string, TimeGatedFeature> = {
     'command-button': {
         catalystDate: '2025-06-15',  // Launch day
         generalDate: '2025-08-15',   // 2 months later
-        description: 'Command button (⚡) for mobile and discovery'
+        description: 'Command button for mobile and discovery'
     },
     
     // Custom commands - 3 month early access

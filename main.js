@@ -110,7 +110,7 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
     const infoEl = licenseContainer.createDiv({ cls: "nova-model-info" });
     infoEl.innerHTML = `
 			<div class="nova-info-card">
-				<h4>\u{1F680} All Features Available</h4>
+				<h4>All Features Available</h4>
 				<p>Nova provides all features for free when you use your own AI provider API keys. 
 				Catalyst supporters get early access to new features before they're released to everyone.</p>
 			</div>
@@ -118,8 +118,8 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
     const isCatalyst = ((_a = this.plugin.featureManager) == null ? void 0 : _a.getIsCatalystSupporter()) || false;
     const catalystLicense = (_b = this.plugin.featureManager) == null ? void 0 : _b.getCatalystLicense();
     const statusDisplay = licenseContainer.createDiv({ cls: "nova-catalyst-status" });
-    const statusText = isCatalyst ? "Catalyst Supporter \u26A1" : "Nova User";
-    const statusIcon = isCatalyst ? "\u26A1" : "\u{1F31F}";
+    const statusText = isCatalyst ? "Catalyst Supporter" : "Nova User";
+    const statusIcon = isCatalyst ? "\u26A1" : "\u2605";
     statusDisplay.innerHTML = `
 			<div class="nova-status-badge ${isCatalyst ? "catalyst" : "nova"}">
 				<span class="status-icon">${statusIcon}</span>
@@ -165,14 +165,14 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
               await this.plugin.featureManager.updateCatalystLicense(licenseKey);
               const isCatalyst2 = this.plugin.featureManager.getIsCatalystSupporter();
               if (isCatalyst2) {
-                this.showLicenseMessage("\u2705 Valid Catalyst license! You now have early access to new features.", "success");
+                this.showLicenseMessage("Valid Catalyst license! You now have early access to new features.", "success");
               } else {
-                this.showLicenseMessage("\u274C Invalid or expired Catalyst license key.", "error");
+                this.showLicenseMessage("Invalid or expired Catalyst license key.", "error");
               }
               this.display();
             }
           } catch (error) {
-            this.showLicenseMessage("\u274C Error validating Catalyst license.", "error");
+            this.showLicenseMessage("Error validating Catalyst license.", "error");
           } finally {
             validateButton.textContent = "Validate";
             validateButton.disabled = false;
@@ -192,14 +192,14 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
     const summaryEl = comparisonContainer.createDiv({ cls: "nova-feature-summary" });
     summaryEl.innerHTML = `
 			<div class="nova-available-now">
-				<h5>\u2705 Available Now (Free with Your API Keys)</h5>
+				<h5>Available Now (Free with Your API Keys)</h5>
 				<ul>
-					<li>\u{1F916} All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
-					<li>\u{1F4DD} Complete Document Editing Suite</li>
-					<li>\u{1F4AC} Chat Interface with Conversation History</li>
-					<li>\u{1F504} Provider Switching</li>
-					<li>\u{1F4F1} Full Mobile Support</li>
-					<li>\u{1F3AF} File-Scoped Conversations</li>
+					<li>All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
+					<li>Complete Document Editing Suite</li>
+					<li>Chat Interface with Conversation History</li>
+					<li>Provider Switching</li>
+					<li>Full Mobile Support</li>
+					<li>File-Scoped Conversations</li>
 				</ul>
 			</div>
 		`;
@@ -208,7 +208,7 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
       const upcomingEl = comparisonContainer.createDiv({ cls: "nova-upcoming-features" });
       upcomingEl.innerHTML = `
 				<div class="nova-catalyst-preview">
-					<h5>\u26A1 Coming Soon for Catalyst Supporters</h5>
+					<h5>Coming Soon for Catalyst Supporters</h5>
 					<ul>
 						${featureSummary.comingSoon.map((feature) => `
 							<li>Available ${feature.availableDate} ${feature.isCatalyst ? "(You have early access!)" : ""}</li>
@@ -220,13 +220,13 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
     const catalystInfo = comparisonContainer.createDiv({ cls: "nova-catalyst-info" });
     catalystInfo.innerHTML = `
 			<div class="nova-info-card">
-				<h5>\u{1F680} Become a Catalyst Supporter</h5>
+				<h5>Become a Catalyst Supporter</h5>
 				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
 				<ul>
-					<li>\u26A1 Early access to new features (3-6 months before general release)</li>
-					<li>\u{1F3AF} Priority support and feature requests</li>
-					<li>\u{1F4F1} Supporter badge and recognition</li>
-					<li>\u{1F496} Directly support open-source development</li>
+					<li>Early access to new features (3-6 months before general release)</li>
+					<li>Priority support and feature requests</li>
+					<li>Supporter badge and recognition</li>
+					<li>Directly support open-source development</li>
 				</ul>
 			</div>
 		`;
@@ -299,7 +299,7 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
     const infoEl = containerEl.createDiv({ cls: "nova-provider-info" });
     infoEl.innerHTML = `
 			<div class="nova-info-card">
-				<h4>\u{1F511} Configure Your API Keys</h4>
+				<h4>Configure Your API Keys</h4>
 				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
 				just add your API keys below to get started.</p>
 			</div>
@@ -431,7 +431,7 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
       noticeEl.innerHTML = `
 				<div style="padding: 12px; background: var(--background-modifier-hover); border-radius: 8px; margin-bottom: 16px;">
 					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						\u26A1 Custom commands are currently in early access for Catalyst supporters. 
+						Custom commands are currently in early access for Catalyst supporters. 
 						They will be available to all users on September 15, 2025.
 					</p>
 				</div>
@@ -1606,7 +1606,7 @@ ${truncatedContent}${wasTruncated ? "\n\n[... truncated for brevity ...]" : ""}`
       className += " nova-context-warning";
       tooltip += " (approaching limit)";
     }
-    const text = `\u{1F4DA} ${docCount} ${percentage}%`;
+    const text = `${docCount} docs ${percentage}%`;
     return { text, className, tooltip };
   }
   /**
@@ -1687,7 +1687,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     rightContainer.style.cssText = "display: flex; align-items: center; gap: 8px;";
     this.createProviderDropdown(rightContainer);
     const clearButton = new import_obsidian4.ButtonComponent(rightContainer);
-    clearButton.setButtonText("Clear").setTooltip("Clear conversation history").onClick(() => this.clearChat());
+    clearButton.setIcon("eraser").setTooltip("Clear conversation history").onClick(() => this.clearChat());
     this.createChatInterface(wrapperEl);
     this.createInputInterface(wrapperEl);
     this.registerEvent(
@@ -1900,7 +1900,11 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			font-weight: 600;
 		`;
     const contentEl = messageEl.createEl("div", { cls: "nova-message-content" });
-    contentEl.textContent = content;
+    if (role === "system" && content.includes("<svg")) {
+      contentEl.innerHTML = content;
+    } else {
+      contentEl.textContent = content;
+    }
     setTimeout(() => {
       this.chatContainer.scrollTo({
         top: this.chatContainer.scrollHeight,
@@ -2014,7 +2018,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
   async handleColonCommand(message) {
     var _a;
     if (!this.plugin.featureManager.isFeatureEnabled("command-system")) {
-      this.addMessage("system", "\u26A1 Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025.");
+      this.addMessage("system", this.createIconMessage("zap", "Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025."));
       return true;
     }
     const command = message.slice(1).toLowerCase();
@@ -2030,7 +2034,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
       const providerId = providerCommands[command];
       await this.plugin.settingTab.setCurrentProvider(providerId);
       await this.plugin.saveSettings();
-      this.addMessage("system", `\u{1F504} Switched to ${this.getProviderDisplayName(providerId)}`);
+      this.addMessage("system", this.createIconMessage("refresh-cw", `Switched to ${this.getProviderDisplayName(providerId)}`));
       return true;
     }
     if (this.plugin.featureManager.isFeatureEnabled("custom-commands")) {
@@ -2038,11 +2042,11 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
       if (customCommand) {
         this.textArea.setValue(customCommand.template);
         setTimeout(() => this.autoGrowTextarea(), 0);
-        this.addMessage("system", `\u{1F4DD} Loaded template: ${customCommand.name}`);
+        this.addMessage("system", this.createIconMessage("edit", `Loaded template: ${customCommand.name}`));
         return true;
       }
     }
-    this.addMessage("system", `\u2753 Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`);
+    this.addMessage("system", this.createIconMessage("help-circle", `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
     return true;
   }
   createCommandPicker() {
@@ -2208,7 +2212,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
   }
   toggleCommandMenu() {
     if (!this.plugin.featureManager.isFeatureEnabled("command-button")) {
-      this.addMessage("system", "\u26A1 Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025.");
+      this.addMessage("system", this.createIconMessage("zap", "Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025."));
       return;
     }
     if (this.isCommandMenuVisible) {
@@ -2228,7 +2232,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			font-size: 0.9em;
 			color: var(--text-normal);
 		`;
-    headerEl.textContent = "\u26A1 Commands";
+    headerEl.innerHTML = this.createInlineIcon("zap") + " Commands";
     commands.forEach((command) => {
       const item = this.commandMenu.createDiv({ cls: "nova-command-menu-item" });
       item.style.cssText = `
@@ -2318,7 +2322,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			transition: all 0.2s ease;
 		`;
     const previewText = previewContainer.createSpan({ cls: "nova-context-preview-text" });
-    previewText.textContent = "\u{1F4DA} Context will include: ";
+    previewText.innerHTML = this.createInlineIcon("book-open") + " Context will include: ";
     previewText.style.cssText = "font-weight: 500;";
     const previewList = previewContainer.createSpan({ cls: "nova-context-preview-list" });
     previewList.style.cssText = "color: var(--interactive-accent);";
@@ -2429,12 +2433,12 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     const docNames = allDocs.map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
     const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : "";
     if (isMobile) {
-      summaryTextEl.textContent = `\u{1F4DA} ${docNames.join(", ")}${moreCount} (${tokenPercent}%)`;
+      summaryTextEl.innerHTML = this.createInlineIcon("book-open") + ` ${docNames.join(", ")}${moreCount} (${tokenPercent}%)`;
     } else {
-      summaryTextEl.textContent = `\u{1F4DA} ${docNames.join(", ")}${moreCount} (${tokenPercent}% tokens)`;
+      summaryTextEl.innerHTML = this.createInlineIcon("book-open") + ` ${docNames.join(", ")}${moreCount} (${tokenPercent}% tokens)`;
     }
     const expandIndicatorEl = summaryEl.createSpan({ cls: "nova-context-expand-indicator" });
-    expandIndicatorEl.innerHTML = "\u2022\u2022\u2022";
+    expandIndicatorEl.innerHTML = this.createInlineIcon("more-horizontal", isMobile ? "16px" : "14px");
     expandIndicatorEl.style.cssText = `
 			color: var(--interactive-accent);
 			font-size: ${isMobile ? "16px" : "14px"};
@@ -2494,9 +2498,16 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			min-height: ${isMobile ? "44px" : "auto"};
 		`;
     const headerTitleEl = expandedHeaderEl.createSpan();
-    headerTitleEl.textContent = `\u{1F4DA} Documents (${allDocs.length})`;
-    const clearAllBtn = expandedHeaderEl.createEl("button", { cls: "nova-context-clear-all-btn" });
-    clearAllBtn.innerHTML = "\u{1F9F9}";
+    headerTitleEl.innerHTML = this.createInlineIcon("book-open") + ` Documents (${allDocs.length})`;
+    const clearAllBtnComponent = new import_obsidian4.ButtonComponent(expandedHeaderEl);
+    clearAllBtnComponent.setIcon("eraser").setTooltip("Clear all documents from context").onClick(async () => {
+      if (this.currentFile) {
+        this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+        await this.refreshContext();
+      }
+    });
+    const clearAllBtn = clearAllBtnComponent.buttonEl;
+    clearAllBtn.addClass("nova-context-clear-all-btn");
     clearAllBtn.style.cssText = `
 			background: none;
 			border: 1px solid var(--text-faint);
@@ -2512,14 +2523,6 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			align-items: center;
 			justify-content: center;
 		`;
-    clearAllBtn.setAttr("title", "Clear all documents from context");
-    clearAllBtn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (this.currentFile) {
-        this.multiDocHandler.clearPersistentContext(this.currentFile.path);
-        await this.refreshContext();
-      }
-    });
     if (isMobile) {
       clearAllBtn.addEventListener("touchstart", () => {
         clearAllBtn.style.background = "var(--background-modifier-error)";
@@ -2565,7 +2568,8 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 				flex: 1;
 				min-width: 0;
 			`;
-      const iconEl = docInfoEl.createSpan({ text: "\u{1F4C4}" });
+      const iconEl = docInfoEl.createSpan();
+      iconEl.innerHTML = this.createInlineIcon("file-text");
       iconEl.style.cssText = `font-size: 1em;`;
       const nameEl = docInfoEl.createSpan({ cls: "nova-context-doc-name" });
       const suffix = doc.property ? `#${doc.property}` : "";
@@ -2580,7 +2584,8 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 				line-height: 1.4;
 			`;
       nameEl.setAttr("title", doc.file.path);
-      const removeBtn = docItemEl.createEl("button", { text: "\xD7", cls: "nova-context-doc-remove" });
+      const removeBtn = docItemEl.createEl("button", { cls: "nova-context-doc-remove" });
+      removeBtn.innerHTML = this.createInlineIcon("x", isMobile ? "18px" : "14px");
       removeBtn.style.cssText = `
 				background: none;
 				border: none;
@@ -2685,7 +2690,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     if (this.currentFile) {
       if (!this.plugin.featureManager.isFeatureEnabled("multi-doc-context")) {
         if (message.includes("[[") || message.includes("+[[")) {
-          this.addMessage("system", "\u{1F4DA} Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025.");
+          this.addMessage("system", this.createIconMessage("book-open", "Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025."));
           return;
         }
       } else {
@@ -2701,7 +2706,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
           if (hasNewPersistentDocs) {
             const persistentDocs = multiDocContext.temporaryDocs.filter((doc) => doc.isPersistent);
             const docNames = persistentDocs.map((doc) => doc.file.basename).join(", ");
-            this.addMessage("system", `\u2705 Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? "s" : ""} to persistent context: ${docNames}`);
+            this.addMessage("system", this.createIconMessage("check-circle", `Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? "s" : ""} to persistent context: ${docNames}`));
           }
           this.textArea.setValue("");
           setTimeout(() => this.autoGrowTextarea(), 0);
@@ -2715,7 +2720,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
           const allDocs = [...multiDocContext.temporaryDocs, ...multiDocContext.persistentDocs];
           const docNames = allDocs.map((doc) => doc.file.basename).join(", ");
           const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : "";
-          this.addMessage("system", `\u{1F4DA} Included ${allDocs.length} document${allDocs.length !== 1 ? "s" : ""} in context: ${docNames}${tokenInfo}`);
+          this.addMessage("system", this.createIconMessage("book-open", `Included ${allDocs.length} document${allDocs.length !== 1 ? "s" : ""} in context: ${docNames}${tokenInfo}`));
         }
         if (multiDocContext.isNearLimit) {
           new import_obsidian4.Notice("\u26A0\uFE0F Approaching token limit. Consider removing some documents from context.", 5e3);
@@ -2810,7 +2815,7 @@ Current Request: ${prompt2.userPrompt}`;
   async executeCommand(command) {
     try {
       if (!this.currentFile) {
-        return `\u274C No markdown file is open. Please open a file in the editor to use editing commands.`;
+        return this.createIconMessage("x-circle", "No markdown file is open. Please open a file in the editor to use editing commands.");
       }
       const leaves = this.app.workspace.getLeavesOfType("markdown");
       let markdownView = null;
@@ -2829,7 +2834,7 @@ Current Request: ${prompt2.userPrompt}`;
         }
       }
       if (!markdownView) {
-        return `\u274C Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`;
+        return this.createIconMessage("x-circle", `Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`);
       }
       let result;
       switch (command.action) {
@@ -2858,7 +2863,7 @@ Current Request: ${prompt2.userPrompt}`;
         return `Failed to ${command.action}: ${result.error}`;
       }
     } catch (error) {
-      return `\u274C Error executing command: ${error.message}`;
+      return this.createIconMessage("x-circle", `Error executing command: ${error.message}`);
     }
   }
   async loadConversationForActiveFile() {
@@ -3119,6 +3124,75 @@ Current Request: ${prompt2.userPrompt}`;
     }
   }
   /**
+   * Create a message with a clean icon (replaces emoji)
+   */
+  createIconMessage(iconName, message) {
+    const iconSvg = this.getObsidianIcon(iconName, "14px");
+    return `<span style="display: inline-flex; align-items: center; gap: 6px;">${iconSvg}<span>${message}</span></span>`;
+  }
+  /**
+   * Create an inline icon for use in innerHTML
+   */
+  createInlineIcon(iconName, size = "14px") {
+    return this.getObsidianIcon(iconName, size);
+  }
+  /**
+   * Get Obsidian-style icon SVG
+   */
+  getObsidianIcon(iconName, size = "14px") {
+    const icons = {
+      "zap": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "refresh-cw": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M3 12A9 9 0 0 0 21 12A9 9 0 0 0 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M21 12L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M21 12L17 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "edit": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M11 4H4A2 2 0 0 0 2 6V20A2 2 0 0 0 4 22H18A2 2 0 0 0 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M18.5 2.5A2.12 2.12 0 0 1 21 5L12 14L8 15L9 11L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "help-circle": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M9.09 9A3 3 0 0 1 12 6A3 3 0 0 1 15 9C15 10.5 12 11 12 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<circle cx="12" cy="17" r="1" fill="currentColor"/>
+			</svg>`,
+      "book-open": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M2 3H8A4 4 0 0 1 12 7A4 4 0 0 1 16 3H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M2 3V19A2 2 0 0 0 4 21H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M22 3V19A2 2 0 0 1 20 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M12 7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "more-horizontal": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="1" fill="currentColor"/>
+				<circle cx="19" cy="12" r="1" fill="currentColor"/>
+				<circle cx="5" cy="12" r="1" fill="currentColor"/>
+			</svg>`,
+      "file-text": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "x": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "check-circle": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M9 12L11 14L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+      "x-circle": `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+				<path d="M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`
+    };
+    return icons[iconName] || icons["help-circle"];
+  }
+  /**
    * Get display name for provider
    */
   getProviderDisplayName(providerType) {
@@ -3149,7 +3223,7 @@ Current Request: ${prompt2.userPrompt}`;
    */
   async switchToProvider(providerType) {
     try {
-      const switchMessage = `\u{1F504} Switched to ${this.getProviderDisplayName(providerType)}`;
+      const switchMessage = this.createIconMessage("refresh-cw", `Switched to ${this.getProviderDisplayName(providerType)}`);
       this.addMessage("system", switchMessage);
       const platform = import_obsidian4.Platform.isMobile ? "mobile" : "desktop";
       this.plugin.settings.platformSettings[platform].primaryProvider = providerType;
@@ -3157,7 +3231,7 @@ Current Request: ${prompt2.userPrompt}`;
       this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
     } catch (error) {
       console.error("Error switching provider:", error);
-      this.addMessage("system", `\u274C Failed to switch to ${this.getProviderDisplayName(providerType)}`);
+      this.addMessage("system", this.createIconMessage("x-circle", `Failed to switch to ${this.getProviderDisplayName(providerType)}`));
     }
   }
 };
@@ -6654,7 +6728,7 @@ var CATALYST_FEATURES = {
     // Launch day
     generalDate: "2025-08-15",
     // 2 months later
-    description: "Command button (\u26A1) for mobile and discovery"
+    description: "Command button for mobile and discovery"
   },
   // Custom commands - 3 month early access
   "custom-commands": {
@@ -7521,11 +7595,11 @@ var NovaPlugin = class extends import_obsidian6.Plugin {
 				<div class="modal-bg"></div>
 				<div class="modal-content">
 					<div class="modal-header">
-						<h3>\u{1F680} Nova SuperNova Required</h3>
+						<h3>Nova SuperNova Required</h3>
 					</div>
 					<div class="modal-body">
 						<div class="nova-tier-badge core" style="margin-bottom: 1em;">
-							<span class="tier-icon">\u{1F193}</span>
+							<span class="tier-icon">FREE</span>
 							<span class="tier-name">Core (Free)</span>
 						</div>
 						<p>Mobile access is available with Nova SuperNova.</p>
@@ -7533,16 +7607,16 @@ var NovaPlugin = class extends import_obsidian6.Plugin {
 						<div class="nova-feature-list">
 							<h4>SuperNova includes:</h4>
 							<ul>
-								<li>\u2705 Mobile device support</li>
-								<li>\u2705 Multiple AI providers</li>
-								<li>\u2705 In-chat provider switching</li>
-								<li>\u2705 Advanced templates</li>
-								<li>\u2705 Priority support</li>
+								<li>Mobile device support</li>
+								<li>Multiple AI providers</li>
+								<li>In-chat provider switching</li>
+								<li>Advanced templates</li>
+								<li>Priority support</li>
 							</ul>
 						</div>
 					</div>
 					<div class="modal-footer">
-						<button class="mod-cta nova-upgrade-btn">\u2B50 Upgrade to SuperNova</button>
+						<button class="mod-cta nova-upgrade-btn">Upgrade to SuperNova</button>
 						<button class="nova-close-btn">Close</button>
 					</div>
 				</div>
