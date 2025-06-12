@@ -1,4 +1,4 @@
-import { License, CatalystLicense, LicenseValidationResult, CatalystValidationResult, LicenseError } from './types';
+import { License, SupernovaLicense, LicenseValidationResult, SupernovaValidationResult, LicenseError } from './types';
 
 export class LicenseValidator {
 	// Embedded signing key - in production this would be obfuscated
@@ -175,11 +175,11 @@ export class LicenseValidator {
 	}
 
 	/**
-	 * Validates a Catalyst license key
+	 * Validates a Supernova license key
 	 */
-	async validateCatalystLicense(licenseKey: string): Promise<CatalystValidationResult> {
+	async validateSupernovaLicense(licenseKey: string): Promise<SupernovaValidationResult> {
 		try {
-			const license = this.parseCatalystLicenseKey(licenseKey);
+			const license = this.parseSupernovaLicenseKey(licenseKey);
 			if (!license) {
 				return { 
 					valid: false, 
@@ -187,7 +187,7 @@ export class LicenseValidator {
 				};
 			}
 
-			const validationError = await this.validateCatalystLicenseObject(license);
+			const validationError = await this.validateSupernovaLicenseObject(license);
 			if (validationError) {
 				return { 
 					valid: false, 
@@ -209,11 +209,11 @@ export class LicenseValidator {
 	}
 
 	/**
-	 * Parses a Catalyst license key string
+	 * Parses a Supernova license key string
 	 */
-	private parseCatalystLicenseKey(licenseKey: string): CatalystLicense | null {
+	private parseSupernovaLicenseKey(licenseKey: string): SupernovaLicense | null {
 		try {
-			// Catalyst license key format: base64(email|type|expiresAt|issuedAt|signature)
+			// Supernova license key format: base64(email|type|expiresAt|issuedAt|signature)
 			const decoded = this.base64Decode(licenseKey);
 			const parts = decoded.split('|');
 			
@@ -255,11 +255,11 @@ export class LicenseValidator {
 	}
 
 	/**
-	 * Validates a Catalyst license object
+	 * Validates a Supernova license object
 	 */
-	private async validateCatalystLicenseObject(license: CatalystLicense): Promise<LicenseError | null> {
+	private async validateSupernovaLicenseObject(license: SupernovaLicense): Promise<LicenseError | null> {
 		// 1. Verify HMAC signature
-		const expectedSignature = await this.generateCatalystSignature(
+		const expectedSignature = await this.generateSupernovaSignature(
 			license.email,
 			license.type,
 			license.expiresAt,
@@ -284,9 +284,9 @@ export class LicenseValidator {
 	}
 
 	/**
-	 * Generates HMAC-SHA256 signature for Catalyst license
+	 * Generates HMAC-SHA256 signature for Supernova license
 	 */
-	private async generateCatalystSignature(
+	private async generateSupernovaSignature(
 		email: string,
 		type: 'annual' | 'lifetime',
 		expiresAt: Date | null,
@@ -313,13 +313,13 @@ export class LicenseValidator {
 	}
 
 	/**
-	 * Creates a test Catalyst license for development
+	 * Creates a test Supernova license for development
 	 */
-	async createTestCatalystLicense(email: string, type: 'annual' | 'lifetime'): Promise<string> {
+	async createTestSupernovaLicense(email: string, type: 'annual' | 'lifetime'): Promise<string> {
 		const issuedAt = new Date();
 		const expiresAt = type === 'lifetime' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
-		const signature = await this.generateCatalystSignature(email, type, expiresAt, issuedAt);
+		const signature = await this.generateSupernovaSignature(email, type, expiresAt, issuedAt);
 		
 		const licenseData = `${email}|${type}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}|${signature}`;
 		

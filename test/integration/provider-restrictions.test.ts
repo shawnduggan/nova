@@ -3,7 +3,7 @@ import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
 import { NovaSettings, DEFAULT_SETTINGS } from '../../src/settings';
 
-describe('Provider Access in Catalyst Model', () => {
+describe('Provider Access in Supernova Model', () => {
     let providerManager: AIProviderManager;
     let featureManager: FeatureManager;
     let licenseValidator: LicenseValidator;
@@ -18,7 +18,7 @@ describe('Provider Access in Catalyst Model', () => {
 
     describe('Provider Availability', () => {
         test('should allow all providers for all users', () => {
-            // In the Catalyst model, all providers are available to all users
+            // In the Supernova model, all providers are available to all users
             const allowedProviders = providerManager.getAllowedProviders();
             
             expect(allowedProviders).toContain('claude');
@@ -28,7 +28,7 @@ describe('Provider Access in Catalyst Model', () => {
         });
 
         test('should not restrict any provider', () => {
-            // No provider should be restricted in the Catalyst model
+            // No provider should be restricted in the Supernova model
             expect(providerManager.isProviderAllowed('claude')).toBe(true);
             expect(providerManager.isProviderAllowed('openai')).toBe(true);
             expect(providerManager.isProviderAllowed('google')).toBe(true);
@@ -43,23 +43,23 @@ describe('Provider Access in Catalyst Model', () => {
         });
     });
 
-    describe('Catalyst Status Impact', () => {
-        test('should have same provider access regardless of Catalyst status', async () => {
-            // Test without Catalyst license
-            const providersWithoutCatalyst = providerManager.getAllowedProviders();
+    describe('Supernova Status Impact', () => {
+        test('should have same provider access regardless of Supernova status', async () => {
+            // Test without Supernova license
+            const providersWithoutSupernova = providerManager.getAllowedProviders();
             
-            // Add Catalyst license
-            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
-            await featureManager.updateCatalystLicense(catalystLicense);
+            // Add Supernova license
+            const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'annual');
+            await featureManager.updateSupernovaLicense(catalystLicense);
             
-            const providersWithCatalyst = providerManager.getAllowedProviders();
+            const providersWithSupernova = providerManager.getAllowedProviders();
             
-            // Should be identical - Catalyst doesn't affect core provider access
-            expect(providersWithCatalyst).toEqual(providersWithoutCatalyst);
-            expect(providersWithCatalyst).toContain('claude');
-            expect(providersWithCatalyst).toContain('openai');
-            expect(providersWithCatalyst).toContain('google');
-            expect(providersWithCatalyst).toContain('ollama');
+            // Should be identical - Supernova doesn't affect core provider access
+            expect(providersWithSupernova).toEqual(providersWithoutSupernova);
+            expect(providersWithSupernova).toContain('claude');
+            expect(providersWithSupernova).toContain('openai');
+            expect(providersWithSupernova).toContain('google');
+            expect(providersWithSupernova).toContain('ollama');
         });
 
         test('should allow provider switching for all users', () => {
@@ -121,26 +121,26 @@ describe('Provider Access in Catalyst Model', () => {
 
     describe('Future Feature Gates', () => {
         test('should handle new time-gated features appropriately', () => {
-            // These are the new features that will be time-gated for Catalyst early access
+            // These are the new features that will be time-gated for Supernova early access
             expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
             expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(false);
             expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
             
             const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
             expect(commandSystemAccess.allowed).toBe(false);
-            expect(commandSystemAccess.isCatalystFeature).toBe(true);
+            expect(commandSystemAccess.isSupernovaFeature).toBe(true);
         });
 
-        test('should enable time-gated features for Catalyst supporters with debug mode', async () => {
-            // Set up Catalyst license
-            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
-            await featureManager.updateCatalystLicense(catalystLicense);
+        test('should enable time-gated features for Supernova supporters with debug mode', async () => {
+            // Set up Supernova license
+            const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
+            await featureManager.updateSupernovaLicense(catalystLicense);
             
-            // Use debug mode to simulate being at the Catalyst release date
+            // Use debug mode to simulate being at the Supernova release date
             featureManager.updateDebugSettings({
                 enabled: true,
-                overrideDate: '2025-06-15', // Catalyst date
-                forceCatalyst: true
+                overrideDate: '2025-06-15', // Supernova date
+                forceSupernova: true
             });
             
             // Time-gated features should now be available

@@ -24,8 +24,8 @@ export interface NovaSettings {
 	};
 	licensing: {
 		licenseKey: string;
-		catalystLicenseKey?: string;
-		isCatalyst?: boolean;
+		supernovaLicenseKey?: string;
+		isSupernova?: boolean;
 		debugSettings: DebugSettings;
 	};
 }
@@ -77,12 +77,12 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	licensing: {
 		licenseKey: '',
-		catalystLicenseKey: '',
-		isCatalyst: false,
+		supernovaLicenseKey: '',
+		isSupernova: false,
 		debugSettings: {
 			enabled: false,
 			overrideDate: undefined,
-			forceCatalyst: false
+			forceSupernova: false
 		}
 	}
 };
@@ -110,60 +110,60 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createLicenseSettings() {
 		const { containerEl } = this;
 		const licenseContainer = containerEl.createDiv({ cls: 'nova-license-section' });
-		licenseContainer.createEl('h3', { text: 'Catalyst Supporter Status' });
+		licenseContainer.createEl('h3', { text: 'Supernova Supporter Status' });
 
 		// Info about the new model
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card compact">
 				<p>Nova provides all features for free when you use your own AI provider API keys. 
-				Catalyst supporters get early access to new features.</p>
+				Supernova supporters get early access to new features.</p>
 			</div>
 		`;
 
-		// Current Catalyst status
-		const isCatalyst = this.plugin.featureManager?.getIsCatalystSupporter() || false;
-		const catalystLicense = this.plugin.featureManager?.getCatalystLicense();
+		// Current Supernova status
+		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		const supernovaLicense = this.plugin.featureManager?.getSupernovaLicense();
 		
-		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-catalyst-status' });
-		const statusText = isCatalyst ? 'Catalyst Supporter' : 'Nova User';
-		const statusIcon = isCatalyst ? '⚡' : '★'; // Lightning for Catalyst, Star for Nova
+		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
+		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
+		const statusIcon = isSupernova ? '⚡' : '★'; // Lightning for Supernova, Star for Nova
 		statusDisplay.innerHTML = `
-			<div class="nova-status-badge ${isCatalyst ? 'catalyst' : 'nova'}">
+			<div class="nova-status-badge ${isSupernova ? 'supernova' : 'nova'}">
 				<span class="status-icon">${statusIcon}</span>
 				<span class="status-name">${statusText}</span>
 			</div>
 		`;
 
-		// Catalyst license status
-		if (catalystLicense) {
+		// Supernova license status
+		if (supernovaLicense) {
 			const statusEl = licenseContainer.createDiv({ cls: 'nova-license-status' });
-			const expiryText = catalystLicense.expiresAt 
-				? `Expires: ${catalystLicense.expiresAt.toLocaleDateString()}`
+			const expiryText = supernovaLicense.expiresAt 
+				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
 				: 'Lifetime Support';
 			statusEl.innerHTML = `
 				<div class="license-info">
-					<span class="license-email">${catalystLicense.email}</span>
+					<span class="license-email">${supernovaLicense.email}</span>
 					<span class="license-expiry">${expiryText}</span>
 				</div>
 			`;
 		}
 
-		// Catalyst license key input
+		// Supernova license key input
 		new Setting(licenseContainer)
-			.setName('Catalyst License Key (Optional)')
-			.setDesc('Enter your Catalyst supporter license key for early access to new features')
+			.setName('Supernova License Key (Optional)')
+			.setDesc('Enter your Supernova supporter license key for early access to new features')
 			.addText(text => {
 				text.inputEl.type = 'password';
-				text.setPlaceholder('Enter Catalyst license key...')
-					.setValue(this.plugin.settings.licensing.catalystLicenseKey || '')
+				text.setPlaceholder('Enter Supernova license key...')
+					.setValue(this.plugin.settings.licensing.supernovaLicenseKey || '')
 					.onChange(async (value) => {
-						this.plugin.settings.licensing.catalystLicenseKey = value;
+						this.plugin.settings.licensing.supernovaLicenseKey = value;
 						await this.plugin.saveSettings();
 						
-						// Update Catalyst license in feature manager
+						// Update Supernova license in feature manager
 						if (this.plugin.featureManager) {
-							await this.plugin.featureManager.updateCatalystLicense(value || null);
+							await this.plugin.featureManager.updateSupernovaLicense(value || null);
 							// Refresh the display to show updated status
 							this.display();
 						}
@@ -179,7 +179,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					validateButton.addEventListener('click', async () => {
 						const licenseKey = text.inputEl.value;
 						if (!licenseKey) {
-							this.showLicenseMessage('Please enter a Catalyst license key first.', 'error');
+							this.showLicenseMessage('Please enter a Supernova license key first.', 'error');
 							return;
 						}
 
@@ -188,20 +188,20 @@ export class NovaSettingTab extends PluginSettingTab {
 
 						try {
 							if (this.plugin.featureManager) {
-								await this.plugin.featureManager.updateCatalystLicense(licenseKey);
-								const isCatalyst = this.plugin.featureManager.getIsCatalystSupporter();
+								await this.plugin.featureManager.updateSupernovaLicense(licenseKey);
+								const isSupernova = this.plugin.featureManager.isSupernovaSupporter();
 								
-								if (isCatalyst) {
-									this.showLicenseMessage('Valid Catalyst license! You now have early access to new features.', 'success');
+								if (isSupernova) {
+									this.showLicenseMessage('Valid Supernova license! You now have early access to new features.', 'success');
 								} else {
-									this.showLicenseMessage('Invalid or expired Catalyst license key.', 'error');
+									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
 								}
 								
 								// Refresh display
 								this.display();
 							}
 						} catch (error) {
-							this.showLicenseMessage('Error validating Catalyst license.', 'error');
+							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
 							validateButton.textContent = 'Validate';
 							validateButton.disabled = false;
@@ -210,8 +210,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				}
 			});
 
-		// Catalyst supporter information only
-		this.createCatalystInfo(licenseContainer);
+		// Supernova supporter information only
+		this.createSupernovaInfo(licenseContainer);
 
 		// Debug settings (development only)
 		if (process.env.NODE_ENV === 'development' || this.plugin.settings.licensing.debugSettings.enabled) {
@@ -219,12 +219,12 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private createCatalystInfo(container: HTMLElement) {
-		// Catalyst supporter information
-		const catalystInfo = container.createDiv({ cls: 'nova-catalyst-info' });
-		catalystInfo.innerHTML = `
+	private createSupernovaInfo(container: HTMLElement) {
+		// Supernova supporter information
+		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
+		supernovaInfo.innerHTML = `
 			<div class="nova-info-card">
-				<h5>Become a Catalyst Supporter</h5>
+				<h5>Become a Supernova Supporter</h5>
 				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
 				<ul>
 					<li>Early access to new features (3-6 months before general release)</li>
@@ -276,12 +276,12 @@ export class NovaSettingTab extends PluginSettingTab {
 					}));
 
 			new Setting(debugContainer)
-				.setName('Force Catalyst Status')
-				.setDesc('Override Catalyst supporter status for testing')
+				.setName('Force Supernova Status')
+				.setDesc('Override Supernova supporter status for testing')
 				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.licensing.debugSettings.forceCatalyst || false)
+					.setValue(this.plugin.settings.licensing.debugSettings.forceSupernova || false)
 					.onChange(async (value) => {
-						this.plugin.settings.licensing.debugSettings.forceCatalyst = value;
+						this.plugin.settings.licensing.debugSettings.forceSupernova = value;
 						await this.plugin.saveSettings();
 						
 						if (this.plugin.featureManager) {
@@ -830,7 +830,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private getAllowedProvidersForPlatform(platform: 'desktop' | 'mobile'): ProviderType[] {
-		// All providers are available to all users in the Catalyst model
+		// All providers are available to all users in the Supernova model
 		return platform === 'desktop' 
 			? ['claude', 'openai', 'google', 'ollama']
 			: ['claude', 'openai', 'google'];
@@ -898,9 +898,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			const noticeEl = commandContainer.createDiv({ cls: 'nova-feature-notice' });
 			noticeEl.innerHTML = `
 				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Catalyst Supporter Feature</h4>
+					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Supernova Supporter Feature</h4>
 					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						Custom commands are currently available to Catalyst supporters. 
+						Custom commands are currently available to Supernova supporters. 
 						They will be available to all users on <strong>October 1, 2025</strong>.
 					</p>
 				</div>

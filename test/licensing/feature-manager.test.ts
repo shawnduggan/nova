@@ -51,41 +51,41 @@ describe('FeatureManager', () => {
 			const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
 			
 			expect(commandSystemAccess.allowed).toBe(false);
-			expect(commandSystemAccess.isCatalystFeature).toBe(true);
-			expect(commandSystemAccess.reason).toContain('early access for Catalyst supporters');
+			expect(commandSystemAccess.isSupernovaFeature).toBe(true);
+			expect(commandSystemAccess.reason).toContain('early access for Supernova supporters');
 			expect(commandSystemAccess.availableDate).toEqual(new Date('2025-09-15'));
 		});
 	});
 
-	describe('Catalyst Supporter Features', () => {
-		test('should enable Catalyst features for valid Catalyst license', async () => {
-			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
-			await featureManager.updateCatalystLicense(catalystLicense);
+	describe('Supernova Supporter Features', () => {
+		test('should enable Supernova features for valid Supernova license', async () => {
+			const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'annual');
+			await featureManager.updateSupernovaLicense(catalystLicense);
 
-			expect(featureManager.getIsCatalystSupporter()).toBe(true);
+			expect(featureManager.isSupernovaSupporter()).toBe(true);
 			
-			const catalystLicenseObj = featureManager.getCatalystLicense();
+			const catalystLicenseObj = featureManager.getSupernovaLicense();
 			expect(catalystLicenseObj?.email).toBe('test@example.com');
 			expect(catalystLicenseObj?.type).toBe('annual');
 		});
 
-		test('should handle invalid Catalyst license', async () => {
-			await featureManager.updateCatalystLicense('invalid-license');
+		test('should handle invalid Supernova license', async () => {
+			await featureManager.updateSupernovaLicense('invalid-license');
 
-			expect(featureManager.getIsCatalystSupporter()).toBe(false);
-			expect(featureManager.getCatalystLicense()).toBeNull();
+			expect(featureManager.isSupernovaSupporter()).toBe(false);
+			expect(featureManager.getSupernovaLicense()).toBeNull();
 		});
 
-		test('should reset Catalyst status when license is removed', async () => {
-			// Set up Catalyst license first
-			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
-			await featureManager.updateCatalystLicense(catalystLicense);
-			expect(featureManager.getIsCatalystSupporter()).toBe(true);
+		test('should reset Supernova status when license is removed', async () => {
+			// Set up Supernova license first
+			const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
+			await featureManager.updateSupernovaLicense(catalystLicense);
+			expect(featureManager.isSupernovaSupporter()).toBe(true);
 
 			// Remove license
-			await featureManager.updateCatalystLicense(null);
-			expect(featureManager.getIsCatalystSupporter()).toBe(false);
-			expect(featureManager.getCatalystLicense()).toBeNull();
+			await featureManager.updateSupernovaLicense(null);
+			expect(featureManager.isSupernovaSupporter()).toBe(false);
+			expect(featureManager.getSupernovaLicense()).toBeNull();
 		});
 	});
 
@@ -108,7 +108,7 @@ describe('FeatureManager', () => {
 		test('should provide feature summary', () => {
 			const summary = featureManager.getFeatureSummary();
 
-			expect(summary.isCatalyst).toBe(false);
+			expect(summary.isSupernova).toBe(false);
 			expect(summary.enabled.length).toBeGreaterThan(0);
 			expect(summary.comingSoon.length).toBeGreaterThan(0);
 			
@@ -123,7 +123,7 @@ describe('FeatureManager', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
 				overrideDate: '2025-12-01', // Future date where all features are available
-				forceCatalyst: true
+				forceSupernova: true
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
@@ -131,14 +131,14 @@ describe('FeatureManager', () => {
 			// With debug mode, time-gated features should be available
 			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
-			expect(featureManager.getIsCatalystSupporter()).toBe(true);
+			expect(featureManager.isSupernovaSupporter()).toBe(true);
 		});
 
 		test('should allow date override for testing', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
 				overrideDate: '2025-07-01', // Date when auto-input is generally available
-				forceCatalyst: false
+				forceSupernova: false
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
@@ -154,7 +154,7 @@ describe('FeatureManager', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
 				overrideDate: '2025-06-01',
-				forceCatalyst: true
+				forceSupernova: true
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
@@ -162,7 +162,7 @@ describe('FeatureManager', () => {
 
 			expect(retrievedSettings.enabled).toBe(true);
 			expect(retrievedSettings.overrideDate).toBe('2025-06-01');
-			expect(retrievedSettings.forceCatalyst).toBe(true);
+			expect(retrievedSettings.forceSupernova).toBe(true);
 		});
 	});
 
@@ -175,8 +175,8 @@ describe('FeatureManager', () => {
 			expect(enabledFeatures.some(f => f.key === 'all_ai_providers')).toBe(true);
 		});
 
-		test('should return Catalyst early access features', () => {
-			const catalystFeatures = featureManager.getCatalystFeatures();
+		test('should return Supernova early access features', () => {
+			const catalystFeatures = featureManager.getSupernovaFeatures();
 
 			expect(catalystFeatures.length).toBeGreaterThan(0);
 			expect(catalystFeatures.some(f => f.key === 'command-system')).toBe(true);
@@ -201,20 +201,20 @@ describe('FeatureManager', () => {
 	});
 
 	describe('Time-Based Feature Release', () => {
-		test('should properly handle feature dates with Catalyst supporter', async () => {
-			// Set up as Catalyst supporter
-			const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
-			await featureManager.updateCatalystLicense(catalystLicense);
+		test('should properly handle feature dates with Supernova supporter', async () => {
+			// Set up as Supernova supporter
+			const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
+			await featureManager.updateSupernovaLicense(catalystLicense);
 
-			// Use debug mode to simulate being at the Catalyst release date
+			// Use debug mode to simulate being at the Supernova release date
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-06-15', // Catalyst date for all features
-				forceCatalyst: true
+				overrideDate: '2025-06-15', // Supernova date for all features
+				forceSupernova: true
 			};
 			featureManager.updateDebugSettings(debugSettings);
 
-			// All time-gated features should be available for Catalyst supporters
+			// All time-gated features should be available for Supernova supporters
 			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
 			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
@@ -225,7 +225,7 @@ describe('FeatureManager', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
 				overrideDate: '2025-10-01', // Past all general availability dates
-				forceCatalyst: false
+				forceSupernova: false
 			};
 			featureManager.updateDebugSettings(debugSettings);
 

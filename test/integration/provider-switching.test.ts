@@ -4,7 +4,7 @@ import { LicenseValidator } from '../../src/licensing/license-validator';
 import { NovaSettings, DEFAULT_SETTINGS } from '../../src/settings';
 import { ProviderType } from '../../src/ai/types';
 
-describe('Provider Switching in Catalyst Model', () => {
+describe('Provider Switching in Supernova Model', () => {
     let providerManager: AIProviderManager;
     let featureManager: FeatureManager;
     let licenseValidator: LicenseValidator;
@@ -86,15 +86,15 @@ describe('Provider Switching in Catalyst Model', () => {
             }).not.toThrow();
         });
 
-        test('should work regardless of Catalyst status', async () => {
-            // Test without Catalyst license
+        test('should work regardless of Supernova status', async () => {
+            // Test without Supernova license
             settings.platformSettings.desktop.primaryProvider = 'claude';
             providerManager.updateSettings(settings);
             expect(providerManager.isProviderAllowed('claude')).toBe(true);
             
-            // Test with Catalyst license
-            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
-            await featureManager.updateCatalystLicense(catalystLicense);
+            // Test with Supernova license
+            const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'annual');
+            await featureManager.updateSupernovaLicense(catalystLicense);
             
             settings.platformSettings.desktop.primaryProvider = 'openai';
             providerManager.updateSettings(settings);
@@ -150,20 +150,20 @@ describe('Provider Switching in Catalyst Model', () => {
             expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
             
             const access = featureManager.checkFeatureAccess('enhanced-providers');
-            expect(access.isCatalystFeature).toBe(true);
+            expect(access.isSupernovaFeature).toBe(true);
             expect(access.allowed).toBe(false);
         });
 
-        test('should enable enhanced features for Catalyst supporters', async () => {
-            // Set up Catalyst license
-            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'lifetime');
-            await featureManager.updateCatalystLicense(catalystLicense);
+        test('should enable enhanced features for Supernova supporters', async () => {
+            // Set up Supernova license
+            const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
+            await featureManager.updateSupernovaLicense(catalystLicense);
             
-            // Use debug mode to simulate being at the Catalyst release date
+            // Use debug mode to simulate being at the Supernova release date
             featureManager.updateDebugSettings({
                 enabled: true,
-                overrideDate: '2025-06-15', // Catalyst early access date
-                forceCatalyst: true
+                overrideDate: '2025-06-15', // Supernova early access date
+                forceSupernova: true
             });
             
             // Enhanced provider features should be available
@@ -177,7 +177,7 @@ describe('Provider Switching in Catalyst Model', () => {
             const invalidProvider = 'invalid-provider' as ProviderType;
             
             // The provider manager should handle this gracefully
-            expect(providerManager.isProviderAllowed(invalidProvider)).toBe(true); // Returns true for unknown providers in Catalyst model
+            expect(providerManager.isProviderAllowed(invalidProvider)).toBe(true); // Returns true for unknown providers in Supernova model
         });
 
         test('should handle provider switching when no providers are configured', () => {

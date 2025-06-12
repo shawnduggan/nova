@@ -179,9 +179,9 @@ describe('AIProviderManager', () => {
         });
     });
 
-    describe('Provider Access (Catalyst Model)', () => {
+    describe('Provider Access (Supernova Model)', () => {
         test('should allow all providers for all users', () => {
-            // In the Catalyst model, all users have access to all providers
+            // In the Supernova model, all users have access to all providers
             const allowedProviders = manager.getAllowedProviders();
             const limits = manager.getProviderLimits();
             
@@ -196,31 +196,31 @@ describe('AIProviderManager', () => {
         });
 
         test('should not restrict any provider', () => {
-            // No provider should be restricted in the Catalyst model
+            // No provider should be restricted in the Supernova model
             expect(manager.isProviderAllowed('claude')).toBe(true);
             expect(manager.isProviderAllowed('openai')).toBe(true);
             expect(manager.isProviderAllowed('google')).toBe(true);
             expect(manager.isProviderAllowed('ollama')).toBe(true);
         });
 
-        test('should work the same regardless of Catalyst status', async () => {
-            // Test without Catalyst license (default state)
-            const limitsWithoutCatalyst = manager.getProviderLimits();
-            const providersWithoutCatalyst = manager.getAllowedProviders();
+        test('should work the same regardless of Supernova status', async () => {
+            // Test without Supernova license (default state)
+            const limitsWithoutSupernova = manager.getProviderLimits();
+            const providersWithoutSupernova = manager.getAllowedProviders();
             
-            // Add Catalyst license
-            const catalystLicense = await licenseValidator.createTestCatalystLicense('test@example.com', 'annual');
-            await featureManager.updateCatalystLicense(catalystLicense);
+            // Add Supernova license
+            const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'annual');
+            await featureManager.updateSupernovaLicense(catalystLicense);
             
-            const limitsWithCatalyst = manager.getProviderLimits();
-            const providersWithCatalyst = manager.getAllowedProviders();
+            const limitsWithSupernova = manager.getProviderLimits();
+            const providersWithSupernova = manager.getAllowedProviders();
             
-            // Should be identical - Catalyst doesn't affect provider access
-            expect(limitsWithCatalyst).toEqual(limitsWithoutCatalyst);
-            expect(providersWithCatalyst).toEqual(providersWithoutCatalyst);
+            // Should be identical - Supernova doesn't affect provider access
+            expect(limitsWithSupernova).toEqual(limitsWithoutSupernova);
+            expect(providersWithSupernova).toEqual(providersWithoutSupernova);
             
-            expect(limitsWithCatalyst.local).toBe(Infinity);
-            expect(limitsWithCatalyst.cloud).toBe(Infinity);
+            expect(limitsWithSupernova.local).toBe(Infinity);
+            expect(limitsWithSupernova.cloud).toBe(Infinity);
         });
 
         test('should handle different provider configurations', () => {
@@ -242,7 +242,7 @@ describe('AIProviderManager', () => {
             const reorderedManager = new AIProviderManager(reorderedSettings, featureManager);
             const allowedProviders = reorderedManager.getAllowedProviders();
             
-            // In Catalyst model, all providers should be allowed regardless of order
+            // In Supernova model, all providers should be allowed regardless of order
             expect(allowedProviders).toContain('openai');
             expect(allowedProviders).toContain('ollama');
             expect(allowedProviders).toContain('google');

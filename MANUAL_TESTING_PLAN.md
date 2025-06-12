@@ -116,7 +116,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Multiple files maintain separate conversations
 - [ ] Context tracking works with split panes
 
-### 5. Command System (Catalyst Early Access)
+### 5. Command System (Supernova Early Access)
 
 #### Colon Trigger System
 - [ ] `:claude` switches to Claude
@@ -191,7 +191,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Workspace automatically activates conversation file when needed
 - [ ] Security validation works across all platforms (desktop/mobile)
 
-### 7. Auto-Growing Input (Catalyst Early Access)
+### 7. Auto-Growing Input (Supernova Early Access)
 - [ ] Input starts with appropriate default height
 - [ ] Input grows smoothly as content increases
 - [ ] Maximum height constraint works (6-8 lines)
@@ -219,15 +219,15 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 
 ### 9. Licensing & Feature Management
 
-#### Catalyst License Validation
-- [ ] Valid Catalyst license enables early access features
+#### Supernova License Validation
+- [ ] Valid Supernova license enables early access features
 - [ ] Invalid/expired license shows appropriate restrictions
 - [ ] License status displays correctly in settings
 - [ ] Feature access updates when license changes
 
 #### Feature Time Gates
-- [ ] Early access features work for Catalyst users
-- [ ] Features are properly gated for non-Catalyst users
+- [ ] Early access features work for Supernova users
+- [ ] Features are properly gated for non-Supernova users
 - [ ] "Coming Soon" messaging appropriate
 - [ ] Debug mode allows feature date overrides (dev only)
 

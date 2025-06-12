@@ -5,7 +5,7 @@ Your AI thinking partner that edits documents directly through natural conversat
 ## 🆕 What's New
 
 - **Custom Commands**: Create unlimited quick-access commands with `:` trigger
-- **Multi-Document Context** (SuperNova): Reference other notes in your conversations
+- **Multi-Document Context** (Supernova): Reference other notes in your conversations
 - **Auto-Growing Input**: Smart input that expands as you type
 - **Enhanced Settings**: Organized with collapsible sections and tables
 - **Mobile Command Picker**: Touch-friendly ⚡ button for all platforms
@@ -35,7 +35,7 @@ Your AI thinking partner that edits documents directly through natural conversat
 ### Intelligent Features
 - **File-Scoped Conversations**: Each document maintains its own chat history
 - **Context-Aware Editing**: AI understands your document structure
-- **Multi-Document Context** (SuperNova): Reference other documents with `[[Note Name]]`
+- **Multi-Document Context** (Supernova): Reference other documents with `[[Note Name]]`
 - **Undo Support**: All edits integrate with Obsidian's undo system
 - **Natural Language Commands**: Describe what you want in plain English
 - **Auto-Growing Input**: Smart input area that expands as you type
@@ -51,7 +51,7 @@ Your AI thinking partner that edits documents directly through natural conversat
 - ✅ Full document editing capabilities
 - ✅ Auto-growing input area
 
-### SuperNova (Premium)
+### Supernova (Premium)
 - ✅ **Everything in Core**, plus:
 - ⭐ **Mobile device access**
 - ⭐ **Unlimited AI providers** (Claude, OpenAI, Google, Ollama)
@@ -79,7 +79,7 @@ Your AI thinking partner that edits documents directly through natural conversat
 - Tap the ⚡ button for command picker (all platforms)
 - Create your own commands in settings
 
-### Multi-Document Context (SuperNova)
+### Multi-Document Context (Supernova)
 - Reference temporary context: `[[Other Note]]` - used for current request only
 - Reference persistent context: `+[[Other Note]]` - kept for entire conversation
 - Example: "Edit this section using ideas from [[Project Notes]]"
@@ -88,15 +88,15 @@ Your AI thinking partner that edits documents directly through natural conversat
 
 - Obsidian v1.0.0+
 - API key for at least one supported AI provider
-- For SuperNova: Valid license key
+- For Supernova: Valid license key
 
 ## License
 
 - **Nova Core**: Free for desktop use
-- **SuperNova**: Premium license required ([Get SuperNova](https://novawriter.ai/upgrade))
+- **Supernova**: Premium license required ([Get Supernova](https://novawriter.ai/upgrade))
 
 ## Support
 
 - [GitHub Issues](https://github.com/novawriter/nova-obsidian/issues)
 - [Documentation](https://docs.novawriter.ai)
-- SuperNova users: Priority support included
+- Supernova users: Priority support included

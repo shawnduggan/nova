@@ -49,7 +49,7 @@
 ### ✅ STATUS: Phase 0 (Monetization Pivot) COMPLETE
 - **All 502 tests passing** (including 9 metadata tests + 5 security tests)
 - **All Core/Supernova tier restrictions removed**
-- **Catalyst time-based feature system implemented**
+- **Supernova time-based feature system implemented**
 - **Command system fully implemented**
 - **Multi-document context with security enforcement**
 - **Professional UI/UX with native Obsidian design**
@@ -63,7 +63,7 @@
 ### Critical Tasks Remaining
 
 #### 📋 **NEXT PRIORITY: Fix Known Bugs**
-- [ ] Move "Show Command Button" setting to Custom Commands section and make it Catalyst-only
+- [ ] Move "Show Command Button" setting to Custom Commands section and make it Supernova-only
 - [ ] Fix Claude model refresh not working
 - [ ] Fix OpenAI model refresh showing duplicate models (need unique filtering)
 - [ ] Verify and fix Google/Gemini model refresh functionality
@@ -71,7 +71,7 @@
 - [ ] Error handling improvements and loading state optimizations
 
 #### 📋 **Documentation & Repository Prep** 
-- [ ] Update README.md with Catalyst model
+- [ ] Update README.md with Supernova model
 - [ ] Remove all Core/Supernova references from documentation
 - [ ] Prepare LICENSE.md for public repository
 - [ ] Create CONTRIBUTING.md
@@ -188,5 +188,5 @@ interface ChatMessage {
 - MVP only - no extra features
 - Working > Perfect  
 - One atomic change at a time
-- Build everything, gate for Catalyst value
+- Build everything, gate for Supernova value
 - **All completed work is archived in COMPLETED.md**

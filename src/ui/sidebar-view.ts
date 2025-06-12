@@ -537,7 +537,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('command-system')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025.'));
+			this.addMessage('system', this.createIconMessage('zap', 'Command system is currently in early access for Supernova supporters. Available to all users September 15, 2025.'));
 			return true;
 		}
 
@@ -779,7 +779,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025.'));
+			this.addMessage('system', this.createIconMessage('zap', 'Command button is currently in early access for Supernova supporters. Available to all users August 15, 2025.'));
 			return;
 		}
 
@@ -1391,7 +1391,7 @@ export class NovaSidebarView extends ItemView {
 			// Check for early access
 			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
 				if (message.includes('[[') || message.includes('+[[')) {
-					this.addMessage('system', this.createIconMessage('book-open', 'Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025.'));
+					this.addMessage('system', this.createIconMessage('book-open', 'Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.'));
 					return;
 				}
 			} else {

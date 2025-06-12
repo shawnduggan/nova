@@ -122,7 +122,7 @@ export class AIProviderManager {
 	}
 
 	getProviderLimits(): { local: number; cloud: number } {
-		// No limits in the Catalyst model
+		// No limits in the Supernova model
 		return { local: Infinity, cloud: Infinity };
 	}
 

@@ -1,11 +1,11 @@
 import { LicenseValidator } from './license-validator';
-import { CatalystLicense, FeatureFlag, FeatureAccessResult, DebugSettings, CatalystValidationResult } from './types';
-import { CATALYST_FEATURES, CORE_FEATURES, TimeGatedFeature } from './feature-config';
+import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings, SupernovaValidationResult } from './types';
+import { SUPERNOVA_FEATURES, CORE_FEATURES, TimeGatedFeature } from './feature-config';
 
 export class FeatureManager {
 	private features: Map<string, FeatureFlag> = new Map();
-	private catalystLicense: CatalystLicense | null = null;
-	private isCatalyst: boolean = false;
+	private supernovaLicense: SupernovaLicense | null = null;
+	private isSupernova: boolean = false;
 	private debugSettings: DebugSettings = { enabled: false };
 
 	constructor(
@@ -21,7 +21,7 @@ export class FeatureManager {
 	/**
 	 * Initialize all feature flags
 	 * Core features are always enabled
-	 * Time-gated features depend on current date and Catalyst status
+	 * Time-gated features depend on current date and Supernova status
 	 */
 	private initializeFeatureFlags(): void {
 		// Core features - always available to all users
@@ -34,7 +34,7 @@ export class FeatureManager {
 		});
 
 		// Time-gated features - available based on date
-		Object.entries(CATALYST_FEATURES).forEach(([key, config]) => {
+		Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
 			const enabled = this.isTimeGatedFeatureEnabled(key, config);
 			this.registerFeature({
 				key,
@@ -68,7 +68,7 @@ export class FeatureManager {
 	 */
 	private isTimeGatedFeatureEnabled(featureKey: string, config: TimeGatedFeature): boolean {
 		const now = this.getCurrentDate();
-		const catalystDate = new Date(config.catalystDate);
+		const supernovaDate = new Date(config.supernovaDate);
 		const generalDate = new Date(config.generalDate);
 
 		// Feature is available to everyone after general date
@@ -76,8 +76,8 @@ export class FeatureManager {
 			return true;
 		}
 
-		// Feature is available to Catalyst supporters after catalyst date
-		if (this.getIsCatalyst() && now >= catalystDate) {
+		// Feature is available to Supernova supporters after supernova date
+		if (this.getIsSupernova() && now >= supernovaDate) {
 			return true;
 		}
 
@@ -104,13 +104,13 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Get Catalyst status (can be overridden in debug mode)
+	 * Get Supernova status (can be overridden in debug mode)
 	 */
-	private getIsCatalyst(): boolean {
-		if (this.debugSettings.enabled && this.debugSettings.forceCatalyst !== undefined) {
-			return this.debugSettings.forceCatalyst;
+	private getIsSupernova(): boolean {
+		if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== undefined) {
+			return this.debugSettings.forceSupernova;
 		}
-		return this.isCatalyst;
+		return this.isSupernova;
 	}
 
 	/**
@@ -121,39 +121,39 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Update Catalyst license and recalculate feature availability
+	 * Update Supernova license and recalculate feature availability
 	 */
-	async updateCatalystLicense(licenseKey: string | null): Promise<void> {
+	async updateSupernovaLicense(licenseKey: string | null): Promise<void> {
 		if (!licenseKey) {
-			this.catalystLicense = null;
-			this.isCatalyst = false;
+			this.supernovaLicense = null;
+			this.isSupernova = false;
 		} else {
-			const validation = await this.licenseValidator.validateCatalystLicense(licenseKey);
+			const validation = await this.licenseValidator.validateSupernovaLicense(licenseKey);
 			if (validation.valid && validation.license) {
-				this.catalystLicense = validation.license;
-				this.isCatalyst = true;
+				this.supernovaLicense = validation.license;
+				this.isSupernova = true;
 			} else {
-				this.catalystLicense = null;
-				this.isCatalyst = false;
+				this.supernovaLicense = null;
+				this.isSupernova = false;
 			}
 		}
 
-		// Reinitialize features with updated Catalyst status
+		// Reinitialize features with updated Supernova status
 		this.initializeFeatureFlags();
 	}
 
 	/**
-	 * Get current Catalyst status
+	 * Get current Supernova status
 	 */
-	getIsCatalystSupporter(): boolean {
-		return this.getIsCatalyst();
+	isSupernovaSupporter(): boolean {
+		return this.getIsSupernova();
 	}
 
 	/**
-	 * Get current Catalyst license
+	 * Get current Supernova license
 	 */
-	getCatalystLicense(): CatalystLicense | null {
-		return this.catalystLicense;
+	getSupernovaLicense(): SupernovaLicense | null {
+		return this.supernovaLicense;
 	}
 
 	/**
@@ -213,24 +213,24 @@ export class FeatureManager {
 
 		// For time-gated features, provide more information
 		if (feature.isTimeGated) {
-			const config = CATALYST_FEATURES[featureKey];
+			const config = SUPERNOVA_FEATURES[featureKey];
 			if (config) {
 				const now = this.getCurrentDate();
 				const generalDate = new Date(config.generalDate);
-				const catalystDate = new Date(config.catalystDate);
+				const supernovaDate = new Date(config.supernovaDate);
 
-				if (this.getIsCatalyst() && now < catalystDate) {
+				if (this.getIsSupernova() && now < supernovaDate) {
 					return {
 						allowed: false,
-						reason: `This feature will be available to Catalyst supporters on ${config.catalystDate}`,
-						isCatalystFeature: true,
-						availableDate: catalystDate
+						reason: `This feature will be available to Supernova supporters on ${config.supernovaDate}`,
+						isSupernovaFeature: true,
+						availableDate: supernovaDate
 					};
-				} else if (!this.getIsCatalyst() && now < generalDate) {
+				} else if (!this.getIsSupernova() && now < generalDate) {
 					return {
 						allowed: false,
-						reason: `This feature is currently in early access for Catalyst supporters. It will be available to all users on ${config.generalDate}`,
-						isCatalystFeature: true,
+						reason: `This feature is currently in early access for Supernova supporters. It will be available to all users on ${config.generalDate}`,
+						isSupernovaFeature: true,
 						availableDate: generalDate
 					};
 				}
@@ -251,9 +251,9 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Get all Catalyst early access features
+	 * Get all Supernova early access features
 	 */
-	getCatalystFeatures(): FeatureFlag[] {
+	getSupernovaFeatures(): FeatureFlag[] {
 		return Array.from(this.features.values()).filter(feature => 
 			feature.isTimeGated && feature.earlyAccessOnly
 		);
@@ -279,31 +279,31 @@ export class FeatureManager {
 	 * Get feature summary
 	 */
 	getFeatureSummary(): { 
-		isCatalyst: boolean; 
+		isSupernova: boolean; 
 		enabled: string[]; 
-		comingSoon: Array<{key: string; availableDate: string; isCatalyst: boolean}> 
+		comingSoon: Array<{key: string; availableDate: string; isSupernova: boolean}> 
 	} {
 		const enabled: string[] = [];
-		const comingSoon: Array<{key: string; availableDate: string; isCatalyst: boolean}> = [];
+		const comingSoon: Array<{key: string; availableDate: string; isSupernova: boolean}> = [];
 
 		for (const [key, feature] of this.features) {
 			if (feature.enabled) {
 				enabled.push(key);
 			} else if (feature.isTimeGated) {
-				const config = CATALYST_FEATURES[key];
+				const config = SUPERNOVA_FEATURES[key];
 				if (config) {
-					const isCatalystUser = this.getIsCatalyst();
+					const isSupernovaUser = this.getIsSupernova();
 					comingSoon.push({
 						key,
-						availableDate: isCatalystUser ? config.catalystDate : config.generalDate,
-						isCatalyst: isCatalystUser
+						availableDate: isSupernovaUser ? config.supernovaDate : config.generalDate,
+						isSupernova: isSupernovaUser
 					});
 				}
 			}
 		}
 
 		return { 
-			isCatalyst: this.getIsCatalyst(), 
+			isSupernova: this.getIsSupernova(), 
 			enabled, 
 			comingSoon 
 		};

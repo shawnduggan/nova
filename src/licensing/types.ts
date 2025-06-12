@@ -8,7 +8,7 @@ export interface License {
 
 // Removed LicenseTier - no longer using tier-based system
 
-export interface CatalystLicense {
+export interface SupernovaLicense {
 	email: string;
 	type: 'annual' | 'lifetime';
 	expiresAt: Date | null; // null for lifetime
@@ -23,9 +23,9 @@ export interface LicenseValidationResult {
 	error?: LicenseError;
 }
 
-export interface CatalystValidationResult {
+export interface SupernovaValidationResult {
 	valid: boolean;
-	license?: CatalystLicense;
+	license?: SupernovaLicense;
 	error?: LicenseError;
 }
 
@@ -50,7 +50,7 @@ export interface FeatureFlag {
 export interface FeatureAccessResult {
 	allowed: boolean;
 	reason?: string;
-	isCatalystFeature?: boolean;
+	isSupernovaFeature?: boolean;
 	availableDate?: Date;
 }
 
@@ -58,5 +58,5 @@ export interface FeatureAccessResult {
 export interface DebugSettings {
 	enabled: boolean;
 	overrideDate?: string; // Allow date override for testing time gates
-	forceCatalyst?: boolean; // Force Catalyst status for testing
+	forceSupernova?: boolean; // Force Supernova status for testing
 }

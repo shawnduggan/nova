@@ -910,7 +910,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
   async handleColonCommand(message) {
     var _a;
     if (!this.plugin.featureManager.isFeatureEnabled("command-system")) {
-      this.addMessage("system", this.createIconMessage("zap", "Command system is currently in early access for Catalyst supporters. Available to all users September 15, 2025."));
+      this.addMessage("system", this.createIconMessage("zap", "Command system is currently in early access for Supernova supporters. Available to all users September 15, 2025."));
       return true;
     }
     const command = message.slice(1).toLowerCase();
@@ -1104,7 +1104,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
   }
   toggleCommandMenu() {
     if (!this.plugin.featureManager.isFeatureEnabled("command-button")) {
-      this.addMessage("system", this.createIconMessage("zap", "Command button is currently in early access for Catalyst supporters. Available to all users August 15, 2025."));
+      this.addMessage("system", this.createIconMessage("zap", "Command button is currently in early access for Supernova supporters. Available to all users August 15, 2025."));
       return;
     }
     if (this.isCommandMenuVisible) {
@@ -1599,7 +1599,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
     if (this.currentFile) {
       if (!this.plugin.featureManager.isFeatureEnabled("multi-doc-context")) {
         if (message.includes("[[") || message.includes("+[[")) {
-          this.addMessage("system", this.createIconMessage("book-open", "Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025."));
+          this.addMessage("system", this.createIconMessage("book-open", "Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025."));
           return;
         }
       } else {
@@ -2249,12 +2249,12 @@ var DEFAULT_SETTINGS = {
   },
   licensing: {
     licenseKey: "",
-    catalystLicenseKey: "",
-    isCatalyst: false,
+    supernovaLicenseKey: "",
+    isSupernova: false,
     debugSettings: {
       enabled: false,
       overrideDate: void 0,
-      forceCatalyst: false
+      forceSupernova: false
     }
   }
 };
@@ -2277,43 +2277,43 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
     var _a, _b;
     const { containerEl } = this;
     const licenseContainer = containerEl.createDiv({ cls: "nova-license-section" });
-    licenseContainer.createEl("h3", { text: "Catalyst Supporter Status" });
+    licenseContainer.createEl("h3", { text: "Supernova Supporter Status" });
     const infoEl = licenseContainer.createDiv({ cls: "nova-model-info" });
     infoEl.innerHTML = `
 			<div class="nova-info-card compact">
 				<p>Nova provides all features for free when you use your own AI provider API keys. 
-				Catalyst supporters get early access to new features.</p>
+				Supernova supporters get early access to new features.</p>
 			</div>
 		`;
-    const isCatalyst = ((_a = this.plugin.featureManager) == null ? void 0 : _a.getIsCatalystSupporter()) || false;
-    const catalystLicense = (_b = this.plugin.featureManager) == null ? void 0 : _b.getCatalystLicense();
-    const statusDisplay = licenseContainer.createDiv({ cls: "nova-catalyst-status" });
-    const statusText = isCatalyst ? "Catalyst Supporter" : "Nova User";
-    const statusIcon = isCatalyst ? "\u26A1" : "\u2605";
+    const isSupernova = ((_a = this.plugin.featureManager) == null ? void 0 : _a.isSupernovaSupporter()) || false;
+    const supernovaLicense = (_b = this.plugin.featureManager) == null ? void 0 : _b.getSupernovaLicense();
+    const statusDisplay = licenseContainer.createDiv({ cls: "nova-supernova-status" });
+    const statusText = isSupernova ? "Supernova Supporter" : "Nova User";
+    const statusIcon = isSupernova ? "\u26A1" : "\u2605";
     statusDisplay.innerHTML = `
-			<div class="nova-status-badge ${isCatalyst ? "catalyst" : "nova"}">
+			<div class="nova-status-badge ${isSupernova ? "supernova" : "nova"}">
 				<span class="status-icon">${statusIcon}</span>
 				<span class="status-name">${statusText}</span>
 			</div>
 		`;
-    if (catalystLicense) {
+    if (supernovaLicense) {
       const statusEl = licenseContainer.createDiv({ cls: "nova-license-status" });
-      const expiryText = catalystLicense.expiresAt ? `Expires: ${catalystLicense.expiresAt.toLocaleDateString()}` : "Lifetime Support";
+      const expiryText = supernovaLicense.expiresAt ? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}` : "Lifetime Support";
       statusEl.innerHTML = `
 				<div class="license-info">
-					<span class="license-email">${catalystLicense.email}</span>
+					<span class="license-email">${supernovaLicense.email}</span>
 					<span class="license-expiry">${expiryText}</span>
 				</div>
 			`;
     }
-    new import_obsidian3.Setting(licenseContainer).setName("Catalyst License Key (Optional)").setDesc("Enter your Catalyst supporter license key for early access to new features").addText((text) => {
+    new import_obsidian3.Setting(licenseContainer).setName("Supernova License Key (Optional)").setDesc("Enter your Supernova supporter license key for early access to new features").addText((text) => {
       var _a2;
       text.inputEl.type = "password";
-      text.setPlaceholder("Enter Catalyst license key...").setValue(this.plugin.settings.licensing.catalystLicenseKey || "").onChange(async (value) => {
-        this.plugin.settings.licensing.catalystLicenseKey = value;
+      text.setPlaceholder("Enter Supernova license key...").setValue(this.plugin.settings.licensing.supernovaLicenseKey || "").onChange(async (value) => {
+        this.plugin.settings.licensing.supernovaLicenseKey = value;
         await this.plugin.saveSettings();
         if (this.plugin.featureManager) {
-          await this.plugin.featureManager.updateCatalystLicense(value || null);
+          await this.plugin.featureManager.updateSupernovaLicense(value || null);
           this.display();
         }
       });
@@ -2325,24 +2325,24 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
         validateButton.addEventListener("click", async () => {
           const licenseKey = text.inputEl.value;
           if (!licenseKey) {
-            this.showLicenseMessage("Please enter a Catalyst license key first.", "error");
+            this.showLicenseMessage("Please enter a Supernova license key first.", "error");
             return;
           }
           validateButton.textContent = "Validating...";
           validateButton.disabled = true;
           try {
             if (this.plugin.featureManager) {
-              await this.plugin.featureManager.updateCatalystLicense(licenseKey);
-              const isCatalyst2 = this.plugin.featureManager.getIsCatalystSupporter();
-              if (isCatalyst2) {
-                this.showLicenseMessage("Valid Catalyst license! You now have early access to new features.", "success");
+              await this.plugin.featureManager.updateSupernovaLicense(licenseKey);
+              const isSupernova2 = this.plugin.featureManager.isSupernovaSupporter();
+              if (isSupernova2) {
+                this.showLicenseMessage("Valid Supernova license! You now have early access to new features.", "success");
               } else {
-                this.showLicenseMessage("Invalid or expired Catalyst license key.", "error");
+                this.showLicenseMessage("Invalid or expired Supernova license key.", "error");
               }
               this.display();
             }
           } catch (error) {
-            this.showLicenseMessage("Error validating Catalyst license.", "error");
+            this.showLicenseMessage("Error validating Supernova license.", "error");
           } finally {
             validateButton.textContent = "Validate";
             validateButton.disabled = false;
@@ -2350,16 +2350,16 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
         });
       }
     });
-    this.createCatalystInfo(licenseContainer);
+    this.createSupernovaInfo(licenseContainer);
     if (true) {
       this.createDebugSettings(licenseContainer);
     }
   }
-  createCatalystInfo(container) {
-    const catalystInfo = container.createDiv({ cls: "nova-catalyst-info" });
-    catalystInfo.innerHTML = `
+  createSupernovaInfo(container) {
+    const supernovaInfo = container.createDiv({ cls: "nova-supernova-info" });
+    supernovaInfo.innerHTML = `
 			<div class="nova-info-card">
-				<h5>Become a Catalyst Supporter</h5>
+				<h5>Become a Supernova Supporter</h5>
 				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
 				<ul>
 					<li>Early access to new features (3-6 months before general release)</li>
@@ -2389,8 +2389,8 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
           this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
         }
       }));
-      new import_obsidian3.Setting(debugContainer).setName("Force Catalyst Status").setDesc("Override Catalyst supporter status for testing").addToggle((toggle) => toggle.setValue(this.plugin.settings.licensing.debugSettings.forceCatalyst || false).onChange(async (value) => {
-        this.plugin.settings.licensing.debugSettings.forceCatalyst = value;
+      new import_obsidian3.Setting(debugContainer).setName("Force Supernova Status").setDesc("Override Supernova supporter status for testing").addToggle((toggle) => toggle.setValue(this.plugin.settings.licensing.debugSettings.forceSupernova || false).onChange(async (value) => {
+        this.plugin.settings.licensing.debugSettings.forceSupernova = value;
         await this.plugin.saveSettings();
         if (this.plugin.featureManager) {
           this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
@@ -2788,9 +2788,9 @@ var NovaSettingTab = class extends import_obsidian3.PluginSettingTab {
       const noticeEl = commandContainer.createDiv({ cls: "nova-feature-notice" });
       noticeEl.innerHTML = `
 				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Catalyst Supporter Feature</h4>
+					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Supernova Supporter Feature</h4>
 					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						Custom commands are currently available to Catalyst supporters. 
+						Custom commands are currently available to Supernova supporters. 
 						They will be available to all users on <strong>October 1, 2025</strong>.
 					</p>
 				</div>
@@ -7372,10 +7372,10 @@ var MetadataCommand = class {
 };
 
 // src/licensing/feature-config.ts
-var CATALYST_FEATURES = {
+var SUPERNOVA_FEATURES = {
   // Command system - 3 month early access
   "command-system": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-09-15",
     // 3 months later
@@ -7383,7 +7383,7 @@ var CATALYST_FEATURES = {
   },
   // Multi-document context - 2 month early access  
   "multi-doc-context": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-08-15",
     // 2 months later
@@ -7391,7 +7391,7 @@ var CATALYST_FEATURES = {
   },
   // Auto-growing input - 1 month early access
   "auto-input": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-07-15",
     // 1 month later
@@ -7399,7 +7399,7 @@ var CATALYST_FEATURES = {
   },
   // Command button - 2 month early access
   "command-button": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-08-15",
     // 2 months later
@@ -7407,7 +7407,7 @@ var CATALYST_FEATURES = {
   },
   // Custom commands - 3.5 month early access
   "custom-commands": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-10-01",
     // Available to all Oct 1, 2025
@@ -7415,7 +7415,7 @@ var CATALYST_FEATURES = {
   },
   // Enhanced provider management - 2 month early access
   "enhanced-providers": {
-    catalystDate: "2025-06-15",
+    supernovaDate: "2025-06-15",
     // Launch day
     generalDate: "2025-08-15",
     // 2 months later
@@ -7446,8 +7446,8 @@ var FeatureManager = class {
   constructor(licenseValidator, debugSettings) {
     this.licenseValidator = licenseValidator;
     this.features = /* @__PURE__ */ new Map();
-    this.catalystLicense = null;
-    this.isCatalyst = false;
+    this.supernovaLicense = null;
+    this.isSupernova = false;
     this.debugSettings = { enabled: false };
     if (debugSettings) {
       this.debugSettings = debugSettings;
@@ -7457,7 +7457,7 @@ var FeatureManager = class {
   /**
    * Initialize all feature flags
    * Core features are always enabled
-   * Time-gated features depend on current date and Catalyst status
+   * Time-gated features depend on current date and Supernova status
    */
   initializeFeatureFlags() {
     CORE_FEATURES.forEach((featureKey) => {
@@ -7467,7 +7467,7 @@ var FeatureManager = class {
         description: this.getCoreFeatureDescription(featureKey)
       });
     });
-    Object.entries(CATALYST_FEATURES).forEach(([key, config]) => {
+    Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
       const enabled = this.isTimeGatedFeatureEnabled(key, config);
       this.registerFeature({
         key,
@@ -7499,12 +7499,12 @@ var FeatureManager = class {
    */
   isTimeGatedFeatureEnabled(featureKey, config) {
     const now = this.getCurrentDate();
-    const catalystDate = new Date(config.catalystDate);
+    const supernovaDate = new Date(config.supernovaDate);
     const generalDate = new Date(config.generalDate);
     if (now >= generalDate) {
       return true;
     }
-    if (this.getIsCatalyst() && now >= catalystDate) {
+    if (this.getIsSupernova() && now >= supernovaDate) {
       return true;
     }
     return false;
@@ -7527,13 +7527,13 @@ var FeatureManager = class {
     return /* @__PURE__ */ new Date();
   }
   /**
-   * Get Catalyst status (can be overridden in debug mode)
+   * Get Supernova status (can be overridden in debug mode)
    */
-  getIsCatalyst() {
-    if (this.debugSettings.enabled && this.debugSettings.forceCatalyst !== void 0) {
-      return this.debugSettings.forceCatalyst;
+  getIsSupernova() {
+    if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== void 0) {
+      return this.debugSettings.forceSupernova;
     }
-    return this.isCatalyst;
+    return this.isSupernova;
   }
   /**
    * Register a new feature flag
@@ -7542,35 +7542,35 @@ var FeatureManager = class {
     this.features.set(flag.key, flag);
   }
   /**
-   * Update Catalyst license and recalculate feature availability
+   * Update Supernova license and recalculate feature availability
    */
-  async updateCatalystLicense(licenseKey) {
+  async updateSupernovaLicense(licenseKey) {
     if (!licenseKey) {
-      this.catalystLicense = null;
-      this.isCatalyst = false;
+      this.supernovaLicense = null;
+      this.isSupernova = false;
     } else {
-      const validation = await this.licenseValidator.validateCatalystLicense(licenseKey);
+      const validation = await this.licenseValidator.validateSupernovaLicense(licenseKey);
       if (validation.valid && validation.license) {
-        this.catalystLicense = validation.license;
-        this.isCatalyst = true;
+        this.supernovaLicense = validation.license;
+        this.isSupernova = true;
       } else {
-        this.catalystLicense = null;
-        this.isCatalyst = false;
+        this.supernovaLicense = null;
+        this.isSupernova = false;
       }
     }
     this.initializeFeatureFlags();
   }
   /**
-   * Get current Catalyst status
+   * Get current Supernova status
    */
-  getIsCatalystSupporter() {
-    return this.getIsCatalyst();
+  isSupernovaSupporter() {
+    return this.getIsSupernova();
   }
   /**
-   * Get current Catalyst license
+   * Get current Supernova license
    */
-  getCatalystLicense() {
-    return this.catalystLicense;
+  getSupernovaLicense() {
+    return this.supernovaLicense;
   }
   /**
    * Check if a feature is enabled
@@ -7620,23 +7620,23 @@ var FeatureManager = class {
       return { allowed: true };
     }
     if (feature.isTimeGated) {
-      const config = CATALYST_FEATURES[featureKey];
+      const config = SUPERNOVA_FEATURES[featureKey];
       if (config) {
         const now = this.getCurrentDate();
         const generalDate = new Date(config.generalDate);
-        const catalystDate = new Date(config.catalystDate);
-        if (this.getIsCatalyst() && now < catalystDate) {
+        const supernovaDate = new Date(config.supernovaDate);
+        if (this.getIsSupernova() && now < supernovaDate) {
           return {
             allowed: false,
-            reason: `This feature will be available to Catalyst supporters on ${config.catalystDate}`,
-            isCatalystFeature: true,
-            availableDate: catalystDate
+            reason: `This feature will be available to Supernova supporters on ${config.supernovaDate}`,
+            isSupernovaFeature: true,
+            availableDate: supernovaDate
           };
-        } else if (!this.getIsCatalyst() && now < generalDate) {
+        } else if (!this.getIsSupernova() && now < generalDate) {
           return {
             allowed: false,
-            reason: `This feature is currently in early access for Catalyst supporters. It will be available to all users on ${config.generalDate}`,
-            isCatalystFeature: true,
+            reason: `This feature is currently in early access for Supernova supporters. It will be available to all users on ${config.generalDate}`,
+            isSupernovaFeature: true,
             availableDate: generalDate
           };
         }
@@ -7654,9 +7654,9 @@ var FeatureManager = class {
     return Array.from(this.features.values()).filter((feature) => feature.enabled);
   }
   /**
-   * Get all Catalyst early access features
+   * Get all Supernova early access features
    */
-  getCatalystFeatures() {
+  getSupernovaFeatures() {
     return Array.from(this.features.values()).filter(
       (feature) => feature.isTimeGated && feature.earlyAccessOnly
     );
@@ -7684,19 +7684,19 @@ var FeatureManager = class {
       if (feature.enabled) {
         enabled.push(key);
       } else if (feature.isTimeGated) {
-        const config = CATALYST_FEATURES[key];
+        const config = SUPERNOVA_FEATURES[key];
         if (config) {
-          const isCatalystUser = this.getIsCatalyst();
+          const isSupernovaUser = this.getIsSupernova();
           comingSoon.push({
             key,
-            availableDate: isCatalystUser ? config.catalystDate : config.generalDate,
-            isCatalyst: isCatalystUser
+            availableDate: isSupernovaUser ? config.supernovaDate : config.generalDate,
+            isSupernova: isSupernovaUser
           });
         }
       }
     }
     return {
-      isCatalyst: this.getIsCatalyst(),
+      isSupernova: this.getIsSupernova(),
       enabled,
       comingSoon
     };
@@ -7839,18 +7839,18 @@ var LicenseValidator = class {
     return this.base64Encode(licenseData);
   }
   /**
-   * Validates a Catalyst license key
+   * Validates a Supernova license key
    */
-  async validateCatalystLicense(licenseKey) {
+  async validateSupernovaLicense(licenseKey) {
     try {
-      const license = this.parseCatalystLicenseKey(licenseKey);
+      const license = this.parseSupernovaLicenseKey(licenseKey);
       if (!license) {
         return {
           valid: false,
           error: "INVALID_FORMAT" /* INVALID_FORMAT */
         };
       }
-      const validationError = await this.validateCatalystLicenseObject(license);
+      const validationError = await this.validateSupernovaLicenseObject(license);
       if (validationError) {
         return {
           valid: false,
@@ -7870,9 +7870,9 @@ var LicenseValidator = class {
     }
   }
   /**
-   * Parses a Catalyst license key string
+   * Parses a Supernova license key string
    */
-  parseCatalystLicenseKey(licenseKey) {
+  parseSupernovaLicenseKey(licenseKey) {
     try {
       const decoded = this.base64Decode(licenseKey);
       const parts = decoded.split("|");
@@ -7904,10 +7904,10 @@ var LicenseValidator = class {
     }
   }
   /**
-   * Validates a Catalyst license object
+   * Validates a Supernova license object
    */
-  async validateCatalystLicenseObject(license) {
-    const expectedSignature = await this.generateCatalystSignature(
+  async validateSupernovaLicenseObject(license) {
+    const expectedSignature = await this.generateSupernovaSignature(
       license.email,
       license.type,
       license.expiresAt,
@@ -7925,9 +7925,9 @@ var LicenseValidator = class {
     return null;
   }
   /**
-   * Generates HMAC-SHA256 signature for Catalyst license
+   * Generates HMAC-SHA256 signature for Supernova license
    */
-  async generateCatalystSignature(email, type, expiresAt, issuedAt) {
+  async generateSupernovaSignature(email, type, expiresAt, issuedAt) {
     const data = `${email}|${type}|${(expiresAt == null ? void 0 : expiresAt.toISOString()) || "lifetime"}|${issuedAt.toISOString()}`;
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.SECRET_KEY);
@@ -7943,12 +7943,12 @@ var LicenseValidator = class {
     return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   /**
-   * Creates a test Catalyst license for development
+   * Creates a test Supernova license for development
    */
-  async createTestCatalystLicense(email, type) {
+  async createTestSupernovaLicense(email, type) {
     const issuedAt = /* @__PURE__ */ new Date();
     const expiresAt = type === "lifetime" ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1e3);
-    const signature = await this.generateCatalystSignature(email, type, expiresAt, issuedAt);
+    const signature = await this.generateSupernovaSignature(email, type, expiresAt, issuedAt);
     const licenseData = `${email}|${type}|${(expiresAt == null ? void 0 : expiresAt.toISOString()) || "lifetime"}|${issuedAt.toISOString()}|${signature}`;
     return this.base64Encode(licenseData);
   }
@@ -7984,7 +7984,7 @@ var NovaPlugin = class extends import_obsidian6.Plugin {
         this.settings.licensing.debugSettings
       );
       if (this.settings.licensing.licenseKey) {
-        await this.featureManager.updateCatalystLicense(this.settings.licensing.licenseKey);
+        await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
       }
       console.log("Nova: feature manager initialized");
       (0, import_obsidian6.addIcon)("nova-star", NOVA_ICON_SVG);

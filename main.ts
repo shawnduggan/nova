@@ -69,7 +69,7 @@ export default class NovaPlugin extends Plugin {
 			
 			// Update license from settings
 			if (this.settings.licensing.licenseKey) {
-				await this.featureManager.updateCatalystLicense(this.settings.licensing.licenseKey);
+				await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
 			}
 			console.log('Nova: feature manager initialized');
 
