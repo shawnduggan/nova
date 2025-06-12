@@ -46,7 +46,8 @@ describe('AIProviderManager', () => {
             general: {
                 defaultTemperature: 0.7,
                 defaultMaxTokens: 1000,
-                autoSave: true
+                autoSave: true,
+                showCommandButton: true
             },
             licensing: {
                 licenseKey: '',

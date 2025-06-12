@@ -36,7 +36,9 @@ export class OpenAIProvider implements AIProvider {
 			requestMessages.unshift({ role: 'system', content: options.systemPrompt });
 		}
 
-		const response = await fetch(this.config.baseUrl || 'https://api.openai.com/v1/chat/completions', {
+		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
+		const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
+		const response = await fetch(endpoint, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -76,7 +78,9 @@ export class OpenAIProvider implements AIProvider {
 			requestMessages.unshift({ role: 'system', content: options.systemPrompt });
 		}
 
-		const response = await fetch(this.config.baseUrl || 'https://api.openai.com/v1/chat/completions', {
+		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
+		const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
+		const response = await fetch(endpoint, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',

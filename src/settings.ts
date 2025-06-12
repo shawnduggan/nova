@@ -19,6 +19,7 @@ export interface NovaSettings {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
 		autoSave: boolean;
+		showCommandButton: boolean;
 	};
 	licensing: {
 		licenseKey: string;
@@ -70,7 +71,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	general: {
 		defaultTemperature: 0.7,
 		defaultMaxTokens: 1000,
-		autoSave: true
+		autoSave: true,
+		showCommandButton: true
 	},
 	licensing: {
 		licenseKey: '',
@@ -112,10 +114,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Info about the new model
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
 		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<h4>All Features Available</h4>
+			<div class="nova-info-card compact">
 				<p>Nova provides all features for free when you use your own AI provider API keys. 
-				Catalyst supporters get early access to new features before they're released to everyone.</p>
+				Catalyst supporters get early access to new features.</p>
 			</div>
 		`;
 
@@ -208,8 +209,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				}
 			});
 
-		// Features comparison
-		this.createFeatureComparison(licenseContainer);
+		// Catalyst supporter information only
+		this.createCatalystInfo(licenseContainer);
 
 		// Debug settings (development only)
 		if (process.env.NODE_ENV === 'development' || this.plugin.settings.licensing.debugSettings.enabled) {
@@ -217,44 +218,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private createFeatureComparison(container: HTMLElement) {
-		const comparisonContainer = container.createDiv({ cls: 'nova-feature-comparison' });
-		comparisonContainer.createEl('h4', { text: 'Nova Features' });
-
-		// Feature summary
-		const summaryEl = comparisonContainer.createDiv({ cls: 'nova-feature-summary' });
-		summaryEl.innerHTML = `
-			<div class="nova-available-now">
-				<h5>Available Now (Free with Your API Keys)</h5>
-				<ul>
-					<li>All AI Providers (Claude, OpenAI, Gemini, Ollama)</li>
-					<li>Complete Document Editing Suite</li>
-					<li>Chat Interface with Conversation History</li>
-					<li>Provider Switching</li>
-					<li>Full Mobile Support</li>
-					<li>File-Scoped Conversations</li>
-				</ul>
-			</div>
-		`;
-
-		// Get upcoming features for Catalyst supporters
-		const featureSummary = this.plugin.featureManager?.getFeatureSummary();
-		if (featureSummary && featureSummary.comingSoon.length > 0) {
-			const upcomingEl = comparisonContainer.createDiv({ cls: 'nova-upcoming-features' });
-			upcomingEl.innerHTML = `
-				<div class="nova-catalyst-preview">
-					<h5>Coming Soon for Catalyst Supporters</h5>
-					<ul>
-						${featureSummary.comingSoon.map(feature => `
-							<li>Available ${feature.availableDate} ${feature.isCatalyst ? '(You have early access!)' : ''}</li>
-						`).join('')}
-					</ul>
-				</div>
-			`;
-		}
-
+	private createCatalystInfo(container: HTMLElement) {
 		// Catalyst supporter information
-		const catalystInfo = comparisonContainer.createDiv({ cls: 'nova-catalyst-info' });
+		const catalystInfo = container.createDiv({ cls: 'nova-catalyst-info' });
 		catalystInfo.innerHTML = `
 			<div class="nova-info-card">
 				<h5>Become a Catalyst Supporter</h5>
@@ -385,6 +351,20 @@ export class NovaSettingTab extends PluginSettingTab {
 					this.plugin.settings.general.autoSave = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName('Show Command Button in Chat')
+			.setDesc('Show the Commands button (⚡) beside the Send button for quick command access')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.general.showCommandButton)
+				.onChange(async (value) => {
+					this.plugin.settings.general.showCommandButton = value;
+					await this.plugin.saveSettings();
+					// Refresh sidebar view to show/hide the command button
+					if (this.plugin.sidebarView) {
+						this.plugin.sidebarView.refreshCommandButton();
+					}
+				}));
 	}
 
 	private createProviderSettings() {
@@ -446,7 +426,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		openaiContainer.createEl('h4', { text: 'OpenAI' });
+		openaiContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
 
 		new Setting(openaiContainer)
 			.setName('API Key')
@@ -547,9 +527,39 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createPlatformSettings() {
 		const { containerEl } = this;
-		containerEl.createEl('h3', { text: 'Platform Settings' });
+		
+		// Create collapsible header
+		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
+		headerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			cursor: pointer;
+			padding: 8px 0;
+			border-bottom: 1px solid var(--background-modifier-border);
+			margin-bottom: 16px;
+		`;
+		
+		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
+		arrowEl.innerHTML = '▶';
+		arrowEl.style.cssText = `
+			margin-right: 8px;
+			transition: transform 0.2s ease;
+			font-size: 12px;
+			color: var(--text-muted);
+		`;
+		
+		const titleEl = headerEl.createEl('h3', { text: 'Platform Settings' });
+		titleEl.style.cssText = 'margin: 0; flex: 1;';
 
 		const platformContainer = containerEl.createDiv({ cls: 'nova-platform-section' });
+		platformContainer.style.cssText = 'display: none;'; // Start collapsed
+		
+		// Toggle functionality
+		headerEl.addEventListener('click', () => {
+			const isVisible = platformContainer.style.display !== 'none';
+			platformContainer.style.display = isVisible ? 'none' : 'block';
+			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+		});
 		
 		// Info about platform settings
 		const infoEl = platformContainer.createDiv({ cls: 'nova-platform-info' });
@@ -614,7 +624,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	private getProviderDisplayName(provider: ProviderType): string {
 		const names: Record<ProviderType, string> = {
 			'claude': 'Claude (Anthropic)',
-			'openai': 'OpenAI',
+			'openai': 'ChatGPT (OpenAI)',
 			'google': 'Google (Gemini)', 
 			'ollama': 'Ollama (Local)',
 			'none': 'None (Disabled)'

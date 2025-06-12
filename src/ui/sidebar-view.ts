@@ -306,7 +306,7 @@ export class NovaSidebarView extends ItemView {
 			width: 36px;
 			height: 36px;
 			border-radius: 50%;
-			display: ${this.plugin.featureManager.isFeatureEnabled('command-button') ? 'flex' : 'none'};
+			display: ${this.shouldShowCommandButton() ? 'flex' : 'none'};
 			align-items: center;
 			justify-content: center;
 			padding: 0;
@@ -330,6 +330,9 @@ export class NovaSidebarView extends ItemView {
 			padding: 0;
 			flex-shrink: 0;
 		`;
+
+		// Update textarea width based on command button visibility
+		this.updateTextareaWidth();
 
 		// Enter key handling and command picker
 		this.textArea.inputEl.addEventListener('keydown', (event) => {
@@ -2116,6 +2119,38 @@ export class NovaSidebarView extends ItemView {
 		} catch (error) {
 			console.error('Error switching provider:', error);
 			this.addMessage('system', this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderDisplayName(providerType)}`));
+		}
+	}
+
+	/**
+	 * Check if the command button should be shown based on feature availability and user preference
+	 */
+	private shouldShowCommandButton(): boolean {
+		return this.plugin.featureManager.isFeatureEnabled('command-button') && 
+			   this.plugin.settings.general.showCommandButton;
+	}
+
+	/**
+	 * Refresh the command button visibility when settings change
+	 */
+	refreshCommandButton(): void {
+		if (this.commandButton) {
+			const shouldShow = this.shouldShowCommandButton();
+			this.commandButton.buttonEl.style.display = shouldShow ? 'flex' : 'none';
+			
+			// Adjust textarea width when command button visibility changes
+			this.updateTextareaWidth();
+		}
+	}
+
+	/**
+	 * Update textarea width based on whether command button is visible
+	 */
+	private updateTextareaWidth(): void {
+		if (this.textArea) {
+			const commandButtonVisible = this.shouldShowCommandButton();
+			const adjustment = commandButtonVisible ? '44px' : '0px'; // 36px button + 8px margin
+			this.textArea.inputEl.style.width = `calc(100% - 44px - ${adjustment})`;
 		}
 	}
 

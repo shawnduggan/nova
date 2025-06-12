@@ -52,6 +52,7 @@ export default class NovaPlugin extends Plugin {
 	featureManager!: FeatureManager;
 	licenseValidator!: LicenseValidator;
 	settingTab!: NovaSettingTab;
+	sidebarView!: NovaSidebarView;
 
 	async onload() {
 		try {
@@ -207,6 +208,11 @@ export default class NovaPlugin extends Plugin {
 		}
 
 		workspace.revealLeaf(leaf!);
+		
+		// Store reference to sidebar view
+		if (leaf?.view instanceof NovaSidebarView) {
+			this.sidebarView = leaf.view;
+		}
 	}
 
 	/**
