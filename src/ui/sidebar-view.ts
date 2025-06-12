@@ -211,6 +211,16 @@ export class NovaSidebarView extends ItemView {
 
 	private createInputInterface(container: HTMLElement) {
 		this.inputContainer = container.createDiv({ cls: 'nova-input-container' });
+		this.createInputArea();
+	}
+
+	/**
+	 * Create the input area UI elements
+	 */
+	private createInputArea() {
+		// Clear existing input area content
+		this.inputContainer.empty();
+		
 		this.inputContainer.style.cssText = `
 			display: flex;
 			flex-direction: column;
@@ -330,9 +340,6 @@ export class NovaSidebarView extends ItemView {
 			padding: 0;
 			flex-shrink: 0;
 		`;
-
-		// Update textarea width based on command button visibility
-		this.updateTextareaWidth();
 
 		// Enter key handling and command picker
 		this.textArea.inputEl.addEventListener('keydown', (event) => {
@@ -2126,32 +2133,46 @@ export class NovaSidebarView extends ItemView {
 	 * Check if the command button should be shown based on feature availability and user preference
 	 */
 	private shouldShowCommandButton(): boolean {
-		return this.plugin.featureManager.isFeatureEnabled('command-button') && 
-			   this.plugin.settings.general.showCommandButton;
+		return this.plugin.settings.general.showCommandButton;
 	}
 
 	/**
 	 * Refresh the command button visibility when settings change
 	 */
 	refreshCommandButton(): void {
-		if (this.commandButton) {
-			const shouldShow = this.shouldShowCommandButton();
-			this.commandButton.buttonEl.style.display = shouldShow ? 'flex' : 'none';
-			
-			// Adjust textarea width when command button visibility changes
-			this.updateTextareaWidth();
+		if (!this.inputContainer) return;
+		
+		// Save current textarea state
+		const currentText = this.textArea?.getValue() || '';
+		const cursorStart = this.textArea?.inputEl?.selectionStart || 0;
+		const cursorEnd = this.textArea?.inputEl?.selectionEnd || 0;
+		const hadFocus = this.textArea?.inputEl === document.activeElement;
+		
+		// Rebuild the input area
+		this.createInputArea();
+		
+		// Restore textarea state
+		if (this.textArea && currentText) {
+			this.textArea.setValue(currentText);
+			// Restore cursor position
+			setTimeout(() => {
+				if (this.textArea?.inputEl) {
+					this.textArea.inputEl.setSelectionRange(cursorStart, cursorEnd);
+					if (hadFocus) {
+						this.textArea.inputEl.focus();
+					}
+				}
+			}, 0);
 		}
 	}
 
 	/**
-	 * Update textarea width based on whether command button is visible
+	 * Update input row layout when command button visibility changes
 	 */
-	private updateTextareaWidth(): void {
-		if (this.textArea) {
-			const commandButtonVisible = this.shouldShowCommandButton();
-			const adjustment = commandButtonVisible ? '44px' : '0px'; // 36px button + 8px margin
-			this.textArea.inputEl.style.width = `calc(100% - 44px - ${adjustment})`;
-		}
+	private updateInputRowLayout(): void {
+		// No need to manually adjust textarea width - flexbox handles it
+		// The textarea container has flex: 1, so it will expand/contract automatically
+		// when the command button is shown/hidden
 	}
 
 }

@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings } from './licensing/types';
+import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
 
 export interface CustomCommand {
 	id: string;
@@ -271,8 +272,7 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 						
-						// Refresh display
-						this.display();
+						// Don't refresh display on every keystroke - just update the feature manager
 					}));
 
 			new Setting(debugContainer)
@@ -288,7 +288,7 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 						
-						// Refresh display
+						// Refresh display to show updated feature status
 						this.display();
 					}));
 		}
@@ -360,19 +360,54 @@ export class NovaSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.general.showCommandButton = value;
 					await this.plugin.saveSettings();
-					// Refresh sidebar view to show/hide the command button
-					if (this.plugin.sidebarView) {
-						this.plugin.sidebarView.refreshCommandButton();
+					
+					// Find and refresh sidebar view
+					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+					if (leaves.length > 0) {
+						const sidebarView = leaves[0].view as NovaSidebarView;
+						sidebarView.refreshCommandButton();
 					}
 				}));
 	}
 
 	private createProviderSettings() {
 		const { containerEl } = this;
-		containerEl.createEl('h3', { text: 'AI Provider Settings' });
+		
+		// Create collapsible header
+		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
+		headerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			cursor: pointer;
+			padding: 8px 0;
+			border-bottom: 1px solid var(--background-modifier-border);
+			margin-bottom: 16px;
+		`;
+		
+		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
+		arrowEl.innerHTML = '▶';
+		arrowEl.style.cssText = `
+			margin-right: 8px;
+			transition: transform 0.2s ease;
+			font-size: 12px;
+			color: var(--text-muted);
+		`;
+		
+		const titleEl = headerEl.createEl('h3', { text: 'AI Provider Settings' });
+		titleEl.style.cssText = 'margin: 0; flex: 1;';
+
+		const providerContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
+		providerContainer.style.cssText = 'display: none;'; // Start collapsed
+		
+		// Toggle functionality
+		headerEl.addEventListener('click', () => {
+			const isVisible = providerContainer.style.display !== 'none';
+			providerContainer.style.display = isVisible ? 'none' : 'block';
+			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+		});
 
 		// Info about API keys
-		const infoEl = containerEl.createDiv({ cls: 'nova-provider-info' });
+		const infoEl = providerContainer.createDiv({ cls: 'nova-provider-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
 				<h4>Configure Your API Keys</h4>
@@ -382,14 +417,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 
 		// Show all providers - no restrictions
-		this.createOllamaSettings();
-		this.createClaudeSettings();
-		this.createGoogleSettings();
-		this.createOpenAISettings();
+		this.createOllamaSettings(providerContainer);
+		this.createClaudeSettings(providerContainer);
+		this.createGoogleSettings(providerContainer);
+		this.createOpenAISettings(providerContainer);
 	}
 
-	private createClaudeSettings() {
-		const { containerEl } = this;
+	private createClaudeSettings(containerEl = this.containerEl) {
 		
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
@@ -422,8 +456,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 
-	private createOpenAISettings() {
-		const { containerEl } = this;
+	private createOpenAISettings(containerEl = this.containerEl) {
 		
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		openaiContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
@@ -465,8 +498,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private createGoogleSettings() {
-		const { containerEl } = this;
+	private createGoogleSettings(containerEl = this.containerEl) {
 		
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
@@ -497,8 +529,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private createOllamaSettings() {
-		const { containerEl } = this;
+	private createOllamaSettings(containerEl = this.containerEl) {
 		const ollamaContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		ollamaContainer.createEl('h4', { text: 'Ollama (Local)' });
 
@@ -644,17 +675,49 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createCommandSettings() {
 		const { containerEl } = this;
-		const commandContainer = containerEl.createDiv({ cls: 'nova-command-section' });
-		commandContainer.createEl('h3', { text: 'Custom Commands' });
+		
+		// Create collapsible header
+		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
+		headerEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			cursor: pointer;
+			padding: 8px 0;
+			border-bottom: 1px solid var(--background-modifier-border);
+			margin-bottom: 16px;
+		`;
+		
+		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
+		arrowEl.innerHTML = '▶';
+		arrowEl.style.cssText = `
+			margin-right: 8px;
+			transition: transform 0.2s ease;
+			font-size: 12px;
+			color: var(--text-muted);
+		`;
+		
+		const titleEl = headerEl.createEl('h3', { text: 'Custom Commands' });
+		titleEl.style.cssText = 'margin: 0; flex: 1;';
 
-		// Feature availability notice
+		const commandContainer = containerEl.createDiv({ cls: 'nova-command-section' });
+		commandContainer.style.cssText = 'display: none;'; // Start collapsed
+		
+		// Toggle functionality
+		headerEl.addEventListener('click', () => {
+			const isVisible = commandContainer.style.display !== 'none';
+			commandContainer.style.display = isVisible ? 'none' : 'block';
+			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+		});
+
+		// Feature availability check
 		if (!this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
 			const noticeEl = commandContainer.createDiv({ cls: 'nova-feature-notice' });
 			noticeEl.innerHTML = `
-				<div style="padding: 12px; background: var(--background-modifier-hover); border-radius: 8px; margin-bottom: 16px;">
+				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
+					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Catalyst Supporter Feature</h4>
 					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						Custom commands are currently in early access for Catalyst supporters. 
-						They will be available to all users on September 15, 2025.
+						Custom commands are currently available to Catalyst supporters. 
+						They will be available to all users on <strong>October 1, 2025</strong>.
 					</p>
 				</div>
 			`;
@@ -669,20 +732,20 @@ export class NovaSettingTab extends PluginSettingTab {
 			</p>
 		`;
 
-		// Commands list
-		this.renderCustomCommandsList(commandContainer);
-
-		// Add new command button
+		// Add new command button at the top
 		const buttonEl = commandContainer.createDiv({ cls: 'nova-add-command' });
-		buttonEl.style.cssText = 'margin-top: 16px;';
+		buttonEl.style.cssText = 'margin-bottom: 16px;';
 		
-		const addButton = new Setting(buttonEl)
+		new Setting(buttonEl)
 			.addButton(button => 
 				button
 					.setButtonText('+ Add Custom Command')
 					.setCta()
 					.onClick(() => this.showAddCommandDialog())
 			);
+
+		// Commands list
+		this.renderCustomCommandsList(commandContainer);
 	}
 
 	private renderCustomCommandsList(container: HTMLElement) {

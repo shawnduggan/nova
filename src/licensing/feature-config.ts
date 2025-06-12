@@ -40,10 +40,10 @@ export const CATALYST_FEATURES: Record<string, TimeGatedFeature> = {
         description: 'Command button for mobile and discovery'
     },
     
-    // Custom commands - 3 month early access
+    // Custom commands - 3.5 month early access
     'custom-commands': {
         catalystDate: '2025-06-15',  // Launch day
-        generalDate: '2025-09-15',   // 3 months later
+        generalDate: '2025-10-01',   // Available to all Oct 1, 2025
         description: 'User-defined custom command shortcuts'
     },
     

@@ -54,7 +54,36 @@
 
 ### June 12, 2025 - Latest Session Achievements
 
-**LATEST: Settings Improvements & Bug Fixes** ✅
+**LATEST: Settings UI Overhaul & Command Button Instant Toggle** ✅
+1. **Command Button Instant Toggle Implementation**
+   - Fixed command button toggle to work instantly without requiring Obsidian restart
+   - Implemented full input area rebuild with state preservation (textarea content, cursor position, focus)
+   - Fixed sidebar view lookup to find Nova view even when not actively focused
+   - Created `createInputArea()` method for clean input container rebuilds
+   - Removed restart notice from settings - toggle now works immediately
+   - All chat history, document context, and conversation state preserved during refresh
+
+2. **Settings UI Organization & Polish**
+   - Made Provider Settings collapsible with arrow toggle (matches Platform Settings design)
+   - Made Custom Commands collapsible section with proper Catalyst feature gating
+   - Added "Add Custom Command" button at top of Custom Commands section for easy access
+   - Custom Commands now show Catalyst supporter notice for non-supporters (available Oct 1, 2025)
+   - Fixed date input losing focus issue in Developer Settings (removed refresh on keystroke)
+
+3. **Technical Implementation Details**
+   - Added proper sidebar view lookup using `getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR)`
+   - Implemented state preservation during input area rebuild (text, cursor, focus)
+   - Added comprehensive Custom Commands feature gating with time-based release
+   - Updated Custom Commands general release date to October 1, 2025
+   - Removed all debug logging for clean production code
+
+4. **Quality Assurance**
+   - All functionality tested and working immediately
+   - No restart required for any setting changes
+   - Clean, professional settings UI with consistent collapsible sections
+   - Custom Commands properly gated as Catalyst feature with clear messaging
+
+**PREVIOUS: Settings Improvements & Bug Fixes** ✅
 1. **Settings UI Improvements**
    - Reduced Catalyst callout size with compact styling
    - Removed Nova Features header and section, keeping only Catalyst supporter info

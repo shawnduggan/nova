@@ -62,7 +62,7 @@
 
 ### Critical Tasks Remaining
 
-#### 📋 **NEXT PRIORITY: Fix Known Bugs** 
+#### 📋 **NEXT PRIORITY: Fix Known Bugs**
 - [ ] Add model refresh buttons for commercial providers with dropdown selection instead of textbox
 - [ ] Mobile performance testing on actual devices
 - [ ] Error handling improvements and loading state optimizations
