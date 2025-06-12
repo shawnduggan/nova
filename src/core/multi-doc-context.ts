@@ -21,9 +21,6 @@ export interface DocumentReference {
 }
 
 export interface MultiDocContext {
-    /** Documents referenced in current message */
-    temporaryDocs: DocumentReference[];
-    
     /** Documents in persistent context */
     persistentDocs: DocumentReference[];
     
@@ -177,7 +174,6 @@ export class MultiDocContextHandler {
         return {
             cleanedMessage,
             context: {
-                temporaryDocs: [], // No more temporary docs
                 persistentDocs: allPersistentDocs,
                 contextString,
                 tokenCount,
@@ -304,7 +300,7 @@ export class MultiDocContextHandler {
         className: string;
         tooltip: string;
     } {
-        const docCount = context.temporaryDocs.length + context.persistentDocs.length;
+        const docCount = context.persistentDocs.length;
         const percentage = Math.round((context.tokenCount / this.TOKEN_LIMIT) * 100);
         
         let className = 'nova-context-indicator';
@@ -328,11 +324,6 @@ export class MultiDocContextHandler {
         
         // Add persistent documents
         for (const doc of context.persistentDocs) {
-            items.push(`+${doc.file.basename}${doc.property ? `#${doc.property}` : ''}`);
-        }
-        
-        // Add temporary documents
-        for (const doc of context.temporaryDocs) {
             items.push(`${doc.file.basename}${doc.property ? `#${doc.property}` : ''}`);
         }
         

@@ -238,13 +238,12 @@ describe('MultiDocContextHandler', () => {
 			
 			const formatted = multiDocContext.formatContextForDisplay(result.context);
 			
-			expect(formatted).toContain('+document1');
-			expect(formatted).toContain('+document2#title');
+			expect(formatted).toContain('document1');
+			expect(formatted).toContain('document2#title');
 		});
 
 		it('should handle empty context', () => {
 			const emptyContext = {
-				temporaryDocs: [],
 				persistentDocs: [],
 				contextString: '',
 				tokenCount: 0,

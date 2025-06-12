@@ -1528,8 +1528,6 @@ var MultiDocContextHandler = class {
     return {
       cleanedMessage,
       context: {
-        temporaryDocs: [],
-        // No more temporary docs
         persistentDocs: allPersistentDocs,
         contextString,
         tokenCount,
@@ -1627,7 +1625,7 @@ ${truncatedContent}${wasTruncated ? "\n\n[... truncated for brevity ...]" : ""}`
    * Get visual indicators for context state
    */
   getContextIndicators(context) {
-    const docCount = context.temporaryDocs.length + context.persistentDocs.length;
+    const docCount = context.persistentDocs.length;
     const percentage = Math.round(context.tokenCount / this.TOKEN_LIMIT * 100);
     let className = "nova-context-indicator";
     let tooltip = `Context: ${docCount} document${docCount !== 1 ? "s" : ""}, ~${context.tokenCount} tokens`;
@@ -1644,9 +1642,6 @@ ${truncatedContent}${wasTruncated ? "\n\n[... truncated for brevity ...]" : ""}`
   formatContextForDisplay(context) {
     const items = [];
     for (const doc of context.persistentDocs) {
-      items.push(`+${doc.file.basename}${doc.property ? `#${doc.property}` : ""}`);
-    }
-    for (const doc of context.temporaryDocs) {
       items.push(`${doc.file.basename}${doc.property ? `#${doc.property}` : ""}`);
     }
     return items;
