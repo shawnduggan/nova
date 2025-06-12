@@ -100,7 +100,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
-		clearButton.setButtonText('Clear')
+		clearButton.setButtonText('🧹')
 			.setTooltip('Clear conversation history')
 			.onClick(() => this.clearChat());
 
