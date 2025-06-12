@@ -58,11 +58,11 @@ export class MultiDocContextHandler {
         let cleanedMessage = message;
 
         // Pattern to match [[doc]] and +[[doc]] with optional property
+        // Note: All document references are now persistent for simplified UX
         const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
         
         let match;
         while ((match = refPattern.exec(message)) !== null) {
-            const isPersistent = !!match[1];
             const docName = match[2];
             const property = match[3];
             const rawReference = match[0];
@@ -73,7 +73,7 @@ export class MultiDocContextHandler {
             if (file) {
                 references.push({
                     file,
-                    isPersistent,
+                    isPersistent: true, // All references are now persistent
                     rawReference,
                     property
                 });
@@ -110,14 +110,30 @@ export class MultiDocContextHandler {
         // Parse current message
         const { cleanedMessage, references } = this.parseMessage(message, currentFile.path);
 
-        // Get persistent context for this conversation
-        const persistentDocs = this.persistentContext.get(currentFile.path) || [];
-
-        // Build context string
-        const contextParts: string[] = [];
-        const allDocs = [...persistentDocs, ...references];
+        // Get existing persistent context for this conversation
+        const existingPersistent = this.persistentContext.get(currentFile.path) || [];
         
-        for (const docRef of allDocs) {
+        // Add new references to persistent context (all references are now persistent)
+        if (references.length > 0) {
+            const updatedPersistent = [...existingPersistent];
+            
+            // Add new references that aren't already in persistent context
+            for (const ref of references) {
+                const exists = updatedPersistent.some(existing => existing.file.path === ref.file.path);
+                if (!exists) {
+                    updatedPersistent.push(ref);
+                }
+            }
+            
+            this.persistentContext.set(currentFile.path, updatedPersistent);
+        }
+        
+        // Get final persistent context (including newly added docs)
+        const allPersistentDocs = this.persistentContext.get(currentFile.path) || [];
+
+        // Build context string from all persistent documents
+        const contextParts: string[] = [];
+        for (const docRef of allPersistentDocs) {
             const contextPart = await this.getDocumentContext(docRef);
             if (contextPart) {
                 contextParts.push(contextPart);
@@ -131,8 +147,8 @@ export class MultiDocContextHandler {
         return {
             cleanedMessage,
             context: {
-                temporaryDocs: references.filter(r => !r.isPersistent),
-                persistentDocs,
+                temporaryDocs: [], // No more temporary docs
+                persistentDocs: allPersistentDocs,
                 contextString,
                 tokenCount,
                 isNearLimit

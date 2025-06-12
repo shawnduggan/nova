@@ -1462,7 +1462,6 @@ var MultiDocContextHandler = class {
     const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
     let match;
     while ((match = refPattern.exec(message)) !== null) {
-      const isPersistent = !!match[1];
       const docName = match[2];
       const property = match[3];
       const rawReference = match[0];
@@ -1470,7 +1469,8 @@ var MultiDocContextHandler = class {
       if (file) {
         references.push({
           file,
-          isPersistent,
+          isPersistent: true,
+          // All references are now persistent
           rawReference,
           property
         });
@@ -1490,10 +1490,20 @@ var MultiDocContextHandler = class {
    */
   async buildContext(message, currentFile, conversationData) {
     const { cleanedMessage, references } = this.parseMessage(message, currentFile.path);
-    const persistentDocs = this.persistentContext.get(currentFile.path) || [];
+    const existingPersistent = this.persistentContext.get(currentFile.path) || [];
+    if (references.length > 0) {
+      const updatedPersistent = [...existingPersistent];
+      for (const ref of references) {
+        const exists = updatedPersistent.some((existing) => existing.file.path === ref.file.path);
+        if (!exists) {
+          updatedPersistent.push(ref);
+        }
+      }
+      this.persistentContext.set(currentFile.path, updatedPersistent);
+    }
+    const allPersistentDocs = this.persistentContext.get(currentFile.path) || [];
     const contextParts = [];
-    const allDocs = [...persistentDocs, ...references];
-    for (const docRef of allDocs) {
+    for (const docRef of allPersistentDocs) {
       const contextPart = await this.getDocumentContext(docRef);
       if (contextPart) {
         contextParts.push(contextPart);
@@ -1505,8 +1515,9 @@ var MultiDocContextHandler = class {
     return {
       cleanedMessage,
       context: {
-        temporaryDocs: references.filter((r) => !r.isPersistent),
-        persistentDocs,
+        temporaryDocs: [],
+        // No more temporary docs
+        persistentDocs: allPersistentDocs,
         contextString,
         tokenCount,
         isNearLimit
@@ -2273,33 +2284,32 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     const foundRefs = [];
     let match;
     while ((match = refPattern.exec(message)) !== null) {
-      const isPersistent = !!match[1];
       const docName = match[2];
       const property = match[3];
       const file = this.findFileByName(docName);
       if (file) {
         foundRefs.push({
           name: docName,
-          isPersistent,
           property
         });
       }
     }
     const persistentDocs = this.multiDocHandler.getPersistentContext(((_a = this.currentFile) == null ? void 0 : _a.path) || "");
     persistentDocs.forEach((doc) => {
-      foundRefs.push({
-        name: doc.file.basename,
-        isPersistent: true,
-        property: doc.property
-      });
+      const exists = foundRefs.some((ref) => ref.name === doc.file.basename);
+      if (!exists) {
+        foundRefs.push({
+          name: doc.file.basename,
+          property: doc.property
+        });
+      }
     });
     if (foundRefs.length > 0) {
       const previewList = this.contextPreview.querySelector(".nova-context-preview-list");
       if (previewList) {
         const docNames = foundRefs.map((ref) => {
-          const prefix = ref.isPersistent ? "+" : "";
           const suffix = ref.property ? `#${ref.property}` : "";
-          return `${prefix}${ref.name}${suffix}`;
+          return `${ref.name}${suffix}`;
         });
         previewList.textContent = docNames.join(", ");
       }
@@ -2322,46 +2332,287 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     return file instanceof import_obsidian4.TFile ? file : null;
   }
   updateContextIndicator() {
-    if (!this.contextIndicator || !this.currentContext) {
+    if (!this.contextIndicator) {
       return;
     }
-    const indicators = this.multiDocHandler.getContextIndicators(this.currentContext);
     this.contextIndicator.empty();
-    const mainEl = this.contextIndicator.createDiv({ cls: "nova-context-main" });
-    mainEl.style.cssText = "display: flex; align-items: center; justify-content: space-between;";
-    const textEl = mainEl.createSpan({ cls: indicators.className });
-    textEl.textContent = indicators.text;
-    textEl.setAttr("title", indicators.tooltip);
-    const docs = this.multiDocHandler.formatContextForDisplay(this.currentContext);
-    if (docs.length > 0) {
-      const listEl = mainEl.createSpan({ cls: "nova-context-list" });
-      listEl.style.cssText = "font-size: 0.9em; color: var(--text-faint);";
-      listEl.textContent = docs.join(", ");
+    if (!this.currentContext) {
+      this.contextIndicator.style.display = "none";
+      return;
     }
-    if (this.currentContext.persistentDocs.length > 0) {
-      const clearBtn = mainEl.createEl("button", { text: "\u2715", cls: "nova-context-clear" });
-      clearBtn.style.cssText = `
+    const allDocs = [...this.currentContext.temporaryDocs, ...this.currentContext.persistentDocs];
+    if (allDocs.length === 0) {
+      this.contextIndicator.style.display = "none";
+      return;
+    }
+    const isMobile = import_obsidian4.Platform.isMobile;
+    this.contextIndicator.style.cssText = `
+			display: block;
+			position: relative;
+			padding: ${isMobile ? "12px 16px" : "8px 12px"};
+			margin-bottom: 4px;
+			background: rgba(var(--interactive-accent-rgb), 0.1);
+			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+			border-radius: 6px;
+			font-size: ${isMobile ? "0.9em" : "0.8em"};
+			color: var(--text-muted);
+			transition: all 0.2s ease;
+			cursor: pointer;
+			min-height: ${isMobile ? "44px" : "auto"};
+		`;
+    const summaryEl = this.contextIndicator.createDiv({ cls: "nova-context-summary" });
+    summaryEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			cursor: pointer;
+			pointer-events: auto;
+		`;
+    const summaryTextEl = summaryEl.createSpan({ cls: "nova-context-summary-text" });
+    summaryTextEl.style.cssText = "font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none;";
+    const tokenPercent = Math.round(this.currentContext.tokenCount / 8e3 * 100);
+    const docNames = allDocs.map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
+    const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : "";
+    if (isMobile) {
+      summaryTextEl.textContent = `\u{1F4DA} ${docNames.join(", ")}${moreCount} (${tokenPercent}%)`;
+    } else {
+      summaryTextEl.textContent = `\u{1F4DA} ${docNames.join(", ")}${moreCount} (${tokenPercent}% tokens)`;
+    }
+    const expandIndicatorEl = summaryEl.createSpan({ cls: "nova-context-expand-indicator" });
+    expandIndicatorEl.innerHTML = "\u2022\u2022\u2022";
+    expandIndicatorEl.style.cssText = `
+			color: var(--interactive-accent);
+			font-size: ${isMobile ? "16px" : "14px"};
+			opacity: 0.8;
+			padding: ${isMobile ? "8px" : "4px"};
+			min-width: ${isMobile ? "44px" : "auto"};
+			text-align: center;
+			border-radius: 4px;
+			transition: all 0.2s;
+			pointer-events: none;
+		`;
+    expandIndicatorEl.setAttr("title", "Tap to manage documents");
+    if (isMobile) {
+      summaryEl.addEventListener("touchstart", () => {
+        expandIndicatorEl.style.background = "rgba(var(--interactive-accent-rgb), 0.2)";
+      });
+      summaryEl.addEventListener("touchend", () => {
+        setTimeout(() => {
+          expandIndicatorEl.style.background = "none";
+        }, 150);
+      });
+    } else {
+      summaryEl.addEventListener("mouseenter", () => {
+        expandIndicatorEl.style.background = "rgba(var(--interactive-accent-rgb), 0.2)";
+      });
+      summaryEl.addEventListener("mouseleave", () => {
+        expandIndicatorEl.style.background = "none";
+      });
+    }
+    const expandedEl = this.contextIndicator.createDiv({ cls: "nova-context-expanded" });
+    expandedEl.style.cssText = `
+			display: none;
+			position: absolute;
+			bottom: 100%;
+			left: ${isMobile ? "-8px" : "0"};
+			right: ${isMobile ? "-8px" : "0"};
+			background: var(--background-primary);
+			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+			border-radius: 6px;
+			box-shadow: 0 ${isMobile ? "-4px 16px" : "-2px 8px"} rgba(0, 0, 0, ${isMobile ? "0.15" : "0.1"});
+			z-index: 1000;
+			margin-bottom: 2px;
+			max-height: ${isMobile ? "60vh" : "200px"};
+			overflow-y: auto;
+			min-width: ${isMobile ? "100%" : "auto"};
+		`;
+    const expandedHeaderEl = expandedEl.createDiv({ cls: "nova-context-expanded-header" });
+    expandedHeaderEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: ${isMobile ? "12px 16px" : "8px 12px"};
+			border-bottom: 1px solid var(--background-modifier-border);
+			font-weight: 500;
+			color: var(--text-normal);
+			font-size: 1em;
+			min-height: ${isMobile ? "44px" : "auto"};
+		`;
+    const headerTitleEl = expandedHeaderEl.createSpan();
+    headerTitleEl.textContent = `\u{1F4DA} Documents (${allDocs.length})`;
+    const clearAllBtn = expandedHeaderEl.createEl("button", { cls: "nova-context-clear-all-btn" });
+    clearAllBtn.innerHTML = "\u{1F9F9}";
+    clearAllBtn.style.cssText = `
+			background: none;
+			border: 1px solid var(--text-faint);
+			color: var(--text-faint);
+			cursor: pointer;
+			padding: ${isMobile ? "8px 12px" : "4px 8px"};
+			border-radius: 4px;
+			font-size: 1em;
+			transition: all 0.2s;
+			min-width: ${isMobile ? "44px" : "auto"};
+			min-height: ${isMobile ? "44px" : "auto"};
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		`;
+    clearAllBtn.setAttr("title", "Clear all documents from context");
+    clearAllBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (this.currentFile) {
+        this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+        await this.refreshContext();
+      }
+    });
+    if (isMobile) {
+      clearAllBtn.addEventListener("touchstart", () => {
+        clearAllBtn.style.background = "var(--background-modifier-error)";
+        clearAllBtn.style.borderColor = "var(--text-error)";
+        clearAllBtn.style.color = "var(--text-error)";
+      });
+      clearAllBtn.addEventListener("touchend", () => {
+        setTimeout(() => {
+          clearAllBtn.style.background = "none";
+          clearAllBtn.style.borderColor = "var(--text-faint)";
+          clearAllBtn.style.color = "var(--text-faint)";
+        }, 150);
+      });
+    } else {
+      clearAllBtn.addEventListener("mouseenter", () => {
+        clearAllBtn.style.background = "var(--background-modifier-error)";
+        clearAllBtn.style.borderColor = "var(--text-error)";
+        clearAllBtn.style.color = "var(--text-error)";
+      });
+      clearAllBtn.addEventListener("mouseleave", () => {
+        clearAllBtn.style.background = "none";
+        clearAllBtn.style.borderColor = "var(--text-faint)";
+        clearAllBtn.style.color = "var(--text-faint)";
+      });
+    }
+    const docListEl = expandedEl.createDiv({ cls: "nova-context-doc-list" });
+    allDocs.forEach((doc, index) => {
+      const docItemEl = docListEl.createDiv({ cls: "nova-context-doc-item" });
+      docItemEl.style.cssText = `
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: ${isMobile ? "12px 16px" : "8px 12px"};
+				border-bottom: ${index < allDocs.length - 1 ? "1px solid var(--background-modifier-border)" : "none"};
+				transition: background-color 0.2s;
+				min-height: ${isMobile ? "56px" : "auto"};
+			`;
+      const docInfoEl = docItemEl.createDiv({ cls: "nova-context-doc-info" });
+      docInfoEl.style.cssText = `
+				display: flex;
+				align-items: center;
+				gap: ${isMobile ? "12px" : "8px"};
+				flex: 1;
+				min-width: 0;
+			`;
+      const iconEl = docInfoEl.createSpan({ text: "\u{1F4C4}" });
+      iconEl.style.cssText = `font-size: 1em;`;
+      const nameEl = docInfoEl.createSpan({ cls: "nova-context-doc-name" });
+      const suffix = doc.property ? `#${doc.property}` : "";
+      nameEl.textContent = `${doc.file.basename}${suffix}`;
+      nameEl.style.cssText = `
+				font-weight: 400;
+				color: var(--text-normal);
+				text-overflow: ellipsis;
+				overflow: hidden;
+				white-space: nowrap;
+				font-size: 1em;
+				line-height: 1.4;
+			`;
+      nameEl.setAttr("title", doc.file.path);
+      const removeBtn = docItemEl.createEl("button", { text: "\xD7", cls: "nova-context-doc-remove" });
+      removeBtn.style.cssText = `
 				background: none;
 				border: none;
 				color: var(--text-faint);
 				cursor: pointer;
-				padding: 0 4px;
-				font-size: 1.2em;
+				width: ${isMobile ? "44px" : "20px"};
+				height: ${isMobile ? "44px" : "20px"};
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: ${isMobile ? "18px" : "14px"};
+				transition: all 0.2s;
+				font-weight: bold;
 			`;
-      clearBtn.setAttr("title", "Clear persistent context");
-      clearBtn.onclick = () => {
+      removeBtn.setAttr("title", `Remove ${doc.file.basename}`);
+      removeBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
         if (this.currentFile) {
-          this.multiDocHandler.clearPersistentContext(this.currentFile.path);
-          this.currentContext = null;
-          this.contextIndicator.style.display = "none";
-          new import_obsidian4.Notice("Persistent context cleared");
+          this.multiDocHandler.removePersistentDoc(this.currentFile.path, doc.file.path);
+          await this.refreshContext();
         }
-      };
-    }
-    this.contextIndicator.style.display = docs.length > 0 ? "block" : "none";
-    if (this.currentContext.isNearLimit) {
-      this.contextIndicator.style.borderColor = "var(--text-warning)";
-      this.contextIndicator.style.backgroundColor = "rgba(255, 193, 7, 0.1)";
+      });
+      if (isMobile) {
+        removeBtn.addEventListener("touchstart", () => {
+          removeBtn.style.background = "var(--background-modifier-error)";
+          removeBtn.style.color = "var(--text-error)";
+        });
+        removeBtn.addEventListener("touchend", () => {
+          setTimeout(() => {
+            removeBtn.style.background = "none";
+            removeBtn.style.color = "var(--text-faint)";
+          }, 150);
+        });
+        docItemEl.addEventListener("touchstart", () => {
+          docItemEl.style.background = "var(--background-modifier-hover)";
+        });
+        docItemEl.addEventListener("touchend", () => {
+          setTimeout(() => {
+            docItemEl.style.background = "transparent";
+          }, 150);
+        });
+      } else {
+        removeBtn.addEventListener("mouseenter", () => {
+          removeBtn.style.background = "var(--background-modifier-error)";
+          removeBtn.style.color = "var(--text-error)";
+        });
+        removeBtn.addEventListener("mouseleave", () => {
+          removeBtn.style.background = "none";
+          removeBtn.style.color = "var(--text-faint)";
+        });
+        docItemEl.addEventListener("mouseenter", () => {
+          docItemEl.style.background = "var(--background-modifier-hover)";
+        });
+        docItemEl.addEventListener("mouseleave", () => {
+          docItemEl.style.background = "transparent";
+        });
+      }
+    });
+    let isExpanded = false;
+    const toggleExpanded = (e) => {
+      e.stopPropagation();
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        expandedEl.style.display = "block";
+        this.contextIndicator.style.zIndex = "1001";
+      } else {
+        expandedEl.style.display = "none";
+        this.contextIndicator.style.zIndex = "auto";
+      }
+    };
+    summaryEl.addEventListener("click", toggleExpanded);
+    const closeHandler = (e) => {
+      if (isExpanded && !this.contextIndicator.contains(e.target)) {
+        isExpanded = false;
+        expandedEl.style.display = "none";
+        this.contextIndicator.style.zIndex = "auto";
+      }
+    };
+    document.addEventListener("click", closeHandler);
+  }
+  async refreshContext() {
+    if (this.currentFile) {
+      const result = await this.multiDocHandler.buildContext("", this.currentFile);
+      this.currentContext = result.context;
+      this.updateContextIndicator();
     }
   }
   async handleSend() {
@@ -2489,6 +2740,7 @@ Current Request: ${prompt2.userPrompt}`;
       this.addMessage("assistant", `Sorry, I encountered an error: ${error.message}`);
     } finally {
       this.sendButton.setDisabled(false);
+      await this.refreshContext();
     }
   }
   async insertTextIntoActiveNote(text) {
@@ -2570,22 +2822,7 @@ Current Request: ${prompt2.userPrompt}`;
     }
     this.currentFile = targetFile;
     this.chatContainer.empty();
-    const persistentDocs = this.multiDocHandler.getPersistentContext(targetFile.path);
-    if (persistentDocs.length > 0) {
-      this.currentContext = {
-        temporaryDocs: [],
-        persistentDocs,
-        contextString: "",
-        tokenCount: 0,
-        isNearLimit: false
-      };
-      this.updateContextIndicator();
-    } else {
-      this.currentContext = null;
-      if (this.contextIndicator) {
-        this.contextIndicator.style.display = "none";
-      }
-    }
+    await this.refreshContext();
     try {
       const recentMessages = await this.plugin.conversationManager.getRecentMessages(targetFile, 10);
       if (recentMessages.length > 0) {

@@ -854,12 +854,12 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Parse document references from current message
+		// Note: All references are now persistent for simplified UX
 		const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
-		const foundRefs: Array<{name: string, isPersistent: boolean, property?: string}> = [];
+		const foundRefs: Array<{name: string, property?: string}> = [];
 		let match;
 
 		while ((match = refPattern.exec(message)) !== null) {
-			const isPersistent = !!match[1];
 			const docName = match[2];
 			const property = match[3];
 			
@@ -868,20 +868,22 @@ export class NovaSidebarView extends ItemView {
 			if (file) {
 				foundRefs.push({
 					name: docName,
-					isPersistent,
 					property
 				});
 			}
 		}
 
-		// Add persistent context for current file
+		// Add existing persistent context for current file
 		const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile?.path || '');
 		persistentDocs.forEach(doc => {
-			foundRefs.push({
-				name: doc.file.basename,
-				isPersistent: true,
-				property: doc.property
-			});
+			// Only add if not already in foundRefs to avoid duplicates
+			const exists = foundRefs.some(ref => ref.name === doc.file.basename);
+			if (!exists) {
+				foundRefs.push({
+					name: doc.file.basename,
+					property: doc.property
+				});
+			}
 		});
 
 		// Update preview
@@ -889,9 +891,8 @@ export class NovaSidebarView extends ItemView {
 			const previewList = this.contextPreview.querySelector('.nova-context-preview-list') as HTMLElement;
 			if (previewList) {
 				const docNames = foundRefs.map(ref => {
-					const prefix = ref.isPersistent ? '+' : '';
 					const suffix = ref.property ? `#${ref.property}` : '';
-					return `${prefix}${ref.name}${suffix}`;
+					return `${ref.name}${suffix}`;
 				});
 				previewList.textContent = docNames.join(', ');
 			}
@@ -925,59 +926,340 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private updateContextIndicator(): void {
-		if (!this.contextIndicator || !this.currentContext) {
+		if (!this.contextIndicator) {
 			return;
 		}
 
-		const indicators = this.multiDocHandler.getContextIndicators(this.currentContext);
-		
 		this.contextIndicator.empty();
 		
-		// Main indicator
-		const mainEl = this.contextIndicator.createDiv({ cls: 'nova-context-main' });
-		mainEl.style.cssText = 'display: flex; align-items: center; justify-content: space-between;';
-		
-		const textEl = mainEl.createSpan({ cls: indicators.className });
-		textEl.textContent = indicators.text;
-		textEl.setAttr('title', indicators.tooltip);
-		
-		// Document list
-		const docs = this.multiDocHandler.formatContextForDisplay(this.currentContext);
-		if (docs.length > 0) {
-			const listEl = mainEl.createSpan({ cls: 'nova-context-list' });
-			listEl.style.cssText = 'font-size: 0.9em; color: var(--text-faint);';
-			listEl.textContent = docs.join(', ');
+		if (!this.currentContext) {
+			this.contextIndicator.style.display = 'none';
+			return;
 		}
 		
-		// Clear button for persistent context
-		if (this.currentContext.persistentDocs.length > 0) {
-			const clearBtn = mainEl.createEl('button', { text: '✕', cls: 'nova-context-clear' });
-			clearBtn.style.cssText = `
+		const allDocs = [...this.currentContext.temporaryDocs, ...this.currentContext.persistentDocs];
+		
+		if (allDocs.length === 0) {
+			this.contextIndicator.style.display = 'none';
+			return;
+		}
+
+		// Show as thin line with mobile-optimized sizing
+		const isMobile = Platform.isMobile;
+		this.contextIndicator.style.cssText = `
+			display: block;
+			position: relative;
+			padding: ${isMobile ? '12px 16px' : '8px 12px'};
+			margin-bottom: 4px;
+			background: rgba(var(--interactive-accent-rgb), 0.1);
+			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+			border-radius: 6px;
+			font-size: ${isMobile ? '0.9em' : '0.8em'};
+			color: var(--text-muted);
+			transition: all 0.2s ease;
+			cursor: pointer;
+			min-height: ${isMobile ? '44px' : 'auto'};
+		`;
+		// Single line summary (same style as live preview)
+		const summaryEl = this.contextIndicator.createDiv({ cls: 'nova-context-summary' });
+		summaryEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			cursor: pointer;
+			pointer-events: auto;
+		`;
+		
+		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
+		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none;';
+		
+		const tokenPercent = Math.round((this.currentContext.tokenCount / 8000) * 100);
+		const docNames = allDocs.map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
+		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
+		
+		// Mobile-optimized text (shorter on mobile)
+		if (isMobile) {
+			summaryTextEl.textContent = `📚 ${docNames.join(', ')}${moreCount} (${tokenPercent}%)`;
+		} else {
+			summaryTextEl.textContent = `📚 ${docNames.join(', ')}${moreCount} (${tokenPercent}% tokens)`;
+		}
+		
+		// Mobile-friendly more menu indicator
+		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
+		expandIndicatorEl.innerHTML = '•••'; // More menu dots - universally understood
+		expandIndicatorEl.style.cssText = `
+			color: var(--interactive-accent);
+			font-size: ${isMobile ? '16px' : '14px'};
+			opacity: 0.8;
+			padding: ${isMobile ? '8px' : '4px'};
+			min-width: ${isMobile ? '44px' : 'auto'};
+			text-align: center;
+			border-radius: 4px;
+			transition: all 0.2s;
+			pointer-events: none;
+		`;
+		expandIndicatorEl.setAttr('title', 'Tap to manage documents');
+		
+		// Visual feedback on the whole summary line instead of just the indicator
+		if (isMobile) {
+			summaryEl.addEventListener('touchstart', () => {
+				expandIndicatorEl.style.background = 'rgba(var(--interactive-accent-rgb), 0.2)';
+			});
+			summaryEl.addEventListener('touchend', () => {
+				setTimeout(() => {
+					expandIndicatorEl.style.background = 'none';
+				}, 150);
+			});
+		} else {
+			summaryEl.addEventListener('mouseenter', () => {
+				expandIndicatorEl.style.background = 'rgba(var(--interactive-accent-rgb), 0.2)';
+			});
+			summaryEl.addEventListener('mouseleave', () => {
+				expandIndicatorEl.style.background = 'none';
+			});
+		}
+
+		// Expanded state - mobile-responsive overlay
+		const expandedEl = this.contextIndicator.createDiv({ cls: 'nova-context-expanded' });
+		expandedEl.style.cssText = `
+			display: none;
+			position: absolute;
+			bottom: 100%;
+			left: ${isMobile ? '-8px' : '0'};
+			right: ${isMobile ? '-8px' : '0'};
+			background: var(--background-primary);
+			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+			border-radius: 6px;
+			box-shadow: 0 ${isMobile ? '-4px 16px' : '-2px 8px'} rgba(0, 0, 0, ${isMobile ? '0.15' : '0.1'});
+			z-index: 1000;
+			margin-bottom: 2px;
+			max-height: ${isMobile ? '60vh' : '200px'};
+			overflow-y: auto;
+			min-width: ${isMobile ? '100%' : 'auto'};
+		`;
+		
+		// Header for expanded state with mobile-optimized clear button
+		const expandedHeaderEl = expandedEl.createDiv({ cls: 'nova-context-expanded-header' });
+		expandedHeaderEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: ${isMobile ? '12px 16px' : '8px 12px'};
+			border-bottom: 1px solid var(--background-modifier-border);
+			font-weight: 500;
+			color: var(--text-normal);
+			font-size: 1em;
+			min-height: ${isMobile ? '44px' : 'auto'};
+		`;
+		
+		const headerTitleEl = expandedHeaderEl.createSpan();
+		headerTitleEl.textContent = `📚 Documents (${allDocs.length})`;
+		
+		// Mobile-optimized clear all button
+		const clearAllBtn = expandedHeaderEl.createEl('button', { cls: 'nova-context-clear-all-btn' });
+		clearAllBtn.innerHTML = '🧹';
+		clearAllBtn.style.cssText = `
+			background: none;
+			border: 1px solid var(--text-faint);
+			color: var(--text-faint);
+			cursor: pointer;
+			padding: ${isMobile ? '8px 12px' : '4px 8px'};
+			border-radius: 4px;
+			font-size: 1em;
+			transition: all 0.2s;
+			min-width: ${isMobile ? '44px' : 'auto'};
+			min-height: ${isMobile ? '44px' : 'auto'};
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		`;
+		clearAllBtn.setAttr('title', 'Clear all documents from context');
+		
+		clearAllBtn.addEventListener('click', async (e) => {
+			e.stopPropagation();
+			if (this.currentFile) {
+				this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+				await this.refreshContext();
+			}
+		});
+		
+		// Touch-friendly feedback for clear button
+		if (isMobile) {
+			clearAllBtn.addEventListener('touchstart', () => {
+				clearAllBtn.style.background = 'var(--background-modifier-error)';
+				clearAllBtn.style.borderColor = 'var(--text-error)';
+				clearAllBtn.style.color = 'var(--text-error)';
+			});
+			clearAllBtn.addEventListener('touchend', () => {
+				setTimeout(() => {
+					clearAllBtn.style.background = 'none';
+					clearAllBtn.style.borderColor = 'var(--text-faint)';
+					clearAllBtn.style.color = 'var(--text-faint)';
+				}, 150);
+			});
+		} else {
+			clearAllBtn.addEventListener('mouseenter', () => {
+				clearAllBtn.style.background = 'var(--background-modifier-error)';
+				clearAllBtn.style.borderColor = 'var(--text-error)';
+				clearAllBtn.style.color = 'var(--text-error)';
+			});
+			clearAllBtn.addEventListener('mouseleave', () => {
+				clearAllBtn.style.background = 'none';
+				clearAllBtn.style.borderColor = 'var(--text-faint)';
+				clearAllBtn.style.color = 'var(--text-faint)';
+			});
+		}
+		
+		// Document list for expanded state
+		const docListEl = expandedEl.createDiv({ cls: 'nova-context-doc-list' });
+		
+		allDocs.forEach((doc, index) => {
+			const docItemEl = docListEl.createDiv({ cls: 'nova-context-doc-item' });
+			docItemEl.style.cssText = `
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: ${isMobile ? '12px 16px' : '8px 12px'};
+				border-bottom: ${index < allDocs.length - 1 ? '1px solid var(--background-modifier-border)' : 'none'};
+				transition: background-color 0.2s;
+				min-height: ${isMobile ? '56px' : 'auto'};
+			`;
+			
+			const docInfoEl = docItemEl.createDiv({ cls: 'nova-context-doc-info' });
+			docInfoEl.style.cssText = `
+				display: flex;
+				align-items: center;
+				gap: ${isMobile ? '12px' : '8px'};
+				flex: 1;
+				min-width: 0;
+			`;
+			
+			const iconEl = docInfoEl.createSpan({ text: '📄' });
+			iconEl.style.cssText = `font-size: 1em;`;
+			
+			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
+			const suffix = doc.property ? `#${doc.property}` : '';
+			nameEl.textContent = `${doc.file.basename}${suffix}`;
+			nameEl.style.cssText = `
+				font-weight: 400;
+				color: var(--text-normal);
+				text-overflow: ellipsis;
+				overflow: hidden;
+				white-space: nowrap;
+				font-size: 1em;
+				line-height: 1.4;
+			`;
+			nameEl.setAttr('title', doc.file.path);
+			
+			// Mobile-optimized remove button with larger touch target
+			const removeBtn = docItemEl.createEl('button', { text: '×', cls: 'nova-context-doc-remove' });
+			removeBtn.style.cssText = `
 				background: none;
 				border: none;
 				color: var(--text-faint);
 				cursor: pointer;
-				padding: 0 4px;
-				font-size: 1.2em;
+				width: ${isMobile ? '44px' : '20px'};
+				height: ${isMobile ? '44px' : '20px'};
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: ${isMobile ? '18px' : '14px'};
+				transition: all 0.2s;
+				font-weight: bold;
 			`;
-			clearBtn.setAttr('title', 'Clear persistent context');
-			clearBtn.onclick = () => {
+			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
+			
+			removeBtn.addEventListener('click', async (e) => {
+				e.stopPropagation();
 				if (this.currentFile) {
-					this.multiDocHandler.clearPersistentContext(this.currentFile.path);
-					this.currentContext = null;
-					this.contextIndicator.style.display = 'none';
-					new Notice('Persistent context cleared');
+					this.multiDocHandler.removePersistentDoc(this.currentFile.path, doc.file.path);
+					await this.refreshContext();
 				}
-			};
-		}
+			});
+			
+			// Platform-specific interaction feedback
+			if (isMobile) {
+				removeBtn.addEventListener('touchstart', () => {
+					removeBtn.style.background = 'var(--background-modifier-error)';
+					removeBtn.style.color = 'var(--text-error)';
+				});
+				
+				removeBtn.addEventListener('touchend', () => {
+					setTimeout(() => {
+						removeBtn.style.background = 'none';
+						removeBtn.style.color = 'var(--text-faint)';
+					}, 150);
+				});
+				
+				// Touch feedback for document items
+				docItemEl.addEventListener('touchstart', () => {
+					docItemEl.style.background = 'var(--background-modifier-hover)';
+				});
+				
+				docItemEl.addEventListener('touchend', () => {
+					setTimeout(() => {
+						docItemEl.style.background = 'transparent';
+					}, 150);
+				});
+			} else {
+				removeBtn.addEventListener('mouseenter', () => {
+					removeBtn.style.background = 'var(--background-modifier-error)';
+					removeBtn.style.color = 'var(--text-error)';
+				});
+				
+				removeBtn.addEventListener('mouseleave', () => {
+					removeBtn.style.background = 'none';
+					removeBtn.style.color = 'var(--text-faint)';
+				});
+				
+				docItemEl.addEventListener('mouseenter', () => {
+					docItemEl.style.background = 'var(--background-modifier-hover)';
+				});
+				
+				docItemEl.addEventListener('mouseleave', () => {
+					docItemEl.style.background = 'transparent';
+				});
+			}
+		});
+
+		// Click to expand management overlay
+		let isExpanded = false;
 		
-		// Show/hide based on context
-		this.contextIndicator.style.display = docs.length > 0 ? 'block' : 'none';
+		const toggleExpanded = (e: MouseEvent) => {
+			e.stopPropagation();
+			isExpanded = !isExpanded;
+			
+			if (isExpanded) {
+				expandedEl.style.display = 'block';
+				this.contextIndicator.style.zIndex = '1001';
+			} else {
+				expandedEl.style.display = 'none';
+				this.contextIndicator.style.zIndex = 'auto';
+			}
+		};
 		
-		// Add warning style if near limit
-		if (this.currentContext.isNearLimit) {
-			this.contextIndicator.style.borderColor = 'var(--text-warning)';
-			this.contextIndicator.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+		// Click on the entire summary line to expand
+		summaryEl.addEventListener('click', toggleExpanded);
+		
+		// Close when clicking outside
+		const closeHandler = (e: MouseEvent) => {
+			if (isExpanded && !this.contextIndicator.contains(e.target as Node)) {
+				isExpanded = false;
+				expandedEl.style.display = 'none';
+				this.contextIndicator.style.zIndex = 'auto';
+			}
+		};
+		
+		document.addEventListener('click', closeHandler);
+	}
+
+	private async refreshContext(): Promise<void> {
+		if (this.currentFile) {
+			const result = await this.multiDocHandler.buildContext('', this.currentFile);
+			this.currentContext = result.context;
+			this.updateContextIndicator();
 		}
 	}
 
@@ -1156,6 +1438,8 @@ export class NovaSidebarView extends ItemView {
 			this.addMessage('assistant', `Sorry, I encountered an error: ${(error as Error).message}`);
 		} finally {
 			this.sendButton.setDisabled(false);
+			// Refresh context indicator to show persistent documents
+			await this.refreshContext();
 		}
 	}
 
@@ -1261,23 +1545,8 @@ export class NovaSidebarView extends ItemView {
 		// Clear current chat
 		this.chatContainer.empty();
 		
-		// Update persistent context for new file
-		const persistentDocs = this.multiDocHandler.getPersistentContext(targetFile.path);
-		if (persistentDocs.length > 0) {
-			this.currentContext = {
-				temporaryDocs: [],
-				persistentDocs,
-				contextString: '',
-				tokenCount: 0,
-				isNearLimit: false
-			};
-			this.updateContextIndicator();
-		} else {
-			this.currentContext = null;
-			if (this.contextIndicator) {
-				this.contextIndicator.style.display = 'none';
-			}
-		}
+		// Refresh context for new file (this will show persistent documents if any)
+		await this.refreshContext();
 		
 		try {
 			// Load conversation history if it exists
