@@ -181,3 +181,36 @@ function isFeatureEnabled(featureId: string, user: User): boolean {
 - All functionality preserved
 - Consistent branding throughout
 - No backward compatibility needed (pre-launch)
+
+## 2025-01-12: Fixed Conversation Context Bug
+**Task**: Clear conversation when all documents are closed
+**Status**: ✅ Complete - All 502 tests passing
+
+### Problem:
+When the Nova sidebar was open but all documents were closed, Nova retained the conversation history of the last opened file instead of clearing itself.
+
+### Root Cause:
+The `loadConversationForActiveFile()` method had logic to fall back to any open markdown file when no active file was detected, but didn't handle the case where ALL files were closed. The condition `if (!targetFile || targetFile === this.currentFile)` would return early when there was no target file, leaving the previous conversation intact.
+
+### Solution:
+Added explicit handling for when no files are available but we still have a current file context:
+
+```typescript
+// If no file available and we have a current file, clear everything
+if (!targetFile && this.currentFile) {
+    this.currentFile = null;
+    this.chatContainer.empty();
+    this.refreshContext();
+    this.addWelcomeMessage('Open a document to start chatting with Nova.');
+    return;
+}
+```
+
+### Files Modified:
+- `src/ui/sidebar-view.ts` - Updated `loadConversationForActiveFile()` method
+
+### Result:
+- Nova now properly clears conversation history when all documents are closed
+- Shows appropriate welcome message prompting user to open a document
+- Maintains correct context state management
+- No regressions in existing functionality

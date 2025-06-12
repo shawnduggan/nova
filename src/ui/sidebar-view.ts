@@ -1668,6 +1668,15 @@ export class NovaSidebarView extends ItemView {
 			}
 		}
 		
+		// If no file available and we have a current file, clear everything
+		if (!targetFile && this.currentFile) {
+			this.currentFile = null;
+			this.chatContainer.empty();
+			this.refreshContext();
+			this.addWelcomeMessage('Open a document to start chatting with Nova.');
+			return;
+		}
+		
 		// If no file or same file, do nothing
 		if (!targetFile || targetFile === this.currentFile) {
 			return;

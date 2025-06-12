@@ -1804,6 +1804,13 @@ User Request: ${processedMessage}`;
         }
       }
     }
+    if (!targetFile && this.currentFile) {
+      this.currentFile = null;
+      this.chatContainer.empty();
+      this.refreshContext();
+      this.addWelcomeMessage("Open a document to start chatting with Nova.");
+      return;
+    }
     if (!targetFile || targetFile === this.currentFile) {
       return;
     }

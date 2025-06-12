@@ -14,6 +14,12 @@
 - No long explanations before coding
 - Start typing code within first 3 lines
 
+### Bug Fix Workflow
+- **ONE FIX AT A TIME**: Only work on one bug/task per session
+- **ALWAYS ASK FOR TESTING**: After implementing a fix, ask user to test it before proceeding
+- **NO AUTO-COMMITS**: Never commit or move to next task unless explicitly asked
+- **WAIT FOR CONFIRMATION**: User must confirm fix works before moving forward
+
 ### Complete Code Only
 - No TODOs, no stubs, no placeholders
 - Every function must work when implemented
