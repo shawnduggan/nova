@@ -69,7 +69,8 @@ export class ConversationManager {
                         edit: 0,
                         delete: 0,
                         grammar: 0,
-                        rewrite: 0
+                        rewrite: 0,
+                        metadata: 0
                     }
                 }
             };
@@ -218,7 +219,8 @@ export class ConversationManager {
                 edit: 0,
                 delete: 0,
                 grammar: 0,
-                rewrite: 0
+                rewrite: 0,
+                metadata: 0
             };
         }
 

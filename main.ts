@@ -12,6 +12,7 @@ import { EditCommand } from './src/core/commands/edit-command';
 import { DeleteCommand } from './src/core/commands/delete-command';
 import { GrammarCommand } from './src/core/commands/grammar-command';
 import { RewriteCommand } from './src/core/commands/rewrite-command';
+import { MetadataCommand } from './src/core/commands/metadata-command';
 import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
 import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
@@ -47,6 +48,7 @@ export default class NovaPlugin extends Plugin {
 	deleteCommandHandler!: DeleteCommand;
 	grammarCommandHandler!: GrammarCommand;
 	rewriteCommandHandler!: RewriteCommand;
+	metadataCommandHandler!: MetadataCommand;
 	featureManager!: FeatureManager;
 	licenseValidator!: LicenseValidator;
 	settingTab!: NovaSettingTab;
@@ -99,6 +101,7 @@ export default class NovaPlugin extends Plugin {
 			this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.metadataCommandHandler = new MetadataCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			console.log('Nova: document engine and commands initialized');
 
 			this.registerView(

@@ -112,7 +112,15 @@ TASK: Rewrite or restructure content.
 - Improve organization, clarity, and flow
 - Use more effective language and structure
 - Maintain key information and concepts
-- Adapt to any specified style requirements`
+- Adapt to any specified style requirements`,
+
+            metadata: `
+TASK: Update document metadata/properties.
+- Modify, add, or remove frontmatter properties
+- Handle tags, titles, dates, and custom properties
+- Maintain proper YAML formatting
+- Preserve existing properties unless specifically changing them
+- Provide ONLY the property updates in JSON format`
         };
 
         return basePrompt + actionSpecificPrompts[action];
@@ -191,6 +199,9 @@ TASK: Rewrite or restructure content.
             
             case 'rewrite':
                 return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.';
+            
+            case 'metadata':
+                return 'OUTPUT: Provide ONLY a JSON object with the property updates. Example: {"title": "New Title", "tags": ["tag1", "tag2"], "date": "2025-01-01"}';
             
             default:
                 return '';

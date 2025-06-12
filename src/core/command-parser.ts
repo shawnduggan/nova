@@ -68,6 +68,17 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\b(expand|shorten|condense)\b/i
         ],
         targets: ['selection', 'section', 'paragraph']
+    },
+    {
+        action: 'metadata',
+        patterns: [
+            /\b(update|set|change|modify|add)\s+.*\b(property|properties|metadata|frontmatter|tag|tags)\b/i,
+            /\b(set|update|change|add)\s+.*\b(title|author|date|status)\b/i,
+            /\bupdate\s+.*\bfrontmatter\b/i,
+            /\b(add|remove|update)\s+.*\btag[s]?\b/i,
+            /\bset\s+.*\bproperty\b/i
+        ],
+        targets: ['document']
     }
 ];
 
@@ -147,6 +158,9 @@ export class CommandParser {
         }
         if (/\b(rewrite|rephrase|restructure|generate.*new)\b/i.test(input)) {
             return 'rewrite';
+        }
+        if (/\b(update|set|change|modify|add).*\b(property|properties|metadata|frontmatter|tag|tags|title|author|date|status)\b/i.test(input)) {
+            return 'metadata';
         }
         
         // Default to edit for ambiguous cases

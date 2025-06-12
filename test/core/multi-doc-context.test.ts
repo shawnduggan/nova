@@ -41,7 +41,11 @@ const createMockApp = (): App => {
 				],
 				links: [],
 				tags: [],
-				frontmatter: {}
+				frontmatter: file.basename === 'document1' ? {
+					title: 'Test Document 1',
+					tags: ['test', 'sample'],
+					date: '2025-01-01'
+				} : {}
 			};
 		})
 	};
@@ -122,14 +126,15 @@ describe('MultiDocContextHandler', () => {
 			expect(result.context.tokenCount).toBeGreaterThan(0);
 		});
 
-		it('should handle empty message', async () => {
+		it('should handle empty message but include current file', async () => {
 			const message = '';
 			const result = await multiDocContext.buildContext(message, testFile);
 			
 			expect(result.cleanedMessage).toBe('');
 			expect(result.context.persistentDocs).toHaveLength(0);
-			expect(result.context.contextString).toBe('');
-			expect(result.context.tokenCount).toBe(0);
+			// Current file is always included in context
+			expect(result.context.contextString).toContain('Document: test');
+			expect(result.context.tokenCount).toBeGreaterThan(0);
 		});
 
 		it('should estimate token count', async () => {
@@ -258,14 +263,18 @@ describe('MultiDocContextHandler', () => {
 
 	describe('Error Handling', () => {
 		it('should handle vault read errors gracefully', async () => {
-			(mockApp.vault.read as jest.Mock).mockRejectedValueOnce(new Error('File read error'));
+			// First call fails (current file), second call succeeds (referenced doc)
+			(mockApp.vault.read as jest.Mock)
+				.mockRejectedValueOnce(new Error('File read error'))
+				.mockResolvedValueOnce('# Document 1\nThis is the first document content.');
 			
 			const message = 'Analyze [[document1]].';
 			const result = await multiDocContext.buildContext(message, testFile);
 			
-			// Should still parse the reference but context will be empty
+			// Should still parse the reference and include the document that could be read
 			expect(result.cleanedMessage).toBe('Analyze .');
-			expect(result.context.contextString).toBe('');
+			expect(result.context.contextString).toContain('Document: document1');
+			expect(result.context.persistentDocs).toHaveLength(1);
 		});
 
 		it('should handle missing files gracefully', () => {
@@ -274,6 +283,35 @@ describe('MultiDocContextHandler', () => {
 			
 			expect(result.references).toHaveLength(0);
 			expect(result.cleanedMessage).toBe('Check [[nonexistent-file]].');
+		});
+	});
+
+	describe('Metadata/Properties Handling', () => {
+		it('should include metadata for all documents including current file', async () => {
+			const message = 'Analyze [[document1]].';
+			const result = await multiDocContext.buildContext(message, testFile);
+			
+			// Check that metadata is included for document1
+			expect(result.context.contextString).toContain('Properties/Metadata:');
+			expect(result.context.contextString).toContain('title: Test Document 1');
+			expect(result.context.contextString).toContain('tags: ["test","sample"]');
+			expect(result.context.contextString).toContain('date: 2025-01-01');
+			
+			// Current file should also be in context
+			expect(result.context.contextString).toContain('Document: test');
+		});
+
+		it('should include document content without frontmatter duplication', async () => {
+			// Mock a file with frontmatter
+			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce('---\ntitle: Test\n---\n# Main Content\nThis is the content.');
+			
+			const message = '';
+			const result = await multiDocContext.buildContext(message, testFile);
+			
+			// Should not duplicate frontmatter in content section
+			expect(result.context.contextString).toContain('### Content:');
+			expect(result.context.contextString).toContain('# Main Content');
+			expect(result.context.contextString).not.toMatch(/### Content:[\s\S]*---[\s\S]*title:/);
 		});
 	});
 });

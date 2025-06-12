@@ -73,7 +73,7 @@ describe('ConversationManager', () => {
             expect(conversation.messages).toEqual([]);
             expect(conversation.metadata?.editCount).toBe(0);
             expect(conversation.metadata?.commandFrequency).toEqual({
-                add: 0, edit: 0, delete: 0, grammar: 0, rewrite: 0
+                add: 0, edit: 0, delete: 0, grammar: 0, rewrite: 0, metadata: 0
             });
         });
 
@@ -305,7 +305,7 @@ describe('ConversationManager', () => {
             expect(conversation.messages).toEqual([]);
             expect(conversation.metadata?.editCount).toBe(0);
             expect(conversation.metadata?.commandFrequency).toEqual({
-                add: 0, edit: 0, delete: 0, grammar: 0, rewrite: 0
+                add: 0, edit: 0, delete: 0, grammar: 0, rewrite: 0, metadata: 0
             });
         });
 

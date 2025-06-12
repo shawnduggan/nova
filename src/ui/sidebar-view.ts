@@ -1485,8 +1485,8 @@ export class NovaSidebarView extends ItemView {
 				
 				// Add multi-document context if available
 				if (multiDocContext && multiDocContext.contextString) {
-					// Enhance the prompt with additional context
-					const enhancedUserPrompt = `${multiDocContext.contextString}\n\n---\n\nCurrent Request: ${prompt.userPrompt}`;
+					// The context already includes the current file, so we can use it directly
+					const enhancedUserPrompt = `${multiDocContext.contextString}\n\n---\n\nUser Request: ${processedMessage}`;
 					
 					// Get AI response using the provider manager
 					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, enhancedUserPrompt, {
@@ -1589,8 +1589,11 @@ export class NovaSidebarView extends ItemView {
 				case 'rewrite':
 					result = await this.plugin.rewriteCommandHandler.execute(command);
 					break;
+				case 'metadata':
+					result = await this.plugin.metadataCommandHandler.execute(command);
+					break;
 				default:
-					return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, or rewrite content.`;
+					return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
 			}
 			
 			if (result.success) {

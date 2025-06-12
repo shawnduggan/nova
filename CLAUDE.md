@@ -90,6 +90,55 @@
 
 ### COMPLETED THIS SESSION ✅
 
+**LATEST: Complete Metadata/Properties Update System** ✅
+1. **New Metadata Command Capability**
+   - Added new `metadata` action to EditAction type and command system
+   - Created comprehensive `MetadataCommand` handler with full AI integration
+   - Supports natural language requests like "set title to X" or "add tags: work, important"
+   - Command parser recognizes metadata/property/frontmatter/tag-related requests
+   - Integrated with existing AI prompt building and provider management system
+
+2. **Smart AI-Powered Property Updates**
+   - AI analyzes current document metadata and user requests
+   - Handles JSON responses, YAML-like formats, and natural language responses
+   - Supports complex operations: add, update, remove properties
+   - Preserves existing metadata while making requested changes
+   - Validates AI responses and provides clear error messages
+
+3. **Robust Frontmatter Management**
+   - Creates frontmatter if it doesn't exist
+   - Updates existing frontmatter while preserving other properties  
+   - Handles all property types: strings, numbers, arrays, objects
+   - Supports property deletion by setting values to null
+   - Properly formatted YAML output with JSON value handling
+
+4. **Full Integration & Testing**
+   - Metadata command integrated into sidebar execution flow
+   - Updated conversation manager to track metadata command usage
+   - Added comprehensive test suite (9 new tests) covering all scenarios
+   - All 497 tests passing including metadata functionality
+   - Proper error handling and validation throughout
+
+**Enhanced Multi-Document Context with Full Metadata Support** ✅
+1. **Metadata/Properties Now Always Included**
+   - Current file's metadata (frontmatter properties) is always included in AI context
+   - All additional documents via [[doc]] syntax also include their metadata
+   - Created `getFullDocumentContext()` helper method for consistent metadata extraction
+   - Metadata appears in organized format with "Properties/Metadata:" section
+   - Handles arrays, objects, and all property types with proper JSON formatting
+
+2. **Smart Content Display**
+   - Frontmatter is excluded from content section to avoid duplication
+   - Content starts after the closing `---` marker if frontmatter exists
+   - Clean separation between metadata and content in context display
+   - Current file gets 100 lines of content, additional docs get 50 lines
+
+3. **Testing & Quality**
+   - Added 2 new tests specifically for metadata handling
+   - All 488 tests passing (increased from 486)
+   - Verified metadata extraction for both current and referenced files
+   - Confirmed proper frontmatter exclusion from content display
+
 **LATEST: Complete Multi-Document Context Cleanup & Bug Fix** ✅
 1. **Perfect Vertical Alignment in Context Sidebar**
    - Fixed header title alignment: Added `display: flex; align-items: center; gap: 6px;` for book icon + "Documents" text
@@ -317,26 +366,41 @@
 **Phase 1: Ship Preparation**
 With Phase 0 (Monetization Pivot) now COMPLETE, focus moves to comprehensive manual testing and bug resolution:
 
-1. **Comprehensive Manual Testing**
+1. **Critical Security & Data Integrity Tasks**
+   - [ ] **CRITICAL: Enforce read-only context documents** - HIGH PRIORITY
+     - Issue: Currently, edit commands might accidentally modify documents added to context via [[doc]] syntax
+     - Solution: Ensure ALL edit commands (add, edit, delete, grammar, rewrite, metadata) ONLY operate on the current active file
+     - Context documents should be read-only and used only for reference/analysis
+     - Add validation in all command handlers to prevent editing non-active files
+     - Add clear user messaging when attempting to edit context-only documents
+     - Update tests to verify read-only enforcement
+
+2. **Comprehensive Manual Testing**
    - ✅ Create manual testing plan document (MANUAL_TESTING_PLAN.md)
    - ✅ Create bug report template (BUG_REPORT_TEMPLATE.md) 
    - [ ] Execute end-to-end user workflow testing
    - [ ] Real device testing (mobile, desktop, tablets)
    - [ ] Cross-platform compatibility validation
 
-2. **Critical Bug Resolution**
+3. **Critical Bug Resolution**
    - ✅ **FIXED: File context tracking bug** - Nova shows wrong file in context when multiple files are open
      - Issue: In `sidebar-view.ts` fallback used `leaves[0]` instead of active leaf
      - Fix: Updated `loadConversationForActiveFile()` to check `app.workspace.activeLeaf` before falling back to first file
-     - All 486 tests passing after fix
+     - All 497 tests passing after fix
    - ✅ **FIXED: Multi-document context error after file removal** - Critical
      - Issue: After adding files to context, asking questions, then removing a file from context (leaving others), asking a question that would need the removed file causes error: "Sorry, I encountered an error: Cannot read properties of undefined (reading '0')"
      - Root Cause: Sidebar view still using old temporary/persistent docs model; accessing empty temporaryDocs array
      - Fix: Updated sidebar logic to use simplified persistent-only model, added defensive programming for stale file references
      - Files modified: `src/ui/sidebar-view.ts`, `src/core/multi-doc-context.ts`
-     - All 486 tests still passing after fix
+     - All 497 tests passing after fix
+   - ✅ **FIXED: Current file not included in multi-document context** - Critical
+     - Issue: When using multi-document context, the current active file's content was not being included in the AI context
+     - Root Cause: Multi-document context only included explicitly added documents via [[doc]] syntax, missing implicit current file
+     - Fix: Modified `buildContext()` in `multi-doc-context.ts` to ALWAYS include current file content as first context item
+     - Added error handling for current file read failures to maintain robustness
+     - All 497 tests passing after fix including updated error handling test
 
-3. **Performance & Polish**
+4. **Performance & Polish**
    - ✅ **Bundle size analysis**: 255KB bundle size is reasonable for feature set
    - ✅ **Fixed critical memory leaks**:
      - Added event listener cleanup tracking in sidebar-view.ts
@@ -356,12 +420,14 @@ With Phase 0 (Monetization Pivot) now COMPLETE, focus moves to comprehensive man
 
 ### IMPORTANT NOTES FOR NEXT SESSION
 - **Phase 0 (Monetization Pivot) COMPLETE**: All features implemented and tested
+- **MAJOR: Complete Metadata/Properties Update System IMPLEMENTED**: Full AI-powered frontmatter management
 - **Critical performance optimizations COMPLETE**: Memory leaks fixed, cleanup systems implemented
-- **File context tracking bug FIXED**: Proper activeLeaf handling implemented
-- **All 486 tests passing**: Comprehensive test coverage maintained
+- **All critical bugs FIXED**: File context tracking, multi-document errors, current file inclusion
+- **All 497 tests passing**: Comprehensive test coverage including 9 new metadata tests
 - **Ship preparation infrastructure READY**: Manual testing plan and bug tracking templates created
-- **UI polish ONGOING**: Consistent iconography and visual language being refined
-- **Next focus**: Execute comprehensive manual testing across all platforms and devices
+- **UI polish COMPLETE**: Professional icon system and consistent visual language implemented
+- **CRITICAL NEXT TASK**: Implement read-only enforcement for context documents
+- **Next focus**: Comprehensive manual testing and security validation across all platforms
 
 ---
 

@@ -7,7 +7,7 @@ import { Editor, EditorPosition, TFile } from 'obsidian';
 /**
  * Supported edit actions for document manipulation
  */
-export type EditAction = 'add' | 'edit' | 'delete' | 'grammar' | 'rewrite';
+export type EditAction = 'add' | 'edit' | 'delete' | 'grammar' | 'rewrite' | 'metadata';
 
 /**
  * Represents a parsed command from user input

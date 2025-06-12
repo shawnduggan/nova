@@ -158,8 +158,16 @@ export class MultiDocContextHandler {
             }
         }
 
-        // Build context string from all valid persistent documents
+        // Build context string from all documents
         const contextParts: string[] = [];
+        
+        // ALWAYS include current file content and metadata first (implicit context)
+        const currentFileContext = await this.getFullDocumentContext(currentFile, true, 100);
+        if (currentFileContext) {
+            contextParts.push(currentFileContext);
+        }
+        
+        // Then add all persistent documents with their metadata
         for (const docRef of allPersistentDocs) {
             const contextPart = await this.getDocumentContext(docRef);
             if (contextPart) {
@@ -183,6 +191,63 @@ export class MultiDocContextHandler {
     }
 
     /**
+     * Get full document context including metadata/properties
+     */
+    private async getFullDocumentContext(file: TFile, includeContent: boolean = true, maxLines: number = 50): Promise<string | null> {
+        try {
+            let contextParts: string[] = [];
+            
+            // Add document header
+            contextParts.push(`## Document: ${file.basename}`);
+            
+            // Get and add metadata/properties if available
+            const cache = this.app.metadataCache.getFileCache(file);
+            if (cache?.frontmatter && Object.keys(cache.frontmatter).length > 0) {
+                contextParts.push('\n### Properties/Metadata:');
+                for (const [key, value] of Object.entries(cache.frontmatter)) {
+                    // Format the property value (handle arrays, objects, etc.)
+                    const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
+                    contextParts.push(`- ${key}: ${formattedValue}`);
+                }
+            }
+            
+            // Add content if requested
+            if (includeContent) {
+                const content = await this.app.vault.read(file);
+                if (content) {
+                    const lines = content.split('\n');
+                    
+                    // Skip frontmatter in content display (between --- markers)
+                    let contentStartIndex = 0;
+                    if (lines[0] === '---') {
+                        for (let i = 1; i < lines.length; i++) {
+                            if (lines[i] === '---') {
+                                contentStartIndex = i + 1;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    const contentLines = lines.slice(contentStartIndex);
+                    const truncatedContent = contentLines.slice(0, maxLines).join('\n');
+                    const wasTruncated = contentLines.length > maxLines;
+                    
+                    contextParts.push('\n### Content:');
+                    contextParts.push(truncatedContent);
+                    if (wasTruncated) {
+                        contextParts.push('\n[... truncated for brevity ...]');
+                    }
+                }
+            }
+            
+            return contextParts.join('\n');
+        } catch (error) {
+            console.error(`Failed to read full context from ${file.path}:`, error);
+            return null;
+        }
+    }
+
+    /**
      * Get context for a specific document reference
      */
     private async getDocumentContext(docRef: DocumentReference): Promise<string | null> {
@@ -203,26 +268,8 @@ export class MultiDocContextHandler {
                 }
                 return null;
             } else {
-                // Get full document content
-                const content = await this.app.vault.read(file);
-                if (!content) {
-                    console.warn(`File content is empty or null: ${file.path}`);
-                    return null;
-                }
-                
-                const lines = content.split('\n');
-                
-                // Defensive check for empty lines array
-                if (!lines || lines.length === 0) {
-                    console.warn(`No lines found in file: ${file.path}`);
-                    return `## Document: ${file.basename}\n[Empty file]`;
-                }
-                
-                // Limit to first 50 lines for context
-                const truncatedContent = lines.slice(0, 50).join('\n');
-                const wasTruncated = lines.length > 50;
-                
-                return `## Document: ${file.basename}\n${truncatedContent}${wasTruncated ? '\n\n[... truncated for brevity ...]' : ''}`;
+                // Get full document context with metadata
+                return this.getFullDocumentContext(file);
             }
         } catch (error) {
             console.error(`Failed to read context from ${docRef?.file?.path || 'unknown file'}:`, error);
