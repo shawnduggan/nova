@@ -1,0 +1,351 @@
+# Nova Plugin - Manual Testing Plan
+
+## Overview
+
+This manual testing plan covers comprehensive testing of Nova's features across different platforms and scenarios to ensure ship-ready quality.
+
+## Test Environment Setup
+
+### Required Test Environments
+- [ ] **Desktop**: macOS/Windows/Linux with Obsidian latest version
+- [ ] **Mobile**: iOS and Android with Obsidian mobile app
+- [ ] **Tablet**: iPad and Android tablet
+
+### Test Vault Setup
+- [ ] Create fresh test vault with sample documents
+- [ ] Include documents with various content types:
+  - [ ] Plain markdown files
+  - [ ] Files with frontmatter properties
+  - [ ] Files with wikilinks and references
+  - [ ] Large documents (>1000 lines)
+  - [ ] Documents in nested folders
+
+## Core Functionality Testing
+
+### 1. Plugin Installation & Activation
+- [ ] Fresh install from plugin directory
+- [ ] Plugin activates without errors
+- [ ] Nova icon appears in ribbon
+- [ ] Settings tab accessible
+- [ ] No console errors during load
+
+### 2. AI Provider Configuration
+#### Claude Provider
+- [ ] Configure Claude API key
+- [ ] Test connection with valid key
+- [ ] Handle invalid/expired key gracefully
+- [ ] Model selection works correctly
+
+#### OpenAI Provider  
+- [ ] Configure OpenAI API key
+- [ ] Test connection with valid key
+- [ ] Handle rate limits gracefully
+- [ ] Model selection (GPT-4, GPT-3.5) works
+
+#### Google Gemini Provider
+- [ ] Configure Gemini API key
+- [ ] Test connection and responses
+- [ ] Handle API errors properly
+
+#### Ollama Provider (Desktop Only)
+- [ ] Configure local Ollama URL
+- [ ] Test with running Ollama instance
+- [ ] Handle offline/unreachable gracefully
+
+### 3. Core Document Editing Commands
+
+#### Add Command
+- [ ] Add content to empty document
+- [ ] Add content to document with existing content
+- [ ] Add content with selection (insertion at cursor)
+- [ ] Add content with complex instructions
+- [ ] Handle long generation times
+- [ ] Cancel operation works correctly
+
+#### Edit Command
+- [ ] Edit selected text with simple instruction
+- [ ] Edit selected text with complex instruction
+- [ ] Edit entire document when no selection
+- [ ] Preserve document formatting
+- [ ] Handle undo/redo correctly
+
+#### Delete Command
+- [ ] Delete selected text
+- [ ] Delete specific content by description
+- [ ] Handle when content not found
+- [ ] Preserve surrounding context
+
+#### Grammar Command
+- [ ] Fix grammar in selected text
+- [ ] Fix grammar in entire document
+- [ ] Handle text without errors gracefully
+- [ ] Preserve original meaning
+
+#### Rewrite Command
+- [ ] Rewrite selected text with style instruction
+- [ ] Rewrite entire document
+- [ ] Handle complex rewrite requests
+- [ ] Maintain document structure
+
+### 4. Sidebar Chat Interface
+
+#### Basic Chat Functionality
+- [ ] Open sidebar via ribbon icon
+- [ ] Open sidebar via command palette
+- [ ] Chat interface loads correctly
+- [ ] Send basic messages and receive responses
+- [ ] Message history persists across sessions
+
+#### Provider Switching
+- [ ] Switch providers via dropdown (Desktop)
+- [ ] Provider switching reflects in responses
+- [ ] Settings persist across provider changes
+- [ ] Mobile provider restrictions work correctly
+
+#### File Context
+- [ ] Chat loads correct conversation for active file
+- [ ] Context switches when changing active file
+- [ ] Multiple files maintain separate conversations
+- [ ] Context tracking works with split panes
+
+### 5. Command System (Catalyst Early Access)
+
+#### Colon Trigger System
+- [ ] `:claude` switches to Claude
+- [ ] `:chatgpt` switches to OpenAI
+- [ ] `:gemini` switches to Google
+- [ ] `:ollama` switches to Ollama (desktop)
+- [ ] Invalid commands show appropriate feedback
+
+#### Command Picker
+- [ ] Trigger command picker with `:` 
+- [ ] Fuzzy search filters commands correctly
+- [ ] Keyboard navigation (up/down arrows)
+- [ ] Mouse selection works
+- [ ] Escape key closes picker
+- [ ] Enter key executes selected command
+
+#### Command Button (⚡)
+- [ ] Command button appears on mobile
+- [ ] Command button click opens menu
+- [ ] Menu shows all available commands
+- [ ] Commands execute correctly from menu
+- [ ] Menu closes after selection
+
+#### Custom Commands
+- [ ] Access custom command settings
+- [ ] Create new custom command
+- [ ] Edit existing custom command
+- [ ] Delete custom command
+- [ ] Custom commands appear in picker/menu
+- [ ] Custom command templates work correctly
+
+### 6. Multi-Document Context
+
+#### Document Reference Parsing
+- [ ] `[[document]]` syntax parses correctly
+- [ ] References to existing files work
+- [ ] References to non-existent files handled gracefully
+- [ ] Property references `[[doc#property]]` work
+- [ ] Multiple references in one message work
+
+#### Context Management
+- [ ] Documents add to persistent context
+- [ ] Context persists across chat sessions
+- [ ] Context indicators show document count
+- [ ] Token counting displays correctly
+- [ ] Context panel shows document list
+
+#### Wikilink Autocomplete
+- [ ] Typing `[[` triggers autocomplete
+- [ ] Fuzzy search finds relevant documents
+- [ ] Autocomplete shows document paths
+- [ ] Selection inserts correct wikilink
+- [ ] Autocomplete integrates with context system
+
+#### Context Panel UX
+- [ ] Expandable thin line appears when context exists
+- [ ] Click/tap expands management overlay upward
+- [ ] Individual document remove buttons work
+- [ ] Clear all button works
+- [ ] Mobile touch targets are adequate (44px+)
+- [ ] Outside click collapses overlay
+
+### 7. Auto-Growing Input (Catalyst Early Access)
+- [ ] Input starts with appropriate default height
+- [ ] Input grows smoothly as content increases
+- [ ] Maximum height constraint works (6-8 lines)
+- [ ] Mobile vs desktop sizing differs appropriately
+- [ ] Integration with command button works
+
+### 8. Licensing & Feature Management
+
+#### Catalyst License Validation
+- [ ] Valid Catalyst license enables early access features
+- [ ] Invalid/expired license shows appropriate restrictions
+- [ ] License status displays correctly in settings
+- [ ] Feature access updates when license changes
+
+#### Feature Time Gates
+- [ ] Early access features work for Catalyst users
+- [ ] Features are properly gated for non-Catalyst users
+- [ ] "Coming Soon" messaging appropriate
+- [ ] Debug mode allows feature date overrides (dev only)
+
+## Platform-Specific Testing
+
+### Desktop Testing
+- [ ] All providers work correctly
+- [ ] Keyboard shortcuts function properly
+- [ ] Window resizing doesn't break UI
+- [ ] Multiple vault support works
+- [ ] File system integration works
+
+### Mobile Testing
+- [ ] Touch interface responsive and accessible
+- [ ] Command button (⚡) discovery works
+- [ ] Provider restrictions appropriate for mobile
+- [ ] Soft keyboard interaction smooth
+- [ ] Context panel mobile experience good
+- [ ] Performance acceptable on older devices
+
+### Tablet Testing
+- [ ] Responsive design adapts appropriately
+- [ ] Touch targets adequate size
+- [ ] Landscape/portrait orientation switching
+- [ ] Performance remains smooth
+
+## Error Handling & Edge Cases
+
+### Network Issues
+- [ ] Handle network timeouts gracefully
+- [ ] Show appropriate error messages for API failures
+- [ ] Retry mechanisms work where appropriate
+- [ ] Offline mode degrades gracefully
+
+### Large Content
+- [ ] Handle large documents without performance issues
+- [ ] Token limits respected and communicated
+- [ ] Large responses process correctly
+- [ ] Memory usage remains reasonable
+
+### Concurrent Operations
+- [ ] Multiple simultaneous AI requests handled properly
+- [ ] File switching during processing works correctly
+- [ ] Context management with rapid file changes
+
+### Data Persistence
+- [ ] Conversation history persists across restarts
+- [ ] Settings persist correctly
+- [ ] Context data doesn't corrupt
+- [ ] Plugin uninstall/reinstall preserves appropriate data
+
+## Performance Testing
+
+### Response Times
+- [ ] AI responses feel snappy for normal requests
+- [ ] Long operations show appropriate loading indicators
+- [ ] UI remains responsive during processing
+
+### Memory Usage
+- [ ] Plugin doesn't leak memory over time
+- [ ] Large conversation histories don't slow down interface
+- [ ] Multiple file contexts don't consume excessive memory
+
+### Bundle Size
+- [ ] Plugin loads quickly on slower connections
+- [ ] Bundle size appropriate for feature set
+
+## Accessibility Testing
+
+### Keyboard Navigation
+- [ ] All features accessible via keyboard
+- [ ] Tab order logical and complete
+- [ ] Escape key behaviors consistent
+
+### Screen Reader Support
+- [ ] Important elements have appropriate labels
+- [ ] Dynamic content changes announced
+- [ ] Error messages accessible
+
+### Visual Accessibility
+- [ ] Sufficient color contrast in all themes
+- [ ] UI scales appropriately with system font settings
+- [ ] Important information not conveyed by color alone
+
+## Integration Testing
+
+### Obsidian Integration
+- [ ] Works correctly with community themes
+- [ ] Compatible with other popular plugins
+- [ ] Doesn't interfere with core Obsidian functionality
+- [ ] File modification tracking works correctly
+
+### Multi-Vault Testing
+- [ ] Settings isolated per vault appropriately
+- [ ] Context doesn't leak between vaults
+- [ ] Performance good with multiple vaults
+
+## Security Testing
+
+### API Key Handling
+- [ ] API keys stored securely
+- [ ] Keys not logged or exposed in errors
+- [ ] Settings export doesn't include sensitive data
+
+### Content Privacy
+- [ ] Document content only sent to specified providers
+- [ ] No unexpected data transmission
+- [ ] Local processing respects privacy settings
+
+## Final Ship Readiness Checklist
+
+### Code Quality
+- [ ] All tests passing (486+ tests)
+- [ ] No TypeScript errors or warnings
+- [ ] No console errors in normal operation
+- [ ] Code coverage adequate for critical paths
+
+### Documentation
+- [ ] README.md up to date with current features
+- [ ] CHANGELOG.md includes all recent changes
+- [ ] Settings UI provides clear guidance
+- [ ] Error messages helpful and actionable
+
+### Polish
+- [ ] UI consistent across all features
+- [ ] Loading states appropriate and helpful
+- [ ] Success/error feedback clear
+- [ ] Performance smooth on target devices
+
+### Compatibility
+- [ ] Minimum Obsidian version specified and tested
+- [ ] Cross-platform compatibility verified
+- [ ] Mobile app compatibility confirmed
+
+## Sign-off
+
+### Testing Team Sign-off
+- [ ] **Desktop Lead**: _________________ Date: _______
+- [ ] **Mobile Lead**: _________________ Date: _______  
+- [ ] **QA Lead**: _________________ Date: _______
+
+### Final Approval
+- [ ] **Technical Lead**: _________________ Date: _______
+- [ ] **Product Lead**: _________________ Date: _______
+
+---
+
+## Notes Section
+
+Use this space to document any issues found during testing, workarounds implemented, or areas requiring additional attention before ship.
+
+### Issues Found
+- Issue 1: [Description and resolution]
+- Issue 2: [Description and resolution]
+
+### Performance Notes
+- [Any performance concerns or optimizations needed]
+
+### Compatibility Notes  
+- [Any compatibility issues or limitations discovered]

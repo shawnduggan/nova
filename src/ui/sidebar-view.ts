@@ -1525,13 +1525,19 @@ export class NovaSidebarView extends ItemView {
 	private async loadConversationForActiveFile() {
 		const activeFile = this.app.workspace.getActiveFile();
 		
-		// If no active file, try to find any open markdown file
+		// If no active file, try to find the currently active leaf's file
 		let targetFile = activeFile;
 		if (!targetFile) {
-			const leaves = this.app.workspace.getLeavesOfType('markdown');
-			if (leaves.length > 0) {
-				const view = leaves[0].view as MarkdownView;
-				targetFile = view.file;
+			const activeLeaf = this.app.workspace.activeLeaf;
+			if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
+				targetFile = activeLeaf.view.file;
+			} else {
+				// Fall back to any open markdown file only if no active leaf
+				const leaves = this.app.workspace.getLeavesOfType('markdown');
+				if (leaves.length > 0) {
+					const view = leaves[0].view as MarkdownView;
+					targetFile = view.file;
+				}
 			}
 		}
 		
