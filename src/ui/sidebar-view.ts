@@ -17,6 +17,7 @@ export class NovaSidebarView extends ItemView {
 	private selectedCommandIndex: number = -1;
 	private commandMenu!: HTMLElement;
 	private isCommandMenuVisible: boolean = false;
+	private autoGrowTextarea!: () => void;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -49,6 +50,7 @@ export class NovaSidebarView extends ItemView {
 			flex-direction: column;
 			height: 100%;
 			overflow: hidden;
+			padding-bottom: ${Platform.isDesktopApp ? '25px' : '0'};
 		`;
 		
 		// Header with provider info
@@ -149,20 +151,63 @@ export class NovaSidebarView extends ItemView {
 
 		// Text area takes most space
 		const textAreaContainer = inputRow.createDiv();
-		textAreaContainer.style.cssText = 'flex: 1;';
+		textAreaContainer.style.cssText = 'flex: 1; position: relative;';
 		this.textArea = new TextAreaComponent(textAreaContainer);
 		this.textArea.setPlaceholder('Ask Nova to help edit your document...');
+		
+		// Platform-aware defaults and auto-growing setup
+		const lineHeight = 1.5; // em units
+		const paddingVertical = 20; // px (10px top + 10px bottom)
+		const borderWidth = 2; // px (1px top + 1px bottom)
+		const baseLines = Platform.isMobile ? 2 : 3;
+		const maxLines = Platform.isMobile ? 8 : 6;
+		
+		// Calculate initial height based on platform
+		const fontSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-text-size') || '14px');
+		const initialHeight = (baseLines * lineHeight * fontSize) + paddingVertical + borderWidth;
+		
 		this.textArea.inputEl.style.cssText = `
 			width: 100%;
-			min-height: 38px;
-			max-height: 120px;
-			resize: vertical;
+			min-height: ${initialHeight}px;
+			max-height: ${(maxLines * lineHeight * fontSize) + paddingVertical + borderWidth}px;
+			height: ${initialHeight}px;
+			resize: none;
 			border: 1px solid var(--background-modifier-border);
 			border-radius: 8px;
 			padding: 10px;
 			font-size: var(--font-text-size);
-			line-height: var(--line-height-normal);
+			line-height: ${lineHeight};
+			overflow-y: hidden;
+			transition: height 0.1s ease-out;
 		`;
+		
+		// Auto-grow functionality
+		this.autoGrowTextarea = () => {
+			const el = this.textArea.inputEl;
+			
+			// Reset height to auto to get the correct scrollHeight
+			el.style.height = 'auto';
+			
+			// Calculate new height based on content
+			const contentHeight = el.scrollHeight;
+			const minHeight = initialHeight;
+			const maxHeight = (maxLines * lineHeight * fontSize) + paddingVertical + borderWidth;
+			
+			// Clamp height between min and max
+			const newHeight = Math.max(minHeight, Math.min(contentHeight, maxHeight));
+			
+			// Apply new height
+			el.style.height = `${newHeight}px`;
+			
+			// Show scrollbar only when content exceeds max height
+			el.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+		};
+		
+		// Add input event listener for auto-grow
+		this.textArea.inputEl.addEventListener('input', this.autoGrowTextarea);
+		
+		// Also trigger on initial load and when value changes programmatically
+		setTimeout(this.autoGrowTextarea, 0);
 
 		// Command button (⚡) - conditionally shown
 		this.commandButton = new ButtonComponent(inputRow);
@@ -213,7 +258,7 @@ export class NovaSidebarView extends ItemView {
 			}
 		});
 
-		// Input change handling for command picker
+		// Input change handling for command picker (already has autoGrow listener)
 		this.textArea.inputEl.addEventListener('input', () => {
 			this.handleInputChange();
 		});
@@ -415,6 +460,8 @@ export class NovaSidebarView extends ItemView {
 			if (customCommand) {
 				// Execute custom command
 				this.textArea.setValue(customCommand.template);
+				// Trigger auto-grow after setting template
+				setTimeout(() => this.autoGrowTextarea(), 0);
 				this.addMessage('system', `📝 Loaded template: ${customCommand.name}`);
 				return true;
 			}
@@ -728,6 +775,8 @@ export class NovaSidebarView extends ItemView {
 			const commandResult = await this.handleColonCommand(message);
 			if (commandResult) {
 				this.textArea.setValue('');
+				// Reset textarea height after clearing
+				setTimeout(() => this.autoGrowTextarea(), 0);
 				return;
 			}
 		}
@@ -735,6 +784,8 @@ export class NovaSidebarView extends ItemView {
 		// Add user message
 		this.addMessage('user', message);
 		this.textArea.setValue('');
+		// Reset textarea height after clearing
+		setTimeout(() => this.autoGrowTextarea(), 0);
 		this.sendButton.setDisabled(true);
 
 		try {

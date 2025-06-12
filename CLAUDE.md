@@ -87,25 +87,34 @@
    - Settings UI for managing custom commands (add/edit/delete)
    - Feature gating for Catalyst early access (Sep 15, 2025)
 
-2. **Technical Achievements**
+2. **Auto-Growing Input Area Implementation**
+   - Platform-aware defaults (3 lines desktop, 2 lines mobile)
+   - Smooth height transitions with 0.1s ease-out animation
+   - Max height limits (6 lines desktop, 8 lines mobile)
+   - Automatic scrollbar when content exceeds max height
+   - Proper integration with command button and picker
+   - Fixed sidebar height with 25px bottom padding on desktop to avoid status bar overlap
+
+3. **Technical Achievements**
    - All 453 tests passing
    - TypeScript errors resolved
    - Professional UI/UX implementation
    - Cross-platform compatibility (desktop/mobile)
    - Proper feature management integration
 
-3. **Files Modified**
-   - `src/ui/sidebar-view.ts` - Command picker, command button, handlers
+4. **Files Modified**
+   - `src/ui/sidebar-view.ts` - Command picker, command button, auto-growing textarea
    - `src/settings.ts` - Custom command management UI
    - `main.ts` - Settings tab property addition
    - `CLAUDE.md` - Progress tracking updates
 
 ### NEXT SESSION PRIORITY
-**Phase 0 Day 5: Auto-Growing Input Area**
-- Replace current textarea with auto-growing implementation
-- Platform-aware defaults (1 line desktop, 2 lines mobile)
-- Smooth height transitions (max 6-8 lines)
-- Integration with existing command button
+**Phase 0 Day 6-7: Multi-Document Context**
+- Parse `[[doc]]` syntax for temporary context (current request only)
+- Parse `+[[doc]]` syntax for persistent context (conversation-wide)
+- Implement token counting with 80% limit warnings
+- Add visual context indicators in sidebar
+- Handle metadata property reading from cache
 
 ### IMPORTANT NOTES FOR NEXT SESSION
 - All command system features are working and tested
@@ -137,12 +146,12 @@
   - [x] Add command button (⚡) for mobile/discovery
   - [x] Build settings UI for command management
 
-- [ ] **Day 5: Auto-Growing Input Area - NEXT SESSION PRIORITY**
-  - [ ] Replace current input with auto-growing textarea
-  - [ ] Platform-aware defaults (1 line desktop, 2 lines mobile)
-  - [ ] Implement smooth height transitions (max 6-8 lines)
-  - [ ] Integrate with command button
-  - [ ] Cross-platform testing
+- [x] **Day 5: Auto-Growing Input Area - COMPLETED ✅**
+  - [x] Replace current input with auto-growing textarea
+  - [x] Platform-aware defaults (1 line desktop, 2 lines mobile)
+  - [x] Implement smooth height transitions (max 6-8 lines)
+  - [x] Integrate with command button
+  - [x] Cross-platform testing
 
 #### Week 2: Advanced Features & Time Gates
 - [ ] **Day 6-7: Multi-Document Context**
