@@ -18,6 +18,8 @@ export interface AIProvider {
 	chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse>;
 	complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string>;
 	updateConfig?(config: ProviderConfig): void;
+	getAvailableModels?(): Promise<string[]>;
+	clearModelCache?(): void;
 }
 
 export interface AIGenerationOptions {

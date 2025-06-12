@@ -3,6 +3,7 @@ import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderC
 export class ClaudeProvider implements AIProvider {
 	name = 'Claude (Anthropic)';
 	private config: ProviderConfig;
+	private cachedModels: string[] | null = null;
 
 	constructor(config: ProviderConfig) {
 		this.config = config;
@@ -134,5 +135,63 @@ export class ClaudeProvider implements AIProvider {
 		}
 
 		yield { content: '', done: true };
+	}
+
+	/**
+	 * Fetch available models from Claude API
+	 */
+	async getAvailableModels(): Promise<string[]> {
+		if (!this.config.apiKey) {
+			throw new Error('Claude API key not configured');
+		}
+
+		// If we have cached models, return them
+		if (this.cachedModels) {
+			return this.cachedModels;
+		}
+
+		// For Claude, we'll use a hardcoded list since Anthropic doesn't provide a models endpoint
+		// But we can validate the API key by making a test call
+		try {
+			// Validate API key with a minimal request
+			const response = await fetch('https://api.anthropic.com/v1/messages', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-api-key': this.config.apiKey,
+					'anthropic-version': '2023-06-01'
+				},
+				body: JSON.stringify({
+					model: 'claude-3-haiku-20240307',
+					max_tokens: 1,
+					messages: [{ role: 'user', content: 'test' }]
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(`API key validation failed: ${response.statusText}`);
+			}
+
+			// Return current available models
+			const models = [
+				'claude-3-5-sonnet-20241022',
+				'claude-3-5-haiku-20241022', 
+				'claude-3-opus-20240229',
+				'claude-3-sonnet-20240229',
+				'claude-3-haiku-20240307'
+			];
+
+			this.cachedModels = models;
+			return models;
+		} catch (error) {
+			throw new Error(`Failed to fetch Claude models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Clear cached models
+	 */
+	clearModelCache(): void {
+		this.cachedModels = null;
 	}
 }

@@ -34,7 +34,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	aiProviders: {
 		claude: {
 			apiKey: '',
-			model: 'claude-sonnet-4',
+			model: 'claude-3-5-sonnet-20241022',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
@@ -47,7 +47,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		},
 		google: {
 			apiKey: '',
-			model: 'gemini-2.5-flash-preview-05-20',
+			model: 'gemini-1.5-flash',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
@@ -439,20 +439,147 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(claudeContainer)
+		// Model setting with refresh button
+		const modelSetting = new Setting(claudeContainer)
 			.setName('Model')
-			.setDesc('Claude model to use')
-			.addDropdown(dropdown => dropdown
-				.addOption('claude-sonnet-4', 'Claude Sonnet 4')
-				.addOption('claude-opus-4', 'Claude Opus 4')
-				.addOption('claude-3-haiku-20240307', 'Claude 3 Haiku')
-				.addOption('claude-3-sonnet-20240229', 'Claude 3 Sonnet')
-				.addOption('claude-3-opus-20240229', 'Claude 3 Opus')
-				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-sonnet-4')
+			.setDesc('Claude model to use');
+
+		let modelDropdown: any;
+		
+		modelSetting.addDropdown(dropdown => {
+			modelDropdown = dropdown;
+			this.populateClaudeModels(dropdown);
+			return dropdown
+				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-3-5-sonnet-20241022')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.claude.model = value;
 					await this.plugin.saveSettings();
-				}));
+				});
+		});
+
+		modelSetting.addButton(button => button
+			.setIcon('refresh-cw')
+			.setTooltip('Refresh available models')
+			.onClick(async () => {
+				await this.refreshProviderModels('claude', modelDropdown);
+			}));
+	}
+
+	private populateClaudeModels(dropdown: any) {
+		// Clear existing options
+		dropdown.selectEl.empty();
+		
+		// Add default models
+		const defaultModels = [
+			{ value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+			{ value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+			{ value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+			{ value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
+			{ value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
+		];
+
+		defaultModels.forEach(model => {
+			dropdown.addOption(model.value, model.label);
+		});
+	}
+
+	private async refreshProviderModels(providerType: 'claude' | 'openai' | 'google', dropdown: any) {
+		const button = dropdown.selectEl.parentElement?.querySelector('.clickable-icon');
+		if (button) {
+			button.style.opacity = '0.5';
+			button.style.pointerEvents = 'none';
+		}
+
+		try {
+			const models = await this.plugin.aiProviderManager.getProviderModels(providerType);
+			
+			if (models.length > 0) {
+				// Clear existing options
+				dropdown.selectEl.empty();
+				
+				// Add fetched models
+				models.forEach(model => {
+					const label = this.getModelDisplayName(providerType, model);
+					dropdown.addOption(model, label);
+				});
+
+				// Restore current selection if it exists in the new list
+				const currentModel = this.plugin.settings.aiProviders[providerType].model;
+				if (currentModel && models.includes(currentModel)) {
+					dropdown.setValue(currentModel);
+				} else if (models.length > 0) {
+					// Set first model as default if current model is not in the list
+					dropdown.setValue(models[0]);
+					this.plugin.settings.aiProviders[providerType].model = models[0];
+					await this.plugin.saveSettings();
+				}
+
+				this.showRefreshMessage('Models refreshed successfully', 'success');
+			} else {
+				this.showRefreshMessage('No models found or API key invalid', 'error');
+			}
+		} catch (error) {
+			console.error(`Failed to refresh ${providerType} models:`, error);
+			this.showRefreshMessage(`Failed to refresh models: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+		} finally {
+			if (button) {
+				button.style.opacity = '1';
+				button.style.pointerEvents = 'auto';
+			}
+		}
+	}
+
+	private getModelDisplayName(providerType: string, model: string): string {
+		// Create human-readable names for models
+		if (providerType === 'claude') {
+			if (model.includes('sonnet')) return model.includes('3-5') ? 'Claude 3.5 Sonnet' : 'Claude 3 Sonnet';
+			if (model.includes('haiku')) return model.includes('3-5') ? 'Claude 3.5 Haiku' : 'Claude 3 Haiku';
+			if (model.includes('opus')) return 'Claude 3 Opus';
+		} else if (providerType === 'openai') {
+			if (model.includes('gpt-4o')) return model.includes('mini') ? 'GPT-4o Mini' : 'GPT-4o';
+			if (model.includes('gpt-4')) return 'GPT-4';
+			if (model.includes('gpt-3.5')) return 'GPT-3.5 Turbo';
+		} else if (providerType === 'google') {
+			if (model.includes('2.0')) return 'Gemini 2.0 Flash';
+			if (model.includes('1.5-pro')) return 'Gemini 1.5 Pro';
+			if (model.includes('1.5-flash')) return 'Gemini 1.5 Flash';
+			if (model.includes('1.0-pro')) return 'Gemini 1.0 Pro';
+		}
+		
+		// Fallback to model name
+		return model;
+	}
+
+	private showRefreshMessage(message: string, type: 'success' | 'error') {
+		// Create or update message element
+		const existingMessage = this.containerEl.querySelector('.nova-refresh-message');
+		if (existingMessage) {
+			existingMessage.remove();
+		}
+
+		const messageEl = this.containerEl.createDiv({ 
+			cls: `nova-refresh-message ${type}`,
+			text: message
+		});
+
+		messageEl.style.cssText = `
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 8px 12px;
+			border-radius: 4px;
+			font-size: 0.9em;
+			z-index: 1000;
+			${type === 'success' 
+				? 'background: var(--background-modifier-success); color: var(--text-success);' 
+				: 'background: var(--background-modifier-error); color: var(--text-error);'
+			}
+		`;
+
+		// Auto-remove after 3 seconds
+		setTimeout(() => {
+			messageEl.remove();
+		}, 3000);
 	}
 
 
@@ -483,19 +610,48 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(openaiContainer)
+		// Model setting with refresh button
+		const modelSetting = new Setting(openaiContainer)
 			.setName('Model')
-			.setDesc('OpenAI model to use')
-			.addDropdown(dropdown => dropdown
-				.addOption('gpt-4o', 'GPT-4o')
-				.addOption('gpt-3.5-turbo', 'GPT-3.5 Turbo')
-				.addOption('gpt-4', 'GPT-4')
-				.addOption('gpt-4-turbo-preview', 'GPT-4 Turbo')
+			.setDesc('OpenAI model to use');
+
+		let modelDropdown: any;
+		
+		modelSetting.addDropdown(dropdown => {
+			modelDropdown = dropdown;
+			this.populateOpenAIModels(dropdown);
+			return dropdown
 				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4o')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.openai.model = value;
 					await this.plugin.saveSettings();
-				}));
+				});
+		});
+
+		modelSetting.addButton(button => button
+			.setIcon('refresh-cw')
+			.setTooltip('Refresh available models')
+			.onClick(async () => {
+				await this.refreshProviderModels('openai', modelDropdown);
+			}));
+	}
+
+	private populateOpenAIModels(dropdown: any) {
+		// Clear existing options
+		dropdown.selectEl.empty();
+		
+		// Add default models
+		const defaultModels = [
+			{ value: 'gpt-4o', label: 'GPT-4o' },
+			{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+			{ value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+			{ value: 'gpt-4', label: 'GPT-4' },
+			{ value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+		];
+
+		defaultModels.forEach(model => {
+			dropdown.addOption(model.value, model.label);
+		});
 	}
 
 	private createGoogleSettings(containerEl = this.containerEl) {
@@ -514,19 +670,47 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(googleContainer)
+		// Model setting with refresh button
+		const modelSetting = new Setting(googleContainer)
 			.setName('Model')
-			.setDesc('Gemini model to use')
-			.addDropdown(dropdown => dropdown
-				.addOption('gemini-2.5-flash-preview-05-20', 'Gemini 2.5 Flash Preview')
-				.addOption('gemini-2.5-pro-preview-06-05', 'Gemini 2.5 Pro Preview')
-				.addOption('gemini-1.5-flash', 'Gemini 1.5 Flash')
-				.addOption('gemini-1.5-pro', 'Gemini 1.5 Pro')
-				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash-preview-05-20')
+			.setDesc('Gemini model to use');
+
+		let modelDropdown: any;
+		
+		modelSetting.addDropdown(dropdown => {
+			modelDropdown = dropdown;
+			this.populateGoogleModels(dropdown);
+			return dropdown
+				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-1.5-flash')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.google.model = value;
 					await this.plugin.saveSettings();
-				}));
+				});
+		});
+
+		modelSetting.addButton(button => button
+			.setIcon('refresh-cw')
+			.setTooltip('Refresh available models')
+			.onClick(async () => {
+				await this.refreshProviderModels('google', modelDropdown);
+			}));
+	}
+
+	private populateGoogleModels(dropdown: any) {
+		// Clear existing options
+		dropdown.selectEl.empty();
+		
+		// Add default models
+		const defaultModels = [
+			{ value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Experimental)' },
+			{ value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+			{ value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+			{ value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' }
+		];
+
+		defaultModels.forEach(model => {
+			dropdown.addOption(model.value, model.label);
+		});
 	}
 
 	private createOllamaSettings(containerEl = this.containerEl) {

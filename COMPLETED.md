@@ -54,7 +54,44 @@
 
 ### June 12, 2025 - Latest Session Achievements
 
-**LATEST: Settings UI Overhaul & Command Button Instant Toggle** ✅
+**LATEST: Model Refresh Buttons Implementation** ✅
+1. **Dynamic Model Fetching with Refresh Buttons**
+   - Added `getAvailableModels()` method to Claude, OpenAI, and Google providers
+   - Claude provider validates API key and returns curated model list
+   - OpenAI provider fetches models from `/models` endpoint with smart filtering for chat models
+   - Google provider fetches models from Gemini API with generateContent filtering
+   - All providers include model caching to avoid repeated API calls
+   - Added `clearModelCache()` method for cache invalidation
+
+2. **Enhanced Settings UI with Refresh Functionality**
+   - Replaced static dropdown options with dynamic model loading
+   - Added refresh buttons (🔄) next to each provider's model dropdown
+   - Refresh buttons fetch latest models from provider APIs and update dropdowns
+   - Visual feedback during refresh operations (disabled button, loading state)
+   - Success/error messages with auto-dismiss functionality
+   - Smart model name display with human-readable labels
+
+3. **Provider Integration & Error Handling**
+   - Updated AIProviderManager with `getProviderModels()` and `clearProviderModelCache()` methods
+   - Added optional methods to AIProvider interface for backward compatibility
+   - Comprehensive error handling with informative user messages
+   - Graceful fallback to default models when API requests fail
+   - Preserves user's current model selection when refreshing if still available
+
+4. **Technical Implementation Details**
+   - Updated default settings to use correct model names (claude-3-5-sonnet-20241022, etc.)
+   - Smart dropdown population with value preservation during refresh
+   - Toast notifications for user feedback positioned in top-right corner
+   - All commercial providers (Claude, OpenAI, Google) now support dynamic model fetching
+   - Ollama remains as text input since it's for local models that vary by installation
+
+5. **Known Issues Identified During Testing**
+   - Command button setting should be moved to Custom Commands section and be Catalyst-only
+   - Claude model refresh not working (API validation issue)
+   - OpenAI model refresh showing duplicate models (needs unique filtering)
+   - Google/Gemini model refresh functionality needs verification
+
+**PREVIOUS: Settings UI Overhaul & Command Button Instant Toggle** ✅
 1. **Command Button Instant Toggle Implementation**
    - Fixed command button toggle to work instantly without requiring Obsidian restart
    - Implemented full input area rebuild with state preservation (textarea content, cursor position, focus)

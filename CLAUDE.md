@@ -63,7 +63,10 @@
 ### Critical Tasks Remaining
 
 #### 📋 **NEXT PRIORITY: Fix Known Bugs**
-- [ ] Add model refresh buttons for commercial providers with dropdown selection instead of textbox
+- [ ] Move "Show Command Button" setting to Custom Commands section and make it Catalyst-only
+- [ ] Fix Claude model refresh not working
+- [ ] Fix OpenAI model refresh showing duplicate models (need unique filtering)
+- [ ] Verify and fix Google/Gemini model refresh functionality
 - [ ] Mobile performance testing on actual devices
 - [ ] Error handling improvements and loading state optimizations
 

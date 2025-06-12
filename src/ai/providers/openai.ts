@@ -3,6 +3,7 @@ import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderC
 export class OpenAIProvider implements AIProvider {
 	name = 'OpenAI';
 	private config: ProviderConfig;
+	private cachedModels: string[] | null = null;
 
 	constructor(config: ProviderConfig) {
 		this.config = config;
@@ -141,5 +142,71 @@ export class OpenAIProvider implements AIProvider {
 		}
 
 		yield { content: '', done: true };
+	}
+
+	/**
+	 * Fetch available models from OpenAI API
+	 */
+	async getAvailableModels(): Promise<string[]> {
+		if (!this.config.apiKey) {
+			throw new Error('OpenAI API key not configured');
+		}
+
+		// If we have cached models, return them
+		if (this.cachedModels) {
+			return this.cachedModels;
+		}
+
+		try {
+			const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
+			const endpoint = baseUrl.endsWith('/models') ? baseUrl : `${baseUrl}/models`;
+			
+			const response = await fetch(endpoint, {
+				method: 'GET',
+				headers: {
+					'Authorization': `Bearer ${this.config.apiKey}`
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error(`API request failed: ${response.statusText}`);
+			}
+
+			const data = await response.json();
+			
+			// Filter to only chat completion models and sort by name
+			const chatModels = data.data
+				.filter((model: any) => {
+					const id = model.id.toLowerCase();
+					return (id.includes('gpt') || id.includes('chat')) && 
+						   !id.includes('instruct') && 
+						   !id.includes('edit') &&
+						   !id.includes('search') &&
+						   !id.includes('similarity') &&
+						   !id.includes('embedding');
+				})
+				.map((model: any) => model.id)
+				.sort();
+
+			const models = chatModels.length > 0 ? chatModels : [
+				'gpt-4o',
+				'gpt-4o-mini', 
+				'gpt-4-turbo',
+				'gpt-4',
+				'gpt-3.5-turbo'
+			];
+
+			this.cachedModels = models;
+			return models;
+		} catch (error) {
+			throw new Error(`Failed to fetch OpenAI models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Clear cached models
+	 */
+	clearModelCache(): void {
+		this.cachedModels = null;
 	}
 }

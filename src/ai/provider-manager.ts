@@ -126,6 +126,39 @@ export class AIProviderManager {
 		return { local: Infinity, cloud: Infinity };
 	}
 
+	/**
+	 * Get available models for a specific provider
+	 */
+	async getProviderModels(providerType: ProviderType): Promise<string[]> {
+		const provider = this.providers.get(providerType);
+		if (!provider) {
+			throw new Error(`Provider ${providerType} not found`);
+		}
+
+		// Check if provider has getAvailableModels method
+		if ('getAvailableModels' in provider && typeof provider.getAvailableModels === 'function') {
+			return await (provider as any).getAvailableModels();
+		}
+
+		// For providers without API model listing (like Ollama), return empty array
+		return [];
+	}
+
+	/**
+	 * Clear model cache for a specific provider
+	 */
+	clearProviderModelCache(providerType: ProviderType): void {
+		const provider = this.providers.get(providerType);
+		if (!provider) {
+			return;
+		}
+
+		// Check if provider has clearModelCache method
+		if ('clearModelCache' in provider && typeof provider.clearModelCache === 'function') {
+			(provider as any).clearModelCache();
+		}
+	}
+
 	cleanup() {
 		this.providers.clear();
 	}
