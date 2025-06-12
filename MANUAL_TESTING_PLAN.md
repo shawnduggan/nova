@@ -87,6 +87,14 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Handle complex rewrite requests
 - [ ] Maintain document structure
 
+#### Metadata Command
+- [ ] Update frontmatter properties with AI assistance
+- [ ] Add new properties to documents without frontmatter
+- [ ] Modify existing properties with natural language
+- [ ] Handle complex property operations (arrays, objects)
+- [ ] Remove properties by setting to null
+- [ ] Preserve existing properties while updating others
+
 ### 4. Sidebar Chat Interface
 
 #### Basic Chat Functionality
@@ -170,6 +178,18 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Clear all button works
 - [ ] Mobile touch targets are adequate (44px+)
 - [ ] Outside click collapses overlay
+- [ ] "Read-only" badges appear on context documents
+- [ ] Tooltips indicate read-only status for editing
+- [ ] Context confirmation messages explain read-only status
+
+#### Read-Only Context Document Security
+- [ ] **CRITICAL**: Edit commands only modify the active conversation file
+- [ ] Context documents cannot be accidentally edited
+- [ ] Clear error messages when attempting to edit context documents
+- [ ] All edit commands protected: add, edit, delete, grammar, rewrite, metadata
+- [ ] File validation works with multiple files open
+- [ ] Workspace automatically activates conversation file when needed
+- [ ] Security validation works across all platforms (desktop/mobile)
 
 ### 7. Auto-Growing Input (Catalyst Early Access)
 - [ ] Input starts with appropriate default height
@@ -178,7 +198,26 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Mobile vs desktop sizing differs appropriately
 - [ ] Integration with command button works
 
-### 8. Licensing & Feature Management
+### 8. Visual Design & User Experience
+
+#### Native Icon System
+- [ ] All UI elements use clean SVG icons (no emojis)
+- [ ] Icons match Obsidian's design language
+- [ ] Icons scale properly across different screen sizes
+- [ ] Icons support theme compatibility (currentColor)
+- [ ] Clear button uses native eraser icon
+- [ ] Command button uses lightning (zap) icon
+- [ ] System messages use appropriate context icons
+
+#### Professional UI Polish
+- [ ] Consistent spacing and typography throughout
+- [ ] Professional appearance matches Obsidian standards
+- [ ] Loading states use clean animated icons
+- [ ] Error/success states have appropriate visual feedback
+- [ ] Mobile UI elements sized appropriately for touch
+- [ ] Context panel styling professional and clean
+
+### 9. Licensing & Feature Management
 
 #### Catalyst License Validation
 - [ ] Valid Catalyst license enables early access features
@@ -251,6 +290,10 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Plugin doesn't leak memory over time
 - [ ] Large conversation histories don't slow down interface
 - [ ] Multiple file contexts don't consume excessive memory
+- [ ] Event listeners properly cleaned up when components removed
+- [ ] Timeout/interval cleanup working correctly
+- [ ] Automatic conversation cleanup (7-day retention) functioning
+- [ ] Plugin unload/reload doesn't leave memory leaks
 
 ### Bundle Size
 - [ ] Plugin loads quickly on slower connections
@@ -298,13 +341,21 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] No unexpected data transmission
 - [ ] Local processing respects privacy settings
 
+### Read-Only Context Document Enforcement
+- [ ] **CRITICAL SECURITY**: Context documents are truly read-only for edit operations
+- [ ] File validation prevents editing wrong documents
+- [ ] Security validation comprehensive across all command types
+- [ ] Error messages clear and informative for security blocks
+- [ ] No data integrity issues with multiple file contexts
+
 ## Final Ship Readiness Checklist
 
 ### Code Quality
-- [ ] All tests passing (486+ tests)
+- [ ] All tests passing (502+ tests including security tests)
 - [ ] No TypeScript errors or warnings
 - [ ] No console errors in normal operation
 - [ ] Code coverage adequate for critical paths
+- [ ] Security test suite validates read-only enforcement
 
 ### Documentation
 - [ ] README.md up to date with current features
