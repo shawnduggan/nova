@@ -90,7 +90,7 @@
 
 ### COMPLETED THIS SESSION ✅
 
-**LATEST: Context Sidebar UI Polish & Bug Documentation** ✅
+**LATEST: Critical Multi-Document Context Bug Fix** ✅
 1. **Perfect Vertical Alignment in Context Sidebar**
    - Fixed header title alignment: Added `display: flex; align-items: center; gap: 6px;` for book icon + "Documents" text
    - Fixed document row alignment: Added `display: flex; align-items: center;` to file icon spans
@@ -98,11 +98,14 @@
    - Fixed temporary context preview alignment: Added flex alignment to preview text with book icon
    - **Result**: All icons and text now perfectly vertically centered throughout context sidebar
 
-2. **Critical Bug Documentation**
-   - Added comprehensive bug report for multi-document context error after file removal
-   - Error: "Cannot read properties of undefined (reading '0')" when asking questions after removing files from context
-   - Documented reproduction steps, impact, and priority in CLAUDE.md for next session resolution
-   - Categorized as High Priority affecting core multi-document functionality
+2. **Critical Multi-Document Context Bug Fix**
+   - **Root Cause**: Sidebar view still using old temporary/persistent docs model, accessing empty temporaryDocs array
+   - **Error**: "Cannot read properties of undefined (reading '0')" when asking questions after removing files from context
+   - **Solution**: Updated sidebar logic to use simplified persistent-only model
+   - **Defensive Programming**: Added stale file reference filtering and validation in multi-doc context handler
+   - **Files Modified**: `src/ui/sidebar-view.ts`, `src/core/multi-doc-context.ts`
+   - **Testing**: All 486 tests still passing, no TypeScript errors
+   - **Result**: Multi-document context now robust against file removal and UI state changes
 
 **PREVIOUS: Professional Icon System Implementation** ✅
 1. **Complete Emoji-to-Icon Transformation**
@@ -318,11 +321,12 @@ With Phase 0 (Monetization Pivot) now COMPLETE, focus moves to comprehensive man
      - Issue: In `sidebar-view.ts` fallback used `leaves[0]` instead of active leaf
      - Fix: Updated `loadConversationForActiveFile()` to check `app.workspace.activeLeaf` before falling back to first file
      - All 486 tests passing after fix
-   - [ ] **BUG: Multi-document context error after file removal** - Critical
+   - ✅ **FIXED: Multi-document context error after file removal** - Critical
      - Issue: After adding files to context, asking questions, then removing a file from context (leaving others), asking a question that would need the removed file causes error: "Sorry, I encountered an error: Cannot read properties of undefined (reading '0')"
-     - Location: Likely in multi-document context handling or message processing
-     - Impact: Breaks conversation flow when context is modified mid-conversation
-     - Priority: High - affects core multi-document functionality
+     - Root Cause: Sidebar view still using old temporary/persistent docs model; accessing empty temporaryDocs array
+     - Fix: Updated sidebar logic to use simplified persistent-only model, added defensive programming for stale file references
+     - Files modified: `src/ui/sidebar-view.ts`, `src/core/multi-doc-context.ts`
+     - All 486 tests still passing after fix
 
 3. **Performance & Polish**
    - ✅ **Bundle size analysis**: 255KB bundle size is reasonable for feature set

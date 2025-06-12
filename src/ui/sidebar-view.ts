@@ -1012,7 +1012,7 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 		
-		const allDocs = [...this.currentContext.temporaryDocs, ...this.currentContext.persistentDocs];
+		const allDocs = this.currentContext.persistentDocs;
 		
 		if (allDocs.length === 0) {
 			this.contextIndicator.style.display = 'none';
@@ -1380,16 +1380,20 @@ export class NovaSidebarView extends ItemView {
 				this.updateContextIndicator();
 				
 				// Check if message is just document references (context-only mode)
-				const hasNewTempDocs = multiDocContext.temporaryDocs.length > 0;
-				const hasNewPersistentDocs = multiDocContext.temporaryDocs.some(doc => doc.isPersistent);
-				const isContextOnlyMessage = processedMessage.trim().length === 0 && (hasNewTempDocs || hasNewPersistentDocs);
+				// Since all docs are now persistent, check if we have new docs and empty message
+				const previousPersistentCount = this.currentContext?.persistentDocs.length || 0;
+				const currentPersistentCount = multiDocContext.persistentDocs.length;
+				const hasNewDocs = currentPersistentCount > previousPersistentCount;
+				const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
 				
 				if (isContextOnlyMessage) {
-					// Handle context-only commands
-					if (hasNewPersistentDocs) {
-						const persistentDocs = multiDocContext.temporaryDocs.filter(doc => doc.isPersistent);
-						const docNames = persistentDocs.map(doc => doc.file.basename).join(', ');
-						this.addMessage('system', this.createIconMessage('check-circle', `Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? 's' : ''} to persistent context: ${docNames}`));
+					// Handle context-only commands - show newly added documents
+					const newDocsCount = currentPersistentCount - previousPersistentCount;
+					if (newDocsCount > 0) {
+						// Get the newly added documents (last N documents)
+						const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
+						const docNames = newDocs.map(doc => doc.file.basename).join(', ');
+						this.addMessage('system', this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
 					}
 					
 					// Clear input and update context indicator
@@ -1405,8 +1409,8 @@ export class NovaSidebarView extends ItemView {
 				}
 				
 				// Show context confirmation if documents were included in a regular message
-				if (multiDocContext.temporaryDocs.length > 0 || multiDocContext.persistentDocs.length > 0) {
-					const allDocs = [...multiDocContext.temporaryDocs, ...multiDocContext.persistentDocs];
+				if (multiDocContext.persistentDocs.length > 0) {
+					const allDocs = multiDocContext.persistentDocs;
 					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
 					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
 					this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}`));

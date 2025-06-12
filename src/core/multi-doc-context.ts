@@ -141,9 +141,27 @@ export class MultiDocContextHandler {
         }
         
         // Get final persistent context (including newly added docs)
-        const allPersistentDocs = this.persistentContext.get(currentFile.path) || [];
+        const rawPersistentDocs = this.persistentContext.get(currentFile.path) || [];
+        
+        // Filter out any stale file references (files that no longer exist)
+        const allPersistentDocs = rawPersistentDocs.filter(docRef => {
+            if (!docRef?.file || !this.app.vault.getAbstractFileByPath(docRef.file.path)) {
+                console.warn(`Removing stale file reference: ${docRef?.file?.path || 'unknown'}`);
+                return false;
+            }
+            return true;
+        });
+        
+        // Update the persistent context to remove stale references
+        if (allPersistentDocs.length !== rawPersistentDocs.length) {
+            if (allPersistentDocs.length > 0) {
+                this.persistentContext.set(currentFile.path, allPersistentDocs);
+            } else {
+                this.persistentContext.delete(currentFile.path);
+            }
+        }
 
-        // Build context string from all persistent documents
+        // Build context string from all valid persistent documents
         const contextParts: string[] = [];
         for (const docRef of allPersistentDocs) {
             const contextPart = await this.getDocumentContext(docRef);
@@ -175,6 +193,12 @@ export class MultiDocContextHandler {
         try {
             const { file, property } = docRef;
             
+            // Validate that the file still exists in the vault
+            if (!file || !this.app.vault.getAbstractFileByPath(file.path)) {
+                console.warn(`File no longer exists: ${file?.path || 'unknown'}`);
+                return null;
+            }
+            
             if (property) {
                 // Get specific property from frontmatter
                 const cache = this.app.metadataCache.getFileCache(file);
@@ -185,7 +209,18 @@ export class MultiDocContextHandler {
             } else {
                 // Get full document content
                 const content = await this.app.vault.read(file);
+                if (!content) {
+                    console.warn(`File content is empty or null: ${file.path}`);
+                    return null;
+                }
+                
                 const lines = content.split('\n');
+                
+                // Defensive check for empty lines array
+                if (!lines || lines.length === 0) {
+                    console.warn(`No lines found in file: ${file.path}`);
+                    return `## Document: ${file.basename}\n[Empty file]`;
+                }
                 
                 // Limit to first 50 lines for context
                 const truncatedContent = lines.slice(0, 50).join('\n');
@@ -194,7 +229,7 @@ export class MultiDocContextHandler {
                 return `## Document: ${file.basename}\n${truncatedContent}${wasTruncated ? '\n\n[... truncated for brevity ...]' : ''}`;
             }
         } catch (error) {
-            console.error(`Failed to read context from ${docRef.file.path}:`, error);
+            console.error(`Failed to read context from ${docRef?.file?.path || 'unknown file'}:`, error);
             return null;
         }
     }
