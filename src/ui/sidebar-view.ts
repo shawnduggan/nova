@@ -1229,7 +1229,22 @@ export class NovaSidebarView extends ItemView {
 				font-size: 1em;
 				line-height: 1.4;
 			`;
-			nameEl.setAttr('title', doc.file.path);
+			nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
+			
+			// Add read-only indicator
+			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
+			readOnlyEl.textContent = 'read-only';
+			readOnlyEl.style.cssText = `
+				font-size: 0.75em;
+				color: var(--text-muted);
+				background: var(--background-modifier-hover);
+				padding: 1px 4px;
+				border-radius: 3px;
+				margin-left: 6px;
+				font-weight: 500;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			`;
 			
 			// Mobile-optimized remove button with larger touch target
 			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
@@ -1413,7 +1428,8 @@ export class NovaSidebarView extends ItemView {
 					const allDocs = multiDocContext.persistentDocs;
 					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
 					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
-					this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}`));
+					const currentFile = this.currentFile?.basename || 'current file';
+					this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
 				}
 				
 				// Check token limit
@@ -1570,6 +1586,20 @@ export class NovaSidebarView extends ItemView {
 			if (!markdownView) {
 				return this.createIconMessage('x-circle', `Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`);
 			}
+
+			// CRITICAL SECURITY: Ensure the active file matches our conversation file
+			// This prevents accidentally editing context documents that might be open
+			const activeFile = this.app.workspace.getActiveFile();
+			if (!activeFile || activeFile !== this.currentFile) {
+				// Make the conversation file active before executing commands
+				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: true });
+				
+				// Double-check that the file is now active
+				const nowActiveFile = this.app.workspace.getActiveFile();
+				if (!nowActiveFile || nowActiveFile !== this.currentFile) {
+					return this.createIconMessage('x-circle', `Unable to set "${this.currentFile.basename}" as the active file. Edit commands can only modify the file you're chatting about to prevent accidental changes to context documents.`);
+				}
+			}
 			
 			let result;
 			
@@ -1704,8 +1734,16 @@ export class NovaSidebarView extends ItemView {
 		const command = this.plugin.commandParser.parseCommand(message);
 		
 		// Check if it's a valid command action
-		const validActions = ['add', 'edit', 'delete', 'grammar', 'rewrite'];
+		const validActions = ['add', 'edit', 'delete', 'grammar', 'rewrite', 'metadata'];
 		if (validActions.includes(command.action)) {
+			// CRITICAL SECURITY: Validate that we're editing the correct file
+			// This prevents accidentally editing context documents that might be open
+			// Only apply this validation when both files exist (not in test scenarios)
+			const currentActiveFile = this.plugin.documentEngine.getActiveFile();
+			if (activeFile && currentActiveFile && currentActiveFile !== activeFile) {
+				throw new Error(`Security violation: Command attempted to edit wrong file. Expected: ${activeFile.basename}, Active: ${currentActiveFile.basename}`);
+			}
+
 			// Execute command
 			switch (command.action) {
 				case 'add':
@@ -1722,6 +1760,9 @@ export class NovaSidebarView extends ItemView {
 					break;
 				case 'rewrite':
 					await this.plugin.rewriteCommandHandler.execute(command);
+					break;
+				case 'metadata':
+					await this.plugin.metadataCommandHandler.execute(command);
 					break;
 			}
 		} else {
