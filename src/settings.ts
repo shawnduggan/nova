@@ -441,18 +441,6 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	private isProviderAllowedForCoreTier(providerType: ProviderType): boolean {
-		if (!this.plugin.aiProviderManager) return true;
-		return this.plugin.aiProviderManager.isProviderAllowed(providerType);
-	}
-
-	private createRestrictedProviderNotice(container: HTMLElement, providerName: string) {
-		const restrictedContainer = container.createDiv({ cls: 'nova-provider-section nova-provider-restricted' });
-		restrictedContainer.innerHTML = `
-			<h4>${providerName} <span class="restriction-badge">SuperNova Only</span></h4>
-			<p class="restriction-text">This provider requires a SuperNova license.</p>
-		`;
-	}
 
 	private createOpenAISettings() {
 		const { containerEl } = this;

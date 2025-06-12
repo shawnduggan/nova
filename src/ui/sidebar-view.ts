@@ -1652,7 +1652,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	/**
-	 * Create static provider status for Core tier users
+	 * Create static provider status display
 	 */
 	private createStaticProviderStatus(container: HTMLElement): void {
 		const providerStatus = container.createDiv({ cls: 'nova-header-provider' });

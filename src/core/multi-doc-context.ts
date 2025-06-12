@@ -77,20 +77,32 @@ export class MultiDocContextHandler {
                     rawReference,
                     property
                 });
-
-                // Remove the reference from the message
-                cleanedMessage = cleanedMessage.replace(rawReference, '');
             }
         }
 
-        // Clean up extra spaces
-        cleanedMessage = cleanedMessage.replace(/\s+/g, ' ').trim();
+        // Remove all found references from message
+        for (const ref of references) {
+            cleanedMessage = cleanedMessage.replace(ref.rawReference, ' ');
+        }
+
+        // Clean up excessive spaces but preserve necessary spacing
+        cleanedMessage = cleanedMessage.replace(/\s{2,}/g, ' ').trim();
 
         // Update persistent context if needed
         const persistentRefs = references.filter(ref => ref.isPersistent);
         if (persistentRefs.length > 0) {
             const existing = this.persistentContext.get(conversationFilePath) || [];
-            this.persistentContext.set(conversationFilePath, [...existing, ...persistentRefs]);
+            const updatedPersistent = [...existing];
+            
+            // Add new references that aren't already in persistent context
+            for (const ref of persistentRefs) {
+                const exists = updatedPersistent.some(existing => existing.file.path === ref.file.path);
+                if (!exists) {
+                    updatedPersistent.push(ref);
+                }
+            }
+            
+            this.persistentContext.set(conversationFilePath, updatedPersistent);
         }
 
         return { cleanedMessage, references };
