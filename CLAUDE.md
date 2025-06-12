@@ -69,9 +69,9 @@
 ### Critical Tasks Remaining
 
 #### 📋 **NEXT PRIORITY: Fix Known Bugs**
-- [ ] Fix Claude model refresh not working
-- [ ] Fix OpenAI model refresh showing duplicate models (need unique filtering)
-- [ ] Verify and fix Google/Gemini model refresh functionality
+- [ ] Fix Claude models: Remove refresh button, populate with hardcoded Claude 3.5+ models from API docs
+- [ ] Fix OpenAI model refresh: Call https://api.openai.com/v1/models and filter for current models only
+- [ ] Fix Gemini model refresh: Call https://generativelanguage.googleapis.com/v1beta/models and filter for current models only
 - [ ] Mobile performance testing on actual devices
 - [ ] Error handling improvements and loading state optimizations
 
