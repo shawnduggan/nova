@@ -903,11 +903,13 @@ export class NovaSidebarView extends ItemView {
 			font-size: 0.8em;
 			color: var(--text-muted);
 			transition: all 0.2s ease;
+			align-items: center;
+			gap: 4px;
 		`;
 
 		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text' });
 		previewText.innerHTML = this.createInlineIcon('book-open') + ' Context will include: ';
-		previewText.style.cssText = 'font-weight: 500;';
+		previewText.style.cssText = 'font-weight: 500; display: flex; align-items: center; gap: 6px;';
 
 		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list' });
 		previewList.style.cssText = 'color: var(--interactive-accent);';
@@ -1045,13 +1047,14 @@ export class NovaSidebarView extends ItemView {
 		`;
 		
 		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
-		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none;';
 		
 		const tokenPercent = Math.round((this.currentContext.tokenCount / 8000) * 100);
 		const docNames = allDocs.map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
 		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
 		
-		// Mobile-optimized text (shorter on mobile)
+		// Mobile-optimized text (shorter on mobile) with proper flex alignment
+		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px;';
+		
 		if (isMobile) {
 			summaryTextEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount} (${tokenPercent}%)`;
 		} else {
@@ -1128,6 +1131,7 @@ export class NovaSidebarView extends ItemView {
 		
 		const headerTitleEl = expandedHeaderEl.createSpan();
 		headerTitleEl.innerHTML = this.createInlineIcon('book-open') + ` Documents (${allDocs.length})`;
+		headerTitleEl.style.cssText = 'display: flex; align-items: center; gap: 6px;';
 		
 		// Clear all button using same icon as main sidebar
 		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
@@ -1211,7 +1215,7 @@ export class NovaSidebarView extends ItemView {
 			
 			const iconEl = docInfoEl.createSpan();
 			iconEl.innerHTML = this.createInlineIcon('file-text');
-			iconEl.style.cssText = `font-size: 1em;`;
+			iconEl.style.cssText = 'display: flex; align-items: center; font-size: 1em;';
 			
 			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
 			const suffix = doc.property ? `#${doc.property}` : '';

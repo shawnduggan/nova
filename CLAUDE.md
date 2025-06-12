@@ -90,7 +90,21 @@
 
 ### COMPLETED THIS SESSION ✅
 
-**LATEST: Professional Icon System Implementation** ✅
+**LATEST: Context Sidebar UI Polish & Bug Documentation** ✅
+1. **Perfect Vertical Alignment in Context Sidebar**
+   - Fixed header title alignment: Added `display: flex; align-items: center; gap: 6px;` for book icon + "Documents" text
+   - Fixed document row alignment: Added `display: flex; align-items: center;` to file icon spans
+   - Fixed summary line alignment: Updated to use flexbox with proper icon-to-text centering
+   - Fixed temporary context preview alignment: Added flex alignment to preview text with book icon
+   - **Result**: All icons and text now perfectly vertically centered throughout context sidebar
+
+2. **Critical Bug Documentation**
+   - Added comprehensive bug report for multi-document context error after file removal
+   - Error: "Cannot read properties of undefined (reading '0')" when asking questions after removing files from context
+   - Documented reproduction steps, impact, and priority in CLAUDE.md for next session resolution
+   - Categorized as High Priority affecting core multi-document functionality
+
+**PREVIOUS: Professional Icon System Implementation** ✅
 1. **Complete Emoji-to-Icon Transformation**
    - Replaced ALL emojis throughout Nova with clean Obsidian-style SVG icons
    - Created comprehensive icon system with 10 standardized icons
@@ -304,6 +318,11 @@ With Phase 0 (Monetization Pivot) now COMPLETE, focus moves to comprehensive man
      - Issue: In `sidebar-view.ts` fallback used `leaves[0]` instead of active leaf
      - Fix: Updated `loadConversationForActiveFile()` to check `app.workspace.activeLeaf` before falling back to first file
      - All 486 tests passing after fix
+   - [ ] **BUG: Multi-document context error after file removal** - Critical
+     - Issue: After adding files to context, asking questions, then removing a file from context (leaving others), asking a question that would need the removed file causes error: "Sorry, I encountered an error: Cannot read properties of undefined (reading '0')"
+     - Location: Likely in multi-document context handling or message processing
+     - Impact: Breaks conversation flow when context is modified mid-conversation
+     - Priority: High - affects core multi-document functionality
 
 3. **Performance & Polish**
    - ✅ **Bundle size analysis**: 255KB bundle size is reasonable for feature set
