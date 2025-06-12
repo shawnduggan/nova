@@ -14,6 +14,7 @@ import { GrammarCommand } from './src/core/commands/grammar-command';
 import { RewriteCommand } from './src/core/commands/rewrite-command';
 import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
+import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,7 +66,7 @@ export default class NovaPlugin extends Plugin {
 			
 			// Update license from settings
 			if (this.settings.licensing.licenseKey) {
-				await this.featureManager.updateLicense(this.settings.licensing.licenseKey);
+				await this.featureManager.updateCatalystLicense(this.settings.licensing.licenseKey);
 			}
 			console.log('Nova: feature manager initialized');
 
@@ -105,6 +106,8 @@ export default class NovaPlugin extends Plugin {
 				(leaf) => new NovaSidebarView(leaf, this)
 			);
 			console.log('Nova: view registered');
+
+			// Note: Wikilink autocomplete is now handled directly in sidebar view
 
 			const ribbonIcon = this.addRibbonIcon('nova-star', 'Nova AI', (evt: MouseEvent) => {
 				this.activateView();

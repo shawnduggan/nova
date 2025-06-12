@@ -1,6 +1,8 @@
 import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
+import { NovaWikilinkAutocomplete } from './wikilink-suggest';
+import { MultiDocContextHandler, MultiDocContext } from '../core/multi-doc-context';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -18,10 +20,16 @@ export class NovaSidebarView extends ItemView {
 	private commandMenu!: HTMLElement;
 	private isCommandMenuVisible: boolean = false;
 	private autoGrowTextarea!: () => void;
+	private wikilinkAutocomplete!: NovaWikilinkAutocomplete;
+	private contextPreview!: HTMLElement;
+	private multiDocHandler!: MultiDocContextHandler;
+	private contextIndicator!: HTMLElement;
+	private currentContext: MultiDocContext | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.multiDocHandler = new MultiDocContextHandler(this.app);
 	}
 
 	getViewType() {
@@ -110,6 +118,11 @@ export class NovaSidebarView extends ItemView {
 		// Clean up provider dropdown event listener
 		if ((this as any).currentProviderDropdown?.cleanup) {
 			(this as any).currentProviderDropdown.cleanup();
+		}
+		
+		// Clean up wikilink autocomplete
+		if (this.wikilinkAutocomplete) {
+			this.wikilinkAutocomplete.destroy();
 		}
 	}
 
@@ -208,6 +221,14 @@ export class NovaSidebarView extends ItemView {
 		
 		// Also trigger on initial load and when value changes programmatically
 		setTimeout(this.autoGrowTextarea, 0);
+		
+		// Initialize wikilink autocomplete
+		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.app, this.textArea.inputEl);
+		
+		// Add real-time context preview
+		this.textArea.inputEl.addEventListener('input', () => {
+			this.updateLiveContextPreview();
+		});
 
 		// Command button (⚡) - conditionally shown
 		this.commandButton = new ButtonComponent(inputRow);
@@ -268,6 +289,10 @@ export class NovaSidebarView extends ItemView {
 
 		// Create command menu
 		this.createCommandMenu();
+
+		// Create context indicator and preview
+		this.createContextIndicator();
+		this.contextPreview = this.createContextPreview();
 	}
 
 	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
@@ -766,6 +791,196 @@ export class NovaSidebarView extends ItemView {
 		this.handleSend();
 	}
 
+	private createContextIndicator(): void {
+		// Check if multi-doc context feature is enabled
+		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+			return;
+		}
+
+		this.contextIndicator = this.inputContainer.createDiv({ cls: 'nova-context-indicator' });
+		this.contextIndicator.style.cssText = `
+			display: none;
+			padding: 8px 12px;
+			margin-bottom: 8px;
+			background: var(--background-modifier-hover);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 8px;
+			font-size: 0.85em;
+			color: var(--text-muted);
+			transition: all 0.2s ease;
+		`;
+	}
+
+	private createContextPreview(): HTMLElement {
+		// Check if multi-doc context feature is enabled
+		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+			// Return a dummy element that won't be used
+			return document.createElement('div');
+		}
+
+		// Create a preview area that shows live context as user types
+		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview' });
+		previewContainer.style.cssText = `
+			display: none;
+			padding: 8px 12px;
+			margin-bottom: 4px;
+			background: rgba(var(--interactive-accent-rgb), 0.1);
+			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+			border-radius: 6px;
+			font-size: 0.8em;
+			color: var(--text-muted);
+			transition: all 0.2s ease;
+		`;
+
+		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text' });
+		previewText.textContent = '📚 Context will include: ';
+		previewText.style.cssText = 'font-weight: 500;';
+
+		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list' });
+		previewList.style.cssText = 'color: var(--interactive-accent);';
+
+		return previewContainer;
+	}
+
+	private updateLiveContextPreview(): void {
+		if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+			return;
+		}
+
+		const message = this.textArea.getValue();
+		if (!message) {
+			this.contextPreview.style.display = 'none';
+			return;
+		}
+
+		// Parse document references from current message
+		const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
+		const foundRefs: Array<{name: string, isPersistent: boolean, property?: string}> = [];
+		let match;
+
+		while ((match = refPattern.exec(message)) !== null) {
+			const isPersistent = !!match[1];
+			const docName = match[2];
+			const property = match[3];
+			
+			// Try to find the file to validate it exists
+			const file = this.findFileByName(docName);
+			if (file) {
+				foundRefs.push({
+					name: docName,
+					isPersistent,
+					property
+				});
+			}
+		}
+
+		// Add persistent context for current file
+		const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile?.path || '');
+		persistentDocs.forEach(doc => {
+			foundRefs.push({
+				name: doc.file.basename,
+				isPersistent: true,
+				property: doc.property
+			});
+		});
+
+		// Update preview
+		if (foundRefs.length > 0) {
+			const previewList = this.contextPreview.querySelector('.nova-context-preview-list') as HTMLElement;
+			if (previewList) {
+				const docNames = foundRefs.map(ref => {
+					const prefix = ref.isPersistent ? '+' : '';
+					const suffix = ref.property ? `#${ref.property}` : '';
+					return `${prefix}${ref.name}${suffix}`;
+				});
+				previewList.textContent = docNames.join(', ');
+			}
+			this.contextPreview.style.display = 'block';
+		} else {
+			this.contextPreview.style.display = 'none';
+		}
+	}
+
+	private findFileByName(nameOrPath: string): TFile | null {
+		// First try exact path match
+		let file = this.app.vault.getAbstractFileByPath(nameOrPath);
+		
+		if (!file || !(file instanceof TFile)) {
+			// Try with .md extension
+			file = this.app.vault.getAbstractFileByPath(nameOrPath + '.md');
+		}
+		
+		if (!file || !(file instanceof TFile)) {
+			// Search by basename
+			const files = this.app.vault.getMarkdownFiles();
+			file = files.find(f => 
+				f.basename === nameOrPath || 
+				f.name === nameOrPath ||
+				f.path.endsWith('/' + nameOrPath) ||
+				f.path.endsWith('/' + nameOrPath + '.md')
+			) || null;
+		}
+		
+		return file instanceof TFile ? file : null;
+	}
+
+	private updateContextIndicator(): void {
+		if (!this.contextIndicator || !this.currentContext) {
+			return;
+		}
+
+		const indicators = this.multiDocHandler.getContextIndicators(this.currentContext);
+		
+		this.contextIndicator.empty();
+		
+		// Main indicator
+		const mainEl = this.contextIndicator.createDiv({ cls: 'nova-context-main' });
+		mainEl.style.cssText = 'display: flex; align-items: center; justify-content: space-between;';
+		
+		const textEl = mainEl.createSpan({ cls: indicators.className });
+		textEl.textContent = indicators.text;
+		textEl.setAttr('title', indicators.tooltip);
+		
+		// Document list
+		const docs = this.multiDocHandler.formatContextForDisplay(this.currentContext);
+		if (docs.length > 0) {
+			const listEl = mainEl.createSpan({ cls: 'nova-context-list' });
+			listEl.style.cssText = 'font-size: 0.9em; color: var(--text-faint);';
+			listEl.textContent = docs.join(', ');
+		}
+		
+		// Clear button for persistent context
+		if (this.currentContext.persistentDocs.length > 0) {
+			const clearBtn = mainEl.createEl('button', { text: '✕', cls: 'nova-context-clear' });
+			clearBtn.style.cssText = `
+				background: none;
+				border: none;
+				color: var(--text-faint);
+				cursor: pointer;
+				padding: 0 4px;
+				font-size: 1.2em;
+			`;
+			clearBtn.setAttr('title', 'Clear persistent context');
+			clearBtn.onclick = () => {
+				if (this.currentFile) {
+					this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+					this.currentContext = null;
+					this.contextIndicator.style.display = 'none';
+					new Notice('Persistent context cleared');
+				}
+			};
+		}
+		
+		// Show/hide based on context
+		this.contextIndicator.style.display = docs.length > 0 ? 'block' : 'none';
+		
+		// Add warning style if near limit
+		if (this.currentContext.isNearLimit) {
+			this.contextIndicator.style.borderColor = 'var(--text-warning)';
+			this.contextIndicator.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+		}
+	}
+
 	private async handleSend() {
 		const message = this.textArea.getValue().trim();
 		if (!message) return;
@@ -781,11 +996,78 @@ export class NovaSidebarView extends ItemView {
 			}
 		}
 
-		// Add user message
+		// Check if multi-doc context feature is enabled and parse references
+		let processedMessage = message;
+		let multiDocContext: MultiDocContext | null = null;
+		
+		if (this.currentFile) {
+			// Check for early access
+			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+				if (message.includes('[[') || message.includes('+[[')) {
+					this.addMessage('system', '📚 Multi-document context is currently in early access for Catalyst supporters. Available to all users August 15, 2025.');
+					return;
+				}
+			} else {
+				// Parse and build context
+				const contextResult = await this.multiDocHandler.buildContext(message, this.currentFile);
+				processedMessage = contextResult.cleanedMessage;
+				multiDocContext = contextResult.context;
+				this.currentContext = multiDocContext;
+				
+				// Update UI indicator
+				this.updateContextIndicator();
+				
+				// Check if message is just document references (context-only mode)
+				const hasNewTempDocs = multiDocContext.temporaryDocs.length > 0;
+				const hasNewPersistentDocs = multiDocContext.temporaryDocs.some(doc => doc.isPersistent);
+				const isContextOnlyMessage = processedMessage.trim().length === 0 && (hasNewTempDocs || hasNewPersistentDocs);
+				
+				if (isContextOnlyMessage) {
+					// Handle context-only commands
+					if (hasNewPersistentDocs) {
+						const persistentDocs = multiDocContext.temporaryDocs.filter(doc => doc.isPersistent);
+						const docNames = persistentDocs.map(doc => doc.file.basename).join(', ');
+						this.addMessage('system', `✅ Added ${persistentDocs.length} document${persistentDocs.length !== 1 ? 's' : ''} to persistent context: ${docNames}`);
+					}
+					
+					// Clear input and update context indicator
+					this.textArea.setValue('');
+					setTimeout(() => this.autoGrowTextarea(), 0);
+					this.updateContextIndicator();
+					
+					// Hide context preview since we're done
+					if (this.contextPreview) {
+						this.contextPreview.style.display = 'none';
+					}
+					return;
+				}
+				
+				// Show context confirmation if documents were included in a regular message
+				if (multiDocContext.temporaryDocs.length > 0 || multiDocContext.persistentDocs.length > 0) {
+					const allDocs = [...multiDocContext.temporaryDocs, ...multiDocContext.persistentDocs];
+					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
+					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
+					this.addMessage('system', `📚 Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}`);
+				}
+				
+				// Check token limit
+				if (multiDocContext.isNearLimit) {
+					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', 5000);
+				}
+			}
+		}
+
+		// Add user message (show original with references)
 		this.addMessage('user', message);
 		this.textArea.setValue('');
 		// Reset textarea height after clearing
 		setTimeout(() => this.autoGrowTextarea(), 0);
+		
+		// Hide context preview since we're sending the message
+		if (this.contextPreview) {
+			this.contextPreview.style.display = 'none';
+		}
+		
 		this.sendButton.setDisabled(true);
 
 		try {
@@ -824,22 +1106,34 @@ export class NovaSidebarView extends ItemView {
 			}
 
 			// Check if this is a command or conversation
-			const isLikelyCommand = this.plugin.promptBuilder['isLikelyCommand'](message);
+			const isLikelyCommand = this.plugin.promptBuilder['isLikelyCommand'](processedMessage);
 			let response: string | null = null;
 			
 			if (isLikelyCommand && activeFile) {
 				// Parse as command and route to appropriate handler
-				const parsedCommand = this.plugin.commandParser.parseCommand(message);
+				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
 				response = await this.executeCommand(parsedCommand);
 			} else {
 				// Handle as conversation using PromptBuilder
-				const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+				const prompt = await this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
 				
-				// Get AI response using the provider manager
-				response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
-					temperature: prompt.config.temperature,
-					maxTokens: prompt.config.maxTokens
-				});
+				// Add multi-document context if available
+				if (multiDocContext && multiDocContext.contextString) {
+					// Enhance the prompt with additional context
+					const enhancedUserPrompt = `${multiDocContext.contextString}\n\n---\n\nCurrent Request: ${prompt.userPrompt}`;
+					
+					// Get AI response using the provider manager
+					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, enhancedUserPrompt, {
+						temperature: prompt.config.temperature,
+						maxTokens: prompt.config.maxTokens
+					});
+				} else {
+					// Get AI response using the provider manager
+					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
+						temperature: prompt.config.temperature,
+						maxTokens: prompt.config.maxTokens
+					});
+				}
 			}
 			
 			// Remove loading indicator
@@ -967,6 +1261,24 @@ export class NovaSidebarView extends ItemView {
 		// Clear current chat
 		this.chatContainer.empty();
 		
+		// Update persistent context for new file
+		const persistentDocs = this.multiDocHandler.getPersistentContext(targetFile.path);
+		if (persistentDocs.length > 0) {
+			this.currentContext = {
+				temporaryDocs: [],
+				persistentDocs,
+				contextString: '',
+				tokenCount: 0,
+				isNearLimit: false
+			};
+			this.updateContextIndicator();
+		} else {
+			this.currentContext = null;
+			if (this.contextIndicator) {
+				this.contextIndicator.style.display = 'none';
+			}
+		}
+		
 		try {
 			// Load conversation history if it exists
 			const recentMessages = await this.plugin.conversationManager.getRecentMessages(targetFile, 10);
@@ -997,6 +1309,12 @@ export class NovaSidebarView extends ItemView {
 		if (this.currentFile) {
 			try {
 				await this.plugin.conversationManager.clearConversation(this.currentFile);
+				// Also clear multi-doc persistent context
+				this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+				this.currentContext = null;
+				if (this.contextIndicator) {
+					this.contextIndicator.style.display = 'none';
+				}
 			} catch (error) {
 				console.warn('Failed to clear conversation:', error);
 			}

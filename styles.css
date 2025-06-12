@@ -1,5 +1,60 @@
 /* Nova Plugin Styles */
 
+/* Wikilink Suggestions */
+.nova-wikilink-suggestion {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.nova-wikilink-suggestion:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-wikilink-name {
+    font-weight: 500;
+    color: var(--text-normal);
+    margin-bottom: 2px;
+}
+
+.nova-wikilink-path {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* Multi-Document Context Indicator */
+.nova-context-indicator {
+    transition: all 0.2s ease;
+}
+
+.nova-context-indicator .nova-context-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nova-context-indicator .nova-context-warning {
+    color: var(--text-warning);
+    font-weight: 600;
+}
+
+.nova-context-indicator .nova-context-list {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nova-context-indicator .nova-context-clear:hover {
+    color: var(--text-normal);
+}
+
+.nova-context-indicator.warning {
+    background: rgba(255, 193, 7, 0.1) !important;
+    border-color: var(--text-warning) !important;
+}
+
 /* License Settings Styles */
 .nova-license-section {
     margin-bottom: 2em;
@@ -769,5 +824,82 @@
     
     .nova-feature-list {
         padding: 0.8em;
+    }
+}
+
+/* Wikilink Autocomplete Styles */
+.nova-wikilink-suggestions {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    font-size: 0.9em;
+}
+
+.nova-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--background-modifier-border-hover);
+    transition: background-color 0.2s ease;
+}
+
+.nova-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.nova-suggestion-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-suggestion-name {
+    font-weight: 500;
+    color: var(--text-normal);
+    margin-bottom: 2px;
+}
+
+.nova-suggestion-path {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* Make suggestions look more like Obsidian's native suggestions */
+.nova-wikilink-suggestions {
+    border-color: var(--background-modifier-border-focus);
+    backdrop-filter: blur(8px);
+}
+
+/* Context Preview Styles */
+.nova-context-preview {
+    background: rgba(var(--interactive-accent-rgb), 0.1);
+    border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+    border-radius: 6px;
+    font-size: 0.8em;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    animation: slideIn 0.2s ease-out;
+}
+
+.nova-context-preview-text {
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.nova-context-preview-list {
+    color: var(--interactive-accent);
+    font-weight: 500;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
