@@ -178,6 +178,7 @@ export default class NovaPlugin extends Plugin {
 
 	onunload() {
 		this.aiProviderManager?.cleanup();
+		this.conversationManager?.cleanup();
 	}
 
 	async loadSettings() {

@@ -322,17 +322,6 @@ var NovaSettingTab = class extends import_obsidian.PluginSettingTab {
       await this.plugin.saveSettings();
     }));
   }
-  isProviderAllowedForCoreTier(providerType) {
-    if (!this.plugin.aiProviderManager) return true;
-    return this.plugin.aiProviderManager.isProviderAllowed(providerType);
-  }
-  createRestrictedProviderNotice(container, providerName) {
-    const restrictedContainer = container.createDiv({ cls: "nova-provider-section nova-provider-restricted" });
-    restrictedContainer.innerHTML = `
-			<h4>${providerName} <span class="restriction-badge">SuperNova Only</span></h4>
-			<p class="restriction-text">This provider requires a SuperNova license.</p>
-		`;
-  }
   createOpenAISettings() {
     const { containerEl } = this;
     const openaiContainer = containerEl.createDiv({ cls: "nova-provider-section" });
@@ -1474,14 +1463,23 @@ var MultiDocContextHandler = class {
           rawReference,
           property
         });
-        cleanedMessage = cleanedMessage.replace(rawReference, "");
       }
     }
-    cleanedMessage = cleanedMessage.replace(/\s+/g, " ").trim();
+    for (const ref of references) {
+      cleanedMessage = cleanedMessage.replace(ref.rawReference, " ");
+    }
+    cleanedMessage = cleanedMessage.replace(/\s{2,}/g, " ").trim();
     const persistentRefs = references.filter((ref) => ref.isPersistent);
     if (persistentRefs.length > 0) {
       const existing = this.persistentContext.get(conversationFilePath) || [];
-      this.persistentContext.set(conversationFilePath, [...existing, ...persistentRefs]);
+      const updatedPersistent = [...existing];
+      for (const ref of persistentRefs) {
+        const exists = updatedPersistent.some((existing2) => existing2.file.path === ref.file.path);
+        if (!exists) {
+          updatedPersistent.push(ref);
+        }
+      }
+      this.persistentContext.set(conversationFilePath, updatedPersistent);
     }
     return { cleanedMessage, references };
   }
@@ -1636,6 +1634,9 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     this.selectedCommandIndex = -1;
     this.isCommandMenuVisible = false;
     this.currentContext = null;
+    // Event listener cleanup tracking
+    this.documentEventListeners = [];
+    this.timeouts = [];
     this.plugin = plugin;
     this.multiDocHandler = new MultiDocContextHandler(this.app);
   }
@@ -1703,6 +1704,58 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
     }
     if (this.wikilinkAutocomplete) {
       this.wikilinkAutocomplete.destroy();
+    }
+    this.cleanupEventListeners();
+    this.clearTimeouts();
+    this.cleanupDOMElements();
+  }
+  /**
+   * Add event listener with automatic cleanup tracking
+   */
+  addTrackedEventListener(element, event, handler) {
+    element.addEventListener(event, handler);
+    this.documentEventListeners.push({ element, event, handler });
+  }
+  /**
+   * Add timeout with automatic cleanup tracking
+   */
+  addTrackedTimeout(callback, delay) {
+    const id = setTimeout(() => {
+      callback();
+      this.timeouts = this.timeouts.filter((t) => t !== id);
+    }, delay);
+    this.timeouts.push(id);
+    return id;
+  }
+  /**
+   * Clean up all tracked event listeners
+   */
+  cleanupEventListeners() {
+    this.documentEventListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.documentEventListeners = [];
+  }
+  /**
+   * Clear all tracked timeouts
+   */
+  clearTimeouts() {
+    this.timeouts.forEach((id) => clearTimeout(id));
+    this.timeouts = [];
+  }
+  /**
+   * Clean up DOM elements
+   */
+  cleanupDOMElements() {
+    this.commandPickerItems = [];
+    if (this.contextIndicator) {
+      this.contextIndicator.remove();
+    }
+    if (this.commandPicker) {
+      this.commandPicker.empty();
+    }
+    if (this.commandMenu) {
+      this.commandMenu.remove();
     }
   }
   createChatInterface(container) {
@@ -2146,11 +2199,12 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
 			display: none;
 			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
 		`;
-    document.addEventListener("click", (event) => {
+    const commandMenuClickHandler = (event) => {
       if (!this.commandMenu.contains(event.target) && !this.commandButton.buttonEl.contains(event.target)) {
         this.hideCommandMenu();
       }
-    });
+    };
+    this.addTrackedEventListener(document, "click", commandMenuClickHandler);
   }
   toggleCommandMenu() {
     if (!this.plugin.featureManager.isFeatureEnabled("command-button")) {
@@ -2398,7 +2452,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
         expandIndicatorEl.style.background = "rgba(var(--interactive-accent-rgb), 0.2)";
       });
       summaryEl.addEventListener("touchend", () => {
-        setTimeout(() => {
+        this.addTrackedTimeout(() => {
           expandIndicatorEl.style.background = "none";
         }, 150);
       });
@@ -2606,7 +2660,7 @@ var NovaSidebarView = class extends import_obsidian4.ItemView {
         this.contextIndicator.style.zIndex = "auto";
       }
     };
-    document.addEventListener("click", closeHandler);
+    this.addTrackedEventListener(document, "click", closeHandler);
   }
   async refreshContext() {
     if (this.currentFile) {
@@ -2811,10 +2865,15 @@ Current Request: ${prompt2.userPrompt}`;
     const activeFile = this.app.workspace.getActiveFile();
     let targetFile = activeFile;
     if (!targetFile) {
-      const leaves = this.app.workspace.getLeavesOfType("markdown");
-      if (leaves.length > 0) {
-        const view = leaves[0].view;
-        targetFile = view.file;
+      const activeLeaf = this.app.workspace.activeLeaf;
+      if (activeLeaf && activeLeaf.view instanceof import_obsidian4.MarkdownView) {
+        targetFile = activeLeaf.view.file;
+      } else {
+        const leaves = this.app.workspace.getLeavesOfType("markdown");
+        if (leaves.length > 0) {
+          const view = leaves[0].view;
+          targetFile = view.file;
+        }
       }
     }
     if (!targetFile || targetFile === this.currentFile) {
@@ -2898,7 +2957,7 @@ Current Request: ${prompt2.userPrompt}`;
     const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
   }
   /**
-   * Create static provider status for Core tier users
+   * Create static provider status display
    */
   createStaticProviderStatus(container) {
     const providerStatus = container.createDiv({ cls: "nova-header-provider" });
@@ -2998,7 +3057,7 @@ Current Request: ${prompt2.userPrompt}`;
       e.stopPropagation();
       toggleDropdown();
     });
-    document.addEventListener("click", closeDropdown);
+    this.addTrackedEventListener(document, "click", closeDropdown);
     updateCurrentProvider();
     this.currentProviderDropdown = {
       updateCurrentProvider,
@@ -3114,7 +3173,9 @@ var ConversationManager = class {
     this.maxMessagesPerFile = 100;
     // Limit conversation history
     this.storageKey = "nova-conversations";
+    this.cleanupInterval = null;
     this.loadConversations();
+    this.startPeriodicCleanup();
   }
   /**
    * Load conversations from plugin data
@@ -3304,23 +3365,6 @@ ${contextLines.join("\n")}
     };
   }
   /**
-   * Remove old conversations to manage memory
-   */
-  async cleanupOldConversations(maxAge = 7 * 24 * 60 * 60 * 1e3) {
-    const now = Date.now();
-    let removedCount = 0;
-    for (const [filePath, conversation] of this.conversations.entries()) {
-      if (now - conversation.lastUpdated > maxAge) {
-        this.conversations.delete(filePath);
-        removedCount++;
-      }
-    }
-    if (removedCount > 0) {
-      await this.saveConversations();
-    }
-    return removedCount;
-  }
-  /**
    * Export conversation for a file
    */
   exportConversation(file) {
@@ -3381,6 +3425,43 @@ ${contextLines.join("\n")}
       this.conversations.delete(oldPath);
       this.conversations.set(newPath, conversation);
       await this.saveConversations();
+    }
+  }
+  /**
+   * Start periodic cleanup of old conversations
+   */
+  startPeriodicCleanup() {
+    this.cleanupInterval = window.setInterval(() => {
+      this.cleanupOldConversations(7 * 24 * 60 * 60 * 1e3);
+    }, 24 * 60 * 60 * 1e3);
+  }
+  /**
+   * Clean up conversations older than the specified age
+   */
+  async cleanupOldConversations(maxAge) {
+    const now = Date.now();
+    let cleaned = false;
+    for (const [filePath, conversation] of this.conversations.entries()) {
+      if (conversation.messages.length > 0) {
+        const lastMessage = conversation.messages[conversation.messages.length - 1];
+        const age = now - lastMessage.timestamp;
+        if (age > maxAge) {
+          this.conversations.delete(filePath);
+          cleaned = true;
+        }
+      }
+    }
+    if (cleaned) {
+      await this.saveConversations();
+    }
+  }
+  /**
+   * Cleanup method to call when plugin is disabled
+   */
+  cleanup() {
+    if (this.cleanupInterval !== null) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
     }
   }
 };
@@ -7242,8 +7323,9 @@ var NovaPlugin = class extends import_obsidian6.Plugin {
     }
   }
   onunload() {
-    var _a;
+    var _a, _b;
     (_a = this.aiProviderManager) == null ? void 0 : _a.cleanup();
+    (_b = this.conversationManager) == null ? void 0 : _b.cleanup();
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

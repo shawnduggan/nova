@@ -25,6 +25,10 @@ export class NovaSidebarView extends ItemView {
 	private multiDocHandler!: MultiDocContextHandler;
 	private contextIndicator!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
+	
+	// Event listener cleanup tracking
+	private documentEventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
+	private timeouts: NodeJS.Timeout[] = [];
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -123,6 +127,69 @@ export class NovaSidebarView extends ItemView {
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
 			this.wikilinkAutocomplete.destroy();
+		}
+		
+		// Clean up tracked event listeners
+		this.cleanupEventListeners();
+		
+		// Clear all timeouts
+		this.clearTimeouts();
+		
+		// Clean up DOM elements
+		this.cleanupDOMElements();
+	}
+	
+	/**
+	 * Add event listener with automatic cleanup tracking
+	 */
+	private addTrackedEventListener(element: EventTarget, event: string, handler: EventListener): void {
+		element.addEventListener(event, handler);
+		this.documentEventListeners.push({ element, event, handler });
+	}
+	
+	/**
+	 * Add timeout with automatic cleanup tracking
+	 */
+	private addTrackedTimeout(callback: () => void, delay: number): NodeJS.Timeout {
+		const id = setTimeout(() => {
+			callback();
+			this.timeouts = this.timeouts.filter(t => t !== id);
+		}, delay);
+		this.timeouts.push(id);
+		return id;
+	}
+	
+	/**
+	 * Clean up all tracked event listeners
+	 */
+	private cleanupEventListeners(): void {
+		this.documentEventListeners.forEach(({ element, event, handler }) => {
+			element.removeEventListener(event, handler);
+		});
+		this.documentEventListeners = [];
+	}
+	
+	/**
+	 * Clear all tracked timeouts
+	 */
+	private clearTimeouts(): void {
+		this.timeouts.forEach(id => clearTimeout(id));
+		this.timeouts = [];
+	}
+	
+	/**
+	 * Clean up DOM elements
+	 */
+	private cleanupDOMElements(): void {
+		this.commandPickerItems = [];
+		if (this.contextIndicator) {
+			this.contextIndicator.remove();
+		}
+		if (this.commandPicker) {
+			this.commandPicker.empty();
+		}
+		if (this.commandMenu) {
+			this.commandMenu.remove();
 		}
 	}
 
@@ -686,12 +753,13 @@ export class NovaSidebarView extends ItemView {
 		`;
 
 		// Close menu when clicking outside
-		document.addEventListener('click', (event) => {
+		const commandMenuClickHandler: EventListener = (event: Event) => {
 			if (!this.commandMenu.contains(event.target as Node) && 
 				!this.commandButton.buttonEl.contains(event.target as Node)) {
 				this.hideCommandMenu();
 			}
-		});
+		};
+		this.addTrackedEventListener(document, 'click', commandMenuClickHandler);
 	}
 
 	private toggleCommandMenu(): void {
@@ -1007,7 +1075,7 @@ export class NovaSidebarView extends ItemView {
 				expandIndicatorEl.style.background = 'rgba(var(--interactive-accent-rgb), 0.2)';
 			});
 			summaryEl.addEventListener('touchend', () => {
-				setTimeout(() => {
+				this.addTrackedTimeout(() => {
 					expandIndicatorEl.style.background = 'none';
 				}, 150);
 			});
@@ -1244,7 +1312,7 @@ export class NovaSidebarView extends ItemView {
 		summaryEl.addEventListener('click', toggleExpanded);
 		
 		// Close when clicking outside
-		const closeHandler = (e: MouseEvent) => {
+		const closeHandler: EventListener = (e: Event) => {
 			if (isExpanded && !this.contextIndicator.contains(e.target as Node)) {
 				isExpanded = false;
 				expandedEl.style.display = 'none';
@@ -1252,7 +1320,7 @@ export class NovaSidebarView extends ItemView {
 			}
 		};
 		
-		document.addEventListener('click', closeHandler);
+		this.addTrackedEventListener(document, 'click', closeHandler);
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -1770,7 +1838,7 @@ export class NovaSidebarView extends ItemView {
 		};
 
 		// Close dropdown when clicking outside
-		const closeDropdown = (event: MouseEvent) => {
+		const closeDropdown: EventListener = (event: Event) => {
 			if (!dropdownContainer.contains(event.target as Node)) {
 				isDropdownOpen = false;
 				dropdownMenu.style.display = 'none';
@@ -1784,7 +1852,7 @@ export class NovaSidebarView extends ItemView {
 		});
 
 		// Add global click listener
-		document.addEventListener('click', closeDropdown);
+		this.addTrackedEventListener(document, 'click', closeDropdown);
 
 		// Update provider name initially
 		updateCurrentProvider();

@@ -15,9 +15,11 @@ export class ConversationManager {
     private conversations: Map<string, ConversationData> = new Map();
     private maxMessagesPerFile = 100; // Limit conversation history
     private storageKey = 'nova-conversations';
+    private cleanupInterval: number | null = null;
 
     constructor(private dataStore: DataStore) {
         this.loadConversations();
+        this.startPeriodicCleanup();
     }
 
     /**
@@ -258,26 +260,6 @@ export class ConversationManager {
         };
     }
 
-    /**
-     * Remove old conversations to manage memory
-     */
-    async cleanupOldConversations(maxAge: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {
-        const now = Date.now();
-        let removedCount = 0;
-
-        for (const [filePath, conversation] of this.conversations.entries()) {
-            if (now - conversation.lastUpdated > maxAge) {
-                this.conversations.delete(filePath);
-                removedCount++;
-            }
-        }
-
-        if (removedCount > 0) {
-            await this.saveConversations();
-        }
-
-        return removedCount;
-    }
 
     /**
      * Export conversation for a file
@@ -352,6 +334,51 @@ export class ConversationManager {
             this.conversations.delete(oldPath);
             this.conversations.set(newPath, conversation);
             await this.saveConversations();
+        }
+    }
+
+    /**
+     * Start periodic cleanup of old conversations
+     */
+    private startPeriodicCleanup(): void {
+        // Clean up every 24 hours
+        this.cleanupInterval = window.setInterval(() => {
+            this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000); // 7 days
+        }, 24 * 60 * 60 * 1000);
+    }
+
+    /**
+     * Clean up conversations older than the specified age
+     */
+    private async cleanupOldConversations(maxAge: number): Promise<void> {
+        const now = Date.now();
+        let cleaned = false;
+
+        for (const [filePath, conversation] of this.conversations.entries()) {
+            // Check if conversation is old based on last message
+            if (conversation.messages.length > 0) {
+                const lastMessage = conversation.messages[conversation.messages.length - 1];
+                const age = now - lastMessage.timestamp;
+                
+                if (age > maxAge) {
+                    this.conversations.delete(filePath);
+                    cleaned = true;
+                }
+            }
+        }
+
+        if (cleaned) {
+            await this.saveConversations();
+        }
+    }
+
+    /**
+     * Cleanup method to call when plugin is disabled
+     */
+    cleanup(): void {
+        if (this.cleanupInterval !== null) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
         }
     }
 }
