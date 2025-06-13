@@ -14,6 +14,7 @@ export interface WikilinkSuggestion {
 export class NovaWikilinkAutocomplete {
     private app: App;
     private textArea: HTMLTextAreaElement;
+    private container: HTMLElement;
     private suggestionPopup: HTMLElement | null = null;
     private suggestions: WikilinkSuggestion[] = [];
     private selectedIndex: number = -1;
@@ -21,9 +22,10 @@ export class NovaWikilinkAutocomplete {
     private currentQuery: string = '';
     private currentTriggerPos: number = -1;
 
-    constructor(app: App, textArea: HTMLTextAreaElement) {
+    constructor(app: App, textArea: HTMLTextAreaElement, container?: HTMLElement) {
         this.app = app;
         this.textArea = textArea;
+        this.container = container || textArea.parentElement!;
         this.setupEventListeners();
     }
 
@@ -124,6 +126,9 @@ export class NovaWikilinkAutocomplete {
         this.suggestionPopup.className = 'nova-wikilink-suggestions';
         this.suggestionPopup.style.cssText = `
             position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
             background: var(--background-primary);
             border: 1px solid var(--background-modifier-border);
             border-radius: 8px;
@@ -132,11 +137,11 @@ export class NovaWikilinkAutocomplete {
             overflow-y: auto;
             z-index: 1000;
             display: none;
-            min-width: 200px;
+            margin-bottom: 4px;
         `;
         
-        // Insert after the textarea
-        this.textArea.parentElement?.appendChild(this.suggestionPopup);
+        // Insert in the provided container for consistent width
+        this.container.appendChild(this.suggestionPopup);
     }
 
     private renderSuggestions(): void {
@@ -161,7 +166,7 @@ export class NovaWikilinkAutocomplete {
             nameEl.style.cssText = `
                 font-weight: 500;
                 color: var(--text-normal);
-                margin-bottom: 2px;
+                margin-bottom: 4px;
             `;
             item.appendChild(nameEl);
             
@@ -173,6 +178,7 @@ export class NovaWikilinkAutocomplete {
                 pathEl.style.cssText = `
                     font-size: 0.85em;
                     color: var(--text-muted);
+                    margin-bottom: 4px;
                 `;
                 item.appendChild(pathEl);
             }
@@ -209,15 +215,12 @@ export class NovaWikilinkAutocomplete {
     private positionPopup(): void {
         if (!this.suggestionPopup) return;
         
-        // Position above the textarea
-        const rect = this.textArea.getBoundingClientRect();
-        const popupHeight = Math.min(200, this.suggestions.length * 50);
-        
+        // Position above the textarea with full container width (matching other pickers)
         this.suggestionPopup.style.position = 'absolute';
         this.suggestionPopup.style.left = '0';
+        this.suggestionPopup.style.right = '0';
         this.suggestionPopup.style.bottom = '100%';
         this.suggestionPopup.style.marginBottom = '4px';
-        this.suggestionPopup.style.width = `${rect.width}px`;
     }
 
     private selectSuggestion(suggestion: WikilinkSuggestion): void {

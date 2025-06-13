@@ -192,19 +192,17 @@ export class SectionPicker {
                 cursor: pointer;
                 border-bottom: 1px solid var(--background-modifier-border-hover);
                 transition: background-color 0.2s;
-                font-family: var(--font-monospace);
-                font-size: 0.9em;
             `;
 
             // Display name with proper indentation
             const nameEl = document.createElement('div');
             nameEl.textContent = item.displayName;
             nameEl.style.cssText = `
+                font-weight: 500;
                 color: var(--text-normal);
                 margin-bottom: 4px;
                 white-space: pre;
                 font-family: var(--font-monospace);
-                font-weight: 500;
             `;
             itemEl.appendChild(nameEl);
 
@@ -212,9 +210,9 @@ export class SectionPicker {
             const pathEl = document.createElement('div');
             pathEl.textContent = item.targetPath;
             pathEl.style.cssText = `
-                font-size: 0.8em;
+                font-size: 0.85em;
                 color: var(--text-muted);
-                font-family: var(--font-interface);
+                margin-bottom: 4px;
             `;
             itemEl.appendChild(pathEl);
 

@@ -78,17 +78,27 @@
 - ✅ **Legacy compatibility removal** - Removed 12+ old properties and cleaned up sidebar-view.ts
 - ✅ **Component initialization fix** - Proper dependency order: InputHandler → CommandSystem → Integration
 - ✅ **Compilation fix** - All TypeScript errors resolved, build succeeds
-#### 📋 **COMPLETED: Core Picker Functionality** ✅
+#### 📋 **COMPLETED: Picker Architecture & Alignment** ✅
 - ✅ **Fix : trigger** - Command picker now appears correctly with proper DOM positioning
-- [ ] **Standardize picker widths** - Make [[ wikilink picker match full sidebar width like : and / pickers
-- [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
+- ✅ **Standardize picker widths** - All three pickers ([[ : /) now use inputRow container for consistent width
+- ✅ **Fix picker alignment** - All pickers aligned to left edge of textarea with full sidebar width
+- [ ] **Standardize picker styling** - Apply : command picker visual style to [[ and / pickers (still different)
 - [ ] **Fix textarea styling** - Needs more vertical height and proper button alignment  
 - [ ] **Fix command button positioning** - Move to left of send button
+- [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
 - [ ] **Consider enhanced context panel** - Add files and paths sections for better UX
+
+#### 📋 **NEXT PRIORITY: Complete Picker Polish** 
+- ✅ **Picker functionality working** - All three triggers ([[ : /) now display pickers correctly
+- ✅ **Picker width consistency** - All use full sidebar width with proper alignment
+- [ ] **Visual styling consistency** - Make all pickers match : command picker appearance exactly
+- [ ] **Input UI improvements** - Fix textarea height and button positioning
+- [ ] **Enhanced UX features** - Improve / trigger to use context panel integration
 
 #### 📋 **User Testing & Polish** 
 - ✅ **Initial picker integration testing** - Basic functionality validated, issues identified
-- [ ] **Complete picker system fixes** - Address remaining UI and functionality issues
+- ✅ **Picker core functionality** - All three triggers working with consistent width/alignment
+- [ ] **Complete visual polish** - Standardize styling across all pickers
 - [ ] Mobile performance testing on actual devices
 - ✅ Error handling improvements and loading state optimizations
 - ✅ **System testing preparation complete** (code quality, performance, UI consistency)

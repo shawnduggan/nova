@@ -101,11 +101,11 @@ export class InputHandler {
 		// Trigger auto-grow on initial load
 		setTimeout(this.autoGrowTextarea, 0);
 
-		// Initialize wikilink autocomplete
-		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.textArea.inputEl);
+		// Initialize wikilink autocomplete with inputRow for consistent width
+		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.textArea.inputEl, this.inputRow);
 
-		// Initialize section picker
-		this.sectionPicker = new SectionPicker(this.plugin.app, this.plugin.documentEngine, this.container);
+		// Initialize section picker with inputRow for consistent alignment
+		this.sectionPicker = new SectionPicker(this.plugin.app, this.plugin.documentEngine, this.inputRow);
 		this.setupSectionPickerCallbacks();
 
 		// Add debounced context preview
