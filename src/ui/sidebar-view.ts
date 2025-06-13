@@ -119,6 +119,13 @@ export class NovaSidebarView extends ItemView {
 		
 		// Initial status refresh to ensure all indicators are up to date
 		setTimeout(() => this.refreshProviderStatus(), 100);
+		
+		// Auto-focus input for immediate typing
+		setTimeout(() => {
+			if (this.textArea?.inputEl) {
+				this.textArea.inputEl.focus();
+			}
+		}, 150);
 	}
 
 	async onClose() {
@@ -246,7 +253,7 @@ export class NovaSidebarView extends ItemView {
 		const textAreaContainer = inputRow.createDiv();
 		textAreaContainer.style.cssText = 'flex: 1; position: relative;';
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('Ask Nova to help edit your document...');
+		this.textArea.setPlaceholder('How can I help?');
 		
 		// Platform-aware defaults and auto-growing setup
 		const lineHeight = 1.5; // em units
@@ -497,7 +504,7 @@ export class NovaSidebarView extends ItemView {
 			line-height: 1.4;
 		`;
 		
-		const titleEl = textContainer.createDiv({ text: 'Welcome to Nova' });
+		const titleEl = textContainer.createDiv({ text: 'Hi! I\'m Nova.' });
 		titleEl.style.cssText = `
 			font-weight: 600;
 			color: var(--text-normal);
@@ -505,7 +512,7 @@ export class NovaSidebarView extends ItemView {
 			font-size: var(--font-text-size);
 		`;
 		
-		const subtitleEl = textContainer.createDiv({ text: message || 'Your AI thinking partner. Ask me to help edit your document!' });
+		const subtitleEl = textContainer.createDiv({ text: message || '' });
 		subtitleEl.style.cssText = `
 			color: var(--text-muted);
 			font-size: 0.9em;
@@ -1527,14 +1534,23 @@ export class NovaSidebarView extends ItemView {
 			
 			// Add filtered AI response (only if there is a response)
 			if (filteredResponse) {
-				this.addMessage('assistant', filteredResponse);
+				// Check if response is an error message (contains x-circle icon or error keywords)
+				if (filteredResponse.includes('x-circle') || 
+					filteredResponse.includes('Error executing command') ||
+					filteredResponse.includes('No markdown file is open') ||
+					filteredResponse.includes('Unable to access') ||
+					filteredResponse.includes('Unable to set')) {
+					this.addErrorMessage(filteredResponse);
+				} else {
+					this.addMessage('assistant', filteredResponse);
+				}
 			}
 		} catch (error) {
 			// Remove loading indicator if it exists
 			const loadingEl = this.chatContainer.querySelector('.nova-loading');
 			if (loadingEl) loadingEl.remove();
 			
-			this.addMessage('assistant', `Sorry, I encountered an error: ${(error as Error).message}`);
+			this.addErrorMessage(this.createIconMessage('x-circle', `Sorry, I encountered an error: ${(error as Error).message}`));
 		} finally {
 			this.sendButton.setDisabled(false);
 			// Refresh context indicator to show persistent documents
@@ -1662,7 +1678,7 @@ export class NovaSidebarView extends ItemView {
 			this.currentFile = null;
 			this.chatContainer.empty();
 			this.refreshContext();
-			this.addWelcomeMessage('Open a document to start chatting with Nova.');
+			this.addWelcomeMessage('Open a document to get started.');
 			return;
 		}
 		
@@ -1692,12 +1708,12 @@ export class NovaSidebarView extends ItemView {
 				});
 			} else {
 				// Show welcome message for new file
-				this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
+				this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
 			}
 		} catch (error) {
 			console.warn('Failed to load conversation history:', error);
 			// Show welcome message on error
-			this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
+			this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
 		}
 	}
 
@@ -1722,9 +1738,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Show fresh welcome message
 		if (this.currentFile) {
-			this.addWelcomeMessage(`Chat cleared! Ready to help you with "${this.currentFile.basename}". What would you like to do?`);
+			this.addWelcomeMessage(`Chat cleared.`);
 		} else {
-			this.addWelcomeMessage("Chat cleared! Ready to help. What would you like to do?");
+			this.addWelcomeMessage("Chat cleared.");
 		}
 		
 		// Show notice to user
@@ -2377,7 +2393,7 @@ export class NovaSidebarView extends ItemView {
 			
 		} catch (error) {
 			console.error('Error switching provider:', error);
-			this.addMessage('system', this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
+			this.addErrorMessage(this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
 		}
 	}
 

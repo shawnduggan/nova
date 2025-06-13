@@ -582,6 +582,12 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
     );
     this.loadConversationForActiveFile();
     setTimeout(() => this.refreshProviderStatus(), 100);
+    setTimeout(() => {
+      var _a;
+      if ((_a = this.textArea) == null ? void 0 : _a.inputEl) {
+        this.textArea.inputEl.focus();
+      }
+    }, 150);
   }
   async onClose() {
     var _a;
@@ -684,7 +690,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
     const textAreaContainer = inputRow.createDiv();
     textAreaContainer.style.cssText = "flex: 1; position: relative;";
     this.textArea = new import_obsidian2.TextAreaComponent(textAreaContainer);
-    this.textArea.setPlaceholder("Ask Nova to help edit your document...");
+    this.textArea.setPlaceholder("How can I help?");
     const lineHeight = 1.5;
     const paddingVertical = 20;
     const borderWidth = 2;
@@ -868,14 +874,14 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
 			flex: 1;
 			line-height: 1.4;
 		`;
-    const titleEl = textContainer.createDiv({ text: "Welcome to Nova" });
+    const titleEl = textContainer.createDiv({ text: "Hi! I'm Nova." });
     titleEl.style.cssText = `
 			font-weight: 600;
 			color: var(--text-normal);
 			margin-bottom: 4px;
 			font-size: var(--font-text-size);
 		`;
-    const subtitleEl = textContainer.createDiv({ text: message || "Your AI thinking partner. Ask me to help edit your document!" });
+    const subtitleEl = textContainer.createDiv({ text: message || "" });
     subtitleEl.style.cssText = `
 			color: var(--text-muted);
 			font-size: 0.9em;
@@ -1678,12 +1684,16 @@ User Request: ${processedMessage}`;
         await this.plugin.documentEngine.addAssistantMessage(filteredResponse);
       }
       if (filteredResponse) {
-        this.addMessage("assistant", filteredResponse);
+        if (filteredResponse.includes("x-circle") || filteredResponse.includes("Error executing command") || filteredResponse.includes("No markdown file is open") || filteredResponse.includes("Unable to access") || filteredResponse.includes("Unable to set")) {
+          this.addErrorMessage(filteredResponse);
+        } else {
+          this.addMessage("assistant", filteredResponse);
+        }
       }
     } catch (error) {
       const loadingEl = this.chatContainer.querySelector(".nova-loading");
       if (loadingEl) loadingEl.remove();
-      this.addMessage("assistant", `Sorry, I encountered an error: ${error.message}`);
+      this.addErrorMessage(this.createIconMessage("x-circle", `Sorry, I encountered an error: ${error.message}`));
     } finally {
       this.sendButton.setDisabled(false);
       await this.refreshContext();
@@ -1783,7 +1793,7 @@ User Request: ${processedMessage}`;
       this.currentFile = null;
       this.chatContainer.empty();
       this.refreshContext();
-      this.addWelcomeMessage("Open a document to start chatting with Nova.");
+      this.addWelcomeMessage("Open a document to get started.");
       return;
     }
     if (!targetFile || targetFile === this.currentFile) {
@@ -1801,11 +1811,11 @@ User Request: ${processedMessage}`;
           }
         });
       } else {
-        this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
+        this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
       }
     } catch (error) {
       console.warn("Failed to load conversation history:", error);
-      this.addWelcomeMessage(`Ready to help you with "${targetFile.basename}". What would you like to do?`);
+      this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
     }
   }
   async clearChat() {
@@ -1823,9 +1833,9 @@ User Request: ${processedMessage}`;
       }
     }
     if (this.currentFile) {
-      this.addWelcomeMessage(`Chat cleared! Ready to help you with "${this.currentFile.basename}". What would you like to do?`);
+      this.addWelcomeMessage(`Chat cleared.`);
     } else {
-      this.addWelcomeMessage("Chat cleared! Ready to help. What would you like to do?");
+      this.addWelcomeMessage("Chat cleared.");
     }
     new import_obsidian2.Notice("Chat history cleared");
   }
@@ -2346,7 +2356,7 @@ User Request: ${processedMessage}`;
       setTimeout(() => this.refreshProviderStatus(), 100);
     } catch (error) {
       console.error("Error switching provider:", error);
-      this.addMessage("system", this.createIconMessage("x-circle", `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
+      this.addErrorMessage(this.createIconMessage("x-circle", `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
     }
   }
   /**

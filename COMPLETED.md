@@ -440,3 +440,48 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - Clear visual distinction between errors, success messages, and regular content
 - Mobile users can't accidentally try to send when Nova is disabled
 - Better mobile layout prevents input area from being hidden by status bars
+
+---
+
+### ✅ Welcome Message & Input UX Improvements (June 13, 2025)
+
+**Problem**: Welcome message was too verbose and redundant with input placeholder, lacking immediate input focus.
+
+**Solution**: Streamlined interface with clean messaging and better focus behavior.
+
+**Improvements Made:**
+
+1. **Simplified Welcome Message**
+   - Changed "Welcome to Nova" → "Hi! I'm Nova."
+   - Removed verbose default subtitle ("Your AI thinking partner. Ask me to help edit your document!")
+   - Clean, friendly greeting without redundant explanatory text
+
+2. **Conversational Input Placeholder**
+   - Changed "Ask Nova to help edit your document..." → "How can I help?"
+   - Much shorter and more conversational
+   - Eliminates redundancy with welcome message
+
+3. **Auto-Focus Input Field**
+   - Added automatic focus to input when sidebar opens
+   - 150ms delay to ensure proper initialization
+   - Users can immediately start typing without clicking
+
+4. **Simplified Contextual Messages**
+   - File context: "Working on [filename]." (was verbose with questions)
+   - Chat cleared: "Chat cleared." (was long explanatory text)
+   - No document: "Open a document to get started." (simplified)
+
+**Files Modified:**
+- `src/ui/sidebar-view.ts` - Updated welcome messages, placeholder text, and added auto-focus
+
+**Benefits:**
+- **Cleaner Interface**: Removed verbose, redundant messaging
+- **Modern UX**: Simple, conversational tone matching modern chat interfaces
+- **Better Accessibility**: Immediate input focus for faster interaction
+- **Focused Design**: Less explanation, more action-oriented
+
+**User Impact:**
+- Immediate typing capability when opening sidebar
+- Clean, professional greeting without overwhelming text
+- Consistent, minimal messaging throughout the interface
+- More intuitive and modern chat experience
