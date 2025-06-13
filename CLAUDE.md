@@ -88,11 +88,12 @@
 - [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
 - [ ] **Consider enhanced context panel** - Add files and paths sections for better UX
 
-#### 📋 **CRITICAL: Picker Issues to Fix Before Testing** 
-- ✅ **1. Standardize all picker styling** - All three pickers ([[ : /) now have identical styling with 3-line structure, unified fonts, colors, and spacing. Wikilink picker shows text content previews (no frontmatter)
-- [ ] **2. Thoroughly test : command functionality** - Ensure : command picker works flawlessly before moving forward
-- [ ] **3. Implement / command path persistence** - Selected paths need to be persisted visually (like [[ files in context), not just inserted as text strings. Only one path per operation.
-- [ ] **4. Test : and / commands together** - Comprehensive integration testing of both command systems
+#### 📋 **COMPLETED: Input Row UI Fixes** ✅
+- ✅ **1. Fix textarea height and vertical alignment** - Textarea now displays 4 lines (80px) by default, auto-grows to ~8-10 lines (200px), and all input row elements are properly vertically centered
+- ✅ **2. Fix command button setting** - "Show Command Button in Chat" setting now works correctly, respecting both user preference and feature permissions
+- [ ] **3. Thoroughly test : command functionality** - Ensure : command picker works flawlessly before moving forward
+- [ ] **4. Implement / command path persistence** - Selected paths need to be persisted visually (like [[ files in context), not just inserted as text strings. Only one path per operation.
+- [ ] **5. Test : and / commands together** - Comprehensive integration testing of both command systems
 
 #### 📋 **COMPLETED: Complete Picker Polish** ✅
 - ✅ **Picker functionality working** - All three triggers ([[ : /) now display pickers correctly

@@ -2310,29 +2310,8 @@ export class NovaSidebarView extends ItemView {
 	 * Refresh the command button visibility when settings change
 	 */
 	refreshCommandButton(): void {
-		if (!this.inputContainer) return;
-		
-		// Save current textarea state
-		const currentText = this.textArea?.getValue() || '';
-		const cursorStart = this.textArea?.inputEl?.selectionStart || 0;
-		const cursorEnd = this.textArea?.inputEl?.selectionEnd || 0;
-		const hadFocus = this.textArea?.inputEl === document.activeElement;
-		
-		// Rebuild the input area
-		this.createInputArea();
-		
-		// Restore textarea state
-		if (this.textArea && currentText) {
-			this.textArea.setValue(currentText);
-			// Restore cursor position
-			setTimeout(() => {
-				if (this.textArea?.inputEl) {
-					this.textArea.inputEl.setSelectionRange(cursorStart, cursorEnd);
-					if (hadFocus) {
-						this.textArea.inputEl.focus();
-					}
-				}
-			}, 0);
+		if (this.inputHandler) {
+			this.inputHandler.refreshCommandButton();
 		}
 	}
 

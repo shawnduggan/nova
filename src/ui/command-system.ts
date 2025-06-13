@@ -76,7 +76,7 @@ export class CommandSystem {
 	}
 
 	shouldShowCommandButton(): boolean {
-		return this.plugin.featureManager.isFeatureEnabled('commands');
+		return this.plugin.settings.showCommandButton && this.plugin.featureManager.isFeatureEnabled('commands');
 	}
 
 	updateCommandButtonVisibility(): void {

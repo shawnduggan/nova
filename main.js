@@ -886,7 +886,7 @@ var _InputHandler = class _InputHandler {
     this.inputRow.style.cssText = `
 			display: flex;
 			gap: var(--size-2-3);
-			align-items: flex-end;
+			align-items: center;
 			position: relative;
 		`;
     const textAreaContainer = this.inputRow.createDiv();
@@ -894,7 +894,7 @@ var _InputHandler = class _InputHandler {
     this.textArea = new import_obsidian2.TextAreaComponent(textAreaContainer);
     this.textArea.setPlaceholder("Ask Nova anything... (Shift+Enter for new line)");
     this.textArea.inputEl.style.cssText = `
-			min-height: var(--size-4-9);
+			min-height: 80px;
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -1092,6 +1092,11 @@ var _InputHandler = class _InputHandler {
       this.autoGrowTextarea();
     }
   }
+  refreshCommandButton() {
+    if (this.commandSystem) {
+      this.commandSystem.updateCommandButtonVisibility();
+    }
+  }
   cleanup() {
     if (this.wikilinkAutocomplete) {
       this.wikilinkAutocomplete.destroy();
@@ -1159,7 +1164,7 @@ var CommandSystem = class {
 		`;
   }
   shouldShowCommandButton() {
-    return this.plugin.featureManager.isFeatureEnabled("commands");
+    return this.plugin.settings.showCommandButton && this.plugin.featureManager.isFeatureEnabled("commands");
   }
   updateCommandButtonVisibility() {
     if (this.commandButton) {
@@ -3608,24 +3613,8 @@ User Request: ${processedMessage}`;
    * Refresh the command button visibility when settings change
    */
   refreshCommandButton() {
-    var _a, _b, _c, _d, _e, _f;
-    if (!this.inputContainer) return;
-    const currentText = ((_a = this.textArea) == null ? void 0 : _a.getValue()) || "";
-    const cursorStart = ((_c = (_b = this.textArea) == null ? void 0 : _b.inputEl) == null ? void 0 : _c.selectionStart) || 0;
-    const cursorEnd = ((_e = (_d = this.textArea) == null ? void 0 : _d.inputEl) == null ? void 0 : _e.selectionEnd) || 0;
-    const hadFocus = ((_f = this.textArea) == null ? void 0 : _f.inputEl) === document.activeElement;
-    this.createInputArea();
-    if (this.textArea && currentText) {
-      this.textArea.setValue(currentText);
-      setTimeout(() => {
-        var _a2;
-        if ((_a2 = this.textArea) == null ? void 0 : _a2.inputEl) {
-          this.textArea.inputEl.setSelectionRange(cursorStart, cursorEnd);
-          if (hadFocus) {
-            this.textArea.inputEl.focus();
-          }
-        }
-      }, 0);
+    if (this.inputHandler) {
+      this.inputHandler.refreshCommandButton();
     }
   }
   /**

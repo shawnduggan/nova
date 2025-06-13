@@ -500,7 +500,7 @@
 }
 
 /* Input Area Styling */
-.nova-input-container textarea {
+.nova-input-row textarea {
     font-family: var(--font-interface);
     background: var(--background-primary);
     color: var(--text-normal);
@@ -509,21 +509,23 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-size: var(--font-text-size);
     line-height: var(--line-height-normal);
+    min-height: 80px !important;
+    padding: var(--size-2-2) var(--size-2-3) !important;
 }
 
-.nova-input-container textarea:focus {
+.nova-input-row textarea:focus {
     border-color: var(--interactive-accent);
     outline: none;
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
-.nova-input-container textarea::placeholder {
+.nova-input-row textarea::placeholder {
     color: var(--text-faint);
     opacity: 0.7;
 }
 
 /* Send Button Styling */
-.nova-input-container button {
+.nova-input-row button {
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -535,15 +537,15 @@
     flex-shrink: 0;
 }
 
-.nova-input-container button:hover {
+.nova-input-row button:hover {
     background: var(--interactive-hover);
 }
 
-.nova-input-container button:active {
+.nova-input-row button:active {
     background: var(--interactive-active);
 }
 
-.nova-input-container button svg {
+.nova-input-row button svg {
     width: 16px;
     height: 16px;
 }

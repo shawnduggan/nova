@@ -69,7 +69,7 @@ export class InputHandler {
 		this.inputRow.style.cssText = `
 			display: flex;
 			gap: var(--size-2-3);
-			align-items: flex-end;
+			align-items: center;
 			position: relative;
 		`;
 
@@ -81,7 +81,7 @@ export class InputHandler {
 		this.textArea = new TextAreaComponent(textAreaContainer);
 		this.textArea.setPlaceholder('Ask Nova anything... (Shift+Enter for new line)');
 		this.textArea.inputEl.style.cssText = `
-			min-height: var(--size-4-9);
+			min-height: 80px;
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -342,6 +342,12 @@ export class InputHandler {
 			}, 0);
 			
 			this.autoGrowTextarea();
+		}
+	}
+
+	refreshCommandButton(): void {
+		if (this.commandSystem) {
+			this.commandSystem.updateCommandButtonVisibility();
 		}
 	}
 
