@@ -111,6 +111,7 @@ export class NovaSidebarView extends ItemView {
 			align-items: center;
 			padding: 4px;
 			color: var(--icon-color);
+			font-weight: var(--font-weight-medium);
 		`;
 		this.updatePrivacyIndicator(privacyIndicator);
 		
@@ -1931,7 +1932,7 @@ export class NovaSidebarView extends ItemView {
 			gap: 4px;
 			padding: 4px 8px;
 			font-size: 0.75em;
-			color: var(--text-muted);
+			color: var(--text-normal);
 			background: var(--background-modifier-hover);
 			border: 1px solid var(--background-modifier-border);
 			border-radius: 4px;
