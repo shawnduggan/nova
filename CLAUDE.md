@@ -73,8 +73,8 @@
 - ✅ **Privacy indicators implemented** - Lock/unlock icons now show data handling for each provider in sidebar header
 - ✅ **Provider status dots removed** - Eliminated confusing green/red status dots, simplified UI to focus on provider selection
 - ✅ **Provider dropdown styling fixed** - Improved visual consistency and active appearance for provider selection UI
+- ✅ **Ollama filtered from mobile** - Ollama no longer appears in provider dropdown on mobile devices (requires local server)
 - [ ] **System instruction optimization** - Nova has targeting issues (always wants to insert at cursor instead of where requested). Explore optimizing system instruction for better Nova behavior and accuracy.
-- [ ] **Ollama appears on mobile** - On mobile, the provider dropdown contains Ollama as an option. Ollama should never be listed as an option on mobile.
 - [ ] Mobile performance testing on actual devices
 - ✅ Error handling improvements and loading state optimizations
 - ✅ **System testing preparation complete** (code quality, performance, UI consistency)

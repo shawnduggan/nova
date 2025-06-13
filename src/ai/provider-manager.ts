@@ -129,7 +129,10 @@ export class AIProviderManager {
 	}
 
 	getAllowedProviders(): ProviderType[] {
-		// All providers are allowed for all users
+		// Ollama requires local server - not available on mobile
+		if (Platform.isMobile) {
+			return ['claude', 'openai', 'google'];
+		}
 		return ['claude', 'openai', 'google', 'ollama'];
 	}
 
