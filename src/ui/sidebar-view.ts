@@ -580,14 +580,12 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private createCommandPicker(): void {
-		this.commandPicker = this.inputContainer.createDiv({ cls: 'nova-command-picker' });
+		this.commandPicker = this.inputContainer.createDiv({ cls: 'nova-command-picker nova-panel-base' });
 		this.commandPicker.style.cssText = `
 			position: absolute;
 			bottom: 100%;
 			left: 0;
 			right: 0;
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
 			border-bottom: none;
 			border-radius: 8px 8px 0 0;
 			max-height: 200px;
@@ -624,35 +622,18 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		commands.forEach((command, index) => {
-			const item = this.commandPicker.createDiv({ cls: 'nova-command-item' });
-			item.style.cssText = `
-				padding: 8px 12px;
-				cursor: pointer;
-				border-bottom: 1px solid var(--background-modifier-border-hover);
-				display: flex;
-				align-items: center;
-				gap: 8px;
-			`;
+			const item = this.commandPicker.createDiv({ cls: 'nova-command-item nova-panel-item' });
 
-			const triggerEl = item.createSpan({ cls: 'nova-command-trigger' });
+			const triggerEl = item.createSpan({ cls: 'nova-command-trigger nova-panel-trigger' });
 			triggerEl.textContent = `:${command.trigger}`;
-			triggerEl.style.cssText = `
-				font-family: var(--font-monospace);
-				background: var(--background-modifier-hover);
-				padding: 2px 6px;
-				border-radius: 4px;
-				font-size: 0.9em;
-				color: var(--interactive-accent);
-			`;
 
-			const nameEl = item.createSpan({ cls: 'nova-command-name' });
+			const nameEl = item.createSpan({ cls: 'nova-command-name nova-panel-text' });
 			nameEl.textContent = command.name;
-			nameEl.style.cssText = 'flex: 1; color: var(--text-normal);';
+			nameEl.style.cssText = 'flex: 1;';
 
 			if (command.description) {
-				const descEl = item.createSpan({ cls: 'nova-command-desc' });
+				const descEl = item.createSpan({ cls: 'nova-command-desc nova-panel-muted' });
 				descEl.textContent = command.description;
-				descEl.style.cssText = 'font-size: 0.8em; color: var(--text-muted);';
 			}
 
 			item.addEventListener('click', () => {
@@ -692,13 +673,13 @@ export class NovaSidebarView extends ItemView {
 	private setSelectedCommand(index: number): void {
 		// Remove previous selection
 		this.commandPickerItems.forEach(item => {
-			item.style.backgroundColor = '';
+			item.removeClass('selected');
 		});
 
 		this.selectedCommandIndex = index;
 
 		if (index >= 0 && index < this.commandPickerItems.length) {
-			this.commandPickerItems[index].style.backgroundColor = 'var(--background-modifier-hover)';
+			this.commandPickerItems[index].addClass('selected');
 			this.commandPickerItems[index].scrollIntoView({ block: 'nearest' });
 		}
 	}
@@ -750,13 +731,11 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private createCommandMenu(): void {
-		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu' });
+		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu nova-panel-base' });
 		this.commandMenu.style.cssText = `
 			position: absolute;
 			bottom: 100%;
 			right: 0;
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
 			border-bottom: none;
 			border-radius: 8px 8px 0 0;
 			min-width: 240px;
@@ -796,61 +775,24 @@ export class NovaSidebarView extends ItemView {
 		this.commandMenu.empty();
 		
 		// Header
-		const headerEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-header' });
-		headerEl.style.cssText = `
-			padding: 12px 16px;
-			border-bottom: 1px solid var(--background-modifier-border);
-			font-weight: 600;
-			font-size: 0.9em;
-			color: var(--text-normal);
-		`;
+		const headerEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-header nova-panel-header' });
 		headerEl.innerHTML = this.createInlineIcon('zap') + ' Commands';
 
 		// Commands list
 		commands.forEach(command => {
-			const item = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
-			item.style.cssText = `
-				padding: 12px 16px;
-				cursor: pointer;
-				border-bottom: 1px solid var(--background-modifier-border-hover);
-				display: flex;
-				flex-direction: column;
-				gap: 4px;
-				transition: background-color 0.2s;
-			`;
+			const item = this.commandMenu.createDiv({ cls: 'nova-command-menu-item nova-panel-item-vertical' });
 
-			const nameEl = item.createDiv({ cls: 'nova-command-menu-name' });
+			const nameEl = item.createDiv({ cls: 'nova-command-menu-name nova-panel-text' });
 			nameEl.textContent = command.name;
-			nameEl.style.cssText = `
-				font-weight: 500;
-				color: var(--text-normal);
-			`;
 
-			const triggerEl = item.createDiv({ cls: 'nova-command-menu-trigger' });
+			const triggerEl = item.createDiv({ cls: 'nova-command-menu-trigger nova-panel-trigger' });
 			triggerEl.textContent = `:${command.trigger}`;
-			triggerEl.style.cssText = `
-				font-family: var(--font-monospace);
-				font-size: 0.8em;
-				color: var(--interactive-accent);
-				opacity: 0.8;
-			`;
+			triggerEl.style.opacity = '0.8';
 
 			if (command.description) {
-				const descEl = item.createDiv({ cls: 'nova-command-menu-desc' });
+				const descEl = item.createDiv({ cls: 'nova-command-menu-desc nova-panel-muted' });
 				descEl.textContent = command.description;
-				descEl.style.cssText = `
-					font-size: 0.8em;
-					color: var(--text-muted);
-				`;
 			}
-
-			item.addEventListener('mouseenter', () => {
-				item.style.backgroundColor = 'var(--background-modifier-hover)';
-			});
-
-			item.addEventListener('mouseleave', () => {
-				item.style.backgroundColor = '';
-			});
 
 			item.addEventListener('click', () => {
 				this.executeCommandFromMenu(command.trigger);

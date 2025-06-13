@@ -357,3 +357,35 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - **Dropdown**: Clean provider names (Anthropic, OpenAI, Google, Ollama)
 - **Sub-menus**: Proper model names (Claude Sonnet 4, GPT-4.1, Gemini 2.5 Flash)
 - **Switch messages**: "Switched to Claude Opus 4" - clear and specific
+
+---
+
+### ✅ Unified Panel Styling System (June 13, 2025)
+
+**Problem**: Command panel triggered by ":" had oversized text that didn't match the clean, consistent styling of the document context panel.
+
+**Solution**: Created a comprehensive unified panel styling system and applied it across all panels.
+
+**Changes Made:**
+- **Created reusable CSS framework**: Added `.nova-panel-base`, `.nova-panel-item`, `.nova-panel-text`, `.nova-panel-muted`, `.nova-panel-trigger`, `.nova-panel-header` classes
+- **Fixed command picker styling**: Updated ":" triggered dropdown to use consistent small text sizing and unified styles
+- **Updated command menu styling**: Lightning button menu now uses unified panel styling with vertical item layout
+- **Replaced inline CSS**: Converted all inline styling to maintainable class-based system
+- **Added selection states**: Unified hover and selection styling using CSS classes instead of inline styles
+
+**Files Modified:**
+- `styles.css` - Added unified panel CSS framework with reusable classes
+- `src/ui/sidebar-view.ts` - Updated createCommandPicker(), showCommandPicker(), createCommandMenu(), and setSelectedCommand() methods
+
+**Benefits:**
+- **Consistent user experience**: All panels now have the same clean, native Obsidian styling
+- **Maintainable code**: Centralized styling makes future updates easier
+- **Foundation for growth**: Reusable classes ready for future panel components
+- **Better visual hierarchy**: Proper font sizes and spacing that match document context panel
+- **Native integration**: Uses Obsidian's design language and CSS variables
+
+**Technical Impact:**
+- Removed ~100 lines of inline CSS styling
+- Established design system for consistent UI development
+- Improved code maintainability and reduced styling duplication
+- All panels now follow the same visual patterns as the document context panel
