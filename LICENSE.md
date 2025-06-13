@@ -16,31 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----
-
-## About Nova
-
-I built Nova for myself because copy-pasting between ChatGPT and Obsidian was killing my writing flow. Every feature exists because I hit that exact friction in my own work. I'm sharing it as my passion project for the Obsidian community.
-
-Nova is free forever with your API keys. If you find it valuable, consider becoming a Supernova supporter to help me prioritize enhancements and get early access to new features.
-
-## Why AGPL-3.0?
-
-Nova uses the GNU Affero General Public License v3.0 to ensure that:
-
-- **You have complete freedom** to use Nova for any purpose
-- **The code remains open** - any improvements must be shared back with the community
-- **No one can create closed-source forks** that exploit the community's work
-- **Your data stays yours** - Nova respects the local-first philosophy you chose with Obsidian
-
-This license aligns with the Obsidian community's values of transparency, user freedom, and collaborative development.
-
-## Commercial Use
-
-Nova is free for all uses, including commercial purposes. If you're using Nova in an enterprise environment and want additional licensing options, feel free to reach out.
-
-## Full License Text
-
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
 

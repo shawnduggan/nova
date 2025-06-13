@@ -35,13 +35,12 @@ Nova transforms AI from a chat interface into a true collaborative writing partn
 - **ChatGPT (OpenAI)**: Industry-standard AI assistance  
 - **Google Gemini**: Fast, efficient responses
 - **Ollama**: Local AI models for complete privacy
-- **Provider Switching**: Switch AI models mid-conversation with `:claude`, `:gemini`, `:gpt4`
+- **Provider Switching**: Switch AI models using the provider dropdown
 
 ### 🎯 Smart Writing Features
 - **Multi-Document Context**: Reference other notes with `[[Document Name]]` syntax - uses Obsidian's native autocomplete with document suggestions
 - **File-Scoped Conversations**: Each document maintains its own chat history
 - **Auto-Growing Input**: Smart input area that expands as you type
-- **Quick Commands**: Use `:` to trigger instant commands like `:claude` (switch to Claude) or `:grammar` (fix grammar) - designed for fast mobile and desktop typing
 - **Context-Aware Editing**: AI understands your document structure and tone
 - **Mobile & Desktop**: Full functionality across all platforms
 
@@ -79,7 +78,7 @@ Setup options:
 4. **Watch Nova edit directly** in your document - no copy-paste needed, no learning curve, just natural writing assistance that feels like Obsidian magic
 
 ### 4. Pro Tips
-- **Switch providers mid-conversation**: Type `:claude` or `:gemini` to change AI models
+- **Switch providers**: Use the provider dropdown to change AI models
 - **Add document context**: "Edit this section using ideas from [[My Research Notes]]"
 - **Use natural language**: "Make this sound more professional but keep it concise"
 
@@ -90,8 +89,8 @@ Setup options:
 You: "Add a literature review section for renewable energy economics"
 Nova: *Creates structured academic section with proper formatting*
 
-You: ":claude Improve the methodology to be more rigorous"
-Nova: *Switches to Claude and enhances the methodology section*
+You: *Switch to Claude via provider dropdown* "Improve the methodology to be more rigorous"
+Nova: *Enhances the methodology section with Claude's analysis*
 ```
 
 ### Creative Writing
@@ -117,17 +116,37 @@ Nova: *References your guidelines and adds appropriate code samples*
 Nova is free forever with your API keys. If you find it valuable, consider becoming a **Supernova Supporter** to help sustain development and get early access to new features.
 
 ### What Supernova Supporters Get
-- **⚡ Custom Commands** - Create personalized shortcuts (currently in early access)
-- **🔮 Early Access** - Try new features 2-6 months before general release
 - **🎯 Priority Support** - Get help faster when you need it
 - **🗳️ Feature Voting** - Influence development priorities
+- **⚡ Early Access** - Try new features 2-6 months before general release
 - **💝 Gratitude** - Know you're supporting sustainable open-source development
 
-### Upcoming Supernova Features
-- **Drag-and-Drop Context** - Drag files directly into conversation context
-- **Prompt Templates** - Curated templates for different writing types
-- **Batch Operations** - Apply edits across multiple documents
-- **Advanced Context Controls** - Fine-tuned document context management
+### Upcoming Supernova Features (Early Access)
+
+**⚡ Rapid Command System** *(Coming July 2025)*
+- Lightning-fast workflow acceleration with intuitive shortcuts
+- Context-aware automation that learns your writing patterns
+- Advanced keyboard-driven editing for power users
+
+**🎯 Contextual Text Intelligence** *(Coming August 2025)*
+- Adaptive text refinement with precision targeting
+- Intelligent content adjustment based on selection context
+- Professional-grade text transformation tools
+
+**📊 Clarity Optimization Engine** *(Coming September 2025)*
+- Advanced readability analysis and enhancement
+- Multi-level writing complexity management
+- Audience-aware content optimization
+
+**🔧 Local AI Orchestration** *(Coming October 2025)*
+- Intelligent model management for local AI workflows
+- Seamless switching between local AI configurations
+- Performance optimization for offline writing
+
+**🗂️ Multi-Document Intelligence** *(Coming November 2025)*
+- Cross-document context analysis and editing
+- Batch operations across your entire knowledge base
+- Advanced vault-wide content management
 
 **[Become a Supernova Supporter →](https://novawriter.ai/supernova)**
 
@@ -178,14 +197,26 @@ Nova is open-source and welcomes contributions! See our [Contributing Guide](./C
 
 Nova is licensed under **GNU Affero General Public License v3.0** (AGPL-3.0).
 
-**What this means**:
+### Why AGPL-3.0?
+
+I chose AGPL-3.0 because it aligns perfectly with the Obsidian community's values while protecting Nova's open-source future:
+
+- **Complete freedom**: Use Nova for any purpose (personal, commercial, non-profit)
+- **Community protection**: Any improvements must be shared back with everyone
+- **No exploitation**: Prevents closed-source commercial forks that exploit our work
+- **Transparency**: Just like Obsidian respects your data ownership, Nova respects your right to inspect and modify the code
+- **Local-first alignment**: Supports the same philosophy that brought you to Obsidian
+
+**What this means for you**:
 - ✅ **Free to use** for any purpose (personal, commercial, non-profit)
 - ✅ **Free to modify** and customize for your needs  
 - ✅ **Free to distribute** (with source code)
 - ✅ **Improvements must be shared** back with the community
 - ✅ **No hidden restrictions** or commercial traps
 
-This license ensures Nova remains free and open while protecting against closed-source commercial exploitation. It aligns with the Obsidian community's values of transparency and user freedom.
+**Commercial Use**: Nova is completely free for all uses, including enterprise environments. If you need additional licensing options for your organization, feel free to reach out.
+
+This license ensures Nova remains free and open while protecting against closed-source commercial exploitation that would undermine the community's contributions.
 
 See [LICENSE.md](./LICENSE.md) for full details.
 
@@ -198,16 +229,12 @@ See [LICENSE.md](./LICENSE.md) for full details.
 
 ## 🚀 What's Next
 
-Nova is actively developed with new features added regularly. Follow [GitHub Issues](https://github.com/shawnduggan/nova-obsidian/issues) for development updates.
+Nova is actively developed with new features added regularly. Supernova supporters get early access to upcoming features, while all features eventually become available to everyone.
 
-**Coming Soon** (for Supernova Supporters first):
-- Enhanced drag-and-drop workflow
-- Professional prompt template library  
-- Multi-document batch operations
-- Advanced conversation management
+Follow [GitHub Issues](https://github.com/shawnduggan/nova-obsidian/issues) for development updates and community discussions.
 
 ---
 
 **Ready to transform your writing workflow?** [Install Nova today →](https://obsidian.md/plugins?id=nova)
 
-*Built with ❤️ in Halifax NS 🇨🇦*
+**Crafted with ❤️ in Halifax NS 🇨🇦**
