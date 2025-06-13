@@ -138,6 +138,42 @@
     margin: 0;
 }
 
+.nova-model-guidance {
+    margin-top: 1em;
+    font-size: 0.9em;
+}
+
+.nova-model-guidance h4 {
+    margin: 0 0 0.75em 0;
+    color: var(--text-normal);
+    font-size: 1.1em;
+}
+
+.nova-model-recommendations {
+    margin: 0 0 0.75em 0;
+    padding-left: 1.2em;
+    list-style: none;
+}
+
+.nova-model-recommendations li {
+    margin-bottom: 0.5em;
+    position: relative;
+}
+
+.nova-model-recommendations li::before {
+    content: "•";
+    color: var(--text-accent);
+    position: absolute;
+    left: -1em;
+}
+
+.nova-guidance-note {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 .nova-tier-display {
     margin-bottom: 1em;
 }

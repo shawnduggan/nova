@@ -282,3 +282,78 @@ private shouldShowCommandButton(): boolean {
 - Command button properly disappears when Supernova access is lost (immediately for manual changes, on restart for expired licenses)
 - Centralized refresh system ready for future Supernova features
 - Consistent UX across all Supernova-gated functionality
+
+---
+
+## Ship Preparation Phase
+
+### ✅ Model Management Fixes (June 13, 2025)
+
+Fixed all AI provider model refresh functionality to show only current/supported models:
+
+**Claude Models:**
+- Removed refresh button (models are hardcoded from API docs)
+- Updated to show: Claude Opus 4, Claude Sonnet 4, Claude 3.7 Sonnet, Claude 3.5 Sonnet, Claude 3.5 Haiku
+- Default changed to claude-sonnet-4-20250514
+
+**OpenAI Models:**
+- Removed refresh button and hardcoded current models
+- Updated to show: GPT-4.1, GPT-4.1 Mini, GPT-4.1 Nano, GPT-4o, GPT-4o Mini
+- Default changed to gpt-4.1-mini-2025-04-14
+- Removed baseUrl setting for simplicity
+
+**Gemini Models:**
+- Removed refresh button and hardcoded current models  
+- Updated to show: Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash, Gemini 2.0 Flash-Lite
+- Default changed to gemini-2.5-flash-preview-04-17
+
+### Files Modified:
+- `src/settings.ts` - Removed all refresh buttons, hardcoded model lists, removed refresh methods
+- `src/ai/providers/claude.ts` - Updated hardcoded model list  
+- `src/ai/providers/openai.ts` - Hardcoded current models, removed API calls
+- `src/ai/providers/google.ts` - Hardcoded current models, removed API calls
+
+### Result:
+- All providers now show only current/supported models with hardcoded lists
+- Removed all refresh functionality and buttons for consistency
+- Simplified UI without unnecessary API calls or baseUrl settings
+- Updated defaults: Claude Sonnet 4, OpenAI GPT-4.1 Mini, Google Gemini 2.5 Flash
+- Consistent, clean model management across all providers
+
+---
+
+### ✅ Hierarchical Provider Dropdown with Model Selection (June 13, 2025)
+
+Implemented hierarchical dropdown for quick model switching without going to settings:
+
+**New User Experience:**
+- Provider button now shows: "Claude (Sonnet 4)" instead of just "Claude"
+- Clicking provider expands to show all available models for that provider
+- Direct model switching: Claude Sonnet 4 → Claude Opus 4 with one click
+- Expandable arrows indicate which providers have model options
+- Current model highlighted with bold text and colored indicator
+
+**Implementation Details:**
+- Added `getCurrentProviderType()` method to provider manager
+- Created `getAvailableModels()`, `getCurrentModel()`, `switchToModel()` helper methods
+- Enhanced dropdown UI with expandable sub-menus for models
+- Added visual indicators (colored dots) for current selections
+- Proper hover states and smooth animations
+
+**Files Modified:**
+- `src/ai/provider-manager.ts` - Added getCurrentProviderType method
+- `src/ui/sidebar-view.ts` - Complete hierarchical dropdown implementation
+- Enhanced provider display to include current model name
+
+**Benefits:**
+- Solves the core use case: switching between Claude models without settings
+- Quick experimentation with different models
+- Power users get granular control, casual users see simple provider names
+- Maintains backward compatibility with existing provider switching
+- Clean, intuitive UI that follows Obsidian design patterns
+
+**Final UX:**
+- **Header**: Shows just model name (e.g., "Claude Sonnet 4")
+- **Dropdown**: Clean provider names (Anthropic, OpenAI, Google, Ollama)
+- **Sub-menus**: Proper model names (Claude Sonnet 4, GPT-4.1, Gemini 2.5 Flash)
+- **Switch messages**: "Switched to Claude Opus 4" - clear and specific

@@ -103,6 +103,23 @@ export class AIProviderManager {
 		return provider ? provider.name : 'None';
 	}
 
+	async getCurrentProviderType(): Promise<string | null> {
+		const orderedProviders = this.getPlatformProviders();
+		if (orderedProviders[0] === 'none') {
+			return null;
+		}
+		
+		for (const providerType of orderedProviders) {
+			if (providerType === 'none') continue;
+			const provider = this.providers.get(providerType);
+			if (provider && await provider.isAvailable()) {
+				return providerType;
+			}
+		}
+		
+		return null;
+	}
+
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {

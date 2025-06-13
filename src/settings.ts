@@ -545,13 +545,22 @@ export class NovaSettingTab extends PluginSettingTab {
 			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
 		});
 
-		// Info about API keys
+		// Info about API keys and model recommendations
 		const infoEl = providerContainer.createDiv({ cls: 'nova-provider-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
 				<h4>Configure Your API Keys</h4>
 				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
 				just add your API keys below to get started.</p>
+			</div>
+			<div class="nova-info-card nova-model-guidance">
+				<h4>Recommended Defaults</h4>
+				<ul class="nova-model-recommendations">
+					<li><strong>Claude Sonnet 4</strong> - Latest generation with excellent instruction following for collaborative editing</li>
+					<li><strong>GPT-4.1 Mini</strong> - Current-generation model that outperforms GPT-4o while remaining cost-effective</li>
+					<li><strong>Gemini 2.5 Flash</strong> - Best price/performance with "thinking" capabilities and strong coding support</li>
+				</ul>
+				<p class="nova-guidance-note">These defaults offer modern AI capabilities without premium pricing.</p>
 			</div>
 		`;
 
@@ -589,137 +598,34 @@ export class NovaSettingTab extends PluginSettingTab {
 			modelDropdown = dropdown;
 			this.populateClaudeModels(dropdown);
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-3-5-sonnet-20241022')
+				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-sonnet-4-20250514')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.claude.model = value;
 					await this.plugin.saveSettings();
 				});
 		});
 
-		modelSetting.addButton(button => button
-			.setIcon('refresh-cw')
-			.setTooltip('Refresh available models')
-			.onClick(async () => {
-				await this.refreshProviderModels('claude', modelDropdown);
-			}));
+		// Claude models are hardcoded - no refresh needed
 	}
 
 	private populateClaudeModels(dropdown: any) {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add default models
-		const defaultModels = [
-			{ value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-			{ value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
-			{ value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-			{ value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
-			{ value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
+		// Add current Claude models (hardcoded from API docs)
+		const currentModels = [
+			{ value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+			{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+			{ value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
+			{ value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
+			{ value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' }
 		];
 
-		defaultModels.forEach(model => {
+		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
 		});
 	}
 
-	private async refreshProviderModels(providerType: 'claude' | 'openai' | 'google', dropdown: any) {
-		const button = dropdown.selectEl.parentElement?.querySelector('.clickable-icon');
-		if (button) {
-			button.style.opacity = '0.5';
-			button.style.pointerEvents = 'none';
-		}
-
-		try {
-			const models = await this.plugin.aiProviderManager.getProviderModels(providerType);
-			
-			if (models.length > 0) {
-				// Clear existing options
-				dropdown.selectEl.empty();
-				
-				// Add fetched models
-				models.forEach(model => {
-					const label = this.getModelDisplayName(providerType, model);
-					dropdown.addOption(model, label);
-				});
-
-				// Restore current selection if it exists in the new list
-				const currentModel = this.plugin.settings.aiProviders[providerType].model;
-				if (currentModel && models.includes(currentModel)) {
-					dropdown.setValue(currentModel);
-				} else if (models.length > 0) {
-					// Set first model as default if current model is not in the list
-					dropdown.setValue(models[0]);
-					this.plugin.settings.aiProviders[providerType].model = models[0];
-					await this.plugin.saveSettings();
-				}
-
-				this.showRefreshMessage('Models refreshed successfully', 'success');
-			} else {
-				this.showRefreshMessage('No models found or API key invalid', 'error');
-			}
-		} catch (error) {
-			console.error(`Failed to refresh ${providerType} models:`, error);
-			this.showRefreshMessage(`Failed to refresh models: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-		} finally {
-			if (button) {
-				button.style.opacity = '1';
-				button.style.pointerEvents = 'auto';
-			}
-		}
-	}
-
-	private getModelDisplayName(providerType: string, model: string): string {
-		// Create human-readable names for models
-		if (providerType === 'claude') {
-			if (model.includes('sonnet')) return model.includes('3-5') ? 'Claude 3.5 Sonnet' : 'Claude 3 Sonnet';
-			if (model.includes('haiku')) return model.includes('3-5') ? 'Claude 3.5 Haiku' : 'Claude 3 Haiku';
-			if (model.includes('opus')) return 'Claude 3 Opus';
-		} else if (providerType === 'openai') {
-			if (model.includes('gpt-4o')) return model.includes('mini') ? 'GPT-4o Mini' : 'GPT-4o';
-			if (model.includes('gpt-4')) return 'GPT-4';
-			if (model.includes('gpt-3.5')) return 'GPT-3.5 Turbo';
-		} else if (providerType === 'google') {
-			if (model.includes('2.0')) return 'Gemini 2.0 Flash';
-			if (model.includes('1.5-pro')) return 'Gemini 1.5 Pro';
-			if (model.includes('1.5-flash')) return 'Gemini 1.5 Flash';
-			if (model.includes('1.0-pro')) return 'Gemini 1.0 Pro';
-		}
-		
-		// Fallback to model name
-		return model;
-	}
-
-	private showRefreshMessage(message: string, type: 'success' | 'error') {
-		// Create or update message element
-		const existingMessage = this.containerEl.querySelector('.nova-refresh-message');
-		if (existingMessage) {
-			existingMessage.remove();
-		}
-
-		const messageEl = this.containerEl.createDiv({ 
-			cls: `nova-refresh-message ${type}`,
-			text: message
-		});
-
-		messageEl.style.cssText = `
-			position: fixed;
-			top: 20px;
-			right: 20px;
-			padding: 8px 12px;
-			border-radius: 4px;
-			font-size: 0.9em;
-			z-index: 1000;
-			${type === 'success' 
-				? 'background: var(--background-modifier-success); color: var(--text-success);' 
-				: 'background: var(--background-modifier-error); color: var(--text-error);'
-			}
-		`;
-
-		// Auto-remove after 3 seconds
-		setTimeout(() => {
-			messageEl.remove();
-		}, 3000);
-	}
 
 
 	private createOpenAISettings(containerEl = this.containerEl) {
@@ -738,17 +644,6 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(openaiContainer)
-			.setName('Base URL')
-			.setDesc('OpenAI API base URL (for custom endpoints)')
-			.addText(text => text
-				.setPlaceholder('https://api.openai.com/v1')
-				.setValue(this.plugin.settings.aiProviders.openai.baseUrl || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.openai.baseUrl = value;
-					await this.plugin.saveSettings();
-				}));
-
 		// Model setting with refresh button
 		const modelSetting = new Setting(openaiContainer)
 			.setName('Model')
@@ -760,35 +655,30 @@ export class NovaSettingTab extends PluginSettingTab {
 			modelDropdown = dropdown;
 			this.populateOpenAIModels(dropdown);
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4o')
+				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4.1-mini-2025-04-14')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.openai.model = value;
 					await this.plugin.saveSettings();
 				});
 		});
 
-		modelSetting.addButton(button => button
-			.setIcon('refresh-cw')
-			.setTooltip('Refresh available models')
-			.onClick(async () => {
-				await this.refreshProviderModels('openai', modelDropdown);
-			}));
+		// OpenAI models are hardcoded - no refresh needed
 	}
 
 	private populateOpenAIModels(dropdown: any) {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add default models
-		const defaultModels = [
+		// Add current OpenAI models (hardcoded)
+		const currentModels = [
+			{ value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
+			{ value: 'gpt-4.1-mini-2025-04-14', label: 'GPT-4.1 Mini' },
+			{ value: 'gpt-4.1-nano-2025-04-14', label: 'GPT-4.1 Nano' },
 			{ value: 'gpt-4o', label: 'GPT-4o' },
-			{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-			{ value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-			{ value: 'gpt-4', label: 'GPT-4' },
-			{ value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+			{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
 		];
 
-		defaultModels.forEach(model => {
+		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
 		});
 	}
@@ -820,34 +710,29 @@ export class NovaSettingTab extends PluginSettingTab {
 			modelDropdown = dropdown;
 			this.populateGoogleModels(dropdown);
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-1.5-flash')
+				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash-preview-04-17')
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.google.model = value;
 					await this.plugin.saveSettings();
 				});
 		});
 
-		modelSetting.addButton(button => button
-			.setIcon('refresh-cw')
-			.setTooltip('Refresh available models')
-			.onClick(async () => {
-				await this.refreshProviderModels('google', modelDropdown);
-			}));
+		// Google models are hardcoded - no refresh needed
 	}
 
 	private populateGoogleModels(dropdown: any) {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add default models
-		const defaultModels = [
-			{ value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Experimental)' },
-			{ value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-			{ value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-			{ value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' }
+		// Add current Gemini models (hardcoded)
+		const currentModels = [
+			{ value: 'gemini-2.5-flash-preview-04-17', label: 'Gemini 2.5 Flash' },
+			{ value: 'gemini-2.5-pro-preview-03-25', label: 'Gemini 2.5 Pro' },
+			{ value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+			{ value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' }
 		];
 
-		defaultModels.forEach(model => {
+		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
 		});
 	}

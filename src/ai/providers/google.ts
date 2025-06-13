@@ -177,24 +177,12 @@ export class GoogleProvider implements AIProvider {
 
 			const data = await response.json();
 			
-			// Filter to generative models that support generateContent
-			const generativeModels = data.models
-				.filter((model: any) => {
-					return model.supportedGenerationMethods && 
-						   model.supportedGenerationMethods.includes('generateContent') &&
-						   model.name.includes('gemini');
-				})
-				.map((model: any) => {
-					// Extract model name from full path (e.g., "models/gemini-pro" -> "gemini-pro")
-					return model.name.split('/').pop();
-				})
-				.sort();
-
-			const models = generativeModels.length > 0 ? generativeModels : [
-				'gemini-2.0-flash-exp',
-				'gemini-1.5-pro',
-				'gemini-1.5-flash',
-				'gemini-1.0-pro'
+			// Return hardcoded current models
+			const models = [
+				'gemini-2.5-flash-preview-04-17',
+				'gemini-2.5-pro-preview-03-25',
+				'gemini-2.0-flash',
+				'gemini-2.0-flash-lite'
 			];
 
 			this.cachedModels = models;

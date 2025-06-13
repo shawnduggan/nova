@@ -557,7 +557,7 @@ export class NovaSidebarView extends ItemView {
 			const providerId = providerCommands[command];
 			await this.plugin.settingTab.setCurrentProvider(providerId);
 			await this.plugin.saveSettings();
-			this.addMessage('system', this.createIconMessage('refresh-cw', `Switched to ${this.getProviderDisplayName(providerId)}`));
+			this.addMessage('system', this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
 			return true;
 		}
 
@@ -1901,8 +1901,16 @@ export class NovaSidebarView extends ItemView {
 
 		// Update current provider display
 		const updateCurrentProvider = async () => {
-			const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-			providerName.setText(currentProviderName);
+			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+			
+			if (currentProviderType) {
+				// Show just the model name, or provider name if no models
+				const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+				providerName.setText(displayText);
+			} else {
+				const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+				providerName.setText(currentProviderName);
+			}
 		};
 
 		// Toggle dropdown
@@ -1944,6 +1952,93 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	/**
+	 * Get available models for a provider type
+	 */
+	private getAvailableModels(providerType: string): { value: string; label: string }[] {
+		switch (providerType) {
+			case 'claude':
+				return [
+					{ value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+					{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+					{ value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
+					{ value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
+					{ value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' }
+				];
+			case 'openai':
+				return [
+					{ value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
+					{ value: 'gpt-4.1-mini-2025-04-14', label: 'GPT-4.1 Mini' },
+					{ value: 'gpt-4.1-nano-2025-04-14', label: 'GPT-4.1 Nano' },
+					{ value: 'gpt-4o', label: 'GPT-4o' },
+					{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+				];
+			case 'google':
+				return [
+					{ value: 'gemini-2.5-flash-preview-04-17', label: 'Gemini 2.5 Flash' },
+					{ value: 'gemini-2.5-pro-preview-03-25', label: 'Gemini 2.5 Pro' },
+					{ value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+					{ value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' }
+				];
+			default:
+				return [];
+		}
+	}
+
+	/**
+	 * Get current model for a provider type
+	 */
+	private getCurrentModel(providerType: string): string {
+		const defaultModels: Record<string, string> = {
+			claude: 'claude-sonnet-4-20250514',
+			openai: 'gpt-4.1-mini-2025-04-14',
+			google: 'gemini-2.5-flash-preview-04-17',
+			ollama: ''
+		};
+		
+		const providers = this.plugin.settings.aiProviders as Record<string, any>;
+		return providers[providerType]?.model || defaultModels[providerType] || '';
+	}
+
+	/**
+	 * Get model display name from model value
+	 */
+	private getModelDisplayName(providerType: string, modelValue: string): string {
+		const models = this.getAvailableModels(providerType);
+		const model = models.find(m => m.value === modelValue);
+		return model ? model.label : modelValue;
+	}
+
+	/**
+	 * Switch to a specific model for a provider
+	 */
+	private async switchToModel(providerType: string, modelValue: string): Promise<void> {
+		// Check if we're already on this provider
+		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		const isCurrentProvider = currentProviderType === providerType;
+		
+		// Update settings
+		const providers = this.plugin.settings.aiProviders as Record<string, any>;
+		providers[providerType].model = modelValue;
+		await this.plugin.saveSettings();
+		
+		if (isCurrentProvider) {
+			// Just switching models on current provider - show model switch message
+			const modelName = this.getModelDisplayName(providerType, modelValue);
+			const providerName = this.getProviderDisplayName(providerType);
+			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${providerName} ${modelName}`);
+			this.addMessage('system', switchMessage);
+		} else {
+			// Switching to different provider - this will show the provider+model message
+			await this.switchToProvider(providerType);
+		}
+		
+		// Update the dropdown display
+		if ((this as any).currentProviderDropdown) {
+			(this as any).currentProviderDropdown.updateCurrentProvider();
+		}
+	}
+
+	/**
 	 * Populate provider dropdown with available providers
 	 */
 	private async populateProviderDropdown(dropdownMenu: HTMLElement): Promise<void> {
@@ -1955,7 +2050,21 @@ export class NovaSidebarView extends ItemView {
 		for (const providerType of allowedProviders) {
 			if (providerType === 'none') continue;
 
-			const providerItem = dropdownMenu.createDiv({ cls: 'nova-provider-dropdown-item' });
+			// Check if provider has API key configured
+			const providers = this.plugin.settings.aiProviders as Record<string, any>;
+			const hasApiKey = providers[providerType]?.apiKey;
+			if (!hasApiKey && providerType !== 'ollama') continue;
+
+			const models = this.getAvailableModels(providerType);
+			const currentModel = this.getCurrentModel(providerType);
+			const displayName = this.getProviderDisplayName(providerType);
+			const isCurrent = displayName === currentProviderName;
+
+			// Create provider container
+			const providerContainer = dropdownMenu.createDiv({ cls: 'nova-provider-container' });
+			
+			// Main provider item
+			const providerItem = providerContainer.createDiv({ cls: 'nova-provider-dropdown-item' });
 			providerItem.style.cssText = `
 				padding: 8px 12px;
 				cursor: pointer;
@@ -1964,6 +2073,7 @@ export class NovaSidebarView extends ItemView {
 				gap: 8px;
 				font-size: 0.85em;
 				transition: background-color 0.2s ease;
+				position: relative;
 			`;
 
 			// Provider icon/dot
@@ -1975,25 +2085,105 @@ export class NovaSidebarView extends ItemView {
 				background: ${this.getProviderColor(providerType)};
 			`;
 
-			// Provider name
-			const displayName = this.getProviderDisplayName(providerType);
+			// Provider name only (models are shown in submenu)
 			const nameSpan = providerItem.createSpan({ text: displayName });
+			nameSpan.style.flex = '1';
+
+			// Expand arrow for models (only if models available)
+			let expandArrow: HTMLElement | null = null;
+			if (models.length > 0) {
+				expandArrow = providerItem.createSpan({ text: '▶' });
+				expandArrow.style.cssText = `
+					font-size: 0.6em;
+					transition: transform 0.2s ease;
+					color: var(--text-muted);
+				`;
+			}
 
 			// Mark current provider
-			const isCurrent = displayName === currentProviderName;
 			if (isCurrent) {
 				providerItem.style.background = 'var(--background-modifier-hover)';
 				nameSpan.style.fontWeight = 'bold';
 			}
 
-			// Click handler
-			providerItem.addEventListener('click', async () => {
-				if (!isCurrent) {
-					await this.switchToProvider(providerType);
-					// Close dropdown
-					dropdownMenu.style.display = 'none';
-					if ((this as any).currentProviderDropdown) {
-						(this as any).currentProviderDropdown.updateCurrentProvider();
+			// Models submenu
+			let modelsMenu: HTMLElement | null = null;
+			let isExpanded = false;
+
+			if (models.length > 0) {
+				modelsMenu = providerContainer.createDiv({ cls: 'nova-models-submenu' });
+				modelsMenu.style.cssText = `
+					display: none;
+					background: var(--background-primary);
+					border-left: 2px solid ${this.getProviderColor(providerType)};
+					margin-left: 16px;
+				`;
+
+				// Populate models
+				for (const model of models) {
+					const modelItem = modelsMenu.createDiv({ cls: 'nova-model-item' });
+					modelItem.style.cssText = `
+						padding: 6px 12px;
+						cursor: pointer;
+						font-size: 0.8em;
+						transition: background-color 0.2s ease;
+						display: flex;
+						align-items: center;
+						gap: 8px;
+					`;
+
+					// Model indicator
+					const modelDot = modelItem.createSpan();
+					modelDot.style.cssText = `
+						width: 4px;
+						height: 4px;
+						border-radius: 50%;
+						background: ${model.value === currentModel ? this.getProviderColor(providerType) : 'var(--text-muted)'};
+					`;
+
+					const modelName = modelItem.createSpan({ text: model.label });
+					if (model.value === currentModel) {
+						modelName.style.fontWeight = 'bold';
+					}
+
+					// Model click handler
+					modelItem.addEventListener('click', async (e) => {
+						e.stopPropagation();
+						await this.switchToModel(providerType, model.value);
+						// Close dropdown
+						dropdownMenu.style.display = 'none';
+					});
+
+					// Model hover effect
+					modelItem.addEventListener('mouseenter', () => {
+						modelItem.style.background = 'var(--background-modifier-border-hover)';
+					});
+					modelItem.addEventListener('mouseleave', () => {
+						modelItem.style.background = 'transparent';
+					});
+				}
+			}
+
+			// Provider click handler
+			providerItem.addEventListener('click', async (e) => {
+				if (models.length > 0) {
+					// Toggle submenu
+					e.stopPropagation();
+					isExpanded = !isExpanded;
+					if (modelsMenu) {
+						modelsMenu.style.display = isExpanded ? 'block' : 'none';
+					}
+					if (expandArrow) {
+						expandArrow.style.transform = isExpanded ? 'rotate(90deg)' : 'rotate(0deg)';
+					}
+				} else {
+					// Switch provider directly (for Ollama or providers without models)
+					if (!isCurrent) {
+						await this.switchToProvider(providerType);
+						dropdownMenu.style.display = 'none';
+						if ((this as any).currentProviderDropdown) {
+							(this as any).currentProviderDropdown.updateCurrentProvider();
+						}
 					}
 				}
 			});
@@ -2006,7 +2196,7 @@ export class NovaSidebarView extends ItemView {
 			});
 
 			providerItem.addEventListener('mouseleave', () => {
-				if (!isCurrent) {
+				if (!isCurrent && !isExpanded) {
 					providerItem.style.background = 'transparent';
 				}
 			});
@@ -2092,13 +2282,27 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private getProviderDisplayName(providerType: string): string {
 		const names: Record<string, string> = {
-			'claude': 'Claude (Anthropic)',
-			'openai': 'GPT-4 (OpenAI)',
-			'google': 'Gemini (Google)',
-			'ollama': 'Ollama (Local)',
+			'claude': 'Anthropic',
+			'openai': 'OpenAI',
+			'google': 'Google',
+			'ollama': 'Ollama',
 			'none': 'None'
 		};
 		return names[providerType] || providerType;
+	}
+
+	/**
+	 * Get display name for header (just model name if available, otherwise provider name)
+	 */
+	private getProviderWithModelDisplayName(providerType: string): string {
+		const models = this.getAvailableModels(providerType);
+		
+		if (models.length > 0) {
+			const currentModel = this.getCurrentModel(providerType);
+			return this.getModelDisplayName(providerType, currentModel);
+		}
+		
+		return this.getProviderDisplayName(providerType);
 	}
 
 	/**
@@ -2121,7 +2325,7 @@ export class NovaSidebarView extends ItemView {
 	private async switchToProvider(providerType: string): Promise<void> {
 		try {
 			// Add a system message about provider switching
-			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${this.getProviderDisplayName(providerType)}`);
+			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
 			this.addMessage('system', switchMessage);
 			
 			// Update the platform settings to use the new provider
@@ -2134,7 +2338,7 @@ export class NovaSidebarView extends ItemView {
 			
 		} catch (error) {
 			console.error('Error switching provider:', error);
-			this.addMessage('system', this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderDisplayName(providerType)}`));
+			this.addMessage('system', this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
 		}
 	}
 

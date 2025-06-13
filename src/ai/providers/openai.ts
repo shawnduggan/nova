@@ -174,26 +174,13 @@ export class OpenAIProvider implements AIProvider {
 
 			const data = await response.json();
 			
-			// Filter to only chat completion models and sort by name
-			const chatModels = data.data
-				.filter((model: any) => {
-					const id = model.id.toLowerCase();
-					return (id.includes('gpt') || id.includes('chat')) && 
-						   !id.includes('instruct') && 
-						   !id.includes('edit') &&
-						   !id.includes('search') &&
-						   !id.includes('similarity') &&
-						   !id.includes('embedding');
-				})
-				.map((model: any) => model.id)
-				.sort();
-
-			const models = chatModels.length > 0 ? chatModels : [
+			// Return hardcoded current models
+			const models = [
+				'gpt-4.1-2025-04-14',
+				'gpt-4.1-mini-2025-04-14',
+				'gpt-4.1-nano-2025-04-14',
 				'gpt-4o',
-				'gpt-4o-mini', 
-				'gpt-4-turbo',
-				'gpt-4',
-				'gpt-3.5-turbo'
+				'gpt-4o-mini'
 			];
 
 			this.cachedModels = models;
