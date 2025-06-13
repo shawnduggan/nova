@@ -37,13 +37,8 @@ export class InputHandler {
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
 		
-		// Create command button and insert it before the send button
-		const commandButton = this.commandSystem.createCommandButton(this.inputRow);
-		
-		// Move command button before send button in the DOM
-		this.inputRow.insertBefore(commandButton.buttonEl, this.sendButton.buttonEl);
-		
-		// Create the command picker
+		// Now create the command button and picker
+		this.commandSystem.createCommandButton(this.inputRow);
 		this.commandSystem.createCommandPicker();
 	}
 
@@ -64,7 +59,7 @@ export class InputHandler {
 		this.inputRow.style.cssText = `
 			display: flex;
 			gap: var(--size-2-3);
-			align-items: center;
+			align-items: flex-end;
 			position: relative;
 		`;
 
@@ -76,7 +71,7 @@ export class InputHandler {
 		this.textArea = new TextAreaComponent(textAreaContainer);
 		this.textArea.setPlaceholder('Ask Nova anything... (Shift+Enter for new line)');
 		this.textArea.inputEl.style.cssText = `
-			min-height: 42px;
+			min-height: var(--input-height);
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -166,9 +161,7 @@ export class InputHandler {
 
 		// Input change handling for command picker and section picker
 		this.addEventListener(this.textArea.inputEl, 'input', () => {
-			if (this.commandSystem) {
-				this.commandSystem.handleInputChange();
-			}
+			this.commandSystem?.handleInputChange();
 			this.handleSectionPickerInput();
 		});
 	}
@@ -322,33 +315,22 @@ export class InputHandler {
 		const pathMatch = this.findPathTrigger(input, cursorPos);
 		
 		if (pathMatch) {
-			// Clear the "/" trigger from input
+			// Replace "/" and filter text with selected path
 			const beforeSlash = input.slice(0, pathMatch.start);
 			const afterCursor = input.slice(cursorPos);
-			const newValue = beforeSlash + afterCursor;
+			const newValue = beforeSlash + path + afterCursor;
 			
 			this.textArea.setValue(newValue);
 			
-			// Position cursor where the "/" was
+			// Position cursor after the inserted path
+			const newCursorPos = pathMatch.start + path.length;
 			setTimeout(() => {
-				this.textArea.inputEl.setSelectionRange(pathMatch.start, pathMatch.start);
+				this.textArea.inputEl.setSelectionRange(newCursorPos, newCursorPos);
 				this.textArea.inputEl.focus();
 			}, 0);
 			
 			this.autoGrowTextarea();
-			
-			// Add section to context (similar to how wikilinks work)
-			this.addSectionToContext(path);
 		}
-	}
-	
-	/**
-	 * Add selected section to context preview
-	 */
-	private addSectionToContext(sectionPath: string): void {
-		// For now, show in context preview. In the future, this could be enhanced
-		// to add to persistent context like documents do.
-		this.contextManager.showSectionInPreview(sectionPath);
 	}
 
 	cleanup(): void {

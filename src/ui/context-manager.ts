@@ -100,26 +100,6 @@ export class ContextManager {
 		this.contextPreview.style.display = 'block';
 	}
 
-	/**
-	 * Show a selected section in the context preview
-	 */
-	showSectionInPreview(sectionPath: string): void {
-		if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-			return;
-		}
-
-		// Create or update the section indicator in the preview
-		const previewList = this.contextPreview.querySelector('.nova-context-preview-list') as HTMLElement;
-		if (previewList) {
-			const currentText = previewList.textContent || '';
-			const newText = currentText ? `${currentText}, ${sectionPath}` : sectionPath;
-			previewList.textContent = newText;
-		}
-
-		this.contextPreview.style.display = 'block';
-	}
-
-
 	async buildContext(message: string, currentFile: TFile | null): Promise<MultiDocContext | null> {
 		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context') || !currentFile) {
 			return null;

@@ -183,11 +183,6 @@ export class CommandSystem {
 	}
 
 	handleInputChange(): void {
-		if (!this.textArea) {
-			console.error('CommandSystem: textArea is null');
-			return;
-		}
-		
 		const input = this.textArea.getValue();
 		
 		// Handle different triggers
@@ -206,11 +201,6 @@ export class CommandSystem {
 	 * Show structured command picker for ":" trigger  
 	 */
 	private showStructuredCommandPicker(input: string): void {
-		if (!this.commandPicker) {
-			console.error('CommandSystem: commandPicker is null, cannot show picker');
-			return;
-		}
-		
 		const structuredCommands = this.getStructuredCommands();
 		const filterText = input.slice(1).toLowerCase(); // Remove ":"
 		
@@ -274,9 +264,7 @@ export class CommandSystem {
 	}
 
 	hideCommandPicker(): void {
-		if (this.commandPicker) {
-			this.commandPicker.style.display = 'none';
-		}
+		this.commandPicker.style.display = 'none';
 		this.commandPickerItems = [];
 		this.selectedCommandIndex = -1;
 	}
