@@ -61,12 +61,22 @@ export class ProviderManager {
 
 		const currentProvider = this.getCurrentProviderType();
 		
-		this.dropdown.addOptions({
-			'claude': 'Claude (Anthropic)',
-			'openai': 'OpenAI',
-			'google': 'Google AI',
-			'ollama': Platform.isDesktopApp ? 'Ollama (Local)' : null,
+		// Show configured models in dropdown labels
+		const options: Record<string, string | null> = {
+			'claude': this.getProviderWithModelDisplayName('claude'),
+			'openai': this.getProviderWithModelDisplayName('openai'),
+			'google': this.getProviderWithModelDisplayName('google'),
+			'ollama': Platform.isDesktopApp ? this.getProviderWithModelDisplayName('ollama') : null,
+		};
+
+		// Filter out null values for addOptions
+		const filteredOptions: Record<string, string> = {};
+		Object.entries(options).forEach(([key, value]) => {
+			if (value !== null) {
+				filteredOptions[key] = value;
+			}
 		});
+		this.dropdown.addOptions(filteredOptions);
 
 		if (currentProvider) {
 			this.dropdown.setValue(currentProvider);
@@ -101,15 +111,15 @@ export class ProviderManager {
 		
 		if (Platform.isDesktopApp) {
 			// Desktop: Check all providers in order of preference
-			if (settings.claudeApiKey) return 'claude';
-			if (settings.openaiApiKey) return 'openai';
-			if (settings.googleApiKey) return 'google';
-			if (settings.ollamaEnabled) return 'ollama';
+			if (settings.aiProviders?.claude?.apiKey) return 'claude';
+			if (settings.aiProviders?.openai?.apiKey) return 'openai';
+			if (settings.aiProviders?.google?.apiKey) return 'google';
+			if (settings.aiProviders?.ollama?.baseUrl) return 'ollama';
 		} else {
 			// Mobile: Only API-based providers
-			if (settings.claudeApiKey) return 'claude';
-			if (settings.openaiApiKey) return 'openai';
-			if (settings.googleApiKey) return 'google';
+			if (settings.aiProviders?.claude?.apiKey) return 'claude';
+			if (settings.aiProviders?.openai?.apiKey) return 'openai';
+			if (settings.aiProviders?.google?.apiKey) return 'google';
 		}
 		
 		return null;
@@ -120,13 +130,17 @@ export class ProviderManager {
 		
 		switch (providerType) {
 			case 'claude':
-				return `Claude (${settings.claudeModel || 'sonnet'})`;
+				const claudeModel = settings.aiProviders?.claude?.model || 'sonnet';
+				return `Claude (${claudeModel})`;
 			case 'openai':
-				return `OpenAI (${settings.openaiModel || 'gpt-4'})`;
+				const openaiModel = settings.aiProviders?.openai?.model || 'gpt-4';
+				return `OpenAI (${openaiModel})`;
 			case 'google':
-				return `Google (${settings.googleModel || 'gemini-pro'})`;
+				const googleModel = settings.aiProviders?.google?.model || 'gemini-pro';
+				return `Google (${googleModel})`;
 			case 'ollama':
-				return `Ollama (${settings.ollamaModel || 'llama2'})`;
+				const ollamaModel = settings.aiProviders?.ollama?.model;
+				return `Ollama (${ollamaModel || 'not configured'})`;
 			default:
 				return 'Unknown Provider';
 		}
@@ -147,19 +161,21 @@ export class ProviderManager {
 
 	private async switchProvider(providerType: string): Promise<void> {
 		try {
-			// Update current provider in settings
-			this.plugin.settings.currentProvider = providerType;
+			// Note: Provider switching logic would need to be implemented
+			// based on the actual plugin architecture
 			await this.plugin.saveSettings();
 
 			// Update status display
 			this.updateProviderStatus();
 
-			// Clear conversation context when switching providers
-			this.plugin.sidebarView?.clearConversation?.();
-
 		} catch (error) {
 			// Error switching provider - handled by UI feedback
 		}
+	}
+
+	refreshDisplay(): void {
+		this.updateProviderOptions();
+		this.updateProviderStatus();
 	}
 
 	cleanup(): void {
