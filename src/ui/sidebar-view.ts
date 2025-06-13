@@ -1933,7 +1933,7 @@ export class NovaSidebarView extends ItemView {
 			padding: 4px 8px;
 			font-size: 0.75em;
 			color: var(--text-normal);
-			background: var(--background-modifier-hover);
+			background: var(--background-primary);
 			border: 1px solid var(--background-modifier-border);
 			border-radius: 4px;
 			cursor: pointer;
@@ -2115,6 +2115,7 @@ export class NovaSidebarView extends ItemView {
 				align-items: center;
 				gap: 8px;
 				font-size: 0.85em;
+				color: var(--text-normal);
 				transition: background-color 0.2s ease;
 				position: relative;
 			`;
@@ -2169,6 +2170,7 @@ export class NovaSidebarView extends ItemView {
 						padding: 6px 12px;
 						cursor: pointer;
 						font-size: 0.8em;
+						color: var(--text-normal);
 						transition: background-color 0.2s ease;
 						display: flex;
 						align-items: center;
