@@ -4,6 +4,24 @@ import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings } from './licensing/types';
 import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
 
+const NOVA_ICON_SVG = `
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Central star core -->
+  <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+  
+  <!-- Primary rays (4 main directions) -->
+  <path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Secondary rays (diagonals) -->
+  <path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`;
+
 export interface CustomCommand {
 	id: string;
 	name: string;
@@ -127,7 +145,19 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
 		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
-		const statusIcon = isSupernova ? '⚡' : '★'; // Lightning for Supernova, Star for Nova
+		const statusIcon = isSupernova ? `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #9333ea; filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));">
+			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+			<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+		</svg>` : `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--text-normal);">
+			${NOVA_ICON_SVG}
+		</svg>`;
 		statusDisplay.innerHTML = `
 			<div class="nova-status-badge ${isSupernova ? 'supernova' : 'nova'}">
 				<span class="status-icon">${statusIcon}</span>
@@ -201,6 +231,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								
 								if (isSupernova) {
 									this.showLicenseMessage('Valid Supernova license! You now have early access to new features.', 'success');
+									this.showConfetti();
 								} else {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
 								}
@@ -303,6 +334,11 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 						
+						// Show confetti when turning ON Force Supernova
+						if (value) {
+							this.showConfetti();
+						}
+						
 						// Refresh sidebar to update feature availability
 						const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
 						if (leaves.length > 0) {
@@ -311,6 +347,48 @@ export class NovaSettingTab extends PluginSettingTab {
 						}
 						
 						// Refresh display to show updated feature status
+						this.display();
+					}));
+
+			// Clear licenses button
+			new Setting(debugContainer)
+				.setName('Clear All Licenses')
+				.setDesc('Remove all applied licenses (for testing)')
+				.addButton(button => button
+					.setButtonText('Clear Licenses')
+					.setWarning()
+					.onClick(async () => {
+						// Confirm action
+						const confirmed = confirm('Are you sure you want to clear all licenses? This will remove any applied Supernova license.');
+						if (!confirmed) return;
+
+						// Clear license key
+						this.plugin.settings.licensing.supernovaLicenseKey = '';
+						
+						// Clear Force Supernova if enabled
+						if (this.plugin.settings.licensing.debugSettings.forceSupernova) {
+							this.plugin.settings.licensing.debugSettings.forceSupernova = false;
+						}
+						
+						await this.plugin.saveSettings();
+
+						// Update feature manager
+						if (this.plugin.featureManager) {
+							await this.plugin.featureManager.updateSupernovaLicense(null);
+							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
+						}
+
+						// Refresh sidebar
+						const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+						if (leaves.length > 0) {
+							const sidebarView = leaves[0].view as NovaSidebarView;
+							sidebarView.refreshSupernovaUI();
+						}
+
+						// Show success message
+						this.showLicenseMessage('All licenses cleared successfully.', 'success');
+
+						// Refresh display
 						this.display();
 					}));
 		}
@@ -332,6 +410,61 @@ export class NovaSettingTab extends PluginSettingTab {
 		setTimeout(() => {
 			messageEl.remove();
 		}, 5000);
+	}
+
+	private showConfetti() {
+		// Create confetti container
+		const confettiContainer = document.createElement('div');
+		confettiContainer.className = 'nova-confetti-container';
+		document.body.appendChild(confettiContainer);
+
+		// Get settings container position for explosion center
+		const rect = this.containerEl.getBoundingClientRect();
+		const centerX = rect.left + rect.width / 2;
+		const centerY = rect.top + Math.min(rect.height / 2, 300);
+
+		// Colors for confetti
+		const colors = ['gold', 'blue', 'pink', 'green', 'red', ''];  // empty string = default purple
+
+		// Create confetti pieces
+		for (let i = 0; i < 150; i++) {
+			const confetti = document.createElement('div');
+			confetti.className = `nova-confetti-piece ${colors[Math.floor(Math.random() * colors.length)]}`;
+			
+			// Position at explosion center
+			confetti.style.left = `${centerX}px`;
+			confetti.style.top = `${centerY}px`;
+			
+			// Calculate explosion trajectory
+			const angle = (Math.PI * 2 * i) / 150 + (Math.random() * 0.2 - 0.1);
+			const velocity = 250 + Math.random() * 350; // pixels
+			const explodeX = Math.cos(angle) * velocity;
+			const explodeY = Math.sin(angle) * velocity - 150; // Strong upward bias
+			
+			// Set CSS custom properties for animation
+			confetti.style.setProperty('--explode-x', `${explodeX}px`);
+			confetti.style.setProperty('--explode-y', `${explodeY}px`);
+			
+			// Random delay for staggered explosion
+			confetti.style.animationDelay = `${Math.random() * 0.2}s`;
+			
+			// Random size
+			const size = 6 + Math.random() * 14;
+			confetti.style.width = `${size}px`;
+			confetti.style.height = `${size}px`;
+			
+			// Make some confetti rectangular
+			if (Math.random() > 0.5) {
+				confetti.style.height = `${size * 0.4}px`;
+			}
+			
+			confettiContainer.appendChild(confetti);
+		}
+
+		// Remove container after animation completes
+		setTimeout(() => {
+			confettiContainer.remove();
+		}, 4000);
 	}
 
 	private createGeneralSettings() {
@@ -925,7 +1058,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Show Command Button setting (Supernova-only)
 		new Setting(commandContainer)
 			.setName('Show Command Button in Chat')
-			.setDesc('Show the Commands button (⚡) beside the Send button for quick command access')
+			.setDesc('Show the Commands button beside the Send button for quick command access')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showCommandButton)
 				.onChange(async (value) => {

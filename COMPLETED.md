@@ -48,6 +48,26 @@ This file tracks all completed work for the Nova project. When tasks are complet
 - Conversation file security
 - Workspace context validation
 - Path traversal prevention
+
+---
+
+## Recent Updates (June 13, 2025)
+
+### ✅ Settings UI Enhancements
+- Updated Nova/Supernova user icons in settings
+  - Nova users: Display plugin glyph icon
+  - Supernova users: Display special purple star icon with glow effect
+- Added celebratory confetti animation
+  - Triggers on successful Supernova license validation
+  - Triggers when enabling "Force Supernova Status" in debug mode
+  - 150 colorful confetti pieces explode from center and fall
+  - 3.5 second animation with physics-based movement
+- Added "Clear All Licenses" button in Developer Settings
+  - Allows testing different license types (annual/lifetime)
+  - Confirms before clearing to prevent accidents
+  - Clears both license key and Force Supernova toggle
+- Removed emoji from Custom Commands settings description
+  - Clean text-only description for better consistency
 - Safe file operations with proper error handling
 
 ### ✅ Performance Optimizations

@@ -1,5 +1,65 @@
 /* Nova Plugin Styles */
 
+/* Confetti Animation */
+@keyframes nova-confetti-explode {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    5% {
+        transform: translate(0, 0) scale(1) rotate(90deg);
+        opacity: 1;
+    }
+    15% {
+        transform: translate(var(--explode-x), var(--explode-y)) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--explode-x), calc(var(--explode-y) + 600px)) rotate(1080deg);
+        opacity: 0;
+    }
+}
+
+.nova-confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 9999;
+}
+
+.nova-confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #9333ea;
+    animation: nova-confetti-explode 3.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    transform-origin: center;
+}
+
+.nova-confetti-piece.gold {
+    background: #ffd700;
+}
+
+.nova-confetti-piece.blue {
+    background: #4facfe;
+}
+
+.nova-confetti-piece.pink {
+    background: #f093fb;
+}
+
+.nova-confetti-piece.green {
+    background: #43e97b;
+}
+
+.nova-confetti-piece.red {
+    background: #fa709a;
+}
+
 /* Wikilink Suggestions */
 .nova-wikilink-suggestion {
     padding: 8px 12px;
