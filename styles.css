@@ -1,26 +1,22 @@
 /* Nova Plugin Styles */
 
-/* Wikilink Suggestions */
-.nova-wikilink-suggestion {
-    padding: var(--size-2-3) var(--size-4-3);
-    border-radius: var(--radius-xs);
-    cursor: pointer;
-}
-
-.nova-wikilink-suggestion:hover {
-    background: var(--background-modifier-hover);
-}
-
-.nova-wikilink-name {
-    font-weight: 500;
-    color: var(--text-normal);
-    margin-bottom: 2px;
-}
-
-.nova-wikilink-path {
-    font-size: 0.85em;
-    color: var(--text-muted);
-    opacity: 0.8;
+/* Base Picker Container Styles - Shared by all pickers */
+.nova-command-picker,
+.nova-section-picker,
+.nova-wikilink-suggestions {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    margin-bottom: 4px;
 }
 
 /* Multi-Document Context Indicator */
@@ -919,50 +915,7 @@
     }
 }
 
-/* Wikilink Autocomplete Styles */
-.nova-wikilink-suggestions {
-    background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-    box-shadow: var(--shadow-s);
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    font-size: 0.9em;
-}
 
-.nova-suggestion-item {
-    padding: var(--size-2-3) var(--size-4-3);
-    cursor: pointer;
-    border-bottom: 1px solid var(--background-modifier-border-hover);
-    transition: background-color 0.2s ease;
-}
-
-.nova-suggestion-item:last-child {
-    border-bottom: none;
-}
-
-.nova-suggestion-item:hover {
-    background: var(--background-modifier-hover);
-}
-
-.nova-suggestion-name {
-    font-weight: 500;
-    color: var(--text-normal);
-    margin-bottom: 2px;
-}
-
-.nova-suggestion-path {
-    font-size: 0.85em;
-    color: var(--text-muted);
-    opacity: 0.8;
-}
-
-/* Make suggestions look more like Obsidian's native suggestions */
-.nova-wikilink-suggestions {
-    border-color: var(--background-modifier-border-focus);
-    backdrop-filter: blur(8px);
-}
 
 /* Unified Panel Base Styles */
 .nova-panel-base {

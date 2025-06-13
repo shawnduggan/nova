@@ -38,8 +38,8 @@ export class CommandSystem {
 		this.commandButton.setTooltip('Commands');
 		this.commandButton.onClick(() => this.toggleCommandMenu());
 		this.commandButton.buttonEl.style.cssText = `
-			min-width: var(--input-height);
-			height: var(--input-height);
+			min-width: var(--size-4-9);
+			height: var(--size-4-9);
 			border-radius: 50%;
 			display: ${this.shouldShowCommandButton() ? 'flex' : 'none'};
 			align-items: center;

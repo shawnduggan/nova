@@ -194,27 +194,36 @@ export class SectionPicker {
                 transition: background-color 0.2s;
             `;
 
-            // Display name with proper indentation
+            // Name (standardized to match command picker)
             const nameEl = document.createElement('div');
-            nameEl.textContent = item.displayName;
+            nameEl.textContent = item.headingText;
             nameEl.style.cssText = `
                 font-weight: 500;
                 color: var(--text-normal);
                 margin-bottom: 4px;
-                white-space: pre;
-                font-family: var(--font-monospace);
             `;
             itemEl.appendChild(nameEl);
 
-            // Path preview
-            const pathEl = document.createElement('div');
-            pathEl.textContent = item.targetPath;
-            pathEl.style.cssText = `
+            // Description (path info)
+            const descEl = document.createElement('div');
+            descEl.textContent = `Navigate to section: ${item.targetPath}`;
+            descEl.style.cssText = `
                 font-size: 0.85em;
                 color: var(--text-muted);
                 margin-bottom: 4px;
             `;
-            itemEl.appendChild(pathEl);
+            itemEl.appendChild(descEl);
+
+            // Example/Preview (standardized with monospace)
+            const exampleEl = document.createElement('div');
+            const previewText = item.preview ? item.preview.substring(0, 50) + '...' : `Line ${item.line}`;
+            exampleEl.textContent = `Preview: ${previewText}`;
+            exampleEl.style.cssText = `
+                font-size: 0.8em;
+                color: var(--text-accent);
+                font-family: var(--font-monospace);
+            `;
+            itemEl.appendChild(exampleEl);
 
             // Click handler
             itemEl.addEventListener('click', () => {

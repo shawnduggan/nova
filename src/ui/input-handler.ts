@@ -37,9 +37,18 @@ export class InputHandler {
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
 		
-		// Now create the command button and picker  
+		// Create the command button BEFORE the send button to get proper order
+		// Remove send button temporarily
+		const sendButtonEl = this.sendButton.buttonEl;
+		sendButtonEl.remove();
+		
+		// Create command button
 		this.commandSystem.createCommandButton(this.inputRow);
-		// Pass the inputRow as the container for proper positioning
+		
+		// Re-add send button (will be last in DOM order)
+		this.inputRow.appendChild(sendButtonEl);
+		
+		// Create command picker
 		this.commandSystem.createCommandPickerInContainer(this.inputRow);
 	}
 
@@ -72,7 +81,7 @@ export class InputHandler {
 		this.textArea = new TextAreaComponent(textAreaContainer);
 		this.textArea.setPlaceholder('Ask Nova anything... (Shift+Enter for new line)');
 		this.textArea.inputEl.style.cssText = `
-			min-height: var(--input-height);
+			min-height: var(--size-4-9);
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -121,8 +130,8 @@ export class InputHandler {
 		this.sendButton.setTooltip('Send message');
 		this.sendButton.onClick(() => this.handleSend());
 		this.sendButton.buttonEl.style.cssText = `
-			min-width: var(--input-height);
-			height: var(--input-height);
+			min-width: var(--size-4-9);
+			height: var(--size-4-9);
 			border-radius: 50%;
 			display: flex;
 			align-items: center;

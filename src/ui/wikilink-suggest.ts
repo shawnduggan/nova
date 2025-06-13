@@ -159,7 +159,7 @@ export class NovaWikilinkAutocomplete {
                 transition: background-color 0.2s;
             `;
             
-            // File name
+            // Name (standardized to match command picker)
             const nameEl = document.createElement('div');
             nameEl.className = 'nova-suggestion-name';
             nameEl.textContent = suggestion.file.basename;
@@ -170,18 +170,29 @@ export class NovaWikilinkAutocomplete {
             `;
             item.appendChild(nameEl);
             
-            // File path (if different from name)
-            if (suggestion.file.path !== suggestion.file.name) {
-                const pathEl = document.createElement('div');
-                pathEl.className = 'nova-suggestion-path';
-                pathEl.textContent = suggestion.file.path;
-                pathEl.style.cssText = `
-                    font-size: 0.85em;
-                    color: var(--text-muted);
-                    margin-bottom: 4px;
-                `;
-                item.appendChild(pathEl);
-            }
+            // Description (standardized)
+            const descEl = document.createElement('div');
+            descEl.className = 'nova-suggestion-desc';
+            descEl.textContent = `Link to document in ${suggestion.file.path.includes('/') ? suggestion.file.path.substring(0, suggestion.file.path.lastIndexOf('/')) : 'root'}`;
+            descEl.style.cssText = `
+                font-size: 0.85em;
+                color: var(--text-muted);
+                margin-bottom: 4px;
+            `;
+            item.appendChild(descEl);
+            
+            // Content Preview (standardized with monospace)
+            const exampleEl = document.createElement('div');
+            exampleEl.className = 'nova-suggestion-example';
+            this.getFilePreview(suggestion.file).then(preview => {
+                exampleEl.textContent = `Preview: ${preview}`;
+            });
+            exampleEl.style.cssText = `
+                font-size: 0.8em;
+                color: var(--text-accent);
+                font-family: var(--font-monospace);
+            `;
+            item.appendChild(exampleEl);
             
             this.suggestionPopup!.appendChild(item);
             
@@ -313,6 +324,34 @@ export class NovaWikilinkAutocomplete {
         }
         
         return queryIndex === query.length;
+    }
+
+    private async getFilePreview(file: TFile): Promise<string> {
+        try {
+            const content = await this.app.vault.read(file);
+            
+            // Remove frontmatter if present
+            let textContent = content;
+            if (content.startsWith('---')) {
+                const frontmatterEnd = content.indexOf('---', 3);
+                if (frontmatterEnd !== -1) {
+                    textContent = content.substring(frontmatterEnd + 3);
+                }
+            }
+            
+            // Get first 50 characters of actual text content, removing markdown formatting
+            const plainText = textContent
+                .replace(/^#+ /gm, '') // Remove headings
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+                .replace(/\*(.*?)\*/g, '$1') // Remove italic
+                .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links
+                .replace(/\n/g, ' ') // Replace newlines with spaces
+                .trim();
+            
+            return plainText.length > 50 ? plainText.substring(0, 50) + '...' : plainText || 'Empty file';
+        } catch (error) {
+            return 'Unable to load preview';
+        }
     }
 
     destroy(): void {

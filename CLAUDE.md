@@ -82,23 +82,34 @@
 - ✅ **Fix : trigger** - Command picker now appears correctly with proper DOM positioning
 - ✅ **Standardize picker widths** - All three pickers ([[ : /) now use inputRow container for consistent width
 - ✅ **Fix picker alignment** - All pickers aligned to left edge of textarea with full sidebar width
-- [ ] **Standardize picker styling** - Apply : command picker visual style to [[ and / pickers (still different)
-- [ ] **Fix textarea styling** - Needs more vertical height and proper button alignment  
-- [ ] **Fix command button positioning** - Move to left of send button
+- ✅ **Standardize picker styling** - Applied : command picker visual style to [[ and / pickers for full consistency
+- ✅ **Fix textarea styling** - Increased minimum height to 40px using proper Obsidian CSS variable (var(--size-4-6))
+- ✅ **Fix command button positioning** - Command button now appears to left of send button with proper DOM order
 - [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
 - [ ] **Consider enhanced context panel** - Add files and paths sections for better UX
 
-#### 📋 **NEXT PRIORITY: Complete Picker Polish** 
+#### 📋 **CRITICAL: Picker Issues to Fix Before Testing** 
+- ✅ **1. Standardize all picker styling** - All three pickers ([[ : /) now have identical styling with 3-line structure, unified fonts, colors, and spacing. Wikilink picker shows text content previews (no frontmatter)
+- [ ] **2. Thoroughly test : command functionality** - Ensure : command picker works flawlessly before moving forward
+- [ ] **3. Implement / command path persistence** - Selected paths need to be persisted visually (like [[ files in context), not just inserted as text strings. Only one path per operation.
+- [ ] **4. Test : and / commands together** - Comprehensive integration testing of both command systems
+
+#### 📋 **COMPLETED: Complete Picker Polish** ✅
 - ✅ **Picker functionality working** - All three triggers ([[ : /) now display pickers correctly
 - ✅ **Picker width consistency** - All use full sidebar width with proper alignment
-- [ ] **Visual styling consistency** - Make all pickers match : command picker appearance exactly
-- [ ] **Input UI improvements** - Fix textarea height and button positioning
+- ✅ **Visual styling standardization** - All pickers now have identical 3-line structure:
+  - Name: font-weight 500, --text-normal color
+  - Description: 0.85em size, --text-muted color
+  - Example/Preview: 0.8em size, --text-accent color, monospace font
+- ✅ **Consistent hover states and spacing** - 8px/12px padding, identical borders and transitions
+- ✅ **Clean CSS architecture** - Removed redundant styles, unified base container styles
+- ✅ **Input UI improvements** - Fixed textarea height (40px) and button positioning (command button left of send)
 - [ ] **Enhanced UX features** - Improve / trigger to use context panel integration
 
 #### 📋 **User Testing & Polish** 
 - ✅ **Initial picker integration testing** - Basic functionality validated, issues identified
 - ✅ **Picker core functionality** - All three triggers working with consistent width/alignment
-- [ ] **Complete visual polish** - Standardize styling across all pickers
+- ✅ **Complete visual polish** - All pickers now have standardized styling with identical 3-line structure
 - [ ] Mobile performance testing on actual devices
 - ✅ Error handling improvements and loading state optimizations
 - ✅ **System testing preparation complete** (code quality, performance, UI consistency)
