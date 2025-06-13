@@ -143,7 +143,7 @@ export class MultiDocContextHandler {
         // Filter out any stale file references (files that no longer exist)
         const allPersistentDocs = rawPersistentDocs.filter(docRef => {
             if (!docRef?.file || !this.app.vault.getAbstractFileByPath(docRef.file.path)) {
-                console.warn(`Removing stale file reference: ${docRef?.file?.path || 'unknown'}`);
+                // Removing stale file reference
                 return false;
             }
             return true;
@@ -242,7 +242,7 @@ export class MultiDocContextHandler {
             
             return contextParts.join('\n');
         } catch (error) {
-            console.error(`Failed to read full context from ${file.path}:`, error);
+            // Failed to read full context - graceful fallback
             return null;
         }
     }
@@ -256,7 +256,7 @@ export class MultiDocContextHandler {
             
             // Validate that the file still exists in the vault
             if (!file || !this.app.vault.getAbstractFileByPath(file.path)) {
-                console.warn(`File no longer exists: ${file?.path || 'unknown'}`);
+                // File no longer exists - graceful fallback
                 return null;
             }
             
@@ -272,7 +272,7 @@ export class MultiDocContextHandler {
                 return this.getFullDocumentContext(file);
             }
         } catch (error) {
-            console.error(`Failed to read context from ${docRef?.file?.path || 'unknown file'}:`, error);
+            // Failed to read context - graceful fallback
             return null;
         }
     }

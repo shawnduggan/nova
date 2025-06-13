@@ -26,6 +26,14 @@ export class NovaSidebarView extends ItemView {
 	private contextIndicator!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
 	
+	// Performance optimization - debouncing and timing constants
+	private contextPreviewDebounceTimeout: NodeJS.Timeout | null = null;
+	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
+	private static readonly SCROLL_DELAY_MS = 50;
+	private static readonly FOCUS_DELAY_MS = 150;
+	private static readonly HOVER_TIMEOUT_MS = 150;
+	private static readonly NOTICE_DURATION_MS = 5000;
+	
 	// Event listener cleanup tracking
 	private documentEventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
 	private timeouts: NodeJS.Timeout[] = [];
@@ -62,7 +70,7 @@ export class NovaSidebarView extends ItemView {
 			flex-direction: column;
 			height: 100%;
 			overflow: hidden;
-			padding-bottom: ${Platform.isDesktopApp ? '25px' : '20px'};
+			padding-bottom: ${Platform.isDesktopApp ? 'var(--size-4-6)' : 'var(--size-4-5)'};
 		`;
 		
 		// Header with provider info
@@ -71,15 +79,15 @@ export class NovaSidebarView extends ItemView {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 10px;
+			padding: var(--size-4-2);
 			border-bottom: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 		`;
 		
 		// Left side: Title with Nova icon
 		const titleEl = headerEl.createEl('h4');
-		titleEl.style.cssText = 'margin: 0; font-size: 1.1em; display: flex; align-items: center; gap: 6px;';
-		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px;">
+		titleEl.style.cssText = 'margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2);';
+		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -93,7 +101,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Right side: Provider status and Clear button
 		const rightContainer = headerEl.createDiv();
-		rightContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
 		
 		// All users can switch providers freely
 		this.createProviderDropdown(rightContainer);
@@ -125,7 +133,7 @@ export class NovaSidebarView extends ItemView {
 			if (this.textArea?.inputEl) {
 				this.textArea.inputEl.focus();
 			}
-		}, 150);
+		}, NovaSidebarView.FOCUS_DELAY_MS);
 	}
 
 	async onClose() {
@@ -137,6 +145,12 @@ export class NovaSidebarView extends ItemView {
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
 			this.wikilinkAutocomplete.destroy();
+		}
+		
+		// Clear debounce timeout
+		if (this.contextPreviewDebounceTimeout) {
+			clearTimeout(this.contextPreviewDebounceTimeout);
+			this.contextPreviewDebounceTimeout = null;
 		}
 		
 		// Clean up tracked event listeners
@@ -208,11 +222,11 @@ export class NovaSidebarView extends ItemView {
 		this.chatContainer.style.cssText = `
 			flex: 1;
 			overflow-y: auto;
-			padding: 10px;
+			padding: var(--size-4-2);
 			background: var(--background-secondary);
 			display: flex;
 			flex-direction: column;
-			gap: 8px;
+			gap: var(--size-2-3);
 		`;
 
 		// Welcome message with Nova branding
@@ -234,8 +248,8 @@ export class NovaSidebarView extends ItemView {
 		this.inputContainer.style.cssText = `
 			display: flex;
 			flex-direction: column;
-			gap: 8px;
-			padding: 10px;
+			gap: var(--size-2-3);
+			padding: var(--size-4-2);
 			border-top: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 			position: relative;
@@ -246,7 +260,7 @@ export class NovaSidebarView extends ItemView {
 		inputRow.style.cssText = `
 			display: flex;
 			align-items: center;
-			gap: 8px;
+			gap: var(--size-2-3);
 		`;
 
 		// Text area takes most space
@@ -273,8 +287,8 @@ export class NovaSidebarView extends ItemView {
 			height: ${initialHeight}px;
 			resize: none;
 			border: 1px solid var(--background-modifier-border);
-			border-radius: 8px;
-			padding: 10px;
+			border-radius: var(--input-radius);
+			padding: var(--size-4-2);
 			font-size: var(--font-text-size);
 			line-height: ${lineHeight};
 			overflow-y: hidden;
@@ -312,9 +326,9 @@ export class NovaSidebarView extends ItemView {
 		// Initialize wikilink autocomplete
 		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.app, this.textArea.inputEl);
 		
-		// Add real-time context preview
+		// Add debounced context preview
 		this.textArea.inputEl.addEventListener('input', () => {
-			this.updateLiveContextPreview();
+			this.debouncedUpdateContextPreview();
 		});
 
 		// Command button (lightning) - conditionally shown
@@ -323,15 +337,15 @@ export class NovaSidebarView extends ItemView {
 		this.commandButton.setTooltip('Commands');
 		this.commandButton.onClick(() => this.toggleCommandMenu());
 		this.commandButton.buttonEl.style.cssText = `
-			width: 36px;
-			height: 36px;
+			min-width: var(--input-height);
+			height: var(--input-height);
 			border-radius: 50%;
 			display: ${this.shouldShowCommandButton() ? 'flex' : 'none'};
 			align-items: center;
 			justify-content: center;
 			padding: 0;
 			flex-shrink: 0;
-			margin-right: 8px;
+			margin-right: var(--size-2-3);
 		`;
 
 		// Send button vertically centered
@@ -341,8 +355,8 @@ export class NovaSidebarView extends ItemView {
 		this.sendButton.setCta();
 		this.sendButton.onClick(() => this.handleSend());
 		this.sendButton.buttonEl.style.cssText = `
-			width: 36px;
-			height: 36px;
+			min-width: var(--input-height);
+			height: var(--input-height);
 			border-radius: 50%;
 			display: flex;
 			align-items: center;
@@ -385,14 +399,14 @@ export class NovaSidebarView extends ItemView {
 	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 		messageEl.style.cssText = `
-			margin-bottom: 10px;
-			padding: 8px 12px;
-			border-radius: 8px;
+			margin-bottom: var(--size-4-2);
+			padding: var(--size-2-3) var(--size-4-3);
+			border-radius: var(--radius-s);
 			max-width: 85%;
 			${role === 'user' 
 				? 'margin-left: auto; background: var(--interactive-accent); color: var(--text-on-accent);' 
 				: role === 'system'
-				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: 0.9em;'
+				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: var(--font-ui-small);'
 				: 'background: var(--background-primary); border: 1px solid var(--background-modifier-border);'
 			}
 		`;
@@ -402,9 +416,9 @@ export class NovaSidebarView extends ItemView {
 			cls: 'nova-message-role'
 		});
 		roleEl.style.cssText = `
-			font-size: 0.8em;
+			font-size: var(--font-ui-smaller);
 			opacity: 0.7;
-			margin-bottom: 4px;
+			margin-bottom: var(--size-2-1);
 			font-weight: 600;
 		`;
 
@@ -422,41 +436,35 @@ export class NovaSidebarView extends ItemView {
 				top: this.chatContainer.scrollHeight,
 				behavior: 'smooth'
 			});
-		}, 50);
+		}, NovaSidebarView.SCROLL_DELAY_MS);
+	}
+
+	/**
+	 * Helper method to create simple messages without role headers
+	 */
+	private createSimpleMessage(content: string, className: string): void {
+		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${className}` });
+		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+		
+		// Support icons in messages
+		if (content.includes('<svg')) {
+			contentEl.innerHTML = content;
+		} else {
+			contentEl.textContent = content;
+		}
+
+		// Auto-scroll to bottom
+		setTimeout(() => {
+			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+		}, NovaSidebarView.SCROLL_DELAY_MS);
 	}
 
 	private addErrorMessage(content: string) {
-		const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-error' });
-		
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		// Support icons in error messages
-		if (content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
-
-		// Auto-scroll to bottom
-		setTimeout(() => {
-			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-		}, 50);
+		this.createSimpleMessage(content, 'nova-message-error');
 	}
 
 	private addSuccessMessage(content: string) {
-		const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-success' });
-		
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		// Support icons in success messages
-		if (content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
-
-		// Auto-scroll to bottom
-		setTimeout(() => {
-			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-		}, 50);
+		this.createSimpleMessage(content, 'nova-message-success');
 	}
 
 	private addWelcomeMessage(message?: string) {
@@ -464,12 +472,12 @@ export class NovaSidebarView extends ItemView {
 		welcomeEl.style.cssText = `
 			display: flex;
 			align-items: center;
-			gap: 12px;
-			margin: 16px auto;
-			padding: 16px 20px;
+			gap: var(--size-4-3);
+			margin: var(--size-4-4) auto;
+			padding: var(--size-4-4) var(--size-4-5);
 			background: var(--background-primary);
 			border: 1px solid var(--background-modifier-border);
-			border-radius: 18px;
+			border-radius: var(--radius-l);
 			max-width: 90%;
 			animation: fadeIn 0.5s ease-in;
 		`;
@@ -478,13 +486,13 @@ export class NovaSidebarView extends ItemView {
 		const iconContainer = welcomeEl.createDiv({ cls: 'nova-welcome-icon' });
 		iconContainer.style.cssText = `
 			position: relative;
-			width: 32px;
-			height: 32px;
+			width: var(--icon-size-xl);
+			height: var(--icon-size-xl);
 			flex-shrink: 0;
 		`;
 		
 		iconContainer.innerHTML = `
-			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: var(--interactive-accent);">
+			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size-xl); height: var(--icon-size-xl); color: var(--interactive-accent);">
 				<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 				<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 				<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -524,7 +532,7 @@ export class NovaSidebarView extends ItemView {
 				top: this.chatContainer.scrollHeight,
 				behavior: 'smooth'
 			});
-		}, 50);
+		}, NovaSidebarView.SCROLL_DELAY_MS);
 	}
 
 	private addSuccessIndicator(action: string) {
@@ -546,7 +554,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Add checkmark and text
 		indicatorEl.innerHTML = `
-			<div style="width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; background: #4caf50; display: flex; align-items: center; justify-content: center;">
+			<div style="width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; background: var(--text-success); display: flex; align-items: center; justify-content: center;">
 				<div style="width: 4px; height: 2px; border-left: 1px solid white; border-bottom: 1px solid white; transform: rotate(-45deg) translate(-0.5px, -0.5px);"></div>
 			</div>
 			${this.getCompactSuccessMessage(action)}
@@ -558,7 +566,7 @@ export class NovaSidebarView extends ItemView {
 				top: this.chatContainer.scrollHeight,
 				behavior: 'smooth'
 			});
-		}, 50);
+		}, NovaSidebarView.SCROLL_DELAY_MS);
 	}
 
 	private getCompactSuccessMessage(action: string): string {
@@ -913,6 +921,20 @@ export class NovaSidebarView extends ItemView {
 		return previewContainer;
 	}
 
+	/**
+	 * Debounced version of updateLiveContextPreview for performance
+	 */
+	private debouncedUpdateContextPreview(): void {
+		if (this.contextPreviewDebounceTimeout) {
+			clearTimeout(this.contextPreviewDebounceTimeout);
+		}
+		
+		this.contextPreviewDebounceTimeout = setTimeout(() => {
+			this.updateLiveContextPreview();
+			this.contextPreviewDebounceTimeout = null;
+		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);
+	}
+
 	private updateLiveContextPreview(): void {
 		if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
 			return;
@@ -1081,7 +1103,7 @@ export class NovaSidebarView extends ItemView {
 			summaryEl.addEventListener('touchend', () => {
 				this.addTrackedTimeout(() => {
 					expandIndicatorEl.style.background = 'none';
-				}, 150);
+				}, NovaSidebarView.HOVER_TIMEOUT_MS);
 			});
 		} else {
 			summaryEl.addEventListener('mouseenter', () => {
@@ -1170,7 +1192,7 @@ export class NovaSidebarView extends ItemView {
 					clearAllBtn.style.background = 'none';
 					clearAllBtn.style.borderColor = 'var(--text-faint)';
 					clearAllBtn.style.color = 'var(--text-faint)';
-				}, 150);
+				}, NovaSidebarView.HOVER_TIMEOUT_MS);
 			});
 		} else {
 			clearAllBtn.addEventListener('mouseenter', () => {
@@ -1281,7 +1303,7 @@ export class NovaSidebarView extends ItemView {
 					setTimeout(() => {
 						removeBtn.style.background = 'none';
 						removeBtn.style.color = 'var(--text-faint)';
-					}, 150);
+					}, NovaSidebarView.HOVER_TIMEOUT_MS);
 				});
 				
 				// Touch feedback for document items
@@ -1292,7 +1314,7 @@ export class NovaSidebarView extends ItemView {
 				docItemEl.addEventListener('touchend', () => {
 					setTimeout(() => {
 						docItemEl.style.background = 'transparent';
-					}, 150);
+					}, NovaSidebarView.HOVER_TIMEOUT_MS);
 				});
 			} else {
 				removeBtn.addEventListener('mouseenter', () => {
@@ -1437,7 +1459,7 @@ export class NovaSidebarView extends ItemView {
 				
 				// Check token limit
 				if (multiDocContext.isNearLimit) {
-					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', 5000);
+					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
 				}
 			}
 		}
@@ -1711,7 +1733,7 @@ export class NovaSidebarView extends ItemView {
 				this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
 			}
 		} catch (error) {
-			console.warn('Failed to load conversation history:', error);
+			// Failed to load conversation history - graceful fallback
 			// Show welcome message on error
 			this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
 		}
@@ -1732,7 +1754,7 @@ export class NovaSidebarView extends ItemView {
 					this.contextIndicator.style.display = 'none';
 				}
 			} catch (error) {
-				console.warn('Failed to clear conversation:', error);
+				// Failed to clear conversation - graceful fallback
 			}
 		}
 		
@@ -1828,7 +1850,7 @@ export class NovaSidebarView extends ItemView {
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #f44336;
+			background: var(--text-error);
 		`;
 		
 		const headerProviderName = providerStatus.createSpan({ text: 'Loading...' });
@@ -1845,12 +1867,12 @@ export class NovaSidebarView extends ItemView {
 		
 		if (currentProviderType) {
 			// Provider is available - show green status
-			statusDot.style.background = '#4caf50';
+			statusDot.style.background = 'var(--text-success)';
 			const displayText = this.getProviderWithModelDisplayName(currentProviderType);
 			nameElement.setText(displayText);
 		} else {
 			// No provider available - show red status
-			statusDot.style.background = '#f44336';
+			statusDot.style.background = 'var(--text-error)';
 			const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
 			nameElement.setText(currentProviderName);
 		}
@@ -1929,7 +1951,7 @@ export class NovaSidebarView extends ItemView {
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #f44336;
+			background: var(--text-error);
 		`;
 
 		// Provider name
@@ -2362,14 +2384,15 @@ export class NovaSidebarView extends ItemView {
 	 * Get color for provider type
 	 */
 	private getProviderColor(providerType: string): string {
+		// Use theme-compatible colors instead of hardcoded hex values
 		const colors: Record<string, string> = {
-			'claude': '#D2691E',
-			'openai': '#10A37F',
-			'google': '#4285F4',
-			'ollama': '#7C3AED',
-			'none': '#999'
+			'claude': 'var(--color-orange)',
+			'openai': 'var(--color-green)',
+			'google': 'var(--color-blue)',
+			'ollama': 'var(--color-purple)',
+			'none': 'var(--text-muted)'
 		};
-		return colors[providerType] || '#4caf50';
+		return colors[providerType] || 'var(--text-success)';
 	}
 
 	/**
@@ -2393,7 +2416,7 @@ export class NovaSidebarView extends ItemView {
 			setTimeout(() => this.refreshProviderStatus(), 100);
 			
 		} catch (error) {
-			console.error('Error switching provider:', error);
+			// Error switching provider - handled by UI feedback
 			this.addErrorMessage(this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
 		}
 	}

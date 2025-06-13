@@ -55,12 +55,12 @@ export class ClaudeProvider implements AIProvider {
 				})
 			});
 		} catch (error) {
-			console.error('Claude API Request Error:', error);
+			// API request error handled by Notice
 			throw new Error(`Failed to connect to Claude API: ${error instanceof Error ? error.message : 'Network error'}`);
 		}
 
 		if (response.status !== 200) {
-			console.error('Claude API Error:', response.status, response.text);
+			// API error handled by Notice
 			throw new Error(`Claude API error: ${response.status} - ${response.text}`);
 		}
 

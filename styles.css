@@ -1,69 +1,9 @@
 /* Nova Plugin Styles */
 
-/* Confetti Animation */
-@keyframes nova-confetti-explode {
-    0% {
-        transform: translate(0, 0) scale(0) rotate(0deg);
-        opacity: 0;
-    }
-    5% {
-        transform: translate(0, 0) scale(1) rotate(90deg);
-        opacity: 1;
-    }
-    15% {
-        transform: translate(var(--explode-x), var(--explode-y)) scale(1) rotate(180deg);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(var(--explode-x), calc(var(--explode-y) + 600px)) rotate(1080deg);
-        opacity: 0;
-    }
-}
-
-.nova-confetti-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 9999;
-}
-
-.nova-confetti-piece {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: #9333ea;
-    animation: nova-confetti-explode 3.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    transform-origin: center;
-}
-
-.nova-confetti-piece.gold {
-    background: #ffd700;
-}
-
-.nova-confetti-piece.blue {
-    background: #4facfe;
-}
-
-.nova-confetti-piece.pink {
-    background: #f093fb;
-}
-
-.nova-confetti-piece.green {
-    background: #43e97b;
-}
-
-.nova-confetti-piece.red {
-    background: #fa709a;
-}
-
 /* Wikilink Suggestions */
 .nova-wikilink-suggestion {
-    padding: 8px 12px;
-    border-radius: 4px;
+    padding: var(--size-2-3) var(--size-4-3);
+    border-radius: var(--radius-xs);
     cursor: pointer;
 }
 
@@ -91,7 +31,7 @@
 .nova-context-indicator .nova-context-main {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--size-2-3);
 }
 
 .nova-context-indicator .nova-context-warning {
@@ -111,7 +51,7 @@
 }
 
 .nova-context-indicator.warning {
-    background: rgba(255, 193, 7, 0.1) !important;
+    background: var(--background-modifier-error) !important;
     border-color: var(--text-warning) !important;
 }
 
@@ -120,7 +60,7 @@
     margin-bottom: 2em;
     padding: 1em;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
+    border-radius: var(--radius-s);
     background: var(--background-secondary);
 }
 
@@ -183,7 +123,7 @@
     align-items: center;
     gap: 0.5em;
     padding: 0.5em 1em;
-    border-radius: 20px;
+    border-radius: var(--radius-l);
     font-weight: bold;
     font-size: 1.1em;
 }
@@ -194,15 +134,15 @@
 }
 
 .nova-tier-badge.supernova {
-    background: linear-gradient(135deg, #ffd700, #ff8c00);
-    color: #000;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
 }
 
 .nova-license-status {
     margin-bottom: 1em;
     padding: 0.5em;
     background: var(--background-primary);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 .license-info {
@@ -227,7 +167,7 @@
     background: var(--interactive-accent);
     color: var(--text-on-accent);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     font-size: 0.85em;
 }
@@ -244,20 +184,20 @@
 .nova-license-message {
     margin: 0.5em 0;
     padding: 0.5em;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: 0.9em;
 }
 
 .nova-license-message.success {
-    background: rgba(76, 175, 80, 0.1);
-    color: #4caf50;
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    background: var(--background-modifier-success);
+    color: var(--text-success);
+    border: 1px solid var(--text-success);
 }
 
 .nova-license-message.error {
-    background: rgba(244, 67, 54, 0.1);
-    color: #f44336;
-    border: 1px solid rgba(244, 67, 54, 0.3);
+    background: var(--background-modifier-error);
+    color: var(--text-error);
+    border: 1px solid var(--text-error);
 }
 
 .nova-feature-comparison {
@@ -283,12 +223,12 @@
 }
 
 .feature-yes {
-    color: #4caf50;
+    color: var(--text-success);
     font-weight: bold;
 }
 
 .feature-no {
-    color: #f44336;
+    color: var(--text-error);
 }
 
 .nova-upgrade-container {
@@ -298,26 +238,26 @@
 
 .nova-upgrade-btn {
     padding: 0.8em 1.5em;
-    background: linear-gradient(135deg, #ffd700, #ff8c00);
-    color: #000;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-s);
     font-weight: bold;
     cursor: pointer;
     font-size: 1em;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .nova-upgrade-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+    background: var(--interactive-accent-hover);
+    transform: translateY(-1px);
 }
 
 .nova-debug-section {
     margin-top: 1.5em;
     padding: 1em;
     background: var(--color-base-20);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     border: 1px dashed var(--text-muted);
 }
 
@@ -331,16 +271,16 @@
 .nova-provider-restricted {
     opacity: 0.6;
     background: var(--background-modifier-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     padding: 1em;
     margin-bottom: 1em;
 }
 
 .restriction-badge {
-    background: linear-gradient(135deg, #ffd700, #ff8c00);
-    color: #000;
-    padding: 2px 6px;
-    border-radius: 3px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    padding: var(--size-2-1) var(--size-2-3);
+    border-radius: var(--radius-xs);
     font-size: 0.8em;
     font-weight: bold;
     margin-left: 0.5em;
@@ -394,16 +334,16 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #4caf50;
+    background-color: var(--text-success);
     transition: background-color 0.3s ease;
 }
 
 .nova-status-dot-small.error {
-    background-color: #f44336;
+    background-color: var(--text-error);
 }
 
 .nova-status-dot-small.loading {
-    background-color: #ff9800;
+    background-color: var(--text-warning);
     animation: pulse 1s infinite;
 }
 
@@ -412,7 +352,7 @@
     flex: 1;
     overflow-y: auto;
     background: var(--background-secondary);
-    padding: 10px;
+    padding: var(--size-4-2);
     min-height: 0; /* Important for flex overflow */
 }
 
@@ -421,7 +361,7 @@
     animation: fadeIn 0.3s ease-in;
     word-wrap: break-word;
     line-height: var(--line-height-normal);
-    margin-bottom: 8px;
+    margin-bottom: var(--size-2-3);
     font-size: var(--font-text-size);
 }
 
@@ -429,8 +369,8 @@
     margin-left: auto;
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
-    padding: 10px 14px;
-    border-radius: 18px 18px 6px 18px;
+    padding: var(--size-4-2) var(--size-4-3);
+    border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
     max-width: 80%;
 }
 
@@ -438,8 +378,8 @@
     margin-right: auto;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    padding: 10px 14px;
-    border-radius: 18px 18px 18px 6px;
+    padding: var(--size-4-2) var(--size-4-3);
+    border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
     max-width: 80%;
 }
 
@@ -461,15 +401,15 @@
 
 /* Loading State with Bursting Nova Animation */
 .nova-loading {
-    margin-bottom: 8px;
+    margin-bottom: var(--size-2-3);
     max-width: 80%;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
+    gap: var(--size-4-2);
+    padding: var(--size-4-3) var(--size-4-4);
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 18px;
+    border-radius: var(--radius-m);
 }
 
 /* Nova Burst Animation */
@@ -553,14 +493,14 @@
 .nova-input-container {
     background: var(--background-primary);
     border-top: 1px solid var(--background-modifier-border);
-    padding: 10px;
+    padding: var(--size-4-2);
     flex-shrink: 0;
 }
 
 .nova-input-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--size-2-3);
 }
 
 /* Input Area Styling */
@@ -569,7 +509,7 @@
     background: var(--background-primary);
     color: var(--text-normal);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
+    border-radius: var(--radius-s);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-size: var(--font-text-size);
     line-height: var(--line-height-normal);
@@ -600,12 +540,11 @@
 }
 
 .nova-input-container button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--interactive-hover);
 }
 
 .nova-input-container button:active {
-    transform: scale(0.95);
+    background: var(--interactive-active);
 }
 
 .nova-input-container button svg {
@@ -641,7 +580,7 @@
 .nova-message-content pre {
     background-color: var(--code-background);
     padding: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow-x: auto;
     margin: 8px 0;
     font-size: var(--code-size);
@@ -666,7 +605,7 @@
 
 .nova-chat-container::-webkit-scrollbar-thumb {
     background-color: var(--background-modifier-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 .nova-chat-container::-webkit-scrollbar-thumb:hover {
@@ -700,7 +639,7 @@
     margin-top: 1em;
     padding: 1em;
     background: var(--background-modifier-hover);
-    border-radius: 6px;
+    border-radius: var(--radius-s);
 }
 
 .nova-feature-list h4 {
@@ -723,7 +662,7 @@
     background: var(--background-modifier-border);
     color: var(--text-normal);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     margin-left: 0.5em;
 }
@@ -779,7 +718,7 @@
 .nova-feature-preview {
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 12px;
+    border-radius: var(--radius-m);
     padding: 1.5em;
     margin: 1.5em 0;
     text-align: left;
@@ -819,13 +758,13 @@
     padding: 1em 2em;
     font-size: 1.1em;
     font-weight: bold;
-    border-radius: 8px;
+    border-radius: var(--radius-s);
     transition: all 0.3s ease;
 }
 
 .nova-upgrade-actions .nova-upgrade-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 140, 0, 0.3);
+    background: var(--interactive-accent-hover);
+    transform: translateY(-1px);
 }
 
 .nova-learn-more {
@@ -848,13 +787,13 @@
 .nova-provider-button {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: var(--size-2-1);
+    padding: var(--size-2-1) var(--size-2-3);
     font-size: 0.75em;
     color: var(--text-muted);
     background: var(--background-modifier-hover);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -870,18 +809,18 @@
     min-width: 150px;
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-s);
+    box-shadow: var(--shadow-s);
     z-index: 1000;
     overflow: hidden;
 }
 
 .nova-provider-dropdown-item {
-    padding: 8px 12px;
+    padding: var(--size-2-3) var(--size-4-3);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--size-2-3);
     font-size: 0.85em;
     transition: background-color 0.2s ease;
 }
@@ -891,13 +830,13 @@
 }
 
 .nova-provider-dropdown-item:first-child {
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    border-top-left-radius: var(--radius-s);
+    border-top-right-radius: var(--radius-s);
 }
 
 .nova-provider-dropdown-item:last-child {
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: var(--radius-s);
+    border-bottom-right-radius: var(--radius-s);
 }
 
 /* System Message Styles */
@@ -984,8 +923,8 @@
 .nova-wikilink-suggestions {
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-s);
+    box-shadow: var(--shadow-s);
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
@@ -993,7 +932,7 @@
 }
 
 .nova-suggestion-item {
-    padding: 8px 12px;
+    padding: var(--size-2-3) var(--size-4-3);
     cursor: pointer;
     border-bottom: 1px solid var(--background-modifier-border-hover);
     transition: background-color 0.2s ease;
@@ -1029,21 +968,21 @@
 .nova-panel-base {
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
+    border-radius: var(--radius-s);
     font-size: 0.8em;
     color: var(--text-muted);
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-s);
     overflow: hidden;
 }
 
 .nova-panel-item {
-    padding: 8px 12px;
+    padding: var(--size-2-3) var(--size-4-3);
     cursor: pointer;
     border-bottom: 1px solid var(--background-modifier-border-hover);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--size-2-3);
     transition: background-color 0.2s ease;
 }
 
@@ -1074,25 +1013,25 @@
     font-family: var(--font-monospace);
     background: var(--background-modifier-hover);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: 0.75em;
     color: var(--interactive-accent);
     font-weight: 500;
 }
 
 .nova-panel-header {
-    padding: 12px 16px;
+    padding: var(--size-4-3) var(--size-4-4);
     border-bottom: 1px solid var(--background-modifier-border);
     font-weight: 600;
     font-size: 0.8em;
     color: var(--text-normal);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--size-2-3);
 }
 
 .nova-panel-item-vertical {
-    padding: 12px 16px;
+    padding: var(--size-4-3) var(--size-4-4);
     cursor: pointer;
     border-bottom: 1px solid var(--background-modifier-border-hover);
     display: flex;
@@ -1113,7 +1052,7 @@
 .nova-context-preview {
     background: rgba(var(--interactive-accent-rgb), 0.1);
     border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
-    border-radius: 6px;
+    border-radius: var(--radius-s);
     font-size: 0.8em;
     color: var(--text-muted);
     transition: all 0.2s ease;

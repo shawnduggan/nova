@@ -1,8 +1,12 @@
 import { ClaudeProvider } from '../../../src/ai/providers/claude';
 import { ProviderConfig } from '../../../src/ai/types';
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// Mock Obsidian's requestUrl function
+jest.mock('obsidian', () => ({
+    requestUrl: jest.fn()
+}));
+
+import { requestUrl } from 'obsidian';
 
 describe('ClaudeProvider', () => {
     let provider: ClaudeProvider;
@@ -21,14 +25,14 @@ describe('ClaudeProvider', () => {
 
     describe('complete method', () => {
         const mockResponse = {
-            ok: true,
-            json: jest.fn().mockResolvedValue({
+            status: 200,
+            json: {
                 content: [{ text: 'Test response from Claude' }]
-            })
+            }
         };
 
         beforeEach(() => {
-            (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+            (requestUrl as jest.Mock).mockResolvedValue(mockResponse);
         });
 
         test('should call Claude API with correct parameters', async () => {
@@ -37,7 +41,8 @@ describe('ClaudeProvider', () => {
 
             await provider.complete(systemPrompt, userPrompt);
 
-            expect(global.fetch).toHaveBeenCalledWith('https://api.anthropic.com/v1/messages', {
+            expect(requestUrl).toHaveBeenCalledWith({
+                url: 'https://api.anthropic.com/v1/messages',
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,7 +75,7 @@ describe('ClaudeProvider', () => {
 
             await provider.complete('System prompt', 'User prompt', options);
 
-            const callArgs = (global.fetch as jest.Mock).mock.calls[0][1];
+            const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
             const body = JSON.parse(callArgs.body);
 
             expect(body.model).toBe('claude-3-sonnet-20240229');
@@ -87,22 +92,22 @@ describe('ClaudeProvider', () => {
         });
 
         test('should throw error when API response is not ok', async () => {
-            (global.fetch as jest.Mock).mockResolvedValue({
-                ok: false,
-                statusText: 'Unauthorized'
+            (requestUrl as jest.Mock).mockResolvedValue({
+                status: 401,
+                text: 'Unauthorized'
             });
 
             await expect(
                 provider.complete('System prompt', 'User prompt')
-            ).rejects.toThrow('Claude API error: Unauthorized');
+            ).rejects.toThrow('Claude API error: 401 - Unauthorized');
         });
 
         test('should handle API error response', async () => {
-            (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+            (requestUrl as jest.Mock).mockRejectedValue(new Error('Network error'));
 
             await expect(
                 provider.complete('System prompt', 'User prompt')
-            ).rejects.toThrow('Network error');
+            ).rejects.toThrow('Failed to connect to Claude API: Network error');
         });
     });
 

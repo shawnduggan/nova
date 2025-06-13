@@ -34,7 +34,7 @@ export class ConversationManager {
                 }
             }
         } catch (error) {
-            console.warn('Failed to load conversation data:', error);
+            // Failed to load conversation data - graceful fallback
         }
     }
 
@@ -46,7 +46,7 @@ export class ConversationManager {
             const conversationsArray = Array.from(this.conversations.values());
             await this.dataStore.saveData(this.storageKey, conversationsArray);
         } catch (error) {
-            console.error('Failed to save conversation data:', error);
+            // Failed to save conversation data - graceful fallback
         }
     }
 

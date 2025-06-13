@@ -168,7 +168,7 @@ export class PromptBuilder {
         const validation = this.contextBuilder.validatePrompt(prompt);
         
         if (!validation.valid) {
-            console.warn('Prompt validation issues:', validation.issues);
+            // Prompt validation issues - graceful fallback
             
             // Try to fix common issues
             let optimizedPrompt = { ...prompt };

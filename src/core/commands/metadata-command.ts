@@ -131,7 +131,7 @@ export class MetadataCommand {
             
             return Object.keys(updates).length > 0 ? updates : null;
         } catch (error) {
-            console.error('Failed to parse property updates:', error);
+            // Failed to parse property updates - graceful fallback
             return null;
         }
     }

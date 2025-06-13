@@ -217,7 +217,29 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Mobile UI elements sized appropriately for touch
 - [ ] Context panel styling professional and clean
 
-### 9. Licensing & Feature Management
+#### Welcome Message
+- [ ] Welcome message appears on first sidebar open
+- [ ] Message content clear and helpful for new users
+- [ ] Dismissal works correctly and persists
+- [ ] Welcome message doesn't reappear after dismissal
+- [ ] Message doesn't interfere with normal chat usage
+- [ ] Appropriate styling matches plugin design
+
+### 9. Thinking Content Filter
+
+#### AI Response Filtering
+- [ ] Responses with `<thinking>` tags have thinking content removed
+- [ ] Multiple thinking tag formats filtered correctly:
+  - [ ] `<thinking>...</thinking>`
+  - [ ] `<thinking>...<thinking/>`
+  - [ ] `<thinking>...<thinking>`
+  - [ ] Nested thinking tags
+- [ ] Original response structure preserved after filtering
+- [ ] Performance not impacted by filtering logic
+- [ ] Edge cases handled (malformed tags, partial tags)
+- [ ] Filtering works across all AI providers
+
+### 10. Licensing & Feature Management
 
 #### Supernova License Validation
 - [ ] Valid Supernova license enables early access features
@@ -295,6 +317,15 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Automatic conversation cleanup (7-day retention) functioning
 - [ ] Plugin unload/reload doesn't leave memory leaks
 
+### Conversation Cleanup System
+- [ ] Conversations older than 7 days automatically removed
+- [ ] Cleanup runs on plugin load/startup
+- [ ] Active/recent conversations preserved correctly
+- [ ] Cleanup doesn't interfere with active usage
+- [ ] Storage space properly reclaimed after cleanup
+- [ ] No errors thrown during cleanup process
+- [ ] Manual cleanup option works in settings
+
 ### Bundle Size
 - [ ] Plugin loads quickly on slower connections
 - [ ] Bundle size appropriate for feature set
@@ -348,14 +379,34 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Error messages clear and informative for security blocks
 - [ ] No data integrity issues with multiple file contexts
 
+### Comprehensive Security Test Suite
+- [ ] All 9 metadata security tests pass:
+  - [ ] Metadata commands only modify active file
+  - [ ] Context files protected from metadata changes
+  - [ ] Property validation works correctly
+  - [ ] Array/object property handling secure
+  - [ ] Null property handling secure
+  - [ ] Cross-file metadata isolation
+  - [ ] Concurrent metadata operations safe
+  - [ ] Error handling doesn't expose internals
+  - [ ] Permission validation comprehensive
+- [ ] All 5 additional security tests pass:
+  - [ ] Edit command file validation
+  - [ ] Add command file validation  
+  - [ ] Delete command file validation
+  - [ ] Grammar command file validation
+  - [ ] Rewrite command file validation
+
 ## Final Ship Readiness Checklist
 
 ### Code Quality
-- [ ] All tests passing (502+ tests including security tests)
+- [ ] All tests passing (502+ tests including 9 metadata + 5 security tests)
 - [ ] No TypeScript errors or warnings
 - [ ] No console errors in normal operation
 - [ ] Code coverage adequate for critical paths
 - [ ] Security test suite validates read-only enforcement
+- [ ] Thinking content filter tests passing
+- [ ] Welcome message functionality tested
 
 ### Documentation
 - [ ] README.md up to date with current features
