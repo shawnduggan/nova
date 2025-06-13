@@ -833,7 +833,8 @@ var _InputHandler = class _InputHandler {
   }
   setCommandSystem(commandSystem) {
     this.commandSystem = commandSystem;
-    this.commandSystem.createCommandButton(this.inputRow);
+    const commandButton = this.commandSystem.createCommandButton(this.inputRow);
+    this.inputRow.insertBefore(commandButton.buttonEl, this.sendButton.buttonEl);
     this.commandSystem.createCommandPicker();
   }
   getTextArea() {
@@ -851,7 +852,7 @@ var _InputHandler = class _InputHandler {
     this.inputRow.style.cssText = `
 			display: flex;
 			gap: var(--size-2-3);
-			align-items: flex-end;
+			align-items: center;
 			position: relative;
 		`;
     const textAreaContainer = this.inputRow.createDiv();
@@ -859,7 +860,7 @@ var _InputHandler = class _InputHandler {
     this.textArea = new import_obsidian2.TextAreaComponent(textAreaContainer);
     this.textArea.setPlaceholder("Ask Nova anything... (Shift+Enter for new line)");
     this.textArea.inputEl.style.cssText = `
-			min-height: var(--input-height);
+			min-height: 42px;
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -928,8 +929,9 @@ var _InputHandler = class _InputHandler {
       }
     });
     this.addEventListener(this.textArea.inputEl, "input", () => {
-      var _a;
-      (_a = this.commandSystem) == null ? void 0 : _a.handleInputChange();
+      if (this.commandSystem) {
+        this.commandSystem.handleInputChange();
+      }
       this.handleSectionPickerInput();
     });
   }
@@ -1046,15 +1048,21 @@ var _InputHandler = class _InputHandler {
     if (pathMatch) {
       const beforeSlash = input.slice(0, pathMatch.start);
       const afterCursor = input.slice(cursorPos);
-      const newValue = beforeSlash + path + afterCursor;
+      const newValue = beforeSlash + afterCursor;
       this.textArea.setValue(newValue);
-      const newCursorPos = pathMatch.start + path.length;
       setTimeout(() => {
-        this.textArea.inputEl.setSelectionRange(newCursorPos, newCursorPos);
+        this.textArea.inputEl.setSelectionRange(pathMatch.start, pathMatch.start);
         this.textArea.inputEl.focus();
       }, 0);
       this.autoGrowTextarea();
+      this.addSectionToContext(path);
     }
+  }
+  /**
+   * Add selected section to context preview
+   */
+  addSectionToContext(sectionPath) {
+    this.contextManager.showSectionInPreview(sectionPath);
   }
   cleanup() {
     if (this.wikilinkAutocomplete) {
@@ -1216,6 +1224,10 @@ var CommandSystem = class {
     }
   }
   handleInputChange() {
+    if (!this.textArea) {
+      console.error("CommandSystem: textArea is null");
+      return;
+    }
     const input = this.textArea.getValue();
     if (input.startsWith(":")) {
       this.showStructuredCommandPicker(input);
@@ -1227,6 +1239,10 @@ var CommandSystem = class {
    * Show structured command picker for ":" trigger  
    */
   showStructuredCommandPicker(input) {
+    if (!this.commandPicker) {
+      console.error("CommandSystem: commandPicker is null, cannot show picker");
+      return;
+    }
     const structuredCommands = this.getStructuredCommands();
     const filterText = input.slice(1).toLowerCase();
     const filtered = structuredCommands.filter(
@@ -1277,7 +1293,9 @@ var CommandSystem = class {
     }
   }
   hideCommandPicker() {
-    this.commandPicker.style.display = "none";
+    if (this.commandPicker) {
+      this.commandPicker.style.display = "none";
+    }
     this.commandPickerItems = [];
     this.selectedCommandIndex = -1;
   }
@@ -1493,6 +1511,21 @@ var _ContextManager = class _ContextManager {
         (ref) => ref.property ? `${ref.name}#${ref.property}` : ref.name
       ).join(", ");
       previewList.textContent = refsText;
+    }
+    this.contextPreview.style.display = "block";
+  }
+  /**
+   * Show a selected section in the context preview
+   */
+  showSectionInPreview(sectionPath) {
+    if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled("multi-doc-context")) {
+      return;
+    }
+    const previewList = this.contextPreview.querySelector(".nova-context-preview-list");
+    if (previewList) {
+      const currentText = previewList.textContent || "";
+      const newText = currentText ? `${currentText}, ${sectionPath}` : sectionPath;
+      previewList.textContent = newText;
     }
     this.contextPreview.style.display = "block";
   }
