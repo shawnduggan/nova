@@ -134,9 +134,6 @@ export class ChatRenderer {
 
 		dismissBtn.addEventListener('click', () => {
 			welcomeEl.remove();
-			// Save dismissed state
-			this.plugin.settings.welcomeMessageDismissed = true;
-			this.plugin.saveSettings();
 		});
 
 		dismissBtn.addEventListener('mouseenter', () => {

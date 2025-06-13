@@ -74,7 +74,14 @@ IMPORTANT GUIDELINES:
 - Maintain the document's existing style and tone unless specifically asked to change it
 - Preserve formatting, structure, and markdown syntax
 - Be concise and focused on the specific request
-- Do not add section headers unless specifically requested`;
+- Do not add section headers unless specifically requested
+
+CRITICAL POSITIONING RULES:
+- When a specific location is mentioned (section, header, heading), ALWAYS target that location, NOT the cursor position
+- Understand spatial relationships: "after [section]" means after the section's content, "before [header]" means before the header line
+- "Under [heading]" means immediately after the heading line
+- Location references OVERRIDE cursor position - ignore where the cursor is when location is specified
+- Only use cursor position when NO specific location is mentioned`;
 
         const actionSpecificPrompts = {
             add: `
@@ -82,7 +89,14 @@ TASK: Add new content to the document.
 - Create well-structured, relevant content that fits the document's purpose
 - Use appropriate markdown formatting (headings, lists, emphasis)
 - Ensure smooth flow with existing content
-- Match the document's style and tone`,
+- Match the document's style and tone
+
+POSITIONING FOR ADD:
+- If a section/header is specified, add content WITHIN that section (not at cursor)
+- "Add after [section]" = add at the end of that section's content
+- "Add under [heading]" = add immediately after the heading line
+- "Add before [section]" = add just before the section header
+- Pay attention to section boundaries and respect document structure`,
 
             edit: `
 TASK: Edit and improve existing content.
@@ -132,6 +146,11 @@ TASK: Update document metadata/properties.
     private buildUserPrompt(command: EditCommand, contextInfo: string): string {
         let prompt = `${contextInfo}\n\nUSER REQUEST: ${command.instruction}`;
 
+        // Add explicit location override reminder
+        if (command.target === 'section' && command.location) {
+            prompt += `\n\n🎯 LOCATION OVERRIDE: You are working with the "${command.location}" section. IGNORE any cursor position or surrounding context - focus ONLY on the specified section.`;
+        }
+
         // Add specific context if provided
         if (command.context && command.context.trim()) {
             prompt += `\n\nADDITIONAL REQUIREMENTS: ${command.context}`;
@@ -162,18 +181,26 @@ TASK: Update document metadata/properties.
             
             case 'section':
                 if (command.location) {
-                    return `FOCUS: Work with the "${command.location}" section. ${command.action === 'add' ? 'Add content to this section.' : 'Modify only this section.'}`;
+                    const actionGuidance = {
+                        'add': 'Add content WITHIN this section, after the section header and before any subsections.',
+                        'edit': 'Modify ONLY the content of this section, preserving the section header.',
+                        'delete': 'Remove content from this section only.',
+                        'rewrite': 'Rewrite the content of this section, keeping the section header.',
+                        'grammar': 'Fix grammar and spelling in this section only.',
+                        'metadata': 'Update metadata related to this section.'
+                    };
+                    return `FOCUS: Target the "${command.location}" section specifically. ${actionGuidance[command.action] || 'Modify only this section.'} IGNORE cursor position - work with the named section.`;
                 }
-                return 'FOCUS: Work with the current section.';
+                return 'FOCUS: Work with the current section around the cursor.';
             
             case 'document':
                 return 'FOCUS: Apply changes to the entire document while preserving its structure.';
             
             case 'end':
-                return 'FOCUS: Add content at the end of the document. Ensure it flows naturally from existing content.';
+                return 'FOCUS: Add content at the very end of the document, after all existing content. Ensure it flows naturally.';
             
             case 'paragraph':
-                return 'FOCUS: Work with the current paragraph or create a new paragraph.';
+                return 'FOCUS: Work with the current paragraph where the cursor is located, or create a new paragraph.';
             
             default:
                 return '';
@@ -242,7 +269,15 @@ TASK: Update document metadata/properties.
         if (command.target === 'section' && command.location) {
             const section = this.findSectionInContent(documentContext.content, command.location);
             if (section) {
-                context += `\nCURRENT SECTION "${command.location}":\n${section}\n`;
+                context += `\n=== TARGET SECTION "${command.location}" ===\n${section}\n=== END TARGET SECTION ===\n`;
+                context += `\nIMPORTANT: Work with the TARGET SECTION above, NOT the cursor position. The section "${command.location}" is your focus area.\n`;
+            } else {
+                context += `\nTARGET SECTION "${command.location}" NOT FOUND.\n\nAvailable sections with hierarchical paths:\n`;
+                documentContext.headings.forEach((heading, index) => {
+                    const path = this.buildSectionPath(documentContext.headings, index);
+                    context += `- ${path}\n`;
+                });
+                context += `\nTip: Use hierarchical paths like "Methods::Data Collection" to target specific nested sections.\n`;
             }
         } else if (command.target === 'paragraph' && documentContext.surroundingLines) {
             context += '\nCURRENT CONTEXT:\n';
@@ -268,47 +303,77 @@ TASK: Update document metadata/properties.
     }
 
     /**
+     * Build hierarchical path for a heading
+     */
+    private buildSectionPath(headings: any[], targetIndex: number): string {
+        const target = headings[targetIndex];
+        const path: string[] = [target.text];
+        
+        // Walk backwards to find parent headings
+        for (let i = targetIndex - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (heading.level < target.level) {
+                path.unshift(heading.text);
+                // Only include immediate parent for now (single level up)
+                break;
+            }
+        }
+        
+        return path.join('::');
+    }
+
+    /**
      * Find a specific section in content
      */
     private findSectionInContent(content: string, sectionName: string): string | null {
         const lines = content.split('\n');
         const normalizedSectionName = sectionName.toLowerCase().trim();
         
-        let sectionStart = -1;
-        let sectionLevel = 0;
-        
-        // Find the section heading
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+        // Extract headings like in DocumentEngine
+        const headings: any[] = [];
+        lines.forEach((line, index) => {
             const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-            
             if (headingMatch) {
-                const level = headingMatch[1].length;
-                const heading = headingMatch[2].toLowerCase().trim();
+                headings.push({
+                    text: headingMatch[2],
+                    level: headingMatch[1].length,
+                    line: index
+                });
+            }
+        });
+        
+        // Check if this is a hierarchical path (contains ::)
+        if (normalizedSectionName.includes('::')) {
+            // Find headings that match the hierarchical path
+            for (let i = 0; i < headings.length; i++) {
+                const sectionPath = this.buildSectionPath(headings, i);
                 
-                if (heading === normalizedSectionName || heading.includes(normalizedSectionName)) {
-                    sectionStart = i;
-                    sectionLevel = level;
-                    break;
+                if (sectionPath.toLowerCase() === normalizedSectionName) {
+                    return this.extractSectionContent(lines, headings, i);
                 }
             }
+            return null;
+        } else {
+            // Simple section name - find first match (backwards compatible)
+            const headingIndex = headings.findIndex(h => 
+                h.text.toLowerCase().includes(normalizedSectionName)
+            );
+
+            if (headingIndex === -1) return null;
+
+            return this.extractSectionContent(lines, headings, headingIndex);
         }
+    }
+
+    /**
+     * Extract section content from lines and heading info
+     */
+    private extractSectionContent(lines: string[], headings: any[], headingIndex: number): string {
+        const heading = headings[headingIndex];
+        const nextHeading = headings[headingIndex + 1];
+        const sectionEnd = nextHeading ? nextHeading.line : lines.length;
         
-        if (sectionStart === -1) return null;
-        
-        // Find the end of the section
-        let sectionEnd = lines.length;
-        for (let i = sectionStart + 1; i < lines.length; i++) {
-            const line = lines[i];
-            const headingMatch = line.match(/^(#{1,6})\s+/);
-            
-            if (headingMatch && headingMatch[1].length <= sectionLevel) {
-                sectionEnd = i;
-                break;
-            }
-        }
-        
-        return lines.slice(sectionStart, sectionEnd).join('\n');
+        return lines.slice(heading.line, sectionEnd).join('\n');
     }
 
     /**
@@ -346,6 +411,9 @@ TASK: Update document metadata/properties.
 - Provide suggestions for improvement
 - Help plan document structure
 - Assist with research and content development
+- Directly modify documents when users request specific actions (like adding content, editing sections, etc.)
+
+IMPORTANT: When users request document actions (e.g., "add a paragraph about X", "append lorem ipsum after heading Y", "insert bullet points"), you should provide the actual content to be added/modified, not just explain what should be done.
 
 Be helpful, concise, and practical in your responses.`;
 

@@ -74,9 +74,27 @@ export class AddCommand {
                 }
 
                 // Apply the edit
+                let insertPosition;
+                try {
+                    insertPosition = await this.determineInsertPosition(command, documentContext);
+                } catch (error) {
+                    // Handle section not found error with better messaging
+                    if (error instanceof Error && error.message.includes('not found')) {
+                        const errorMessage = this.buildSectionNotFoundError(command.location!, documentContext);
+                        const result = {
+                            success: false,
+                            error: errorMessage,
+                            editType: 'insert' as const
+                        };
+                        await this.documentEngine.addAssistantMessage(errorMessage, result);
+                        return result;
+                    }
+                    throw error;
+                }
+
                 const result = await this.documentEngine.applyEdit(
                     content,
-                    await this.determineInsertPosition(command, documentContext),
+                    insertPosition,
                     {
                         scrollToEdit: true,
                         selectNewText: false
@@ -130,11 +148,31 @@ export class AddCommand {
                 if (command.location) {
                     const section = await this.documentEngine.findSection(command.location);
                     if (section) {
-                        // Add content at the end of the section
-                        return { line: section.range.end, ch: 0 };
+                        // Determine position based on context hints
+                        const positionHint = this.extractPositionHint(command.context);
+                        
+                        switch (positionHint) {
+                            case 'section-start':
+                                // Add at start of section (right after heading)
+                                return { line: section.range.start + 1, ch: 0 };
+                            case 'after-heading':
+                                // Insert immediately after the heading line
+                                return { line: section.range.start + 1, ch: 0 };
+                            case 'before-heading':
+                                // Insert immediately before the heading line
+                                return { line: section.range.start, ch: 0 };
+                            case 'section-end':
+                            default:
+                                // Add at end of section (default behavior)
+                                return { line: section.range.end, ch: 0 };
+                        }
+                    } else {
+                        // Section not found - this will be handled by the calling method
+                        // which should show appropriate error messages
+                        throw new Error(`Section "${command.location}" not found`);
                     }
                 }
-                // Fallback to cursor position
+                // If no location specified, use cursor position
                 return 'cursor';
 
             case 'paragraph':
@@ -172,6 +210,67 @@ export class AddCommand {
         }
 
         return { valid: true };
+    }
+
+    /**
+     * Extract position hint from command context
+     */
+    private extractPositionHint(context?: string): string | null {
+        if (!context) return null;
+        
+        if (context.includes('Position: Add at the end of the section')) {
+            return 'section-end';
+        } else if (context.includes('Position: Add at the start of the section')) {
+            return 'section-start';
+        } else if (context.includes('Position: Insert immediately after the heading line')) {
+            return 'after-heading';
+        } else if (context.includes('Position: Insert immediately before the heading line')) {
+            return 'before-heading';
+        }
+        
+        return null;
+    }
+
+    /**
+     * Build error message when section is not found, showing available hierarchical paths
+     */
+    private buildSectionNotFoundError(sectionName: string, documentContext: DocumentContext): string {
+        const availablePaths: string[] = [];
+        
+        // Build hierarchical paths for all headings
+        documentContext.headings.forEach((heading, index) => {
+            const path = this.buildSectionPath(documentContext.headings, index);
+            availablePaths.push(path);
+        });
+        
+        let errorMessage = `Section "${sectionName}" not found.\n\nAvailable sections:`;
+        availablePaths.forEach(path => {
+            errorMessage += `\n- ${path}`;
+        });
+        
+        errorMessage += `\n\nTip: Use hierarchical paths like "Methods::Data Collection" to target specific nested sections.`;
+        
+        return errorMessage;
+    }
+
+    /**
+     * Build hierarchical path for a heading (duplicated from DocumentEngine for error messages)
+     */
+    private buildSectionPath(headings: any[], targetIndex: number): string {
+        const target = headings[targetIndex];
+        const path: string[] = [target.text];
+        
+        // Walk backwards to find parent headings
+        for (let i = targetIndex - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (heading.level < target.level) {
+                path.unshift(heading.text);
+                // Only include immediate parent for now (single level up)
+                break;
+            }
+        }
+        
+        return path.join('::');
     }
 
     /**

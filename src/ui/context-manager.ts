@@ -1,4 +1,4 @@
-import { App, Platform, TFile } from 'obsidian';
+import { App, Platform, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { MultiDocContextHandler, MultiDocContext } from '../core/multi-doc-context';
 
@@ -10,8 +10,8 @@ export class ContextManager {
 	private app: App;
 	private container: HTMLElement;
 	private multiDocHandler: MultiDocContextHandler;
-	private contextIndicator!: HTMLElement;
-	private contextPreview!: HTMLElement;
+	public contextIndicator!: HTMLElement;
+	public contextPreview!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
 	private static readonly NOTICE_DURATION_MS = 5000;
 
@@ -101,24 +101,24 @@ export class ContextManager {
 	}
 
 	async buildContext(message: string, currentFile: TFile | null): Promise<MultiDocContext | null> {
-		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context') || !currentFile) {
 			return null;
 		}
 
 		try {
-			const context = await this.multiDocHandler.buildContext(message, currentFile);
-			this.currentContext = context;
+			const result = await this.multiDocHandler.buildContext(message, currentFile);
+			this.currentContext = result.context;
 
-			if (context?.documents.length) {
-				this.updateContextIndicator(context);
+			if (result.context?.persistentDocs.length) {
+				this.updateContextIndicator(result.context);
 				
 				// Check token limit
-				if (context.isNearLimit) {
+				if (result.context.isNearLimit) {
 					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', ContextManager.NOTICE_DURATION_MS);
 				}
 			}
 
-			return context;
+			return result.context;
 		} catch (error) {
 			// Failed to build context - graceful fallback
 			return null;
@@ -128,7 +128,7 @@ export class ContextManager {
 	private updateContextIndicator(context: MultiDocContext): void {
 		if (!this.contextIndicator) return;
 
-		const docCount = context.documents.length;
+		const docCount = context.persistentDocs.length;
 		if (docCount > 0) {
 			this.contextIndicator.textContent = `${docCount} doc${docCount > 1 ? 's' : ''}`;
 			this.contextIndicator.style.display = 'block';
@@ -183,7 +183,7 @@ export class ContextManager {
 		const header = content.createEl('h3', { text: 'Context Documents' });
 		header.style.cssText = 'margin-top: 0; margin-bottom: var(--size-4-3);';
 
-		context.documents.forEach(doc => {
+		context.persistentDocs.forEach(doc => {
 			const docEl = content.createDiv();
 			docEl.style.cssText = `
 				padding: var(--size-2-2);
@@ -200,7 +200,8 @@ export class ContextManager {
 				propEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted);';
 			}
 
-			const previewEl = docEl.createEl('div', { text: doc.content.substring(0, 200) + '...' });
+			// Show file path as preview since content isn't directly available
+			const previewEl = docEl.createEl('div', { text: doc.file.path });
 			previewEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted); margin-top: var(--size-2-1);';
 		});
 

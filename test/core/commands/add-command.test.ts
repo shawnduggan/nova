@@ -240,7 +240,7 @@ Content for section two.`,
             expect(result.error).toBe('Document is read-only');
         });
 
-        it('should fallback to cursor when section not found', async () => {
+        it('should show error message when section not found', async () => {
             mockDocumentEngine.findSection.mockResolvedValue(null);
 
             const command: EditCommand = {
@@ -252,12 +252,10 @@ Content for section two.`,
 
             const result = await addCommand.execute(command);
 
-            expect(result.success).toBe(true);
-            expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
-                'Generated content',
-                'cursor',
-                { scrollToEdit: true, selectNewText: false }
-            );
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Section "Nonexistent Section" not found');
+            expect(result.error).toContain('Available sections:');
+            expect(result.error).toContain('hierarchical paths');
         });
 
         it('should handle exceptions during execution', async () => {
@@ -478,7 +476,7 @@ Content for section two.`,
             expect(mockDocumentEngine.findSection).toHaveBeenCalledWith('Section One');
         });
 
-        it('should fallback to cursor when section not found', async () => {
+        it('should throw error when section not found', async () => {
             mockDocumentEngine.findSection.mockResolvedValue(null);
 
             const command: EditCommand = {
@@ -488,8 +486,8 @@ Content for section two.`,
                 instruction: 'Add to missing section'
             };
 
-            const position = await (addCommand as any).determineInsertPosition(command, mockDocumentContext);
-            expect(position).toBe('cursor');
+            await expect((addCommand as any).determineInsertPosition(command, mockDocumentContext))
+                .rejects.toThrow('Section "Missing Section" not found');
         });
     });
 });

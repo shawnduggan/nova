@@ -1,5 +1,9 @@
 # Nova - AI Thinking Partner for Obsidian
 
+**Tired of AI that guesses where to edit your documents?**
+
+Every AI writing tool makes you hope they put edits in the right place. Nova lets you tell them exactly where with surgical precision.
+
 **Stop copying from chat. Start collaborating with AI.**
 
 I built Nova for myself because copy-pasting between ChatGPT and Obsidian was killing my writing flow. Every feature exists because I hit that exact friction in my own work. I'm sharing it as my passion project for the Obsidian community.
@@ -43,6 +47,13 @@ Nova transforms AI from a chat interface into a true collaborative writing partn
 - **Auto-Growing Input**: Smart input area that expands as you type
 - **Context-Aware Editing**: AI understands your document structure and tone
 - **Mobile & Desktop**: Full functionality across all platforms
+
+### 🎯 Precise Document Targeting
+- **Semantic Commands**: Natural language like "append conclusion to Results/Data Analysis"
+- **Hierarchical Paths**: Target nested sections with `Methods/Data Collection/Statistics` syntax
+- **Interactive Path Picker**: Type `/` to browse document structure visually
+- **Error Prevention**: Autocomplete eliminates typos and shows available sections
+- **Surgical Precision**: Distinguish between "append" (end), "prepend" (start), and "insert" operations
 
 ### ⚡ Advanced Workflow
 - **Natural Language Commands**: Describe what you want in plain English

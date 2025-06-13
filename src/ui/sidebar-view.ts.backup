@@ -25,36 +25,6 @@ export class NovaSidebarView extends ItemView {
 	private contextManager!: ContextManager;
 	private chatRenderer!: ChatRenderer;
 	
-	// Legacy compatibility delegates - Forward to new architecture
-	private get textArea() { return this.inputHandler?.getTextArea(); }
-	private get wikilinkAutocomplete() { return this.inputHandler ? { destroy: () => {} } : null; }
-	private get autoGrowTextarea() { return () => {}; }
-	
-	// Command system compatibility - stub out old methods
-	private _commandPickerItems: any[] = [];
-	private get commandPickerItems() { return this._commandPickerItems; }
-	private set commandPickerItems(value: any[]) { this._commandPickerItems = value; }
-	private _selectedCommandIndex: number = -1;
-	private get selectedCommandIndex() { return this._selectedCommandIndex; }
-	private set selectedCommandIndex(value: number) { this._selectedCommandIndex = value; }
-	private _isCommandMenuVisible: boolean = false;
-	private get isCommandMenuVisible() { return this._isCommandMenuVisible; }
-	private set isCommandMenuVisible(value: boolean) { this._isCommandMenuVisible = value; }
-	
-	// Context system compatibility - forward to ContextManager
-	private get contextPreview() { return this.contextManager?.contextPreview; }
-	private _contextIndicator: any;
-	private get contextIndicator() { return this._contextIndicator || this.contextManager?.contextIndicator; }
-	private set contextIndicator(value: any) { this._contextIndicator = value; }
-	
-	// Stub out old DOM elements that should no longer be used
-	private get commandPicker(): any { return null; }
-	private set commandPicker(value: any) { /* no-op */ }
-	private get commandMenu(): any { return null; }
-	private set commandMenu(value: any) { /* no-op */ }
-	private get commandButton(): any { return null; }
-	
-	
 	// Performance optimization - debouncing and timing constants
 	private contextPreviewDebounceTimeout: NodeJS.Timeout | null = null;
 	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
@@ -248,7 +218,16 @@ export class NovaSidebarView extends ItemView {
 	 * Clean up DOM elements
 	 */
 	private cleanupDOMElements(): void {
-		// Cleanup is now handled by individual component cleanup methods
+		this.commandPickerItems = [];
+		if (this.contextIndicator) {
+			this.contextIndicator.remove();
+		}
+		if (this.commandPicker) {
+			this.commandPicker.empty();
+		}
+		if (this.commandMenu) {
+			this.commandMenu.remove();
+		}
 	}
 
 	private createChatInterface(container: HTMLElement) {
@@ -279,21 +258,19 @@ export class NovaSidebarView extends ItemView {
 		// Clear existing input area content
 		this.inputContainer.empty();
 		
-		// Initialize context manager and chat renderer first
+		// Initialize new architecture components
+		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, null as any); // Will be set after InputHandler creation
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
 		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
 		
 		// Create InputHandler which will handle all input UI creation
-		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
+		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.commandSystem, this.contextManager);
+		
+		// Update CommandSystem with the TextAreaComponent from InputHandler
+		(this.commandSystem as any).textArea = (this.inputHandler as any).textArea;
 		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
-		
-		// Create CommandSystem with the actual textArea from InputHandler
-		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
-		
-		// Connect the CommandSystem to the InputHandler
-		this.inputHandler.setCommandSystem(this.commandSystem);
 		
 		// Set up send message callback
 		this.inputHandler.setOnSendMessage((message: string) => {
@@ -302,7 +279,6 @@ export class NovaSidebarView extends ItemView {
 		
 		// Create context indicator and preview using ContextManager
 		this.contextManager.createContextIndicator();
-		
 	}
 
 	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
@@ -1197,7 +1173,7 @@ export class NovaSidebarView extends ItemView {
 			`;
 			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
 			
-			removeBtn.addEventListener('click', async (e: Event) => {
+			removeBtn.addEventListener('click', async (e) => {
 				e.stopPropagation();
 				if (this.currentFile) {
 					this.multiDocHandler.removePersistentDoc(this.currentFile.path, doc.file.path);
@@ -1420,7 +1396,7 @@ export class NovaSidebarView extends ItemView {
 			// Store message in conversation manager
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
-				await this.plugin.documentEngine.addUserMessage(messageText);
+				await this.plugin.documentEngine.addUserMessage(message);
 			}
 
 			// Check if this is a command or conversation
@@ -1441,13 +1417,13 @@ export class NovaSidebarView extends ItemView {
 					const enhancedUserPrompt = `${multiDocContext.contextString}\n\n---\n\nUser Request: ${processedMessage}`;
 					
 					// Get AI response using the provider manager
-					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', enhancedUserPrompt, {
+					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, enhancedUserPrompt, {
 						temperature: prompt.config.temperature,
 						maxTokens: prompt.config.maxTokens
 					});
 				} else {
 					// Get AI response using the provider manager
-					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt, {
+					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt, {
 						temperature: prompt.config.temperature,
 						maxTokens: prompt.config.maxTokens
 					});
@@ -1732,7 +1708,7 @@ export class NovaSidebarView extends ItemView {
 			}
 			
 			// Call AI provider
-			await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt);
+			await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
 			
 			if (activeFile) {
 				await this.plugin.conversationManager.addAssistantMessage(activeFile, 'AI response', { success: true, editType: 'none' } as any);

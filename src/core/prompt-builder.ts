@@ -54,17 +54,64 @@ export class PromptBuilder {
      * Check if a message is likely a command vs conversation
      */
     private isLikelyCommand(message: string): boolean {
-        // Check for common command action words
-        const commandWords = [
-            'add', 'create', 'write', 'insert', 'include', 'generate',
-            'edit', 'modify', 'change', 'update', 'revise', 'improve', 'enhance',
-            'delete', 'remove', 'eliminate', 'cut', 'erase',
-            'fix', 'correct', 'grammar', 'spell', 'proofread', 'polish',
+        const lowerMessage = message.toLowerCase().trim();
+        
+        // 1. Explicit command syntax (colon commands)
+        if (lowerMessage.startsWith(':')) {
+            return true;
+        }
+        
+        // 2. Check for action verbs that indicate document modification commands
+        const actionVerbs = [
+            'add', 'insert', 'append', 'prepend', 'include', 'create', 'write', 'generate',
+            'edit', 'modify', 'change', 'update', 'revise', 'improve', 'enhance', 'replace',
+            'delete', 'remove', 'eliminate', 'cut', 'erase', 'drop',
+            'fix', 'correct', 'proofread', 'polish', 'check',
             'rewrite', 'reword', 'rephrase', 'restructure', 'reorganize'
         ];
         
-        const lowerMessage = message.toLowerCase();
-        return commandWords.some(word => lowerMessage.includes(word));
+        // Check if message starts with an action verb (imperative command structure)
+        const startsWithAction = actionVerbs.some(verb => {
+            const verbPattern = new RegExp(`^${verb}\\b`, 'i');
+            return verbPattern.test(lowerMessage);
+        });
+        
+        if (startsWithAction) {
+            // Additional filtering: exclude questions and discussions
+            const questionIndicators = [
+                /^(how|what|why|when|where|which|who|can|could|should|would|will|is|are|am|do|does|did)/i,
+                /\?/,  // Contains question mark
+                /\b(help|advice|suggest|recommend|think|opinion)\b/i
+            ];
+            
+            // If it's a question or discussion, route to conversation
+            const isQuestion = questionIndicators.some(pattern => pattern.test(lowerMessage));
+            if (isQuestion) {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 3. Check for explicit command patterns (for edge cases)
+        const explicitCommandPatterns = [
+            // Grammar/spelling commands that don't start with action verbs
+            /\b(grammar|spell|spelling|proofread|polish)\b.*\b(check|fix|correct)\b/i,
+            
+            // Metadata commands with different structures
+            /\bset\s+(the\s+)?(title|tags|metadata|properties)/i,
+            /\bupdate\s+(the\s+)?(title|tags|metadata|properties)/i
+        ];
+        
+        // Check if message matches explicit command patterns
+        for (const pattern of explicitCommandPatterns) {
+            if (pattern.test(lowerMessage)) {
+                return true;
+            }
+        }
+        
+        // 4. Everything else goes to conversation mode
+        return false;
     }
 
     /**

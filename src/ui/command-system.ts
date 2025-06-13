@@ -2,6 +2,16 @@ import { ButtonComponent, TextAreaComponent } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 
+interface StructuredCommand {
+	name: string;
+	description: string;
+	command: string;
+	template: string;
+	example: string;
+	keywords: string[];
+}
+
+
 /**
  * Handles command picker, command menu, and command execution
  */
@@ -50,12 +60,13 @@ export class CommandSystem {
 			right: 0;
 			background: var(--background-primary);
 			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			box-shadow: var(--shadow-s);
+			border-radius: 8px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 			max-height: 200px;
 			overflow-y: auto;
 			z-index: 1000;
 			display: none;
+			margin-bottom: 4px;
 		`;
 	}
 
@@ -174,19 +185,29 @@ export class CommandSystem {
 	handleInputChange(): void {
 		const input = this.textArea.getValue();
 		
-		// Command picker logic
-		if (input.startsWith('/')) {
-			this.showCommandPicker(input);
+		// Handle different triggers
+		if (input.startsWith(':')) {
+			// Custom command trigger - show structured commands
+			this.showStructuredCommandPicker(input);
 		} else {
+			// No triggers active - hide command picker
+			// Note: "/" is handled by section picker, not command system
 			this.hideCommandPicker();
 		}
 	}
 
-	private showCommandPicker(input: string): void {
-		const commands = this.getAvailableCommands();
-		const filtered = commands.filter(cmd => 
-			cmd.name.toLowerCase().includes(input.slice(1).toLowerCase()) ||
-			cmd.command.toLowerCase().includes(input.toLowerCase())
+
+	/**
+	 * Show structured command picker for ":" trigger  
+	 */
+	private showStructuredCommandPicker(input: string): void {
+		const structuredCommands = this.getStructuredCommands();
+		const filterText = input.slice(1).toLowerCase(); // Remove ":"
+		
+		const filtered = structuredCommands.filter(cmd => 
+			cmd.name.toLowerCase().includes(filterText) ||
+			cmd.command.toLowerCase().includes(filterText) ||
+			cmd.keywords.some(keyword => keyword.toLowerCase().includes(filterText))
 		);
 
 		this.commandPickerItems = [];
@@ -197,19 +218,40 @@ export class CommandSystem {
 			filtered.forEach((cmd, index) => {
 				const item = this.commandPicker.createDiv({ cls: 'nova-command-picker-item' });
 				item.style.cssText = `
-					padding: var(--size-2-2) var(--size-2-3);
+					padding: 8px 12px;
 					cursor: pointer;
-					border-bottom: 1px solid var(--background-modifier-border);
+					border-bottom: 1px solid var(--background-modifier-border-hover);
+					transition: background-color 0.2s;
 				`;
 
 				const nameEl = item.createEl('div', { text: cmd.name });
-				nameEl.style.cssText = 'font-weight: 500; color: var(--text-normal);';
+				nameEl.style.cssText = `
+					font-weight: 500;
+					color: var(--text-normal);
+					margin-bottom: 4px;
+				`;
 
 				const descEl = item.createEl('div', { text: cmd.description });
-				descEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted);';
+				descEl.style.cssText = `
+					font-size: 0.85em;
+					color: var(--text-muted);
+					margin-bottom: 4px;
+				`;
+
+				const exampleEl = item.createEl('div', { text: `Example: ${cmd.example}` });
+				exampleEl.style.cssText = `
+					font-size: 0.8em;
+					color: var(--text-accent);
+					font-family: var(--font-monospace);
+				`;
 
 				item.addEventListener('click', () => {
-					this.selectCommand(cmd.command);
+					this.selectStructuredCommand(cmd.template);
+				});
+
+				item.addEventListener('mouseenter', () => {
+					this.selectedCommandIndex = index;
+					this.updateCommandPickerSelection();
 				});
 
 				this.commandPickerItems.push(item);
@@ -239,11 +281,8 @@ export class CommandSystem {
 			this.updateCommandPickerSelection();
 			return true;
 		} else if (key === 'Tab' && this.selectedCommandIndex >= 0) {
-			const selectedCmd = this.getSelectedCommand();
-			if (selectedCmd) {
-				this.selectCommand(selectedCmd.command);
-				return true;
-			}
+			// Use the same logic as handleCommandPickerSelection for Tab
+			return this.handleCommandPickerSelection();
 		}
 
 		return false;
@@ -251,10 +290,22 @@ export class CommandSystem {
 
 	handleCommandPickerSelection(): boolean {
 		if (this.selectedCommandIndex >= 0 && this.commandPickerItems.length > 0) {
-			const selectedCmd = this.getSelectedCommand();
-			if (selectedCmd) {
-				this.selectCommand(selectedCmd.command);
-				return true;
+			// For structured commands, we need to get the selected command from the filtered list
+			const commands = this.getStructuredCommands();
+			const input = this.textArea.getValue();
+			if (input.startsWith(':')) {
+				const filterText = input.slice(1).toLowerCase();
+				const filtered = commands.filter(cmd => 
+					cmd.name.toLowerCase().includes(filterText) ||
+					cmd.command.toLowerCase().includes(filterText) ||
+					cmd.keywords.some(keyword => keyword.toLowerCase().includes(filterText))
+				);
+				
+				if (this.selectedCommandIndex < filtered.length) {
+					const selectedCmd = filtered[this.selectedCommandIndex];
+					this.selectStructuredCommand(selectedCmd.template);
+					return true;
+				}
 			}
 		}
 		return false;
@@ -281,29 +332,93 @@ export class CommandSystem {
 		this.hideCommandPicker();
 	}
 
-	private getSelectedCommand(): EditCommand | null {
-		if (this.selectedCommandIndex >= 0) {
-			const commands = this.getAvailableCommands();
-			return commands[this.selectedCommandIndex] || null;
-		}
-		return null;
+
+	/**
+	 * Get structured commands for ":" trigger
+	 */
+	private getStructuredCommands(): StructuredCommand[] {
+		return [
+			{
+				name: 'Add Section',
+				description: 'Add a new section to the document',
+				command: 'add section',
+				template: 'add section "{cursor}"',
+				example: ':add section "Results"',
+				keywords: ['create', 'new', 'heading']
+			},
+			{
+				name: 'Edit Section',
+				description: 'Edit content in a specific section',
+				command: 'edit section',
+				template: 'edit {cursor} section',
+				example: ':edit Methods section',
+				keywords: ['modify', 'update', 'change']
+			},
+			{
+				name: 'Delete Section',
+				description: 'Remove a section from the document',
+				command: 'delete section',
+				template: 'delete {cursor} section',
+				example: ':delete Introduction section',
+				keywords: ['remove', 'eliminate']
+			},
+			{
+				name: 'Append To',
+				description: 'Add content to the end of a section',
+				command: 'append to',
+				template: 'append {cursor} to /',
+				example: ':append conclusion to /Results',
+				keywords: ['add', 'attach', 'end']
+			},
+			{
+				name: 'Prepend To',
+				description: 'Add content to the beginning of a section',
+				command: 'prepend to',
+				template: 'prepend {cursor} to /',
+				example: ':prepend warning to /Methods',
+				keywords: ['add', 'beginning', 'start']
+			},
+			{
+				name: 'Insert After',
+				description: 'Insert content after a section heading',
+				command: 'insert after',
+				template: 'insert {cursor} after / heading',
+				example: ':insert diagram after /Methods heading',
+				keywords: ['add', 'place', 'after']
+			},
+			{
+				name: 'Insert Before',
+				description: 'Insert content before a section heading',
+				command: 'insert before',
+				template: 'insert {cursor} before / heading',
+				example: ':insert note before /Results heading',
+				keywords: ['add', 'place', 'before']
+			}
+		];
 	}
 
-	private getAvailableCommands(): EditCommand[] {
-		return [
-			{ name: 'Improve Writing', description: 'Enhance clarity and flow', command: '/improve' },
-			{ name: 'Fix Grammar', description: 'Correct grammar and spelling', command: '/grammar' },
-			{ name: 'Summarize', description: 'Create a concise summary', command: '/summarize' },
-			{ name: 'Expand Ideas', description: 'Develop thoughts further', command: '/expand' },
-			{ name: 'Explain', description: 'Clarify complex concepts', command: '/explain' },
-			{ name: 'Continue Writing', description: 'Extend the current text', command: '/continue' },
-			{ name: 'Add Title', description: 'Generate a title for the document', command: '/title' },
-			{ name: 'Add Tags', description: 'Suggest relevant tags', command: '/tags' },
-			{ name: 'Add Summary', description: 'Add a summary property', command: '/summary' },
-			{ name: 'Add Author', description: 'Add author information', command: '/author' },
-			{ name: 'Add Date', description: 'Add creation date', command: '/date' },
-			{ name: 'Add Category', description: 'Categorize the document', command: '/category' }
-		];
+	/**
+	 * Select a structured command and insert template
+	 */
+	private selectStructuredCommand(template: string): void {
+		this.hideCommandPicker();
+		
+		// Replace cursor placeholder and insert template
+		const cursorPos = template.indexOf('{cursor}');
+		if (cursorPos !== -1) {
+			const beforeCursor = template.slice(0, cursorPos);
+			const afterCursor = template.slice(cursorPos + 8); // Length of '{cursor}'
+			this.textArea.setValue(beforeCursor + afterCursor);
+			
+			// Position cursor where {cursor} was
+			setTimeout(() => {
+				this.textArea.inputEl.setSelectionRange(cursorPos, cursorPos);
+				this.textArea.inputEl.focus();
+			}, 0);
+		} else {
+			this.textArea.setValue(template);
+			this.textArea.inputEl.focus();
+		}
 	}
 
 	cleanup(): void {

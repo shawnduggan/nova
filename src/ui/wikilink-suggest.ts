@@ -142,10 +142,11 @@ export class NovaWikilinkAutocomplete {
     private renderSuggestions(): void {
         if (!this.suggestionPopup) return;
         
-        this.suggestionPopup.empty();
+        this.suggestionPopup.innerHTML = '';
         
         this.suggestions.forEach((suggestion, index) => {
-            const item = this.suggestionPopup!.createDiv({ cls: 'nova-suggestion-item' });
+            const item = document.createElement('div');
+            item.className = 'nova-suggestion-item';
             item.style.cssText = `
                 padding: 8px 12px;
                 cursor: pointer;
@@ -154,23 +155,29 @@ export class NovaWikilinkAutocomplete {
             `;
             
             // File name
-            const nameEl = item.createDiv({ cls: 'nova-suggestion-name' });
+            const nameEl = document.createElement('div');
+            nameEl.className = 'nova-suggestion-name';
             nameEl.textContent = suggestion.file.basename;
             nameEl.style.cssText = `
                 font-weight: 500;
                 color: var(--text-normal);
                 margin-bottom: 2px;
             `;
+            item.appendChild(nameEl);
             
             // File path (if different from name)
             if (suggestion.file.path !== suggestion.file.name) {
-                const pathEl = item.createDiv({ cls: 'nova-suggestion-path' });
+                const pathEl = document.createElement('div');
+                pathEl.className = 'nova-suggestion-path';
                 pathEl.textContent = suggestion.file.path;
                 pathEl.style.cssText = `
                     font-size: 0.85em;
                     color: var(--text-muted);
                 `;
+                item.appendChild(pathEl);
             }
+            
+            this.suggestionPopup!.appendChild(item);
             
             item.addEventListener('click', () => {
                 this.selectSuggestion(suggestion);

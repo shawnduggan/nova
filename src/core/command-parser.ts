@@ -52,10 +52,13 @@ const COMMAND_PATTERNS: CommandPattern[] = [
     {
         action: 'add',
         patterns: [
-            /\b(add|create|write|insert|include)\b.*\b(section|paragraph|heading|content|text|part)\b/i,
-            /\b(add|create|write|insert)\b(?!\s+.*\b(better|clearer|more|less)\b)/i,
+            /\b(add|create|write|insert|include|append|prepend)\b.*\b(section|paragraph|heading|content|text|part)\b/i,
+            /\b(add|create|write|insert|append|prepend)\b(?!\s+.*\b(better|clearer|more|less)\b)/i,
             /\bmake\s+.*\b(section|part)\b/i,
-            /\bgenerate\b.*\b(section|content|text)\b/i
+            /\bgenerate\b.*\b(section|content|text)\b/i,
+            // Specific patterns for append/prepend with location
+            /\b(append|add)\b.*\b(after|following)\b/i,
+            /\b(prepend|add)\b.*\b(before|preceding)\b/i
         ],
         targets: ['end', 'section', 'paragraph']
     },
@@ -86,12 +89,32 @@ const COMMAND_PATTERNS: CommandPattern[] = [
  * Location extraction patterns
  */
 const LOCATION_PATTERNS = [
+    // New semantic patterns for append/prepend to
+    /\b(?:append|prepend)\s+.*?\bto\s+(?:the\s+)?["']([^"']+?)["']/i,
+    /\b(?:append|prepend)\s+.*?\bto\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)(?:\s+(?:section|heading|part))?$/i,
+    /\b(?:append|prepend)\s+.*?\bto\s+([A-Za-z][A-Za-z0-9\s:&]*?)\s+(?:section|heading|part)/i,
+    
+    // Append/prepend with after/before (for mixed syntax like "append X after Y")
+    /\b(?:append|prepend)\s+.*?\b(?:after|before)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading)/i,
+    /\b(?:append|prepend)\s+.*?\b(?:after|before)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)\s+(?:section|heading)/i,
+    
+    // Insert patterns with after/before
+    /\binsert\s+.*?\b(?:after|before)\s+(?:the\s+)?["']([^"']+?)["']\s+heading/i,
+    /\binsert\s+.*?\b(?:after|before)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)\s+heading/i,
+    
+    // Original patterns for after/before the X heading/section
+    /\b(?:after|before|following|preceding)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
+    /\b(?:after|before|following|preceding)\s+the\s+([^"'\s]+(?:\s+(?:and|&)\s+[^"'\s]+)*)\s+(?:section|heading|part)/i,
+    
+    // Standard quoted patterns
     /\b(?:to|in|at|under|within|inside)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
     /\b(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
     /\b(?:section|heading|part)\s+["']([^"']+?)["']/i,
     /\b(?:section|heading)\s+(?:called|titled|named)\s+["']([^"']+?)["']/i,
     /\b(?:called|titled|named)\s+["']([^"']+?)["']/i,
-    /\b(?:the\s+)?([a-zA-Z][a-zA-Z\s&]*?)\s+(?:section|heading)\b/i
+    
+    // Generic pattern - must be last and more restrictive
+    /\b(?:in|at|under|within)\s+(?:the\s+)?([a-zA-Z][a-zA-Z\s&]*?)\s+(?:section|heading)\b/i
 ];
 
 /**
@@ -107,28 +130,39 @@ const TARGET_PATTERNS = [
 
 export class CommandParser {
     /**
+     * Convert path-style syntax (/) to hierarchical syntax (::) 
+     */
+    private convertPathSyntax(input: string): string {
+        // Convert forward slashes to :: for hierarchical paths
+        // But only for paths that look like section references
+        return input.replace(/\b([A-Za-z][A-Za-z0-9\s]*?)\/([A-Za-z][A-Za-z0-9\s\/]*)\b/g, '$1::$2');
+    }
+    
+    /**
      * Parse natural language input into an EditCommand
      */
     parseCommand(input: string, hasSelection: boolean = false): EditCommand {
-        const normalizedInput = input.trim().toLowerCase();
+        // First convert path syntax (/) to hierarchical syntax (::)
+        const convertedInput = this.convertPathSyntax(input);
+        const normalizedInput = convertedInput.trim().toLowerCase();
         
         // Detect the action type
         const action = this.detectAction(normalizedInput);
         
-        // Detect the target type
-        const target = this.detectTarget(normalizedInput, hasSelection, action);
+        // Detect the target type AND position hint
+        const { target, positionHint } = this.detectTargetAndPosition(normalizedInput, hasSelection, action);
         
-        // Extract location if specified
-        const location = this.extractLocation(input);
+        // Extract location if specified (use converted input)
+        const location = this.extractLocation(convertedInput);
         
-        // Build context from the input
-        const context = this.extractContext(input);
+        // Build context from the input (including position hint)
+        const context = this.extractContext(convertedInput, positionHint);
         
         return {
             action,
             target,
             location,
-            instruction: input,
+            instruction: input, // Keep original input for display
             context
         };
     }
@@ -168,40 +202,76 @@ export class CommandParser {
     }
     
     /**
-     * Detect the target type from the input
+     * Detect the target type AND position hint for the command
+     */
+    private detectTargetAndPosition(
+        input: string, 
+        hasSelection: boolean, 
+        action: EditAction
+    ): { target: EditCommand['target'], positionHint?: string } {
+        let positionHint: string | undefined;
+        
+        // Check for specific position indicators
+        if (/\bappend\s+.*?\b(?:to|after)\b/i.test(input)) {
+            positionHint = 'section-end';
+        } else if (/\bprepend\s+.*?\b(?:to|before)\b/i.test(input)) {
+            positionHint = 'section-start';
+        } else if (/\binsert\s+.*?\bafter\s+.*?\bheading\b/i.test(input)) {
+            positionHint = 'after-heading';
+        } else if (/\binsert\s+.*?\bbefore\s+.*?\bheading\b/i.test(input)) {
+            positionHint = 'before-heading';
+        }
+        
+        // Check explicit target patterns
+        for (const targetPattern of TARGET_PATTERNS) {
+            if (targetPattern.pattern.test(input)) {
+                return { 
+                    target: targetPattern.target as EditCommand['target'],
+                    positionHint 
+                };
+            }
+        }
+        
+        // Context-based target detection
+        if (hasSelection && (action === 'edit' || action === 'grammar' || action === 'delete')) {
+            return { target: 'selection', positionHint };
+        }
+        
+        // Action-specific defaults
+        let target: EditCommand['target'];
+        switch (action) {
+            case 'add':
+                target = input.includes('section') || input.includes('heading') ? 'section' : 'end';
+                break;
+            case 'edit':
+                target = hasSelection ? 'selection' : 'paragraph';
+                break;
+            case 'delete':
+                target = hasSelection ? 'selection' : 'section';
+                break;
+            case 'grammar':
+                target = hasSelection ? 'selection' : 'document';
+                break;
+            case 'rewrite':
+                target = 'end';
+                break;
+            default:
+                target = 'paragraph';
+        }
+        
+        return { target, positionHint };
+    }
+    
+    /**
+     * Detect the target type from the input (legacy wrapper)
      */
     private detectTarget(
         input: string, 
         hasSelection: boolean, 
         action: EditAction
     ): EditCommand['target'] {
-        // Check explicit target patterns
-        for (const targetPattern of TARGET_PATTERNS) {
-            if (targetPattern.pattern.test(input)) {
-                return targetPattern.target as EditCommand['target'];
-            }
-        }
-        
-        // Context-based target detection
-        if (hasSelection && (action === 'edit' || action === 'grammar' || action === 'delete')) {
-            return 'selection';
-        }
-        
-        // Action-specific defaults
-        switch (action) {
-            case 'add':
-                return input.includes('section') || input.includes('heading') ? 'section' : 'end';
-            case 'edit':
-                return hasSelection ? 'selection' : 'paragraph';
-            case 'delete':
-                return hasSelection ? 'selection' : 'section';
-            case 'grammar':
-                return hasSelection ? 'selection' : 'document';
-            case 'rewrite':
-                return 'end';
-            default:
-                return 'paragraph';
-        }
+        const { target } = this.detectTargetAndPosition(input, hasSelection, action);
+        return target;
     }
     
     /**
@@ -221,7 +291,7 @@ export class CommandParser {
     /**
      * Extract additional context from the input
      */
-    private extractContext(input: string): string {
+    private extractContext(input: string, positionHint?: string): string {
         // Extract style/tone indicators
         const styleIndicators = [
             'formal', 'informal', 'casual', 'professional', 'academic', 'technical',
@@ -255,6 +325,24 @@ export class CommandParser {
         }
         if (input.includes('number') || input.includes('numbered')) {
             context += 'Use numbered lists. ';
+        }
+        
+        // Add position hint context
+        if (positionHint) {
+            switch (positionHint) {
+                case 'section-end':
+                    context += 'Position: Add at the end of the section. ';
+                    break;
+                case 'section-start':
+                    context += 'Position: Add at the start of the section (right after the heading). ';
+                    break;
+                case 'after-heading':
+                    context += 'Position: Insert immediately after the heading line. ';
+                    break;
+                case 'before-heading':
+                    context += 'Position: Insert immediately before the heading line. ';
+                    break;
+            }
         }
         
         return context.trim();

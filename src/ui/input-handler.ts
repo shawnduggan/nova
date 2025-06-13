@@ -3,6 +3,7 @@ import NovaPlugin from '../../main';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
+import { SectionPicker } from './section-picker';
 
 /**
  * Handles textarea input, auto-grow, send button, and input events
@@ -14,8 +15,10 @@ export class InputHandler {
 	private sendButton!: ButtonComponent;
 	private autoGrowTextarea!: () => void;
 	private wikilinkAutocomplete!: NovaWikilinkAutocomplete;
-	private commandSystem: CommandSystem;
+	private commandSystem!: CommandSystem;
 	private contextManager: ContextManager;
+	private sectionPicker!: SectionPicker;
+	private inputRow!: HTMLElement;
 	private static readonly FOCUS_DELAY_MS = 150;
 
 	// Event cleanup tracking
@@ -24,13 +27,23 @@ export class InputHandler {
 	constructor(
 		plugin: NovaPlugin, 
 		container: HTMLElement, 
-		commandSystem: CommandSystem,
 		contextManager: ContextManager
 	) {
 		this.plugin = plugin;
 		this.container = container;
-		this.commandSystem = commandSystem;
 		this.contextManager = contextManager;
+	}
+
+	setCommandSystem(commandSystem: CommandSystem): void {
+		this.commandSystem = commandSystem;
+		
+		// Now create the command button and picker
+		this.commandSystem.createCommandButton(this.inputRow);
+		this.commandSystem.createCommandPicker();
+	}
+
+	getTextArea(): TextAreaComponent {
+		return this.textArea;
 	}
 
 	createInputInterface(chatContainer: HTMLElement): void {
@@ -42,8 +55,8 @@ export class InputHandler {
 			position: relative;
 		`;
 
-		const inputRow = this.container.createDiv({ cls: 'nova-input-row' });
-		inputRow.style.cssText = `
+		this.inputRow = this.container.createDiv({ cls: 'nova-input-row' });
+		this.inputRow.style.cssText = `
 			display: flex;
 			gap: var(--size-2-3);
 			align-items: flex-end;
@@ -51,7 +64,7 @@ export class InputHandler {
 		`;
 
 		// Textarea container
-		const textAreaContainer = inputRow.createDiv();
+		const textAreaContainer = this.inputRow.createDiv();
 		textAreaContainer.style.cssText = 'flex: 1; position: relative;';
 
 		// Create textarea
@@ -90,16 +103,19 @@ export class InputHandler {
 		// Initialize wikilink autocomplete
 		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.textArea.inputEl);
 
+		// Initialize section picker
+		this.sectionPicker = new SectionPicker(this.plugin.app, this.plugin.documentEngine, this.container);
+		this.setupSectionPickerCallbacks();
+
 		// Add debounced context preview
 		this.addEventListener(this.textArea.inputEl, 'input', () => {
 			this.contextManager.updateLiveContextPreview(this.textArea.getValue());
 		});
 
-		// Create command button
-		this.commandSystem.createCommandButton(inputRow);
+		// Command button will be created later when CommandSystem is set
 
 		// Send button
-		this.sendButton = new ButtonComponent(inputRow);
+		this.sendButton = new ButtonComponent(this.inputRow);
 		this.sendButton.setIcon('send');
 		this.sendButton.setTooltip('Send message');
 		this.sendButton.onClick(() => this.handleSend());
@@ -117,31 +133,37 @@ export class InputHandler {
 			border: none;
 		`;
 
-		// Enter key handling and command picker
-		this.addEventListener(this.textArea.inputEl, 'keydown', (event: KeyboardEvent) => {
-			if (event.key === 'Enter' && !event.shiftKey) {
+		// Enter key handling and command/section picker
+		this.addEventListener(this.textArea.inputEl, 'keydown', (event: Event) => {
+			const keyEvent = event as KeyboardEvent;
+			// First check if section picker handles the key
+			if (this.sectionPicker.handleKeyDown(keyEvent)) {
 				event.preventDefault();
-				this.commandSystem.handleCommandPickerSelection() || this.handleSend();
-			} else if (event.key === 'Escape') {
-				this.commandSystem.hideCommandPicker();
-			} else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-				if (this.commandSystem.handleCommandPickerNavigation(event.key)) {
+				return;
+			}
+
+			if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
+				event.preventDefault();
+				(this.commandSystem?.handleCommandPickerSelection() || false) || this.handleSend();
+			} else if (keyEvent.key === 'Escape') {
+				this.commandSystem?.hideCommandPicker();
+				this.sectionPicker.hide();
+			} else if (keyEvent.key === 'ArrowUp' || keyEvent.key === 'ArrowDown') {
+				if (this.commandSystem?.handleCommandPickerNavigation(keyEvent.key)) {
 					event.preventDefault();
 				}
-			} else if (event.key === 'Tab') {
-				if (this.commandSystem.handleCommandPickerNavigation(event.key)) {
+			} else if (keyEvent.key === 'Tab') {
+				if (this.commandSystem?.handleCommandPickerNavigation(keyEvent.key)) {
 					event.preventDefault();
 				}
 			}
 		});
 
-		// Input change handling for command picker
+		// Input change handling for command picker and section picker
 		this.addEventListener(this.textArea.inputEl, 'input', () => {
-			this.commandSystem.handleInputChange();
+			this.commandSystem?.handleInputChange();
+			this.handleSectionPickerInput();
 		});
-
-		// Create command picker
-		this.commandSystem.createCommandPicker();
 	}
 
 	focus(): void {
@@ -224,10 +246,102 @@ export class InputHandler {
 		this.eventListeners.push({ element, event, handler });
 	}
 
+	/**
+	 * Setup section picker callbacks
+	 */
+	private setupSectionPickerCallbacks(): void {
+		this.sectionPicker.onSelect((path: string) => {
+			this.handleSectionSelection(path);
+		});
+
+		this.sectionPicker.onCancel(() => {
+			// Focus back to text area
+			this.focus();
+		});
+	}
+
+	/**
+	 * Handle section picker input changes
+	 */
+	private handleSectionPickerInput(): void {
+		const input = this.textArea.getValue();
+		const cursorPos = this.textArea.inputEl.selectionStart;
+		
+		// Find if cursor is after a "/" trigger
+		const pathMatch = this.findPathTrigger(input, cursorPos);
+		
+		if (pathMatch) {
+			// Show section picker with filter text
+			this.sectionPicker.show(pathMatch.filterText).catch(console.error);
+			if (pathMatch.filterText) {
+				this.sectionPicker.updateFilter(pathMatch.filterText);
+			}
+		} else {
+			// Hide section picker if not in path mode
+			this.sectionPicker.hide();
+		}
+	}
+
+	/**
+	 * Find path trigger (/) in input relative to cursor position
+	 */
+	private findPathTrigger(input: string, cursorPos: number): { start: number; filterText: string } | null {
+		// Look for "/" pattern before cursor, similar to wikilink detection
+		const beforeCursor = input.substring(0, cursorPos);
+		const pathMatch = beforeCursor.match(/(?:^|\s)\/([^\/\s]*)$/);
+		
+		if (pathMatch) {
+			const fullMatch = pathMatch[0];
+			const filterText = pathMatch[1] || '';
+			const start = cursorPos - fullMatch.length + (fullMatch.startsWith(' ') ? 1 : 0); // Adjust for whitespace
+			
+			return {
+				start: start,
+				filterText: filterText
+			};
+		}
+		
+		return null;
+	}
+
+	/**
+	 * Handle section selection from picker
+	 */
+	private handleSectionSelection(path: string): void {
+		const input = this.textArea.getValue();
+		const cursorPos = this.textArea.inputEl.selectionStart;
+		
+		// Find the "/" trigger to replace
+		const pathMatch = this.findPathTrigger(input, cursorPos);
+		
+		if (pathMatch) {
+			// Replace "/" and filter text with selected path
+			const beforeSlash = input.slice(0, pathMatch.start);
+			const afterCursor = input.slice(cursorPos);
+			const newValue = beforeSlash + path + afterCursor;
+			
+			this.textArea.setValue(newValue);
+			
+			// Position cursor after the inserted path
+			const newCursorPos = pathMatch.start + path.length;
+			setTimeout(() => {
+				this.textArea.inputEl.setSelectionRange(newCursorPos, newCursorPos);
+				this.textArea.inputEl.focus();
+			}, 0);
+			
+			this.autoGrowTextarea();
+		}
+	}
+
 	cleanup(): void {
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
 			this.wikilinkAutocomplete.destroy();
+		}
+
+		// Clean up section picker
+		if (this.sectionPicker) {
+			this.sectionPicker.cleanup();
 		}
 
 		// Clean up event listeners
