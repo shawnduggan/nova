@@ -485,3 +485,41 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - Clean, professional greeting without overwhelming text
 - Consistent, minimal messaging throughout the interface
 - More intuitive and modern chat experience
+
+---
+
+### ✅ Fix Thinking Content Filter for Multiple Tag Formats (June 13, 2025)
+
+**Problem**: The thinking content filter was only removing `<thinking>` tags but not `<think>` tags used by Qwen3, causing thinking content to appear in chat and document edits.
+
+**Root Cause**: The regex pattern `/<thinking[\s\S]*?<\/thinking>/gi` only matched `<thinking>...</thinking>` tags but missed `<think>...</think>` tags used by Qwen3 and other thinking models.
+
+**Solution**: Updated the regex pattern to handle both tag variations.
+
+**Changes Made:**
+- **Updated regex pattern**: `/<think(?:ing)?[\s\S]*?<\/think(?:ing)?>/gi`
+- **Handles multiple formats**:
+  - `<think>content</think>` (Qwen3)
+  - `<thinking>content</thinking>` (Claude, others)
+- **Improved comments**: Updated documentation to reflect support for both tag types
+
+**Files Modified:**
+- `src/ui/sidebar-view.ts` - Updated `filterThinkingContent()` method with enhanced regex
+
+**Technical Details:**
+- `<think(?:ing)?` matches both `<think>` and `<thinking>` opening tags
+- `<\/think(?:ing)?>` matches both `</think>` and `</thinking>` closing tags
+- `[\s\S]*?` matches any content including newlines (non-greedy)
+- `gi` flags provide global and case-insensitive matching
+
+**Benefits:**
+- **Universal Compatibility**: Works with all thinking model variations
+- **Clean Content**: No thinking tags in chat responses or document edits
+- **Better UX**: Users see only the intended output from thinking models
+- **Future-Proof**: Handles both common thinking tag formats
+
+**User Impact:**
+- Qwen3 thinking content no longer appears in chat or document edits
+- All thinking models now properly filter internal reasoning
+- Cleaner, more professional AI responses
+- Consistent experience across different AI providers

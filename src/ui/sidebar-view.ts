@@ -1869,11 +1869,12 @@ export class NovaSidebarView extends ItemView {
 
 	/**
 	 * Filter thinking content from AI responses
-	 * Removes content between <thinking> and </thinking> tags
+	 * Removes content between <think>/<thinking> and </think>/<thinking> tags
 	 */
 	private filterThinkingContent(content: string): string {
 		// Remove thinking tags and their content (case-insensitive, multi-line)
-		return content.replace(/<thinking[\s\S]*?<\/thinking>/gi, '').trim();
+		// Handles both <think> (Qwen3) and <thinking> (Claude) tags
+		return content.replace(/<think(?:ing)?[\s\S]*?<\/think(?:ing)?>/gi, '').trim();
 	}
 
 	/**

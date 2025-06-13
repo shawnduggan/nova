@@ -1931,10 +1931,10 @@ User Request: ${processedMessage}`;
   }
   /**
    * Filter thinking content from AI responses
-   * Removes content between <thinking> and </thinking> tags
+   * Removes content between <think>/<thinking> and </think>/<thinking> tags
    */
   filterThinkingContent(content) {
-    return content.replace(/<thinking[\s\S]*?<\/thinking>/gi, "").trim();
+    return content.replace(/<think(?:ing)?[\s\S]*?<\/think(?:ing)?>/gi, "").trim();
   }
   /**
    * Refresh all provider status indicators in the UI
