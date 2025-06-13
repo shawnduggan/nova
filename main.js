@@ -834,7 +834,7 @@ var _InputHandler = class _InputHandler {
   setCommandSystem(commandSystem) {
     this.commandSystem = commandSystem;
     this.commandSystem.createCommandButton(this.inputRow);
-    this.commandSystem.createCommandPicker();
+    this.commandSystem.createCommandPickerInContainer(this.inputRow);
   }
   getTextArea() {
     return this.textArea;
@@ -928,8 +928,9 @@ var _InputHandler = class _InputHandler {
       }
     });
     this.addEventListener(this.textArea.inputEl, "input", () => {
-      var _a;
-      (_a = this.commandSystem) == null ? void 0 : _a.handleInputChange();
+      if (this.commandSystem) {
+        this.commandSystem.handleInputChange();
+      }
       this.handleSectionPickerInput();
     });
   }
@@ -1102,7 +1103,10 @@ var CommandSystem = class {
     return this.commandButton;
   }
   createCommandPicker() {
-    this.commandPicker = this.container.createDiv({ cls: "nova-command-picker" });
+    this.createCommandPickerInContainer(this.container);
+  }
+  createCommandPickerInContainer(container) {
+    this.commandPicker = container.createDiv({ cls: "nova-command-picker" });
     this.commandPicker.style.cssText = `
 			position: absolute;
 			bottom: 100%;
@@ -1216,6 +1220,9 @@ var CommandSystem = class {
     }
   }
   handleInputChange() {
+    if (!this.textArea) {
+      return;
+    }
     const input = this.textArea.getValue();
     if (input.startsWith(":")) {
       this.showStructuredCommandPicker(input);
@@ -1227,6 +1234,9 @@ var CommandSystem = class {
    * Show structured command picker for ":" trigger  
    */
   showStructuredCommandPicker(input) {
+    if (!this.commandPicker) {
+      return;
+    }
     const structuredCommands = this.getStructuredCommands();
     const filterText = input.slice(1).toLowerCase();
     const filtered = structuredCommands.filter(

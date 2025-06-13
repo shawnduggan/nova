@@ -78,10 +78,11 @@
 - ✅ **Legacy compatibility removal** - Removed 12+ old properties and cleaned up sidebar-view.ts
 - ✅ **Component initialization fix** - Proper dependency order: InputHandler → CommandSystem → Integration
 - ✅ **Compilation fix** - All TypeScript errors resolved, build succeeds
-#### 📋 **NEXT PRIORITY: Picker System Bug Fixes**
-- [ ] **Fix : trigger** - Command picker not appearing when typing ":"
+#### 📋 **COMPLETED: Core Picker Functionality** ✅
+- ✅ **Fix : trigger** - Command picker now appears correctly with proper DOM positioning
+- [ ] **Standardize picker widths** - Make [[ wikilink picker match full sidebar width like : and / pickers
 - [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
-- [ ] **Fix textarea styling** - Needs more vertical height and proper button alignment
+- [ ] **Fix textarea styling** - Needs more vertical height and proper button alignment  
 - [ ] **Fix command button positioning** - Move to left of send button
 - [ ] **Consider enhanced context panel** - Add files and paths sections for better UX
 

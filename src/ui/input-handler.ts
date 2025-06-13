@@ -37,9 +37,10 @@ export class InputHandler {
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
 		
-		// Now create the command button and picker
+		// Now create the command button and picker  
 		this.commandSystem.createCommandButton(this.inputRow);
-		this.commandSystem.createCommandPicker();
+		// Pass the inputRow as the container for proper positioning
+		this.commandSystem.createCommandPickerInContainer(this.inputRow);
 	}
 
 	getTextArea(): TextAreaComponent {
@@ -161,7 +162,9 @@ export class InputHandler {
 
 		// Input change handling for command picker and section picker
 		this.addEventListener(this.textArea.inputEl, 'input', () => {
-			this.commandSystem?.handleInputChange();
+			if (this.commandSystem) {
+				this.commandSystem.handleInputChange();
+			}
 			this.handleSectionPickerInput();
 		});
 	}

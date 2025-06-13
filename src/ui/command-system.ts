@@ -52,7 +52,12 @@ export class CommandSystem {
 	}
 
 	createCommandPicker(): void {
-		this.commandPicker = this.container.createDiv({ cls: 'nova-command-picker' });
+		// Legacy method - use createCommandPickerInContainer instead
+		this.createCommandPickerInContainer(this.container);
+	}
+
+	createCommandPickerInContainer(container: HTMLElement): void {
+		this.commandPicker = container.createDiv({ cls: 'nova-command-picker' });
 		this.commandPicker.style.cssText = `
 			position: absolute;
 			bottom: 100%;
@@ -183,6 +188,10 @@ export class CommandSystem {
 	}
 
 	handleInputChange(): void {
+		if (!this.textArea) {
+			return;
+		}
+		
 		const input = this.textArea.getValue();
 		
 		// Handle different triggers
@@ -201,6 +210,10 @@ export class CommandSystem {
 	 * Show structured command picker for ":" trigger  
 	 */
 	private showStructuredCommandPicker(input: string): void {
+		if (!this.commandPicker) {
+			return;
+		}
+		
 		const structuredCommands = this.getStructuredCommands();
 		const filterText = input.slice(1).toLowerCase(); // Remove ":"
 		
