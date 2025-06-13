@@ -3,6 +3,7 @@ import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { MultiDocContextHandler, MultiDocContext } from '../core/multi-doc-context';
+import { getAvailableModels } from '../ai/models';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -588,8 +589,8 @@ export class NovaSidebarView extends ItemView {
 
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
-		if (!this.plugin.featureManager.isFeatureEnabled('command-system')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Command system is currently in early access for Supernova supporters. Available to all users September 15, 2025.'));
+		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+			this.addMessage('system', this.createIconMessage('zap', 'Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.'));
 			return true;
 		}
 
@@ -614,7 +615,7 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Check for custom commands (if feature enabled)
-		if (this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const customCommand = this.plugin.settings.customCommands?.find(cmd => cmd.trigger === command);
 			if (customCommand) {
 				// Execute custom command
@@ -651,7 +652,7 @@ export class NovaSidebarView extends ItemView {
 	private handleInputChange(): void {
 		const value = this.textArea.getValue();
 		
-		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('command-system')) {
+		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const query = value.slice(1).toLowerCase();
 			this.showCommandPicker(query);
 		} else {
@@ -763,12 +764,16 @@ export class NovaSidebarView extends ItemView {
 		const commands: Array<{trigger: string, name: string, description?: string}> = [
 			{ trigger: 'claude', name: 'Switch to Claude', description: 'Anthropic Claude AI' },
 			{ trigger: 'chatgpt', name: 'Switch to ChatGPT', description: 'OpenAI GPT models' },
-			{ trigger: 'gemini', name: 'Switch to Gemini', description: 'Google Gemini AI' },
-			{ trigger: 'ollama', name: 'Switch to Ollama', description: 'Local AI models' }
+			{ trigger: 'gemini', name: 'Switch to Gemini', description: 'Google Gemini AI' }
 		];
 
+		// Only add Ollama on desktop
+		if (Platform.isDesktopApp) {
+			commands.push({ trigger: 'ollama', name: 'Switch to Ollama', description: 'Local AI models' });
+		}
+
 		// Add custom commands if feature is enabled
-		if (this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const customCommands = this.plugin.settings.customCommands || [];
 			customCommands.forEach(cmd => {
 				commands.push({
@@ -809,8 +814,8 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private toggleCommandMenu(): void {
-		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Command button is currently in early access for Supernova supporters. Available to all users August 15, 2025.'));
+		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+			this.addMessage('system', this.createIconMessage('zap', 'Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.'));
 			return;
 		}
 
@@ -2030,48 +2035,23 @@ export class NovaSidebarView extends ItemView {
 	 * Get available models for a provider type
 	 */
 	private getAvailableModels(providerType: string): { value: string; label: string }[] {
-		switch (providerType) {
-			case 'claude':
-				return [
-					{ value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-					{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-					{ value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
-					{ value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
-					{ value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' }
-				];
-			case 'openai':
-				return [
-					{ value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
-					{ value: 'gpt-4.1-mini-2025-04-14', label: 'GPT-4.1 Mini' },
-					{ value: 'gpt-4.1-nano-2025-04-14', label: 'GPT-4.1 Nano' },
-					{ value: 'gpt-4o', label: 'GPT-4o' },
-					{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
-				];
-			case 'google':
-				return [
-					{ value: 'gemini-2.5-flash-preview-04-17', label: 'Gemini 2.5 Flash' },
-					{ value: 'gemini-2.5-pro-preview-03-25', label: 'Gemini 2.5 Pro' },
-					{ value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-					{ value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' }
-				];
-			default:
-				return [];
-		}
+		return getAvailableModels(providerType, this.plugin.settings);
 	}
 
 	/**
 	 * Get current model for a provider type
 	 */
 	private getCurrentModel(providerType: string): string {
-		const defaultModels: Record<string, string> = {
-			claude: 'claude-sonnet-4-20250514',
-			openai: 'gpt-4.1-mini-2025-04-14',
-			google: 'gemini-2.5-flash-preview-04-17',
-			ollama: ''
-		};
-		
 		const providers = this.plugin.settings.aiProviders as Record<string, any>;
-		return providers[providerType]?.model || defaultModels[providerType] || '';
+		const currentModel = providers[providerType]?.model;
+		
+		if (currentModel) {
+			return currentModel;
+		}
+		
+		// Get default model (first available model for the provider)
+		const availableModels = this.getAvailableModels(providerType);
+		return availableModels.length > 0 ? availableModels[0].value : '';
 	}
 
 	/**
@@ -2425,8 +2405,8 @@ export class NovaSidebarView extends ItemView {
 	 * Check if the command button should be shown based on feature availability and user preference
 	 */
 	private shouldShowCommandButton(): boolean {
-		// Command button is gated behind the command-button feature (Supernova-only)
-		if (!this.plugin.featureManager.isFeatureEnabled('command-button')) {
+		// Command button is gated behind the commands feature 
+		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
 			return false;
 		}
 		return this.plugin.settings.showCommandButton;

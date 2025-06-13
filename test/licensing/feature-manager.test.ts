@@ -38,22 +38,22 @@ describe('FeatureManager', () => {
 
 	describe('Time-Gated Features', () => {
 		test('should have time-gated features disabled before general availability', () => {
-			// These features are not yet generally available (past June 2025 in config)
-			expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
-			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(false);
+			// These features are not yet generally available (future dates in config)
+			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
 			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
-			expect(featureManager.isFeatureEnabled('command-button')).toBe(false);
-			expect(featureManager.isFeatureEnabled('custom-commands')).toBe(false);
 			expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
+			
+			// Multi-doc context is now a core feature (always available)
+			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
 		});
 
 		test('should provide detailed access information for time-gated features', () => {
-			const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
+			const commandsAccess = featureManager.checkFeatureAccess('commands');
 			
-			expect(commandSystemAccess.allowed).toBe(false);
-			expect(commandSystemAccess.isSupernovaFeature).toBe(true);
-			expect(commandSystemAccess.reason).toContain('early access for Supernova supporters');
-			expect(commandSystemAccess.availableDate).toEqual(new Date('2025-09-15'));
+			expect(commandsAccess.allowed).toBe(false);
+			expect(commandsAccess.isSupernovaFeature).toBe(true);
+			expect(commandsAccess.reason).toContain('early access for Supernova supporters');
+			expect(commandsAccess.availableDate).toEqual(new Date('2025-09-30'));
 		});
 	});
 
@@ -129,7 +129,7 @@ describe('FeatureManager', () => {
 			featureManager.updateDebugSettings(debugSettings);
 
 			// With debug mode, time-gated features should be available
-			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
 			expect(featureManager.isSupernovaSupporter()).toBe(true);
 		});
@@ -147,7 +147,7 @@ describe('FeatureManager', () => {
 			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
 			
 			// But command-system should not be (general date is 2025-09-15)
-			expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
+			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
 		});
 
 		test('should return debug settings', () => {
@@ -179,8 +179,8 @@ describe('FeatureManager', () => {
 			const catalystFeatures = featureManager.getSupernovaFeatures();
 
 			expect(catalystFeatures.length).toBeGreaterThan(0);
-			expect(catalystFeatures.some(f => f.key === 'command-system')).toBe(true);
-			expect(catalystFeatures.some(f => f.key === 'multi-doc-context')).toBe(true);
+			expect(catalystFeatures.some(f => f.key === 'commands')).toBe(true);
+			// multi-doc-context is now a core feature, not in early access
 			
 			// All should be time-gated and early access only
 			catalystFeatures.forEach(feature => {
@@ -209,13 +209,13 @@ describe('FeatureManager', () => {
 			// Use debug mode to simulate being at the Supernova release date
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-06-15', // Supernova date for all features
+				overrideDate: '2025-08-01', // After commands Supernova date (2025-07-31)
 				forceSupernova: true
 			};
 			featureManager.updateDebugSettings(debugSettings);
 
 			// All time-gated features should be available for Supernova supporters
-			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
 			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});
@@ -230,7 +230,7 @@ describe('FeatureManager', () => {
 			featureManager.updateDebugSettings(debugSettings);
 
 			// All features should be available to everyone
-			expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
 			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});

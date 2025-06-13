@@ -531,3 +531,51 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - All thinking models now properly filter internal reasoning
 - Cleaner, more professional AI responses
 - Consistent experience across different AI providers
+
+---
+
+## 📋 **Ollama Hierarchical Provider Dropdown (June 13, 2025)**
+
+**Issue:** Ollama appeared in provider dropdown but had no selectable models underneath, unlike other providers that showed hierarchical model selection.
+
+**Root Cause:** The sidebar's `getAvailableModels()` method didn't have a case for Ollama, returning an empty array and preventing model options from appearing.
+
+**Solution Implemented:**
+1. **Fixed sidebar dropdown** - Added Ollama case to return configured model from settings:
+   ```typescript
+   case 'ollama':
+       const ollamaModel = this.plugin.settings.aiProviders?.ollama?.model;
+       if (ollamaModel && ollamaModel.trim()) {
+           return [{ value: ollamaModel, label: ollamaModel }];
+       }
+       return [];
+   ```
+
+2. **Centralized model definitions** - Created `src/ai/models.ts` to eliminate code duplication:
+   - Unified all model lists across sidebar, provider-manager, and settings
+   - Single source of truth for all provider models
+   - Consistent model offerings everywhere
+
+3. **Updated provider-manager** - Enhanced hierarchical dropdown with optgroups:
+   - Each provider appears as an optgroup (Claude, OpenAI, Google, Ollama)
+   - Models appear as selectable options under each provider
+   - Proper provider-model key parsing for settings updates
+
+**Files Changed:**
+- `src/ai/models.ts` (new) - Centralized model definitions  
+- `src/ui/sidebar-view.ts` - Uses centralized models, added Ollama support
+- `src/ui/provider-manager.ts` - Hierarchical optgroups, centralized models
+- `src/settings.ts` - Uses centralized models
+
+**Testing Results:**
+- ✅ All 502 tests passing
+- ✅ Ollama now shows hierarchical dropdown with configured model
+- ✅ Consistent model lists across all interfaces
+- ✅ Provider switching works correctly for all providers
+
+**User Impact:**
+- Ollama now works exactly like other providers in dropdown selection
+- Single configured model appears as selectable option under "Ollama" group
+- When selected, properly updates both provider and model in settings
+- Consistent user experience across all AI providers
+- Eliminated ~100 lines of duplicate model definition code

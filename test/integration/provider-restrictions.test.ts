@@ -122,11 +122,13 @@ describe('Provider Access in Supernova Model', () => {
     describe('Future Feature Gates', () => {
         test('should handle new time-gated features appropriately', () => {
             // These are the new features that will be time-gated for Supernova early access
-            expect(featureManager.isFeatureEnabled('command-system')).toBe(false);
-            expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(false);
+            expect(featureManager.isFeatureEnabled('commands')).toBe(false);
             expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
             
-            const commandSystemAccess = featureManager.checkFeatureAccess('command-system');
+            // Multi-doc context is now a core feature (always available)
+            expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
+            
+            const commandSystemAccess = featureManager.checkFeatureAccess('commands');
             expect(commandSystemAccess.allowed).toBe(false);
             expect(commandSystemAccess.isSupernovaFeature).toBe(true);
         });
@@ -139,12 +141,12 @@ describe('Provider Access in Supernova Model', () => {
             // Use debug mode to simulate being at the Supernova release date
             featureManager.updateDebugSettings({
                 enabled: true,
-                overrideDate: '2025-06-15', // Supernova date
+                overrideDate: '2025-08-01', // After commands Supernova date (2025-07-31)
                 forceSupernova: true
             });
             
             // Time-gated features should now be available
-            expect(featureManager.isFeatureEnabled('command-system')).toBe(true);
+            expect(featureManager.isFeatureEnabled('commands')).toBe(true);
             expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
             expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(true);
         });

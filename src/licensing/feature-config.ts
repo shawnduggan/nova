@@ -12,18 +12,11 @@ export interface TimeGatedFeature {
  * Dates are in YYYY-MM-DD format and easy to modify post-launch
  */
 export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
-    // Command system - 3 month early access
-    'command-system': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-09-15',   // 3 months later
-        description: 'Command system with : triggers and provider switching'
-    },
-    
-    // Multi-document context - 2 month early access  
-    'multi-doc-context': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-08-15',   // 2 months later
-        description: 'Reference other documents with [[doc]] syntax'
+    // Commands (unified) - 2 month early access
+    'commands': {
+        supernovaDate: '2025-07-31',  // Supernova early access
+        generalDate: '2025-09-30',   // General availability 
+        description: 'Command system with : triggers, command button, and custom commands'
     },
     
     // Auto-growing input - 1 month early access
@@ -31,20 +24,6 @@ export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
         supernovaDate: '2025-06-15',  // Launch day
         generalDate: '2025-07-15',   // 1 month later
         description: 'Auto-growing input area with smooth transitions'
-    },
-    
-    // Command button - 2 month early access
-    'command-button': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-08-15',   // 2 months later
-        description: 'Command button for mobile and discovery'
-    },
-    
-    // Custom commands - 3.5 month early access
-    'custom-commands': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-10-01',   // Available to all Oct 1, 2025
-        description: 'User-defined custom command shortcuts'
     },
     
     // Enhanced provider management - 2 month early access
@@ -67,5 +46,6 @@ export const CORE_FEATURES = [
     'mobile_access',          // Full mobile support
     'api_key_config',         // Configure own API keys
     'sidebar_chat',           // Chat interface in sidebar
-    'document_context'        // Current document context
+    'document_context',       // Current document context
+    'multi-doc-context'       // Reference other documents with [[doc]] syntax
 ];

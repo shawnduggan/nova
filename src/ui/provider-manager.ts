@@ -1,5 +1,6 @@
 import { DropdownComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
+import { getAvailableModels } from '../ai/models';
 
 /**
  * Handles provider dropdown and switching logic
@@ -60,26 +61,63 @@ export class ProviderManager {
 		if (!this.dropdown) return;
 
 		const currentProvider = this.getCurrentProviderType();
+		const currentModel = this.getCurrentModel();
 		
-		// Show configured models in dropdown labels
-		const options: Record<string, string | null> = {
-			'claude': this.getProviderWithModelDisplayName('claude'),
-			'openai': this.getProviderWithModelDisplayName('openai'),
-			'google': this.getProviderWithModelDisplayName('google'),
-			'ollama': Platform.isDesktopApp ? this.getProviderWithModelDisplayName('ollama') : null,
-		};
-
-		// Filter out null values for addOptions
-		const filteredOptions: Record<string, string> = {};
-		Object.entries(options).forEach(([key, value]) => {
-			if (value !== null) {
-				filteredOptions[key] = value;
+		// Clear existing options
+		this.dropdown.selectEl.empty();
+		
+		// Claude models
+		const claudeModels = this.getProviderModels('claude');
+		if (claudeModels.length > 0) {
+			const claudeGroup = this.dropdown.selectEl.createEl('optgroup');
+			claudeGroup.label = 'Claude';
+			claudeModels.forEach(model => {
+				const option = claudeGroup.createEl('option');
+				option.value = `claude-${model.value}`;
+				option.textContent = model.label;
+			});
+		}
+		
+		// OpenAI models
+		const openaiModels = this.getProviderModels('openai');
+		if (openaiModels.length > 0) {
+			const openaiGroup = this.dropdown.selectEl.createEl('optgroup');
+			openaiGroup.label = 'OpenAI';
+			openaiModels.forEach(model => {
+				const option = openaiGroup.createEl('option');
+				option.value = `openai-${model.value}`;
+				option.textContent = model.label;
+			});
+		}
+		
+		// Google models
+		const googleModels = this.getProviderModels('google');
+		if (googleModels.length > 0) {
+			const googleGroup = this.dropdown.selectEl.createEl('optgroup');
+			googleGroup.label = 'Google';
+			googleModels.forEach(model => {
+				const option = googleGroup.createEl('option');
+				option.value = `google-${model.value}`;
+				option.textContent = model.label;
+			});
+		}
+		
+		// Ollama model (only on desktop, only if configured)
+		if (Platform.isDesktopApp) {
+			const ollamaModel = this.plugin.settings.aiProviders?.ollama?.model;
+			if (ollamaModel && ollamaModel.trim()) {
+				const ollamaGroup = this.dropdown.selectEl.createEl('optgroup');
+				ollamaGroup.label = 'Ollama';
+				const option = ollamaGroup.createEl('option');
+				option.value = `ollama-${ollamaModel}`;
+				option.textContent = ollamaModel;
 			}
-		});
-		this.dropdown.addOptions(filteredOptions);
+		}
 
-		if (currentProvider) {
-			this.dropdown.setValue(currentProvider);
+		// Set current selection based on provider and model
+		if (currentProvider && currentModel) {
+			const currentKey = `${currentProvider}-${currentModel}`;
+			this.dropdown.setValue(currentKey);
 		}
 	}
 
@@ -125,6 +163,29 @@ export class ProviderManager {
 		return null;
 	}
 
+	private getCurrentModel(): string | null {
+		const provider = this.getCurrentProviderType();
+		if (!provider) return null;
+		
+		const settings = this.plugin.settings;
+		switch (provider) {
+			case 'claude':
+				return settings.aiProviders?.claude?.model || 'claude-3-5-sonnet-20241022';
+			case 'openai':
+				return settings.aiProviders?.openai?.model || 'gpt-4o';
+			case 'google':
+				return settings.aiProviders?.google?.model || 'gemini-1.5-flash';
+			case 'ollama':
+				return settings.aiProviders?.ollama?.model || null;
+			default:
+				return null;
+		}
+	}
+
+	private getProviderModels(provider: string): Array<{value: string, label: string}> {
+		return getAvailableModels(provider, this.plugin.settings);
+	}
+
 	private getProviderWithModelDisplayName(providerType: string): string {
 		const settings = this.plugin.settings;
 		
@@ -159,10 +220,41 @@ export class ProviderManager {
 		return colors[providerType] || 'var(--text-success)';
 	}
 
-	private async switchProvider(providerType: string): Promise<void> {
+	private async switchProvider(providerModelKey: string): Promise<void> {
 		try {
-			// Note: Provider switching logic would need to be implemented
-			// based on the actual plugin architecture
+			// Parse provider-model key (e.g., "claude-claude-3-5-sonnet-20241022")
+			const parts = providerModelKey.split('-');
+			if (parts.length < 2) return;
+			
+			const provider = parts[0]; // e.g., "claude"
+			const model = parts.slice(1).join('-'); // e.g., "claude-3-5-sonnet-20241022"
+			
+			// Update settings with both provider and model
+			if (this.plugin.settings.aiProviders) {
+				switch (provider) {
+					case 'claude':
+						if (this.plugin.settings.aiProviders.claude) {
+							this.plugin.settings.aiProviders.claude.model = model;
+						}
+						break;
+					case 'openai':
+						if (this.plugin.settings.aiProviders.openai) {
+							this.plugin.settings.aiProviders.openai.model = model;
+						}
+						break;
+					case 'google':
+						if (this.plugin.settings.aiProviders.google) {
+							this.plugin.settings.aiProviders.google.model = model;
+						}
+						break;
+					case 'ollama':
+						if (this.plugin.settings.aiProviders.ollama) {
+							this.plugin.settings.aiProviders.ollama.model = model;
+						}
+						break;
+				}
+			}
+			
 			await this.plugin.saveSettings();
 
 			// Update status display

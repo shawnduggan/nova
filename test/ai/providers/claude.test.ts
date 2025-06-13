@@ -108,7 +108,7 @@ describe('ClaudeProvider', () => {
             await expect(
                 provider.complete('System prompt', 'User prompt')
             ).rejects.toThrow('Failed to connect to Claude API: Network error');
-        });
+        }, 10000); // 10 second timeout for retry logic
     });
 
     describe('isAvailable', () => {

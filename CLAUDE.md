@@ -69,10 +69,12 @@
 
 ### Critical Tasks Remaining
 
-#### 📋 **NEXT PRIORITY: Manual System Testing**
-- ✅ **System testing preparation complete** (code quality, performance, UI consistency)
-- [ ] Execute comprehensive end-to-end testing per MANUAL_TESTING_PLAN.md
+#### 📋 **NEXT PRIORITY: Fix Known Issues**
+- [ ] **Privacy indicators missing** - Where are the privacy indicators that should show data handling for each provider?
+- [ ] **Green dot meaning unclear** - The green dot next to model names in provider dropdown shows green for all models - what does this indicate? Is it for privacy status?
 - [ ] Mobile performance testing on actual devices
+- ✅ Error handling improvements and loading state optimizations
+- ✅ **System testing preparation complete** (code quality, performance, UI consistency)
 
 #### 📋 **Documentation & Repository Prep** 
 - ✅ Update README.md with Supernova model

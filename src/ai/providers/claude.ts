@@ -33,39 +33,70 @@ export class ClaudeProvider implements AIProvider {
 			throw new Error('Claude API key not configured');
 		}
 
-		let response;
-		try {
-			response = await requestUrl({
-				url: 'https://api.anthropic.com/v1/messages',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': this.config.apiKey,
-					'anthropic-version': '2023-06-01'
-				},
-				body: JSON.stringify({
-					model: options?.model || this.config.model || 'claude-3-5-haiku-latest',
-					max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					system: options?.systemPrompt,
-					messages: messages.map(msg => ({
-						role: msg.role === 'assistant' ? 'assistant' : 'user',
-						content: msg.content
-					}))
-				})
-			});
-		} catch (error) {
-			// API request error handled by Notice
-			throw new Error(`Failed to connect to Claude API: ${error instanceof Error ? error.message : 'Network error'}`);
+		const requestBody = JSON.stringify({
+			model: options?.model || this.config.model || 'claude-3-5-haiku-latest',
+			max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
+			temperature: options?.temperature || this.config.temperature || 0.7,
+			system: options?.systemPrompt,
+			messages: messages.map(msg => ({
+				role: msg.role === 'assistant' ? 'assistant' : 'user',
+				content: msg.content
+			}))
+		});
+
+		// Retry logic for 500-level errors
+		const maxRetries = 3;
+		const baseDelay = 1000; // 1 second
+
+		for (let attempt = 0; attempt <= maxRetries; attempt++) {
+			try {
+				const response = await requestUrl({
+					url: 'https://api.anthropic.com/v1/messages',
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'x-api-key': this.config.apiKey,
+						'anthropic-version': '2023-06-01'
+					},
+					body: requestBody
+				});
+
+				if (response.status === 200) {
+					const data = response.json;
+					return data.content[0].text;
+				}
+
+				// Check if it's a 500-level error that we should retry
+				if (response.status >= 500 && attempt < maxRetries) {
+					const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue; // Retry
+				}
+
+				// For all other errors or final attempt, throw error
+				throw new Error(`Claude API error: ${response.status} - ${response.text}`);
+
+			} catch (error) {
+				// Network/connection errors - retry if not final attempt
+				if (attempt < maxRetries && error instanceof Error && (
+					error.message.includes('Network error') || 
+					error.message.includes('Failed to connect')
+				)) {
+					const delay = baseDelay * Math.pow(2, attempt);
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue;
+				}
+				
+				// Re-throw the error if it's the final attempt or not a retryable error
+				if (error instanceof Error && error.message.startsWith('Claude API error:')) {
+					throw error; // Already formatted error
+				}
+				throw new Error(`Failed to connect to Claude API: ${error instanceof Error ? error.message : 'Network error'}`);
+			}
 		}
 
-		if (response.status !== 200) {
-			// API error handled by Notice
-			throw new Error(`Claude API error: ${response.status} - ${response.text}`);
-		}
-
-		const data = response.json;
-		return data.content[0].text;
+		// This should never be reached, but TypeScript wants it
+		throw new Error('Claude API: Maximum retries exceeded');
 	}
 
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {

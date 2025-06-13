@@ -39,26 +39,59 @@ export class OpenAIProvider implements AIProvider {
 
 		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
 		const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
-		const response = await fetch(endpoint, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${this.config.apiKey}`
-			},
-			body: JSON.stringify({
-				model: options?.model || this.config.model || 'gpt-3.5-turbo',
-				messages: requestMessages,
-				max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
-				temperature: options?.temperature || this.config.temperature || 0.7
-			})
+		
+		const requestBody = JSON.stringify({
+			model: options?.model || this.config.model || 'gpt-3.5-turbo',
+			messages: requestMessages,
+			max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
+			temperature: options?.temperature || this.config.temperature || 0.7
 		});
 
-		if (!response.ok) {
-			throw new Error(`OpenAI API error: ${response.statusText}`);
+		// Retry logic for 500-level errors
+		const maxRetries = 3;
+		const baseDelay = 1000; // 1 second
+
+		for (let attempt = 0; attempt <= maxRetries; attempt++) {
+			try {
+				const response = await fetch(endpoint, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${this.config.apiKey}`
+					},
+					body: requestBody
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					return data.choices[0].message.content;
+				}
+
+				// Check if it's a 500-level error that we should retry
+				if (response.status >= 500 && attempt < maxRetries) {
+					const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue; // Retry
+				}
+
+				// For all other errors or final attempt, throw error
+				throw new Error(`OpenAI API error: ${response.statusText}`);
+
+			} catch (error) {
+				// Network errors - retry if not final attempt
+				if (attempt < maxRetries && error instanceof Error && error.message.includes('fetch')) {
+					const delay = baseDelay * Math.pow(2, attempt);
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue;
+				}
+				
+				// Re-throw the error if it's the final attempt or not a network error
+				throw error;
+			}
 		}
 
-		const data = await response.json();
-		return data.choices[0].message.content;
+		// This should never be reached, but TypeScript wants it
+		throw new Error('OpenAI API: Maximum retries exceeded');
 	}
 
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {

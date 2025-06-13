@@ -3,6 +3,7 @@ import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings } from './licensing/types';
 import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
+import { getAvailableModels } from './ai/models';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -612,14 +613,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add current Claude models (hardcoded from API docs)
-		const currentModels = [
-			{ value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-			{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-			{ value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
-			{ value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
-			{ value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' }
-		];
+		// Use centralized model definitions
+		const currentModels = getAvailableModels('claude');
 
 		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
@@ -669,14 +664,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add current OpenAI models (hardcoded)
-		const currentModels = [
-			{ value: 'gpt-4.1-2025-04-14', label: 'GPT-4.1' },
-			{ value: 'gpt-4.1-mini-2025-04-14', label: 'GPT-4.1 Mini' },
-			{ value: 'gpt-4.1-nano-2025-04-14', label: 'GPT-4.1 Nano' },
-			{ value: 'gpt-4o', label: 'GPT-4o' },
-			{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
-		];
+		// Use centralized model definitions
+		const currentModels = getAvailableModels('openai');
 
 		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
@@ -724,13 +713,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Clear existing options
 		dropdown.selectEl.empty();
 		
-		// Add current Gemini models (hardcoded)
-		const currentModels = [
-			{ value: 'gemini-2.5-flash-preview-04-17', label: 'Gemini 2.5 Flash' },
-			{ value: 'gemini-2.5-pro-preview-03-25', label: 'Gemini 2.5 Pro' },
-			{ value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-			{ value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' }
-		];
+		// Use centralized model definitions
+		const currentModels = getAvailableModels('google');
 
 		currentModels.forEach(model => {
 			dropdown.addOption(model.value, model.label);
@@ -918,7 +902,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 
 		// Feature availability check
-		if (!this.plugin.featureManager.isFeatureEnabled('custom-commands')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const noticeEl = commandContainer.createDiv({ cls: 'nova-feature-notice' });
 			noticeEl.innerHTML = `
 				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
