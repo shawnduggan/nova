@@ -915,6 +915,40 @@
     display: none; /* Hide role for system messages */
 }
 
+/* Error Message Styles */
+.nova-message-error {
+    margin: 0 auto !important;
+    background: rgba(244, 67, 54, 0.1) !important;
+    color: #f44336 !important;
+    border: 1px solid rgba(244, 67, 54, 0.3) !important;
+    text-align: center !important;
+    font-size: 0.9em !important;
+    border-radius: 12px !important;
+    max-width: 70% !important;
+    padding: 8px 12px !important;
+}
+
+.nova-message-error .nova-message-role {
+    display: none; /* Hide role for error messages */
+}
+
+/* Success Message Styles */
+.nova-message-success {
+    margin: 0 auto !important;
+    background: rgba(76, 175, 80, 0.1) !important;
+    color: #4caf50 !important;
+    border: 1px solid rgba(76, 175, 80, 0.3) !important;
+    text-align: center !important;
+    font-size: 0.9em !important;
+    border-radius: 12px !important;
+    max-width: 70% !important;
+    padding: 8px 12px !important;
+}
+
+.nova-message-success .nova-message-role {
+    display: none; /* Hide role for success messages */
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
     .nova-input-container button {
@@ -934,6 +968,15 @@
     
     .nova-feature-list {
         padding: 0.8em;
+    }
+    
+    /* Additional mobile spacing for status bar */
+    .nova-wrapper {
+        padding-bottom: 20px !important;
+    }
+    
+    .nova-input-container {
+        padding-bottom: 10px !important;
     }
 }
 

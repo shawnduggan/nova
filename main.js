@@ -544,7 +544,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
 			flex-direction: column;
 			height: 100%;
 			overflow: hidden;
-			padding-bottom: ${import_obsidian2.Platform.isDesktopApp ? "25px" : "0"};
+			padding-bottom: ${import_obsidian2.Platform.isDesktopApp ? "25px" : "20px"};
 		`;
     const headerEl = wrapperEl.createDiv({ cls: "nova-header" });
     headerEl.style.cssText = `
@@ -581,6 +581,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
       })
     );
     this.loadConversationForActiveFile();
+    setTimeout(() => this.refreshProviderStatus(), 100);
   }
   async onClose() {
     var _a;
@@ -804,6 +805,30 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
       });
     }, 50);
   }
+  addErrorMessage(content) {
+    const messageEl = this.chatContainer.createDiv({ cls: "nova-message nova-message-error" });
+    const contentEl = messageEl.createEl("div", { cls: "nova-message-content" });
+    if (content.includes("<svg")) {
+      contentEl.innerHTML = content;
+    } else {
+      contentEl.textContent = content;
+    }
+    setTimeout(() => {
+      this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+    }, 50);
+  }
+  addSuccessMessage(content) {
+    const messageEl = this.chatContainer.createDiv({ cls: "nova-message nova-message-success" });
+    const contentEl = messageEl.createEl("div", { cls: "nova-message-content" });
+    if (content.includes("<svg")) {
+      contentEl.innerHTML = content;
+    } else {
+      contentEl.textContent = content;
+    }
+    setTimeout(() => {
+      this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+    }, 50);
+  }
   addWelcomeMessage(message) {
     const welcomeEl = this.chatContainer.createDiv({ cls: "nova-welcome" });
     welcomeEl.style.cssText = `
@@ -926,7 +951,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
       const providerId = providerCommands[command];
       await this.plugin.settingTab.setCurrentProvider(providerId);
       await this.plugin.saveSettings();
-      this.addMessage("system", this.createIconMessage("refresh-cw", `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
+      this.addSuccessMessage(this.createIconMessage("refresh-cw", `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
       return true;
     }
     if (this.plugin.featureManager.isFeatureEnabled("custom-commands")) {
@@ -938,7 +963,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
         return true;
       }
     }
-    this.addMessage("system", this.createIconMessage("help-circle", `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
+    this.addErrorMessage(this.createIconMessage("help-circle", `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
     return true;
   }
   createCommandPicker() {
@@ -1530,6 +1555,11 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
     var _a, _b;
     const message = this.textArea.getValue().trim();
     if (!message) return;
+    const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+    if (!currentProviderType) {
+      this.addErrorMessage(this.createIconMessage("alert-circle", "Nova is disabled or no AI provider is available. Please configure an AI provider in settings."));
+      return;
+    }
     if (message.startsWith(":")) {
       const commandResult = await this.handleColonCommand(message);
       if (commandResult) {
@@ -1561,7 +1591,7 @@ var NovaSidebarView = class extends import_obsidian2.ItemView {
           if (newDocsCount > 0) {
             const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
             const docNames = newDocs.map((doc) => doc.file.basename).join(", ");
-            this.addMessage("system", this.createIconMessage("check-circle", `Added ${newDocsCount} document${newDocsCount !== 1 ? "s" : ""} to persistent context: ${docNames}`));
+            this.addSuccessMessage(this.createIconMessage("check-circle", `Added ${newDocsCount} document${newDocsCount !== 1 ? "s" : ""} to persistent context: ${docNames}`));
           }
           this.textArea.setValue("");
           setTimeout(() => this.autoGrowTextarea(), 0);
@@ -1643,11 +1673,12 @@ User Request: ${processedMessage}`;
         }
       }
       loadingEl.remove();
-      if (activeFile && response) {
-        await this.plugin.documentEngine.addAssistantMessage(response);
+      const filteredResponse = response ? this.filterThinkingContent(response) : response;
+      if (activeFile && filteredResponse) {
+        await this.plugin.documentEngine.addAssistantMessage(filteredResponse);
       }
-      if (response) {
-        this.addMessage("assistant", response);
+      if (filteredResponse) {
+        this.addMessage("assistant", filteredResponse);
       }
     } catch (error) {
       const loadingEl = this.chatContainer.querySelector(".nova-loading");
@@ -1860,12 +1891,55 @@ User Request: ${processedMessage}`;
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #4caf50;
+			background: #f44336;
 		`;
     const headerProviderName = providerStatus.createSpan({ text: "Loading..." });
-    this.plugin.aiProviderManager.getCurrentProviderName().then((name) => {
-      headerProviderName.setText(name);
-    });
+    this.updateProviderStatus(headerStatusDot, headerProviderName);
+  }
+  /**
+   * Update provider status dot and name
+   */
+  async updateProviderStatus(statusDot, nameElement) {
+    const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+    if (currentProviderType) {
+      statusDot.style.background = "#4caf50";
+      const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+      nameElement.setText(displayText);
+    } else {
+      statusDot.style.background = "#f44336";
+      const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+      nameElement.setText(currentProviderName);
+    }
+    this.updateSendButtonState();
+  }
+  /**
+   * Update send button enabled/disabled state based on provider availability
+   */
+  async updateSendButtonState() {
+    const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+    this.sendButton.setDisabled(!currentProviderType);
+  }
+  /**
+   * Filter thinking content from AI responses
+   * Removes content between <thinking> and </thinking> tags
+   */
+  filterThinkingContent(content) {
+    return content.replace(/<thinking[\s\S]*?<\/thinking>/gi, "").trim();
+  }
+  /**
+   * Refresh all provider status indicators in the UI
+   */
+  async refreshProviderStatus() {
+    const headerStatusDot = this.containerEl.querySelector(".nova-status-dot-small");
+    const headerProviderName = headerStatusDot == null ? void 0 : headerStatusDot.nextElementSibling;
+    if (headerStatusDot && headerProviderName) {
+      await this.updateProviderStatus(headerStatusDot, headerProviderName);
+    }
+    const dropdownStatusDot = this.containerEl.querySelector(".nova-provider-button .nova-status-dot-small");
+    const dropdownProviderName = dropdownStatusDot == null ? void 0 : dropdownStatusDot.nextElementSibling;
+    if (dropdownStatusDot && dropdownProviderName) {
+      await this.updateProviderStatus(dropdownStatusDot, dropdownProviderName);
+    }
   }
   /**
    * Create provider dropdown for all users with their own API keys
@@ -1896,7 +1970,7 @@ User Request: ${processedMessage}`;
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #4caf50;
+			background: #f44336;
 		`;
     const providerName = providerButton.createSpan({ text: "Loading..." });
     const dropdownArrow = providerButton.createSpan({ text: "\u25BC" });
@@ -1921,14 +1995,7 @@ User Request: ${processedMessage}`;
 		`;
     let isDropdownOpen = false;
     const updateCurrentProvider = async () => {
-      const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-      if (currentProviderType) {
-        const displayText = this.getProviderWithModelDisplayName(currentProviderType);
-        providerName.setText(displayText);
-      } else {
-        const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-        providerName.setText(currentProviderName);
-      }
+      await this.updateProviderStatus(statusDot, providerName);
     };
     const toggleDropdown = () => {
       isDropdownOpen = !isDropdownOpen;
@@ -2276,6 +2343,7 @@ User Request: ${processedMessage}`;
       this.plugin.settings.platformSettings[platform].primaryProvider = providerType;
       await this.plugin.saveSettings();
       this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+      setTimeout(() => this.refreshProviderStatus(), 100);
     } catch (error) {
       console.error("Error switching provider:", error);
       this.addMessage("system", this.createIconMessage("x-circle", `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));

@@ -389,3 +389,54 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - Established design system for consistent UI development
 - Improved code maintainability and reduced styling duplication
 - All panels now follow the same visual patterns as the document context panel
+
+---
+
+### ✅ Error Handling & Loading State Improvements (June 13, 2025)
+
+**Problem**: Multiple UX issues affecting error display, thinking model content handling, mobile validation, and layout.
+
+**Solution**: Comprehensive fixes to improve error handling, content filtering, and mobile experience.
+
+**Issues Fixed:**
+
+1. **Error Message Styling**
+   - Created modern error styling with `.nova-message-error` and `.nova-message-success` CSS classes
+   - Added `addErrorMessage()` and `addSuccessMessage()` helper methods
+   - Replaced old blocky bubble styling with clean, consistent styling that matches success messages
+   - Updated key error messages to use new modern styling
+
+2. **Thinking Content Filtering**
+   - Added `filterThinkingContent()` method to remove `<thinking>` tags from AI responses
+   - Applied filtering to both chat display and conversation storage
+   - Prevents thinking content from appearing in chat messages and document edits
+   - Works with all thinking models (Qwen3, Claude, etc.)
+
+3. **Mobile Send Button & Status Validation**
+   - Fixed send button being enabled when Nova is disabled in settings
+   - Added initial status refresh to ensure indicators update properly on startup
+   - Enhanced status indicators to show accurate green/red status based on provider availability
+   - Improved real-time status updates when providers change
+
+4. **Mobile Layout Improvements**
+   - Added 20px bottom padding on mobile to account for status bar height
+   - Enhanced mobile CSS with additional input container padding
+   - Fixed Nova sidebar going 100% height and pushing input too low
+   - Improved mobile input area accessibility
+
+**Files Modified:**
+- `styles.css` - Added error/success message classes and mobile padding rules
+- `src/ui/sidebar-view.ts` - Added helper methods, content filtering, and status refresh logic
+
+**Benefits:**
+- **Consistent Error UX**: Modern error styling that matches the design system
+- **Clean Content Display**: Thinking tags no longer pollute chat or document content
+- **Better Mobile Experience**: Improved button validation and layout spacing
+- **Reliable Status Indicators**: Accurate real-time feedback on Nova's availability
+- **Enhanced Accessibility**: Input areas properly positioned on mobile devices
+
+**User Impact:**
+- No more confusing `<thinking>` content in responses or document edits
+- Clear visual distinction between errors, success messages, and regular content
+- Mobile users can't accidentally try to send when Nova is disabled
+- Better mobile layout prevents input area from being hidden by status bars

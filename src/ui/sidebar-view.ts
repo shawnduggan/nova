@@ -62,7 +62,7 @@ export class NovaSidebarView extends ItemView {
 			flex-direction: column;
 			height: 100%;
 			overflow: hidden;
-			padding-bottom: ${Platform.isDesktopApp ? '25px' : '0'};
+			padding-bottom: ${Platform.isDesktopApp ? '25px' : '20px'};
 		`;
 		
 		// Header with provider info
@@ -116,6 +116,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Load conversation for current file
 		this.loadConversationForActiveFile();
+		
+		// Initial status refresh to ensure all indicators are up to date
+		setTimeout(() => this.refreshProviderStatus(), 100);
 	}
 
 	async onClose() {
@@ -415,6 +418,40 @@ export class NovaSidebarView extends ItemView {
 		}, 50);
 	}
 
+	private addErrorMessage(content: string) {
+		const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-error' });
+		
+		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+		// Support icons in error messages
+		if (content.includes('<svg')) {
+			contentEl.innerHTML = content;
+		} else {
+			contentEl.textContent = content;
+		}
+
+		// Auto-scroll to bottom
+		setTimeout(() => {
+			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+		}, 50);
+	}
+
+	private addSuccessMessage(content: string) {
+		const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-success' });
+		
+		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+		// Support icons in success messages
+		if (content.includes('<svg')) {
+			contentEl.innerHTML = content;
+		} else {
+			contentEl.textContent = content;
+		}
+
+		// Auto-scroll to bottom
+		setTimeout(() => {
+			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+		}, 50);
+	}
+
 	private addWelcomeMessage(message?: string) {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 		welcomeEl.style.cssText = `
@@ -557,7 +594,7 @@ export class NovaSidebarView extends ItemView {
 			const providerId = providerCommands[command];
 			await this.plugin.settingTab.setCurrentProvider(providerId);
 			await this.plugin.saveSettings();
-			this.addMessage('system', this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
+			this.addSuccessMessage(this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
 			return true;
 		}
 
@@ -575,7 +612,7 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Unknown command
-		this.addMessage('system', this.createIconMessage('help-circle', `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
+		this.addErrorMessage(this.createIconMessage('help-circle', `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
 		return true;
 	}
 
@@ -1314,6 +1351,13 @@ export class NovaSidebarView extends ItemView {
 		const message = this.textArea.getValue().trim();
 		if (!message) return;
 
+		// Check if Nova is enabled and a provider is available
+		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		if (!currentProviderType) {
+			this.addErrorMessage(this.createIconMessage('alert-circle', 'Nova is disabled or no AI provider is available. Please configure an AI provider in settings.'));
+			return;
+		}
+
 		// Check for command system feature availability
 		if (message.startsWith(':')) {
 			const commandResult = await this.handleColonCommand(message);
@@ -1360,7 +1404,7 @@ export class NovaSidebarView extends ItemView {
 						// Get the newly added documents (last N documents)
 						const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
 						const docNames = newDocs.map(doc => doc.file.basename).join(', ');
-						this.addMessage('system', this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
+						this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
 					}
 					
 					// Clear input and update context indicator
@@ -1473,14 +1517,17 @@ export class NovaSidebarView extends ItemView {
 			// Remove loading indicator
 			loadingEl.remove();
 			
-			// Store response in conversation manager (if response exists)
-			if (activeFile && response) {
-				await this.plugin.documentEngine.addAssistantMessage(response);
+			// Filter thinking content from response
+			const filteredResponse = response ? this.filterThinkingContent(response) : response;
+			
+			// Store filtered response in conversation manager (if response exists)
+			if (activeFile && filteredResponse) {
+				await this.plugin.documentEngine.addAssistantMessage(filteredResponse);
 			}
 			
-			// Add AI response (only if there is a response)
-			if (response) {
-				this.addMessage('assistant', response);
+			// Add filtered AI response (only if there is a response)
+			if (filteredResponse) {
+				this.addMessage('assistant', filteredResponse);
 			}
 		} catch (error) {
 			// Remove loading indicator if it exists
@@ -1765,15 +1812,71 @@ export class NovaSidebarView extends ItemView {
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #4caf50;
+			background: #f44336;
 		`;
 		
 		const headerProviderName = providerStatus.createSpan({ text: 'Loading...' });
 		
-		// Update provider name asynchronously
-		this.plugin.aiProviderManager.getCurrentProviderName().then(name => {
-			headerProviderName.setText(name);
-		});
+		// Update provider name and status asynchronously
+		this.updateProviderStatus(headerStatusDot, headerProviderName);
+	}
+
+	/**
+	 * Update provider status dot and name
+	 */
+	private async updateProviderStatus(statusDot: HTMLElement, nameElement: HTMLElement): Promise<void> {
+		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		
+		if (currentProviderType) {
+			// Provider is available - show green status
+			statusDot.style.background = '#4caf50';
+			const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+			nameElement.setText(displayText);
+		} else {
+			// No provider available - show red status
+			statusDot.style.background = '#f44336';
+			const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+			nameElement.setText(currentProviderName);
+		}
+
+		// Update send button status
+		this.updateSendButtonState();
+	}
+
+	/**
+	 * Update send button enabled/disabled state based on provider availability
+	 */
+	private async updateSendButtonState(): Promise<void> {
+		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		this.sendButton.setDisabled(!currentProviderType);
+	}
+
+	/**
+	 * Filter thinking content from AI responses
+	 * Removes content between <thinking> and </thinking> tags
+	 */
+	private filterThinkingContent(content: string): string {
+		// Remove thinking tags and their content (case-insensitive, multi-line)
+		return content.replace(/<thinking[\s\S]*?<\/thinking>/gi, '').trim();
+	}
+
+	/**
+	 * Refresh all provider status indicators in the UI
+	 */
+	private async refreshProviderStatus(): Promise<void> {
+		// Update header status if it exists
+		const headerStatusDot = this.containerEl.querySelector('.nova-status-dot-small') as HTMLElement;
+		const headerProviderName = headerStatusDot?.nextElementSibling as HTMLElement;
+		if (headerStatusDot && headerProviderName) {
+			await this.updateProviderStatus(headerStatusDot, headerProviderName);
+		}
+
+		// Update dropdown status if it exists
+		const dropdownStatusDot = this.containerEl.querySelector('.nova-provider-button .nova-status-dot-small') as HTMLElement;
+		const dropdownProviderName = dropdownStatusDot?.nextElementSibling as HTMLElement;
+		if (dropdownStatusDot && dropdownProviderName) {
+			await this.updateProviderStatus(dropdownStatusDot, dropdownProviderName);
+		}
 	}
 
 	/**
@@ -1809,7 +1912,7 @@ export class NovaSidebarView extends ItemView {
 			width: 6px;
 			height: 6px;
 			border-radius: 50%;
-			background: #4caf50;
+			background: #f44336;
 		`;
 
 		// Provider name
@@ -1843,16 +1946,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Update current provider display
 		const updateCurrentProvider = async () => {
-			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-			
-			if (currentProviderType) {
-				// Show just the model name, or provider name if no models
-				const displayText = this.getProviderWithModelDisplayName(currentProviderType);
-				providerName.setText(displayText);
-			} else {
-				const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-				providerName.setText(currentProviderName);
-			}
+			await this.updateProviderStatus(statusDot, providerName);
 		};
 
 		// Toggle dropdown
@@ -2277,6 +2371,9 @@ export class NovaSidebarView extends ItemView {
 			
 			// Re-initialize the provider manager with new settings
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+			
+			// Refresh status indicators
+			setTimeout(() => this.refreshProviderStatus(), 100);
 			
 		} catch (error) {
 			console.error('Error switching provider:', error);
