@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
@@ -103,6 +103,19 @@ export class NovaSidebarView extends ItemView {
 		// Right side: Provider status and Clear button
 		const rightContainer = headerEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
+		
+		// Privacy indicator icon
+		const privacyIndicator = rightContainer.createSpan({ cls: 'nova-privacy-indicator' });
+		privacyIndicator.style.cssText = `
+			display: flex;
+			align-items: center;
+			padding: 4px;
+			color: var(--icon-color);
+		`;
+		this.updatePrivacyIndicator(privacyIndicator);
+		
+		// Store reference for updates
+		(this as any).privacyIndicator = privacyIndicator;
 		
 		// All users can switch providers freely
 		this.createProviderDropdown(rightContainer);
@@ -1895,6 +1908,31 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	/**
+	 * Update privacy indicator icon and tooltip based on current provider
+	 */
+	private async updatePrivacyIndicator(privacyIndicator: HTMLElement): Promise<void> {
+		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		
+		if (currentProviderType) {
+			const isLocalProvider = currentProviderType === 'ollama';
+			const iconName = isLocalProvider ? 'lock' : 'unlock';
+			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
+			
+			// Use Obsidian's setIcon function (same as ButtonComponent uses internally)
+			setIcon(privacyIndicator, iconName);
+			
+			// Set tooltip
+			privacyIndicator.setAttribute('aria-label', tooltip);
+			privacyIndicator.setAttribute('title', tooltip);
+		} else {
+			// No provider available - show generic privacy icon
+			setIcon(privacyIndicator, 'help-circle');
+			privacyIndicator.setAttribute('aria-label', 'No provider selected');
+			privacyIndicator.setAttribute('title', 'No provider selected');
+		}
+	}
+
+	/**
 	 * Filter thinking content from AI responses
 	 * Removes content between <think>/<thinking> and </think>/<thinking> tags
 	 */
@@ -1920,6 +1958,11 @@ export class NovaSidebarView extends ItemView {
 		const dropdownProviderName = dropdownStatusDot?.nextElementSibling as HTMLElement;
 		if (dropdownStatusDot && dropdownProviderName) {
 			await this.updateProviderStatus(dropdownStatusDot, dropdownProviderName);
+		}
+
+		// Update privacy indicator if it exists
+		if ((this as any).privacyIndicator) {
+			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 	}
 
