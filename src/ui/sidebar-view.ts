@@ -1849,55 +1849,7 @@ export class NovaSidebarView extends ItemView {
 		// In real implementation, this would display messages in the UI
 	}
 
-	/**
-	 * Create static provider status display
-	 */
-	private createStaticProviderStatus(container: HTMLElement): void {
-		const providerStatus = container.createDiv({ cls: 'nova-header-provider' });
-		providerStatus.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			font-size: 0.75em;
-			color: var(--text-muted);
-			opacity: 0.8;
-		`;
-		
-		const headerStatusDot = providerStatus.createSpan({ cls: 'nova-status-dot-small' });
-		headerStatusDot.style.cssText = `
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: var(--text-error);
-		`;
-		
-		const headerProviderName = providerStatus.createSpan({ text: 'Loading...' });
-		
-		// Update provider name and status asynchronously
-		this.updateProviderStatus(headerStatusDot, headerProviderName);
-	}
 
-	/**
-	 * Update provider status dot and name
-	 */
-	private async updateProviderStatus(statusDot: HTMLElement, nameElement: HTMLElement): Promise<void> {
-		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-		
-		if (currentProviderType) {
-			// Provider is available - show green status
-			statusDot.style.background = 'var(--text-success)';
-			const displayText = this.getProviderWithModelDisplayName(currentProviderType);
-			nameElement.setText(displayText);
-		} else {
-			// No provider available - show red status
-			statusDot.style.background = 'var(--text-error)';
-			const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-			nameElement.setText(currentProviderName);
-		}
-
-		// Update send button status
-		this.updateSendButtonState();
-	}
 
 	/**
 	 * Update send button enabled/disabled state based on provider availability
@@ -1946,23 +1898,17 @@ export class NovaSidebarView extends ItemView {
 	 * Refresh all provider status indicators in the UI
 	 */
 	private async refreshProviderStatus(): Promise<void> {
-		// Update header status if it exists
-		const headerStatusDot = this.containerEl.querySelector('.nova-status-dot-small') as HTMLElement;
-		const headerProviderName = headerStatusDot?.nextElementSibling as HTMLElement;
-		if (headerStatusDot && headerProviderName) {
-			await this.updateProviderStatus(headerStatusDot, headerProviderName);
-		}
-
-		// Update dropdown status if it exists
-		const dropdownStatusDot = this.containerEl.querySelector('.nova-provider-button .nova-status-dot-small') as HTMLElement;
-		const dropdownProviderName = dropdownStatusDot?.nextElementSibling as HTMLElement;
-		if (dropdownStatusDot && dropdownProviderName) {
-			await this.updateProviderStatus(dropdownStatusDot, dropdownProviderName);
-		}
-
 		// Update privacy indicator if it exists
 		if ((this as any).privacyIndicator) {
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		}
+
+		// Update send button state
+		this.updateSendButtonState();
+
+		// Update dropdown provider name if it exists
+		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
+			await (this as any).currentProviderDropdown.updateCurrentProvider();
 		}
 	}
 
@@ -1991,15 +1937,6 @@ export class NovaSidebarView extends ItemView {
 			border-radius: 4px;
 			cursor: pointer;
 			transition: background-color 0.2s ease;
-		`;
-
-		// Status dot
-		const statusDot = providerButton.createSpan({ cls: 'nova-status-dot-small' });
-		statusDot.style.cssText = `
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: var(--text-error);
 		`;
 
 		// Provider name
@@ -2033,7 +1970,14 @@ export class NovaSidebarView extends ItemView {
 
 		// Update current provider display
 		const updateCurrentProvider = async () => {
-			await this.updateProviderStatus(statusDot, providerName);
+			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+			if (currentProviderType) {
+				const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+				providerName.setText(displayText);
+			} else {
+				const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+				providerName.setText(currentProviderName);
+			}
 		};
 
 		// Toggle dropdown

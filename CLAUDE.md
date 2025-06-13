@@ -71,7 +71,7 @@
 
 #### 📋 **NEXT PRIORITY: Fix Known Issues**
 - ✅ **Privacy indicators implemented** - Lock/unlock icons now show data handling for each provider in sidebar header
-- [ ] **Green dot meaning unclear** - The green dot next to model names in provider dropdown shows green for all models - what does this indicate? Is it for privacy status?
+- ✅ **Provider status dots removed** - Eliminated confusing green/red status dots, simplified UI to focus on provider selection
 - [ ] **System instruction optimization** - Nova has targeting issues (always wants to insert at cursor instead of where requested). Explore optimizing system instruction for better Nova behavior and accuracy.
 - [ ] **Ollama appears on mobile** - On mobile, the provider dropdown contains Ollama as an option. Ollama should never be listed as an option on mobile.
 - [ ] Mobile performance testing on actual devices
