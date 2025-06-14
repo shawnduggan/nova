@@ -176,8 +176,15 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 1. [x] **Fix UI Icons** - Replace delete buttons with proper icons and red hover states
   - ✅ Clear all button uses trash-2 icon
   - ✅ Document row delete buttons use × symbol (working solution)
-2. [ ] **Update Manual Testing Plan** - Create comprehensive test plan for all cursor-only features  
-3. [ ] **Code Cleanup** - Remove commented code, stubs, backup files, and dead code from architectural changes
+2. [x] **Update Manual Testing Plan** - Create comprehensive test plan for all cursor-only features
+  - ✅ Added cursor-only architecture validation section
+  - ✅ Updated command descriptions for cursor/selection/document targets  
+  - ✅ Updated context panel tests for new UI icons
+  - ✅ Clear overview noting cursor-only transformation  
+3. [x] **Code Cleanup** - Remove commented code, stubs, backup files, and dead code from architectural changes
+  - ✅ Removed sidebar-view.ts.backup file
+  - ✅ Cleaned legacy comments in licensing/types.ts
+  - ⚠️ **Future Task**: Full refactoring to remove compatibility delegations in sidebar-view.ts (50+ property references require systematic replacement)
 4. [ ] **Fix Context-Only Bug** - Resolve LLM outputting last section when adding document without text
 5. [ ] **Critical Cursor Position Fix** - Solve cursor position loss when switching between document and chat
 
@@ -203,6 +210,13 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - Usage insights dashboard
 - Enterprise features development
 - Advanced conversation management
+
+### **Phase 4: Technical Debt & Architecture** (Low Priority)
+- [ ] **Full Sidebar Refactoring** - Remove compatibility delegations in sidebar-view.ts
+  - Replace 50+ legacy property references with direct component access
+  - Systematic method-by-method refactoring required
+  - Should be treated as dedicated architectural improvement task
+  - Requires comprehensive testing after each component update
 
 ---
 

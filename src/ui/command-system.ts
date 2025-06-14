@@ -52,7 +52,6 @@ export class CommandSystem {
 	}
 
 	createCommandPicker(): void {
-		// Legacy method - use createCommandPickerInContainer instead
 		this.createCommandPickerInContainer(this.container);
 	}
 

@@ -1472,7 +1472,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     super(leaf);
     this.currentFile = null;
     this.currentContext = null;
-    // Command system compatibility - stub out old methods
+    // Command system delegation
     this._commandPickerItems = [];
     this._selectedCommandIndex = -1;
     this._isCommandMenuVisible = false;
@@ -1484,7 +1484,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     this.plugin = plugin;
     this.multiDocHandler = new MultiDocContextHandler(this.app);
   }
-  // Legacy compatibility delegates - Forward to new architecture
+  // Cursor-only architecture - delegate to new components
   get textArea() {
     var _a;
     return (_a = this.inputHandler) == null ? void 0 : _a.getTextArea();
@@ -1515,7 +1515,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
   set isCommandMenuVisible(value) {
     this._isCommandMenuVisible = value;
   }
-  // Context system compatibility - forward to ContextManager
+  // Context system delegation
   get contextPreview() {
     var _a;
     return (_a = this.contextManager) == null ? void 0 : _a.contextPreview;
@@ -1526,20 +1526,6 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
   }
   set contextIndicator(value) {
     this._contextIndicator = value;
-  }
-  // Stub out old DOM elements that should no longer be used
-  get commandPicker() {
-    return null;
-  }
-  set commandPicker(value) {
-  }
-  get commandMenu() {
-    return null;
-  }
-  set commandMenu(value) {
-  }
-  get commandButton() {
-    return null;
   }
   getViewType() {
     return VIEW_TYPE_NOVA_SIDEBAR;
@@ -1611,7 +1597,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     setTimeout(() => {
       var _a;
       if ((_a = this.textArea) == null ? void 0 : _a.inputEl) {
-        this.textArea.inputEl.focus();
+        this.inputHandler.getTextArea().inputEl.focus();
       }
     }, _NovaSidebarView.FOCUS_DELAY_MS);
   }
@@ -1884,7 +1870,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     if (this.plugin.featureManager.isFeatureEnabled("commands")) {
       const customCommand = (_a = this.plugin.settings.customCommands) == null ? void 0 : _a.find((cmd) => cmd.trigger === command);
       if (customCommand) {
-        this.textArea.setValue(customCommand.template);
+        this.inputHandler.getTextArea().setValue(customCommand.template);
         setTimeout(() => this.autoGrowTextarea(), 0);
         this.addMessage("system", this.createIconMessage("edit", `Loaded template: ${customCommand.name}`));
         return true;
@@ -1910,7 +1896,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
 		`;
   }
   handleInputChange() {
-    const value = this.textArea.getValue();
+    const value = this.inputHandler.getTextArea().getValue();
     if (value.startsWith(":") && this.plugin.featureManager.isFeatureEnabled("commands")) {
       const query = value.slice(1).toLowerCase();
       this.showCommandPicker(query);
@@ -1988,7 +1974,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     return false;
   }
   selectCommand(trigger) {
-    this.textArea.setValue(`:${trigger}`);
+    this.inputHandler.getTextArea().setValue(`:${trigger}`);
     this.hideCommandPicker();
     this.handleSend();
   }
@@ -2075,7 +2061,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
   }
   executeCommandFromMenu(trigger) {
     this.hideCommandMenu();
-    this.textArea.setValue(`:${trigger}`);
+    this.inputHandler.getTextArea().setValue(`:${trigger}`);
     this.handleSend();
   }
   createContextIndicator() {
@@ -2137,7 +2123,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled("multi-doc-context")) {
       return;
     }
-    const message = this.textArea.getValue();
+    const message = this.inputHandler.getTextArea().getValue();
     if (!message) {
       this.contextPreview.style.display = "none";
       return;

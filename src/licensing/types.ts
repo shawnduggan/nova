@@ -6,7 +6,6 @@ export interface License {
 	licenseKey: string; // The original license key string
 }
 
-// Removed LicenseTier - no longer using tier-based system
 
 export interface SupernovaLicense {
 	email: string;
@@ -45,7 +44,6 @@ export interface FeatureFlag {
 	earlyAccessOnly?: boolean;
 }
 
-// Removed FeatureTier enum - using time-based feature release instead
 
 export interface FeatureAccessResult {
 	allowed: boolean;

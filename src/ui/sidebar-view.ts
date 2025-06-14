@@ -25,12 +25,12 @@ export class NovaSidebarView extends ItemView {
 	private contextManager!: ContextManager;
 	private chatRenderer!: ChatRenderer;
 	
-	// Legacy compatibility delegates - Forward to new architecture
+	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
 	private get wikilinkAutocomplete() { return this.inputHandler ? { destroy: () => {} } : null; }
 	private get autoGrowTextarea() { return () => {}; }
 	
-	// Command system compatibility - stub out old methods
+	// Command system delegation
 	private _commandPickerItems: any[] = [];
 	private get commandPickerItems() { return this._commandPickerItems; }
 	private set commandPickerItems(value: any[]) { this._commandPickerItems = value; }
@@ -41,18 +41,16 @@ export class NovaSidebarView extends ItemView {
 	private get isCommandMenuVisible() { return this._isCommandMenuVisible; }
 	private set isCommandMenuVisible(value: boolean) { this._isCommandMenuVisible = value; }
 	
-	// Context system compatibility - forward to ContextManager
+	// Context system delegation
 	private get contextPreview() { return this.contextManager?.contextPreview; }
 	private _contextIndicator: any;
 	private get contextIndicator() { return this._contextIndicator || this.contextManager?.contextIndicator; }
 	private set contextIndicator(value: any) { this._contextIndicator = value; }
 	
-	// Stub out old DOM elements that should no longer be used
-	private get commandPicker(): any { return null; }
-	private set commandPicker(value: any) { /* no-op */ }
-	private get commandMenu(): any { return null; }
-	private set commandMenu(value: any) { /* no-op */ }
-	private get commandButton(): any { return null; }
+	// Component references
+	private commandPicker!: HTMLElement;
+	private commandMenu!: HTMLElement;
+	private commandButton!: ButtonComponent;
 	
 	
 	// Performance optimization - debouncing and timing constants
@@ -174,7 +172,7 @@ export class NovaSidebarView extends ItemView {
 		// Auto-focus input for immediate typing
 		setTimeout(() => {
 			if (this.textArea?.inputEl) {
-				this.textArea.inputEl.focus();
+				this.inputHandler.getTextArea().inputEl.focus();
 			}
 		}, NovaSidebarView.FOCUS_DELAY_MS);
 	}
@@ -527,9 +525,9 @@ export class NovaSidebarView extends ItemView {
 			const customCommand = this.plugin.settings.customCommands?.find(cmd => cmd.trigger === command);
 			if (customCommand) {
 				// Execute custom command
-				this.textArea.setValue(customCommand.template);
+				this.inputHandler.getTextArea().setValue(customCommand.template);
 				// Trigger auto-grow after setting template
-				setTimeout(() => this.autoGrowTextarea(), 0);
+					setTimeout(() => this.autoGrowTextarea(), 0);
 				this.addMessage('system', this.createIconMessage('edit', `Loaded template: ${customCommand.name}`));
 				return true;
 			}
@@ -558,7 +556,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private handleInputChange(): void {
-		const value = this.textArea.getValue();
+		const value = this.inputHandler.getTextArea().getValue();
 		
 		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const query = value.slice(1).toLowerCase();
@@ -662,7 +660,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private selectCommand(trigger: string): void {
-		this.textArea.setValue(`:${trigger}`);
+		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.hideCommandPicker();
 		// Trigger the command immediately
 		this.handleSend();
@@ -777,7 +775,7 @@ export class NovaSidebarView extends ItemView {
 		this.hideCommandMenu();
 		
 		// Execute the command directly
-		this.textArea.setValue(`:${trigger}`);
+		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.handleSend();
 	}
 
@@ -853,7 +851,7 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
-		const message = this.textArea.getValue();
+		const message = this.inputHandler.getTextArea().getValue();
 		if (!message) {
 			this.contextPreview.style.display = 'none';
 			return;

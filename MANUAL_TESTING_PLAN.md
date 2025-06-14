@@ -2,7 +2,9 @@
 
 ## Overview
 
-This manual testing plan covers comprehensive testing of Nova's features across different platforms and scenarios to ensure ship-ready quality.
+This manual testing plan covers comprehensive testing of Nova's **cursor-only editing system** across different platforms and scenarios to ensure ship-ready quality.
+
+**IMPORTANT**: Nova has completed its transformation to a cursor-only architecture. All section targeting and location-based UI has been removed. Edit operations now work exclusively at cursor position, with selection, or on entire documents.
 
 ## Test Environment Setup
 
@@ -52,12 +54,23 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Test with running Ollama instance
 - [ ] Handle offline/unreachable gracefully
 
-### 3. Core Document Editing Commands
+### 3. Cursor-Only Editing System
+
+#### Cursor-Only Architecture Validation
+- [ ] All edit operations happen at cursor position only
+- [ ] No section targeting or location-based UI remains
+- [ ] Edit commands work with four targets: cursor, selection, document, end
+- [ ] Context-only mode works when adding documents without text
+- [ ] Cursor position preserved when switching between document and chat
+- [ ] Clean, simplified architecture with no dead code
+
+### 4. Core Document Editing Commands (Cursor-Only System)
 
 #### Add Command
-- [ ] Add content to empty document
-- [ ] Add content to document with existing content
-- [ ] Add content with selection (insertion at cursor)
+- [ ] Add content at cursor position in empty document
+- [ ] Add content at cursor position in document with existing content  
+- [ ] Add content at end of document
+- [ ] Add content to entire document scope
 - [ ] Add content with complex instructions
 - [ ] Handle long generation times
 - [ ] Cancel operation works correctly
@@ -65,24 +78,28 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 #### Edit Command
 - [ ] Edit selected text with simple instruction
 - [ ] Edit selected text with complex instruction
-- [ ] Edit entire document when no selection
+- [ ] Edit at cursor position when no selection
+- [ ] Edit entire document scope
 - [ ] Preserve document formatting
 - [ ] Handle undo/redo correctly
 
 #### Delete Command
 - [ ] Delete selected text
-- [ ] Delete specific content by description
+- [ ] Delete content at cursor position
+- [ ] Delete entire document content
 - [ ] Handle when content not found
 - [ ] Preserve surrounding context
 
 #### Grammar Command
 - [ ] Fix grammar in selected text
 - [ ] Fix grammar in entire document
+- [ ] Reject cursor-only targeting (requires selection or document)
 - [ ] Handle text without errors gracefully
 - [ ] Preserve original meaning
 
 #### Rewrite Command
 - [ ] Rewrite selected text with style instruction
+- [ ] Rewrite at cursor position
 - [ ] Rewrite entire document
 - [ ] Handle complex rewrite requests
 - [ ] Maintain document structure
@@ -95,7 +112,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Remove properties by setting to null
 - [ ] Preserve existing properties while updating others
 
-### 4. Sidebar Chat Interface
+### 5. Sidebar Chat Interface
 
 #### Basic Chat Functionality
 - [ ] Open sidebar via ribbon icon
@@ -116,7 +133,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Multiple files maintain separate conversations
 - [ ] Context tracking works with split panes
 
-### 5. Command System (Supernova Early Access)
+### 6. Command System (Supernova Early Access)
 
 #### Colon Trigger System
 - [ ] `:claude` switches to Claude
@@ -148,7 +165,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Custom commands appear in picker/menu
 - [ ] Custom command templates work correctly
 
-### 6. Multi-Document Context
+### 7. Multi-Document Context
 
 #### Document Reference Parsing
 - [ ] `[[document]]` syntax parses correctly
@@ -174,8 +191,9 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 #### Context Panel UX
 - [ ] Expandable thin line appears when context exists
 - [ ] Click/tap expands management overlay upward
-- [ ] Individual document remove buttons work
-- [ ] Clear all button works
+- [ ] Individual document remove buttons work (× symbol)
+- [ ] Clear all button works (trash icon)
+- [ ] Both buttons have proper red hover states
 - [ ] Mobile touch targets are adequate (44px+)
 - [ ] Outside click collapses overlay
 - [ ] "Read-only" badges appear on context documents
@@ -191,14 +209,14 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Workspace automatically activates conversation file when needed
 - [ ] Security validation works across all platforms (desktop/mobile)
 
-### 7. Auto-Growing Input (Supernova Early Access)
+### 8. Auto-Growing Input (Supernova Early Access)
 - [ ] Input starts with appropriate default height
 - [ ] Input grows smoothly as content increases
 - [ ] Maximum height constraint works (6-8 lines)
 - [ ] Mobile vs desktop sizing differs appropriately
 - [ ] Integration with command button works
 
-### 8. Visual Design & User Experience
+### 9. Visual Design & User Experience
 
 #### Native Icon System
 - [ ] All UI elements use clean SVG icons (no emojis)
@@ -225,7 +243,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Message doesn't interfere with normal chat usage
 - [ ] Appropriate styling matches plugin design
 
-### 9. Thinking Content Filter
+### 10. Thinking Content Filter
 
 #### AI Response Filtering
 - [ ] Responses with `<thinking>` tags have thinking content removed
@@ -239,7 +257,7 @@ This manual testing plan covers comprehensive testing of Nova's features across 
 - [ ] Edge cases handled (malformed tags, partial tags)
 - [ ] Filtering works across all AI providers
 
-### 10. Licensing & Feature Management
+### 11. Licensing & Feature Management
 
 #### Supernova License Validation
 - [ ] Valid Supernova license enables early access features

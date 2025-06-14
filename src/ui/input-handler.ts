@@ -35,8 +35,7 @@ export class InputHandler {
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
 		
-		// Create the command button BEFORE the send button to get proper order
-		// Remove send button temporarily
+		// Create command button before send button for proper DOM order
 		const sendButtonEl = this.sendButton.buttonEl;
 		sendButtonEl.remove();
 		
