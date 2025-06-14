@@ -16,11 +16,8 @@ export interface EditCommand {
     /** The type of edit action to perform */
     action: EditAction;
     
-    /** The target element in the document */
-    target: 'section' | 'paragraph' | 'selection' | 'document' | 'end';
-    
-    /** Optional heading or text to locate the target */
-    location?: string;
+    /** The target element in the document - simplified for cursor-only editing */
+    target: 'cursor' | 'selection' | 'document' | 'end';
     
     /** The user's original instruction */
     instruction: string;

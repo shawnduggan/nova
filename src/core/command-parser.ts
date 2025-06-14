@@ -27,7 +27,7 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\bfix\s+.*\b(grammar|errors|mistakes|typos)\b/i,
             /\bcorrect\b.*\b(grammar|spelling|errors)\b/i
         ],
-        targets: ['selection', 'document', 'paragraph']
+        targets: ['selection', 'document']
     },
     {
         action: 'rewrite',
@@ -47,7 +47,7 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\btake\s+out\b/i,
             /\bdrop\b.*\b(section|paragraph|part)\b/i
         ],
-        targets: ['selection', 'section', 'line']
+        targets: ['selection']
     },
     {
         action: 'add',
@@ -60,7 +60,7 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\b(append|add)\b.*\b(after|following)\b/i,
             /\b(prepend|add)\b.*\b(before|preceding)\b/i
         ],
-        targets: ['end', 'section', 'paragraph']
+        targets: ['end']
     },
     {
         action: 'edit',
@@ -70,7 +70,7 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\b(fix|correct|adjust)\b(?!.*\b(grammar|spelling|errors)\b)/i,
             /\b(expand|shorten|condense)\b/i
         ],
-        targets: ['selection', 'section', 'paragraph']
+        targets: ['selection']
     },
     {
         action: 'metadata',
@@ -85,83 +85,36 @@ const COMMAND_PATTERNS: CommandPattern[] = [
     }
 ];
 
-/**
- * Location extraction patterns
- */
-const LOCATION_PATTERNS = [
-    // New semantic patterns for append/prepend to
-    /\b(?:append|prepend)\s+.*?\bto\s+(?:the\s+)?["']([^"']+?)["']/i,
-    /\b(?:append|prepend)\s+.*?\bto\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)(?:\s+(?:section|heading|part))?$/i,
-    /\b(?:append|prepend)\s+.*?\bto\s+([A-Za-z][A-Za-z0-9\s:&]*?)\s+(?:section|heading|part)/i,
-    
-    // Append/prepend with after/before (for mixed syntax like "append X after Y")
-    /\b(?:append|prepend)\s+.*?\b(?:after|before)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading)/i,
-    /\b(?:append|prepend)\s+.*?\b(?:after|before)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)\s+(?:section|heading)/i,
-    
-    // Insert patterns with after/before
-    /\binsert\s+.*?\b(?:after|before)\s+(?:the\s+)?["']([^"']+?)["']\s+heading/i,
-    /\binsert\s+.*?\b(?:after|before)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9\s:&]*?)\s+heading/i,
-    
-    // Original patterns for after/before the X heading/section
-    /\b(?:after|before|following|preceding)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
-    /\b(?:after|before|following|preceding)\s+the\s+([^"'\s]+(?:\s+(?:and|&)\s+[^"'\s]+)*)\s+(?:section|heading|part)/i,
-    
-    // Standard quoted patterns
-    /\b(?:to|in|at|under|within|inside)\s+(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
-    /\b(?:the\s+)?["']([^"']+?)["']\s+(?:section|heading|part)/i,
-    /\b(?:section|heading|part)\s+["']([^"']+?)["']/i,
-    /\b(?:section|heading)\s+(?:called|titled|named)\s+["']([^"']+?)["']/i,
-    /\b(?:called|titled|named)\s+["']([^"']+?)["']/i,
-    
-    // Generic pattern - must be last and more restrictive
-    /\b(?:in|at|under|within)\s+(?:the\s+)?([a-zA-Z][a-zA-Z\s&]*?)\s+(?:section|heading)\b/i
-];
 
 /**
- * Target type detection patterns
+ * Target type detection patterns - simplified for cursor-only editing
  */
 const TARGET_PATTERNS = [
     { pattern: /\b(?:selected|highlighted|chosen)\s+(?:text|content)/i, target: 'selection' },
-    { pattern: /\b(?:this|current|selected)\s+(?:paragraph|line)/i, target: 'paragraph' },
     { pattern: /\b(?:entire|whole|full)\s+(?:document|file|note)/i, target: 'document' },
-    { pattern: /\b(?:end|bottom|conclusion)/i, target: 'end' },
-    { pattern: /\b(?:section|heading|part)/i, target: 'section' }
+    { pattern: /\b(?:end|bottom|conclusion)/i, target: 'end' }
 ];
 
 export class CommandParser {
-    /**
-     * Convert path-style syntax (/) to hierarchical syntax (::) 
-     */
-    private convertPathSyntax(input: string): string {
-        // Convert forward slashes to :: for hierarchical paths
-        // But only for paths that look like section references
-        return input.replace(/\b([A-Za-z][A-Za-z0-9\s]*?)\/([A-Za-z][A-Za-z0-9\s\/]*)\b/g, '$1::$2');
-    }
     
     /**
      * Parse natural language input into an EditCommand
      */
     parseCommand(input: string, hasSelection: boolean = false): EditCommand {
-        // First convert path syntax (/) to hierarchical syntax (::)
-        const convertedInput = this.convertPathSyntax(input);
-        const normalizedInput = convertedInput.trim().toLowerCase();
+        const normalizedInput = input.trim().toLowerCase();
         
         // Detect the action type
         const action = this.detectAction(normalizedInput);
         
-        // Detect the target type AND position hint
-        const { target, positionHint } = this.detectTargetAndPosition(normalizedInput, hasSelection, action);
+        // Detect the target type (simplified for cursor-only editing)
+        const target = this.detectTarget(normalizedInput, hasSelection, action);
         
-        // Extract location if specified (use converted input)
-        const location = this.extractLocation(convertedInput);
-        
-        // Build context from the input (including position hint)
-        const context = this.extractContext(convertedInput, positionHint);
+        // Build context from the input
+        const context = this.extractContext(input);
         
         return {
             action,
             target,
-            location,
             instruction: input, // Keep original input for display
             context
         };
@@ -202,96 +155,49 @@ export class CommandParser {
     }
     
     /**
-     * Detect the target type AND position hint for the command
-     */
-    private detectTargetAndPosition(
-        input: string, 
-        hasSelection: boolean, 
-        action: EditAction
-    ): { target: EditCommand['target'], positionHint?: string } {
-        let positionHint: string | undefined;
-        
-        // Check for specific position indicators
-        if (/\bappend\s+.*?\b(?:to|after)\b/i.test(input)) {
-            positionHint = 'section-end';
-        } else if (/\bprepend\s+.*?\b(?:to|before)\b/i.test(input)) {
-            positionHint = 'section-start';
-        } else if (/\binsert\s+.*?\bafter\s+.*?\bheading\b/i.test(input)) {
-            positionHint = 'after-heading';
-        } else if (/\binsert\s+.*?\bbefore\s+.*?\bheading\b/i.test(input)) {
-            positionHint = 'before-heading';
-        }
-        
-        // Check explicit target patterns
-        for (const targetPattern of TARGET_PATTERNS) {
-            if (targetPattern.pattern.test(input)) {
-                return { 
-                    target: targetPattern.target as EditCommand['target'],
-                    positionHint 
-                };
-            }
-        }
-        
-        // Context-based target detection
-        if (hasSelection && (action === 'edit' || action === 'grammar' || action === 'delete')) {
-            return { target: 'selection', positionHint };
-        }
-        
-        // Action-specific defaults
-        let target: EditCommand['target'];
-        switch (action) {
-            case 'add':
-                target = input.includes('section') || input.includes('heading') ? 'section' : 'end';
-                break;
-            case 'edit':
-                target = hasSelection ? 'selection' : 'paragraph';
-                break;
-            case 'delete':
-                target = hasSelection ? 'selection' : 'section';
-                break;
-            case 'grammar':
-                target = hasSelection ? 'selection' : 'document';
-                break;
-            case 'rewrite':
-                target = 'end';
-                break;
-            default:
-                target = 'paragraph';
-        }
-        
-        return { target, positionHint };
-    }
-    
-    /**
-     * Detect the target type from the input (legacy wrapper)
+     * Detect the target type from the input (simplified for cursor-only editing)
      */
     private detectTarget(
         input: string, 
         hasSelection: boolean, 
         action: EditAction
     ): EditCommand['target'] {
-        const { target } = this.detectTargetAndPosition(input, hasSelection, action);
-        return target;
-    }
-    
-    /**
-     * Extract location information from the input
-     */
-    private extractLocation(input: string): string | undefined {
-        for (const pattern of LOCATION_PATTERNS) {
-            const match = pattern.exec(input);
-            if (match && match[1]) {
-                return match[1].trim();
+        // Check explicit target patterns
+        for (const targetPattern of TARGET_PATTERNS) {
+            if (targetPattern.pattern.test(input)) {
+                return targetPattern.target as EditCommand['target'];
             }
         }
         
-        return undefined;
+        // Context-based target detection
+        if (hasSelection && (action === 'edit' || action === 'grammar' || action === 'delete')) {
+            return 'selection';
+        }
+        
+        // Action-specific defaults
+        switch (action) {
+            case 'add':
+                return 'end';
+            case 'edit':
+                return hasSelection ? 'selection' : 'cursor';
+            case 'delete':
+                return hasSelection ? 'selection' : 'cursor';
+            case 'grammar':
+                return hasSelection ? 'selection' : 'document';
+            case 'rewrite':
+                return 'end';
+            case 'metadata':
+                return 'document';
+            default:
+                return 'cursor';
+        }
     }
+    
     
     /**
      * Extract additional context from the input
      */
-    private extractContext(input: string, positionHint?: string): string {
+    private extractContext(input: string): string {
         // Extract style/tone indicators
         const styleIndicators = [
             'formal', 'informal', 'casual', 'professional', 'academic', 'technical',
@@ -327,23 +233,6 @@ export class CommandParser {
             context += 'Use numbered lists. ';
         }
         
-        // Add position hint context
-        if (positionHint) {
-            switch (positionHint) {
-                case 'section-end':
-                    context += 'Position: Add at the end of the section. ';
-                    break;
-                case 'section-start':
-                    context += 'Position: Add at the start of the section (right after the heading). ';
-                    break;
-                case 'after-heading':
-                    context += 'Position: Insert immediately after the heading line. ';
-                    break;
-                case 'before-heading':
-                    context += 'Position: Insert immediately before the heading line. ';
-                    break;
-            }
-        }
         
         return context.trim();
     }
@@ -363,14 +252,6 @@ export class CommandParser {
             };
         }
         
-        // Check if location is required but not provided
-        if (command.target === 'section' && command.action === 'delete' && !command.location) {
-            return {
-                valid: false,
-                error: 'Please specify which section to delete'
-            };
-        }
-        
         // Validate action-target combinations
         if (command.action === 'add' && command.target === 'selection') {
             return {
@@ -385,7 +266,7 @@ export class CommandParser {
     /**
      * Get suggested commands based on context
      */
-    getSuggestions(hasSelection: boolean, hasHeadings: boolean): string[] {
+    getSuggestions(hasSelection: boolean): string[] {
         const suggestions: string[] = [];
         
         if (hasSelection) {
@@ -397,17 +278,10 @@ export class CommandParser {
             );
         } else {
             suggestions.push(
-                'Add a conclusion section',
+                'Add content at cursor',
                 'Fix grammar in this document',
-                'Add an introduction',
+                'Add conclusion at end',
                 'Create a summary'
-            );
-        }
-        
-        if (hasHeadings) {
-            suggestions.push(
-                'Add content to the introduction section',
-                'Expand the methodology section'
             );
         }
         
@@ -436,7 +310,7 @@ export class CommandParser {
      * Get command description for display
      */
     getCommandDescription(command: EditCommand): string {
-        const { action, target, location } = command;
+        const { action, target } = command;
         
         let description = '';
         
@@ -454,30 +328,26 @@ export class CommandParser {
                 description = 'Fix grammar and spelling';
                 break;
             case 'rewrite':
-                description = 'Generate new sections';
+                description = 'Generate new content';
+                break;
+            case 'metadata':
+                description = 'Update document metadata';
                 break;
         }
         
-        if (location) {
-            description += ` in "${location}"`;
-        } else {
-            switch (target) {
-                case 'selection':
-                    description += ' in selected text';
-                    break;
-                case 'section':
-                    description += ' in current section';
-                    break;
-                case 'paragraph':
-                    description += ' in current paragraph';
-                    break;
-                case 'document':
-                    description += ' in entire document';
-                    break;
-                case 'end':
-                    description += ' at end of document';
-                    break;
-            }
+        switch (target) {
+            case 'selection':
+                description += ' in selected text';
+                break;
+            case 'cursor':
+                description += ' at cursor position';
+                break;
+            case 'document':
+                description += ' in entire document';
+                break;
+            case 'end':
+                description += ' at end of document';
+                break;
         }
         
         return description;

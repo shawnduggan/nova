@@ -261,11 +261,10 @@ export class DocumentEngine {
     }
 
     /**
-     * Delete content at a specific location
+     * Delete content at cursor location
      */
     async deleteContent(
-        target: 'selection' | 'line' | 'section',
-        location?: string
+        target: 'selection' | 'line'
     ): Promise<EditResult> {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
@@ -305,30 +304,6 @@ export class DocumentEngine {
                     editType: 'delete',
                     appliedAt: { line, ch: 0 }
                 };
-            } else if (target === 'section' && location) {
-                const section = await this.findSection(location);
-                if (!section) {
-                    return {
-                        success: false,
-                        error: `Section "${location}" not found`,
-                        editType: 'delete'
-                    };
-                }
-                
-                // Delete the section including its heading
-                const content = editor.getValue();
-                const lines = content.split('\n');
-                const newLines = lines.filter((_, index) => 
-                    index < section.range.start || index > section.range.end
-                );
-                
-                await this.app.vault.modify(file, newLines.join('\n'));
-                
-                return {
-                    success: true,
-                    editType: 'delete',
-                    appliedAt: { line: section.range.start, ch: 0 }
-                };
             }
 
             return {
@@ -346,94 +321,6 @@ export class DocumentEngine {
         }
     }
 
-    /**
-     * Build hierarchical path for a heading
-     */
-    private buildSectionPath(headings: HeadingInfo[], targetIndex: number): string {
-        const target = headings[targetIndex];
-        const path: string[] = [target.text];
-        
-        // Walk backwards to find parent headings
-        for (let i = targetIndex - 1; i >= 0; i--) {
-            const heading = headings[i];
-            if (heading.level < target.level) {
-                path.unshift(heading.text);
-                // Only include immediate parent for now (single level up)
-                break;
-            }
-        }
-        
-        return path.join('::');
-    }
-
-    /**
-     * Find a section by heading name (supports hierarchical paths with :: or /)
-     */
-    async findSection(headingText: string): Promise<DocumentSection | null> {
-        const context = await this.getDocumentContext();
-        if (!context) return null;
-
-        const normalizedTarget = headingText.toLowerCase().trim();
-        
-        // Check if this is a hierarchical path (contains :: or /)
-        if (normalizedTarget.includes('::') || normalizedTarget.includes('/')) {
-            // Normalize path separators to compare both formats
-            const targetPath = normalizedTarget.replace(/::/g, '/');
-            
-            // Find headings that match the hierarchical path
-            for (let i = 0; i < context.headings.length; i++) {
-                const heading = context.headings[i];
-                
-                // Try both old format (::) and new format (/)
-                const legacyPath = this.buildSectionPath(context.headings, i).toLowerCase();
-                const newPath = this.buildFullSectionPath(context.headings, i).toLowerCase();
-                
-                if (legacyPath === normalizedTarget || newPath === targetPath) {
-                    return this.buildDocumentSection(heading, context.headings, i, context.content);
-                }
-            }
-            
-            return null;
-        } else {
-            // Simple section name - find first match (backwards compatible)
-            const headingIndex = context.headings.findIndex(h => 
-                h.text.toLowerCase().includes(normalizedTarget)
-            );
-
-            if (headingIndex === -1) return null;
-
-            const heading = context.headings[headingIndex];
-            return this.buildDocumentSection(heading, context.headings, headingIndex, context.content);
-        }
-    }
-
-    /**
-     * Build DocumentSection object from heading info
-     */
-    private buildDocumentSection(
-        heading: HeadingInfo, 
-        allHeadings: HeadingInfo[], 
-        headingIndex: number, 
-        content: string
-    ): DocumentSection {
-        const nextHeading = allHeadings[headingIndex + 1];
-        const lines = content.split('\n');
-        const endLine = nextHeading ? nextHeading.line - 1 : lines.length - 1;
-
-        // Extract section content (excluding the heading line)
-        const sectionLines = lines.slice(heading.line + 1, endLine + 1);
-        const sectionContent = sectionLines.join('\n').trim();
-
-        return {
-            heading: heading.text,
-            level: heading.level,
-            content: sectionContent,
-            range: {
-                start: heading.line,
-                end: endLine
-            }
-        };
-    }
 
     /**
      * Get the full document content
@@ -579,120 +466,4 @@ export class DocumentEngine {
         return this.conversationManager.exportConversation(file);
     }
 
-    /**
-     * Get all section paths for section picker
-     */
-    async getAllSectionPaths(): Promise<Array<{
-        displayName: string;
-        targetPath: string;
-        headingText: string;
-        level: number;
-        line: number;
-        preview?: string;
-    }>> {
-        const context = await this.getDocumentContext();
-        if (!context) return [];
-
-        return context.headings.map((heading, index) => {
-            // Build full hierarchical path
-            const targetPath = this.buildFullSectionPath(context.headings, index);
-            
-            // Create indented display name
-            const displayName = this.createDisplayName(heading.text, heading.level);
-            
-            // Get content preview
-            const preview = this.getSectionPreview(context.headings, index, context.content);
-
-            return {
-                displayName,
-                targetPath,
-                headingText: heading.text,
-                level: heading.level,
-                line: heading.line,
-                preview
-            };
-        });
-    }
-
-    /**
-     * Build full hierarchical path including all parents
-     */
-    private buildFullSectionPath(headings: HeadingInfo[], targetIndex: number): string {
-        const target = headings[targetIndex];
-        const path: string[] = [target.text];
-        
-        // Walk backwards to find all parent headings
-        let currentLevel = target.level;
-        for (let i = targetIndex - 1; i >= 0; i--) {
-            const heading = headings[i];
-            // Only add heading if it's a parent (lower level number = higher hierarchy)
-            if (heading.level < currentLevel) {
-                path.unshift(heading.text);
-                currentLevel = heading.level;
-            }
-        }
-        
-        return path.join('/');
-    }
-
-    /**
-     * Create indented display name for hierarchical view
-     */
-    private createDisplayName(text: string, level: number): string {
-        const indent = '  '.repeat(Math.max(0, level - 1));
-        const icon = level === 1 ? '📄 ' : '';
-        return `${indent}${icon}${text}`;
-    }
-
-    /**
-     * Get section content preview
-     */
-    private getSectionPreview(headings: HeadingInfo[], headingIndex: number, content: string): string {
-        const heading = headings[headingIndex];
-        const nextHeading = headings[headingIndex + 1];
-        const lines = content.split('\n');
-        
-        // Get first few lines of section content (excluding heading)
-        const startLine = heading.line + 1;
-        const endLine = nextHeading ? Math.min(nextHeading.line, startLine + 3) : Math.min(lines.length, startLine + 3);
-        
-        const sectionLines = lines.slice(startLine, endLine)
-            .filter(line => line.trim().length > 0)
-            .slice(0, 2); // Max 2 lines
-        
-        if (sectionLines.length === 0) {
-            return 'Empty section';
-        }
-        
-        const preview = sectionLines.join(' ').substring(0, 100);
-        return preview.length > 97 ? preview + '...' : preview;
-    }
-
-    /**
-     * Enhanced section finding with better path support
-     */
-    async findSectionByPath(sectionPath: string): Promise<DocumentSection | null> {
-        const context = await this.getDocumentContext();
-        if (!context) return null;
-
-        const normalizedPath = sectionPath.toLowerCase().trim();
-        
-        // Try to find by full path first
-        for (let i = 0; i < context.headings.length; i++) {
-            const fullPath = this.buildFullSectionPath(context.headings, i);
-            if (fullPath.toLowerCase() === normalizedPath) {
-                return this.buildDocumentSection(context.headings[i], context.headings, i, context.content);
-            }
-        }
-        
-        // Fallback to simple text matching
-        const headingIndex = context.headings.findIndex(h => 
-            h.text.toLowerCase().includes(normalizedPath)
-        );
-
-        if (headingIndex === -1) return null;
-
-        const heading = context.headings[headingIndex];
-        return this.buildDocumentSection(heading, context.headings, headingIndex, context.content);
-    }
 }
