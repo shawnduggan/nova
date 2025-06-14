@@ -619,3 +619,102 @@ Implemented hierarchical dropdown for quick model switching without going to set
 - When selected, properly updates both provider and model in settings
 - Consistent user experience across all AI providers
 - Eliminated ~100 lines of duplicate model definition code
+
+---
+
+## June 14, 2025: UI Picker Architecture Complete
+
+### 📋 **COMPLETED: UI Picker Architecture** ✅
+- ✅ **Privacy indicators implemented** - Lock/unlock icons now show data handling for each provider in sidebar header
+- ✅ **Provider status dots removed** - Eliminated confusing green/red status dots, simplified UI to focus on provider selection
+- ✅ **Provider dropdown styling fixed** - Improved visual consistency and active appearance for provider selection UI
+- ✅ **Ollama filtered from mobile** - Ollama no longer appears in provider dropdown on mobile devices (requires local server)
+- ✅ **CRITICAL: Clean Architecture Implementation** - Fixed circular dependencies and legacy code cleanup
+- ✅ **Legacy compatibility removal** - Removed 12+ old properties and cleaned up sidebar-view.ts
+- ✅ **Component initialization fix** - Proper dependency order: InputHandler → CommandSystem → Integration
+- ✅ **Compilation fix** - All TypeScript errors resolved, build succeeds
+
+### 📋 **COMPLETED: Picker Architecture & Alignment** ✅
+- ✅ **Fix : trigger** - Command picker now appears correctly with proper DOM positioning
+- ✅ **Standardize picker widths** - All three pickers ([[ : /) now use inputRow container for consistent width
+- ✅ **Fix picker alignment** - All pickers aligned to left edge of textarea with full sidebar width
+- ✅ **Standardize picker styling** - Applied : command picker visual style to [[ and / pickers for full consistency
+- ✅ **Fix textarea styling** - Increased minimum height to 40px using proper Obsidian CSS variable (var(--size-4-6))
+- ✅ **Fix command button positioning** - Command button now appears to left of send button with proper DOM order
+
+### 📋 **COMPLETED: Input Row UI Fixes** ✅
+- ✅ **1. Fix textarea height and vertical alignment** - Textarea now displays 4 lines (80px) by default, auto-grows to ~8-10 lines (200px), and all input row elements are properly vertically centered
+- ✅ **2. Fix command button setting** - "Show Command Button in Chat" setting now works correctly, respecting both user preference and feature permissions
+
+### 📋 **COMPLETED: Complete Picker Polish** ✅
+- ✅ **Picker functionality working** - All three triggers ([[ : /) now display pickers correctly
+- ✅ **Picker width consistency** - All use full sidebar width with proper alignment
+- ✅ **Visual styling standardization** - All pickers now have identical 3-line structure:
+  - Name: font-weight 500, --text-normal color
+  - Description: 0.85em size, --text-muted color
+  - Example/Preview: 0.8em size, --text-accent color, monospace font
+- ✅ **Consistent hover states and spacing** - 8px/12px padding, identical borders and transitions
+- ✅ **Clean CSS architecture** - Removed redundant styles, unified base container styles
+- ✅ **Input UI improvements** - Fixed textarea height (40px) and button positioning (command button left of send)
+
+### 📋 **COMPLETED: User Testing & Polish** ✅
+- ✅ **Initial picker integration testing** - Basic functionality validated, issues identified
+- ✅ **Picker core functionality** - All three triggers working with consistent width/alignment
+- ✅ **Complete visual polish** - All pickers now have standardized styling with identical 3-line structure
+- ✅ Error handling improvements and loading state optimizations
+- ✅ **System testing preparation complete** (code quality, performance, UI consistency)
+
+### 📋 **COMPLETED: Documentation & Repository Prep** ✅
+- ✅ Update README.md with Supernova model
+- ✅ Remove all Core/Supernova references from documentation
+- ✅ Prepare LICENSE.md for public repository
+- ✅ Create CONTRIBUTING.md
+- ✅ Clean repository history of sensitive data
+
+### 📋 **COMPLETED: Comprehensive Manual Testing** ✅
+- ✅ Create manual testing plan document (MANUAL_TESTING_PLAN.md)
+- ✅ Create bug report template (BUG_REPORT_TEMPLATE.md) 
+- ✅ Validate MANUAL_TESTING_PLAN.md includes all new features and security implementations
+
+### 📋 **COMPLETED: Performance & Polish** ✅
+- ✅ Bundle size analysis: 255KB bundle size is reasonable for feature set
+- ✅ Fixed critical memory leaks
+- ✅ Memory usage optimization 
+- ✅ UI Polish and Consistency
+
+### 🎯 COMPLETED: UI Picker Architecture - Detailed Implementation
+
+#### **New Picker System Implementation ✅**
+
+The new dual-trigger picker system is now fully integrated and working:
+
+##### **Architecture Overview**
+- **InputHandler**: Manages all input UI creation and event handling
+- **CommandSystem**: Handles ":" trigger with structured editing commands
+- **SectionPicker**: Handles "/" trigger with hierarchical document sections
+- **ContextManager**: Manages multi-document context indicators
+
+##### **Trigger System**
+- **":" → Command Picker**: Shows structured editing commands (append, prepend, edit, etc.)
+- **"/" → Section Picker**: Shows hierarchical document sections for targeting
+- **"[[" → Wikilink Picker**: Existing file autocomplete (unchanged)
+
+##### **Implementation Details**
+- **Consistent Styling**: All pickers use same dimensions (200px height, 4px margin)
+- **Legacy Compatibility**: Old sidebar-view methods stubbed out for smooth transition
+- **Clean Integration**: New architecture replaces old command picker completely
+- **No Debug Logging**: Production-ready with clean console output
+
+##### **File Changes Made**
+- `src/ui/sidebar-view.ts` - Replaced old input system with new InputHandler integration
+- `src/ui/input-handler.ts` - Enhanced with "/" trigger detection
+- `src/ui/command-system.ts` - Removed legacy "/" command support, fixed picker sizing
+- `src/ui/section-picker.ts` - Integrated with InputHandler, fixed DOM compatibility
+- `src/ui/context-manager.ts` - Made contextIndicator/Preview public for compatibility
+
+##### **Success Criteria Met**
+- ✅ ":" shows properly sized command picker with editing commands only
+- ✅ "/" shows section picker with hierarchical document sections
+- ✅ Both match wikilink picker styling exactly
+- ✅ No TypeScript compilation errors
+- ✅ Clean console output (no debug logging)

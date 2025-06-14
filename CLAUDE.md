@@ -69,112 +69,40 @@
 
 ### Critical Tasks Remaining
 
-#### 📋 **COMPLETED: UI Picker Architecture** ✅
-- ✅ **Privacy indicators implemented** - Lock/unlock icons now show data handling for each provider in sidebar header
-- ✅ **Provider status dots removed** - Eliminated confusing green/red status dots, simplified UI to focus on provider selection
-- ✅ **Provider dropdown styling fixed** - Improved visual consistency and active appearance for provider selection UI
-- ✅ **Ollama filtered from mobile** - Ollama no longer appears in provider dropdown on mobile devices (requires local server)
-- ✅ **CRITICAL: Clean Architecture Implementation** - Fixed circular dependencies and legacy code cleanup
-- ✅ **Legacy compatibility removal** - Removed 12+ old properties and cleaned up sidebar-view.ts
-- ✅ **Component initialization fix** - Proper dependency order: InputHandler → CommandSystem → Integration
-- ✅ **Compilation fix** - All TypeScript errors resolved, build succeeds
-#### 📋 **COMPLETED: Picker Architecture & Alignment** ✅
-- ✅ **Fix : trigger** - Command picker now appears correctly with proper DOM positioning
-- ✅ **Standardize picker widths** - All three pickers ([[ : /) now use inputRow container for consistent width
-- ✅ **Fix picker alignment** - All pickers aligned to left edge of textarea with full sidebar width
-- ✅ **Standardize picker styling** - Applied : command picker visual style to [[ and / pickers for full consistency
-- ✅ **Fix textarea styling** - Increased minimum height to 40px using proper Obsidian CSS variable (var(--size-4-6))
-- ✅ **Fix command button positioning** - Command button now appears to left of send button with proper DOM order
-- [ ] **Improve / trigger UX** - Add selected sections to bottom panel instead of inserting text paths
-- [ ] **Consider enhanced context panel** - Add files and paths sections for better UX
-
-#### 📋 **COMPLETED: Input Row UI Fixes** ✅
-- ✅ **1. Fix textarea height and vertical alignment** - Textarea now displays 4 lines (80px) by default, auto-grows to ~8-10 lines (200px), and all input row elements are properly vertically centered
-- ✅ **2. Fix command button setting** - "Show Command Button in Chat" setting now works correctly, respecting both user preference and feature permissions
-- [ ] **3. Thoroughly test : command functionality** - Ensure : command picker works flawlessly before moving forward
-- [ ] **4. Implement / command path persistence** - Selected paths need to be persisted visually (like [[ files in context), not just inserted as text strings. Only one path per operation.
-- [ ] **5. Test : and / commands together** - Comprehensive integration testing of both command systems
-
-#### 📋 **COMPLETED: Complete Picker Polish** ✅
-- ✅ **Picker functionality working** - All three triggers ([[ : /) now display pickers correctly
-- ✅ **Picker width consistency** - All use full sidebar width with proper alignment
-- ✅ **Visual styling standardization** - All pickers now have identical 3-line structure:
-  - Name: font-weight 500, --text-normal color
-  - Description: 0.85em size, --text-muted color
-  - Example/Preview: 0.8em size, --text-accent color, monospace font
-- ✅ **Consistent hover states and spacing** - 8px/12px padding, identical borders and transitions
-- ✅ **Clean CSS architecture** - Removed redundant styles, unified base container styles
-- ✅ **Input UI improvements** - Fixed textarea height (40px) and button positioning (command button left of send)
-- [ ] **Enhanced UX features** - Improve / trigger to use context panel integration
+#### 📋 **Enhanced / and : Command System** 
+- [ ] **Step 1: Update Context Panel to Support Commands and Paths**
+  - Modify context-manager.ts to show both files and command/path selections
+  - Add clean minimal styling for command (⚡) and path (📄) indicators
+  - Keep single-selection constraint (one command, one path)
+- [ ] **Step 2: Update / Section Picker**
+  - Change from text insertion to context panel addition
+  - Implement proper autocomplete with arrow key navigation
+  - Add Enter to confirm selection
+  - Remove selected path from textarea
+- [ ] **Step 3: Update : Command Picker**
+  - Add command selections to context panel
+  - Ensure consistent autocomplete behavior with / and [[
+  - Show command with minimal icon (⚡)
+- [ ] **Step 4: Add Order Flexibility**
+  - Allow : and / to be used in any order
+  - Store selections in context panel regardless of order
+- [ ] **Step 5: Add Clear/Reset Functionality**
+  - ESC key to clear current picker
+  - Click to remove items from context panel
+  - Clear all button/action
+- [ ] **Step 6: Visual Feedback**
+  - Subtle highlight on send button when both command + path selected
+  - Keep minimal aesthetic throughout
+- [ ] **Step 7: Smart Defaults (if time permits)**
+  - Auto-select current file when using : command
+  - Context-aware command filtering based on selected path
 
 #### 📋 **User Testing & Polish** 
-- ✅ **Initial picker integration testing** - Basic functionality validated, issues identified
-- ✅ **Picker core functionality** - All three triggers working with consistent width/alignment
-- ✅ **Complete visual polish** - All pickers now have standardized styling with identical 3-line structure
 - [ ] Mobile performance testing on actual devices
-- ✅ Error handling improvements and loading state optimizations
-- ✅ **System testing preparation complete** (code quality, performance, UI consistency)
-
-#### 📋 **Documentation & Repository Prep** 
-- ✅ Update README.md with Supernova model
-- ✅ Remove all Core/Supernova references from documentation
-- ✅ Prepare LICENSE.md for public repository
-- ✅ Create CONTRIBUTING.md
-- ✅ Clean repository history of sensitive data
-
-#### 📋 **Comprehensive Manual Testing**
-- ✅ Create manual testing plan document (MANUAL_TESTING_PLAN.md)
-- ✅ Create bug report template (BUG_REPORT_TEMPLATE.md) 
-- ✅ Validate MANUAL_TESTING_PLAN.md includes all new features and security implementations
 - [ ] Execute end-to-end user workflow testing
 - [ ] Real device testing (mobile, desktop, tablets)
 - [ ] Cross-platform compatibility validation
-
-#### 📋 **Performance & Polish**
-- ✅ Bundle size analysis: 255KB bundle size is reasonable for feature set
-- ✅ Fixed critical memory leaks
-- ✅ Memory usage optimization 
-- ✅ UI Polish and Consistency
 - [ ] Final performance validation on actual devices
-
----
-
-## 🎯 COMPLETED: UI Picker Architecture
-
-### **New Picker System Implementation ✅**
-
-The new dual-trigger picker system is now fully integrated and working:
-
-#### **Architecture Overview**
-- **InputHandler**: Manages all input UI creation and event handling
-- **CommandSystem**: Handles ":" trigger with structured editing commands
-- **SectionPicker**: Handles "/" trigger with hierarchical document sections
-- **ContextManager**: Manages multi-document context indicators
-
-#### **Trigger System**
-- **":" → Command Picker**: Shows structured editing commands (append, prepend, edit, etc.)
-- **"/" → Section Picker**: Shows hierarchical document sections for targeting
-- **"[[" → Wikilink Picker**: Existing file autocomplete (unchanged)
-
-#### **Implementation Details**
-- **Consistent Styling**: All pickers use same dimensions (200px height, 4px margin)
-- **Legacy Compatibility**: Old sidebar-view methods stubbed out for smooth transition
-- **Clean Integration**: New architecture replaces old command picker completely
-- **No Debug Logging**: Production-ready with clean console output
-
-#### **File Changes Made**
-- `src/ui/sidebar-view.ts` - Replaced old input system with new InputHandler integration
-- `src/ui/input-handler.ts` - Enhanced with "/" trigger detection
-- `src/ui/command-system.ts` - Removed legacy "/" command support, fixed picker sizing
-- `src/ui/section-picker.ts` - Integrated with InputHandler, fixed DOM compatibility
-- `src/ui/context-manager.ts` - Made contextIndicator/Preview public for compatibility
-
-#### **Success Criteria Met**
-- ✅ ":" shows properly sized command picker with editing commands only
-- ✅ "/" shows section picker with hierarchical document sections
-- ✅ Both match wikilink picker styling exactly
-- ✅ No TypeScript compilation errors
-- ✅ Clean console output (no debug logging)
 
 ---
 
