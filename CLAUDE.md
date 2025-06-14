@@ -1,36 +1,115 @@
 # Nova - AI Thinking Partner for Obsidian
 
-## CRITICAL: Read These Rules First
+## BEHAVIORAL COMMANDS - READ FIRST
 
-### Atomic Changes Only
-**One small testable change per response. Period.**
-- If it takes >2 minutes to implement, it's too big
-- Each change must be immediately testable
-- No bundling multiple features
+### MANDATORY RULES
+**NEVER start responses with explanations or "I'll help you" - CODE IMMEDIATELY**
+**ONE CHANGE PER RESPONSE** - If it involves multiple concerns, refuse and break it down
+**WAIT FOR TEST CONFIRMATION** - After any fix, ask user to test before proceeding to next task
+**NO AUTO-COMMITS** - Never commit unless explicitly commanded
+**NO TODOS/STUBS** - Every function must work when implemented
 
-### Action Over Discussion
-- CODE FIRST, explain later (if needed)
-- No "I'll help you..." preambles
-- No long explanations before coding
-- Start typing code within first 3 lines
+### TDD PROTOCOL - MANDATORY
+**SEQUENCE:**
+1. Write failing test FIRST
+2. Write minimal code to pass test
+3. Use subagent to run test: `npm test -- filename.test.js`
+4. State: "Test result: PASS/FAIL"
+5. If FAIL: use subagent to investigate (lint, compile)
+6. State: "Test this change. Type PASS or FAIL:"
+7. STOP - wait for user response
+8. If user says FAIL: debug, don't proceed
+9. If user says PASS: ask "Next change?"
 
-### Bug Fix Workflow
-- **ONE FIX AT A TIME**: Only work on one bug/task per session
-- **ALWAYS ASK FOR TESTING**: After implementing a fix, ask user to test it before proceeding
-- **NO AUTO-COMMITS**: Never commit or move to next task unless explicitly asked
-- **WAIT FOR CONFIRMATION**: User must confirm fix works before moving forward
+### SUBAGENT USAGE
+**USE subagents for repetitive verification tasks:**
+- Test execution: `npm test -- filename.test.js`
+- TypeScript compilation: `tsc --noEmit`
+- Linting: `eslint src/filename.ts`
+- Build verification: `npm run build`
+- File operations: reading/writing test files
 
-### Complete Code Only
-- No TODOs, no stubs, no placeholders
-- Every function must work when implemented
-- Make reasonable decisions instead of asking
+**ALWAYS ask before using subagents for:**
+- Git operations (already forbidden to auto-commit)
+- Installing packages
+- Modifying config files
+- Any system-level changes
 
-### Progress Tracking
-- **ALWAYS use this CLAUDE.md file for tracking PENDING work only**
-- Do NOT use TodoWrite/TodoRead or any session-based tracking
-- When tasks are completed: **REMOVE from this file and APPEND to COMPLETED.md**
-- Add new bugs/tasks to the appropriate phase section
-- Keep this file focused on current/future work only
+**SUBAGENT WORKFLOW:**
+1. Write test + implementation
+2. Use subagent to run test immediately
+3. Report results: "Test passed/failed"
+4. If failed: use subagent to investigate (lint, compile check)
+5. Wait for user confirmation before proceeding
+
+### ATOMIC CHANGE DEFINITION
+- ONE logical concern per response
+- ONE function/component/test per response
+- MUST fit in single git commit message
+- User can understand the change in 30 seconds
+
+**SIZE GUIDELINES:**
+- Simple bug fix: 5-20 lines
+- New function: 20-50 lines  
+- New component: 30-80 lines
+- Integration change: 40-100 lines
+- **ABSOLUTE MAX: 100 lines per response**
+
+### REJECTION CRITERIA
+**TOO BIG if it involves:**
+- Multiple unrelated files
+- Multiple logical concerns
+- Changes that affect multiple features
+- "And also..." in the description
+
+**COUNTER-OFFER:** "That's too big. Pick ONE specific change."
+
+### ANTI-REFACTOR RULES
+**ONLY modify code needed to pass the test**
+**NEVER "improve" untested code**
+**NEVER touch working code without explicit test**
+**If you see "opportunities" - IGNORE THEM**
+
+**FORBIDDEN PHRASES:**
+- "While we're here..."
+- "This would be cleaner if..."
+- "Let me also fix..."
+- "I noticed we could improve..."
+
+**IF YOU MODIFY MORE THAN THE TEST REQUIRES:**
+Immediately revert and respond: "I overstepped. Focusing only on: [test requirement]"
+
+### SCOPE LOCKDOWN
+**SCOPE TEST:** Can you describe this change in one sentence without "and"?
+- GOOD: "Add validation to email input field"
+- BAD: "Add validation to email and fix the styling and update the tests"
+
+**REVERT TRIGGER:** If you find yourself changing something unrelated to the test, STOP immediately.
+
+### REQUIRED RESPONSE STRUCTURE
+```
+[3 lines max describing the ONE change]
+
+**Test:**
+[Test code block]
+
+**Implementation:**
+[Implementation code block]
+
+**Verification:**
+[Subagent runs test automatically]
+Test result: PASS/FAIL
+
+Test this change. Type PASS or FAIL:
+```
+[STOP - no additional text]
+
+### VIOLATION = IMMEDIATE STOP
+If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
+"This change is too big. Breaking into smaller pieces..."
+
+**NO EXCEPTIONS** - Even if the user says "just do it all"
+**NO NEGOTIATIONS** - Don't explain why, just enforce
 
 ### Design Guidelines
 - **ALWAYS use Obsidian's native design language and iconography**
@@ -50,52 +129,23 @@
 
 ---
 
-## Current Project State (Updated: June 13, 2025)
+## Current Project State (Updated: June 14, 2025)
 
-### ✅ STATUS: Phase 0 (Monetization Pivot) COMPLETE
-- **All 502 tests passing** (100% pass rate - including 9 metadata tests + 5 security tests)
-- **All Core/Supernova tier restrictions removed**
-- **Supernova time-based feature system implemented**
-- **Command system fully implemented**
-- **Multi-document context with security enforcement**
-- **Professional UI/UX with native Obsidian design**
-- **Critical security features implemented**
-- **Performance optimizations complete**
-- **Production code quality achieved** (zero debug logging, optimized performance)
+### ✅ STATUS: Cursor-Only Transformation COMPLETE
+- **Cursor-only editing system fully implemented**
+- **All "/" command functionality removed**
+- **No location/targeting UI components remain**
+- **":" command system preserved for Custom Commands**
+- **Source code builds successfully** (main.js: 289KB)
+- **All edits now happen at cursor position only**
+- **Clean, simplified architecture achieved**
+- **Test suite needs update** (source works, tests reference old system)
 
 ---
 
 ## 🎯 CURRENT PHASE: Ship Preparation
 
 ### Critical Tasks Remaining
-
-#### 📋 **Enhanced / and : Command System** 
-- [ ] **Step 1: Update Context Panel to Support Commands and Paths**
-  - Modify context-manager.ts to show both files and command/path selections
-  - Add clean minimal styling for command (⚡) and path (📄) indicators
-  - Keep single-selection constraint (one command, one path)
-- [ ] **Step 2: Update / Section Picker**
-  - Change from text insertion to context panel addition
-  - Implement proper autocomplete with arrow key navigation
-  - Add Enter to confirm selection
-  - Remove selected path from textarea
-- [ ] **Step 3: Update : Command Picker**
-  - Add command selections to context panel
-  - Ensure consistent autocomplete behavior with / and [[
-  - Show command with minimal icon (⚡)
-- [ ] **Step 4: Add Order Flexibility**
-  - Allow : and / to be used in any order
-  - Store selections in context panel regardless of order
-- [ ] **Step 5: Add Clear/Reset Functionality**
-  - ESC key to clear current picker
-  - Click to remove items from context panel
-  - Clear all button/action
-- [ ] **Step 6: Visual Feedback**
-  - Subtle highlight on send button when both command + path selected
-  - Keep minimal aesthetic throughout
-- [ ] **Step 7: Smart Defaults (if time permits)**
-  - Auto-select current file when using : command
-  - Context-aware command filtering based on selected path
 
 #### 📋 **Next Steps** 
 - [ ] User testing with cursor-only system
@@ -119,6 +169,7 @@
   - [ ] Documentation site setup
 
 ### **Phase 3: Advanced Features** (DEFERRED - Based on User Feedback)
+- Enhanced / and : Command System (context panel integration)
 - Templates system implementation
 - Command usage analytics and smart sorting
 - Usage insights dashboard

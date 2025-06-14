@@ -118,12 +118,12 @@ export class CommandSystem {
 
 		// Commands available to all users
 		const commands = [
-			{ name: 'Improve Writing', description: 'Enhance clarity and flow', command: '/improve' },
-			{ name: 'Fix Grammar', description: 'Correct grammar and spelling', command: '/grammar' },
-			{ name: 'Summarize', description: 'Create a concise summary', command: '/summarize' },
-			{ name: 'Expand Ideas', description: 'Develop thoughts further', command: '/expand' },
-			{ name: 'Explain', description: 'Clarify complex concepts', command: '/explain' },
-			{ name: 'Continue Writing', description: 'Extend the current text', command: '/continue' }
+			{ name: 'Improve Writing', description: 'Enhance clarity and flow', command: 'improve writing' },
+			{ name: 'Fix Grammar', description: 'Correct grammar and spelling', command: 'fix grammar' },
+			{ name: 'Summarize', description: 'Create a concise summary', command: 'summarize' },
+			{ name: 'Expand Ideas', description: 'Develop thoughts further', command: 'expand' },
+			{ name: 'Explain', description: 'Clarify complex concepts', command: 'explain this' },
+			{ name: 'Continue Writing', description: 'Extend the current text', command: 'continue writing' }
 		];
 
 		const title = this.commandMenu.createEl('div', { text: 'Quick Commands' });
@@ -200,7 +200,6 @@ export class CommandSystem {
 			this.showStructuredCommandPicker(input);
 		} else {
 			// No triggers active - hide command picker
-			// Note: "/" is handled by section picker, not command system
 			this.hideCommandPicker();
 		}
 	}
@@ -352,60 +351,60 @@ export class CommandSystem {
 	private getStructuredCommands(): StructuredCommand[] {
 		return [
 			{
-				name: 'Add Section',
-				description: 'Add a new section to the document',
-				command: 'add section',
-				template: 'add section "{cursor}"',
-				example: ':add section "Results"',
-				keywords: ['create', 'new', 'heading']
+				name: 'Add Content',
+				description: 'Add new content at cursor position',
+				command: 'add',
+				template: 'add {cursor}',
+				example: ':add paragraph about methodology',
+				keywords: ['create', 'new', 'insert', 'write']
 			},
 			{
-				name: 'Edit Section',
-				description: 'Edit content in a specific section',
-				command: 'edit section',
-				template: 'edit {cursor} section',
-				example: ':edit Methods section',
-				keywords: ['modify', 'update', 'change']
+				name: 'Edit Selection',
+				description: 'Edit the selected text',
+				command: 'edit',
+				template: 'edit to {cursor}',
+				example: ':edit to be more formal',
+				keywords: ['modify', 'update', 'change', 'revise']
 			},
 			{
-				name: 'Delete Section',
-				description: 'Remove a section from the document',
-				command: 'delete section',
-				template: 'delete {cursor} section',
-				example: ':delete Introduction section',
-				keywords: ['remove', 'eliminate']
+				name: 'Delete Selection',
+				description: 'Remove the selected text',
+				command: 'delete',
+				template: 'delete {cursor}',
+				example: ':delete selected text',
+				keywords: ['remove', 'eliminate', 'erase']
 			},
 			{
-				name: 'Append To',
-				description: 'Add content to the end of a section',
-				command: 'append to',
-				template: 'append {cursor} to /',
-				example: ':append conclusion to /Results',
-				keywords: ['add', 'attach', 'end']
+				name: 'Rewrite',
+				description: 'Rewrite content with specific style',
+				command: 'rewrite',
+				template: 'rewrite as {cursor}',
+				example: ':rewrite as bullet points',
+				keywords: ['rephrase', 'restructure', 'reword']
 			},
 			{
-				name: 'Prepend To',
-				description: 'Add content to the beginning of a section',
-				command: 'prepend to',
-				template: 'prepend {cursor} to /',
-				example: ':prepend warning to /Methods',
-				keywords: ['add', 'beginning', 'start']
+				name: 'Fix Grammar',
+				description: 'Correct grammar and spelling errors',
+				command: 'grammar',
+				template: 'fix grammar {cursor}',
+				example: ':fix grammar in selection',
+				keywords: ['correct', 'proofread', 'spelling']
 			},
 			{
-				name: 'Insert After',
-				description: 'Insert content after a section heading',
-				command: 'insert after',
-				template: 'insert {cursor} after / heading',
-				example: ':insert diagram after /Methods heading',
-				keywords: ['add', 'place', 'after']
+				name: 'Continue',
+				description: 'Continue writing from current position',
+				command: 'continue',
+				template: 'continue {cursor}',
+				example: ':continue with examples',
+				keywords: ['extend', 'expand', 'proceed']
 			},
 			{
-				name: 'Insert Before',
-				description: 'Insert content before a section heading',
-				command: 'insert before',
-				template: 'insert {cursor} before / heading',
-				example: ':insert note before /Results heading',
-				keywords: ['add', 'place', 'before']
+				name: 'Update Metadata',
+				description: 'Update document properties',
+				command: 'metadata',
+				template: 'update {cursor} property',
+				example: ':update tags property',
+				keywords: ['frontmatter', 'properties', 'tags']
 			}
 		];
 	}
