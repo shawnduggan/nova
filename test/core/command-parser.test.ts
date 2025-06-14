@@ -102,17 +102,13 @@ describe('CommandParser', () => {
                 expect(command.target).toBe('selection');
             });
 
-            it('should detect section target', () => {
-                const testCases = [
-                    'Edit the methodology section',
-                    'Add content to the introduction heading',
-                    'Update this section'
-                ];
-
-                testCases.forEach(input => {
-                    const command = parser.parseCommand(input);
-                    expect(command.target).toBe('section');
-                });
+            it('should detect appropriate targets for section-like commands', () => {
+                // Edit commands default to cursor for existing content
+                expect(parser.parseCommand('Edit the methodology section').target).toBe('cursor');
+                expect(parser.parseCommand('Update this section').target).toBe('cursor');
+                
+                // Add commands default to end for new content
+                expect(parser.parseCommand('Add content to the introduction heading').target).toBe('end');
             });
 
             it('should detect document target', () => {
@@ -148,23 +144,6 @@ describe('CommandParser', () => {
             });
         });
 
-        describe('location extraction', () => {
-            it('should extract location from various patterns', () => {
-                // Test individual patterns that should work
-                expect(parser.parseCommand('Add content to the "Methodology" section').location).toBe('Methodology');
-                expect(parser.parseCommand('Edit the "Introduction" heading').location).toBe('Introduction');
-                expect(parser.parseCommand('Delete the "Related Work" section').location).toBe('Related Work');
-                
-                // Test patterns that might be more challenging
-                expect(parser.parseCommand('Update section called "Results"').location).toBe('Results');
-                expect(parser.parseCommand('Modify the part titled "Discussion"').location).toBe('Discussion');
-            });
-
-            it('should return undefined when no location is specified', () => {
-                const command = parser.parseCommand('Add some content');
-                expect(command.location).toBeUndefined();
-            });
-        });
 
         describe('context extraction', () => {
             it('should extract style indicators', () => {
@@ -217,25 +196,21 @@ describe('CommandParser', () => {
             expect(invalidResult.error).toContain('requires text to be selected');
         });
 
-        it('should validate section deletion commands', () => {
-            const commandWithLocation: EditCommand = {
+        it('should validate cursor deletion commands', () => {
+            const commandWithContext: EditCommand = {
                 action: 'delete',
-                target: 'section',
-                location: 'Introduction',
+                target: 'cursor',
                 instruction: 'Delete the introduction section'
             };
 
-            const commandWithoutLocation: EditCommand = {
+            const commandWithoutContext: EditCommand = {
                 action: 'delete',
-                target: 'section',
+                target: 'cursor',
                 instruction: 'Delete section'
             };
 
-            expect(parser.validateCommand(commandWithLocation, false).valid).toBe(true);
-            
-            const result = parser.validateCommand(commandWithoutLocation, false);
-            expect(result.valid).toBe(false);
-            expect(result.error).toContain('specify which section to delete');
+            expect(parser.validateCommand(commandWithContext, false).valid).toBe(true);
+            expect(parser.validateCommand(commandWithoutContext, false).valid).toBe(true);
         });
 
         it('should prevent adding content to selection', () => {
@@ -253,7 +228,7 @@ describe('CommandParser', () => {
 
     describe('getSuggestions', () => {
         it('should provide selection-based suggestions when text is selected', () => {
-            const suggestions = parser.getSuggestions(true, false);
+            const suggestions = parser.getSuggestions(true);
             
             expect(suggestions).toContain('Make this more concise');
             expect(suggestions).toContain('Fix grammar in this text');
@@ -262,19 +237,19 @@ describe('CommandParser', () => {
         });
 
         it('should provide document-based suggestions when no selection', () => {
-            const suggestions = parser.getSuggestions(false, false);
+            const suggestions = parser.getSuggestions(false);
             
-            expect(suggestions).toContain('Add a conclusion section');
+            expect(suggestions).toContain('Add conclusion at end');
             expect(suggestions).toContain('Fix grammar in this document');
-            expect(suggestions).toContain('Add an introduction');
+            expect(suggestions).toContain('Add content at cursor');
             expect(suggestions).toContain('Create a summary');
         });
 
-        it('should include heading-specific suggestions when document has headings', () => {
-            const suggestions = parser.getSuggestions(false, true);
+        it('should provide cursor-based suggestions', () => {
+            const suggestions = parser.getSuggestions(false);
             
-            expect(suggestions).toContain('Add content to the introduction section');
-            expect(suggestions).toContain('Expand the methodology section');
+            expect(suggestions).toContain('Add content at cursor');
+            expect(suggestions).toContain('Fix grammar in this document');
         });
     });
 
@@ -323,16 +298,15 @@ describe('CommandParser', () => {
             expect(description).toBe('Add new content at end of document');
         });
 
-        it('should describe commands with location', () => {
+        it('should describe commands with cursor target', () => {
             const command: EditCommand = {
                 action: 'edit',
-                target: 'section',
-                location: 'Introduction',
+                target: 'cursor',
                 instruction: 'Edit introduction'
             };
 
             const description = parser.getCommandDescription(command);
-            expect(description).toBe('Edit existing content in "Introduction"');
+            expect(description).toBe('Edit existing content at cursor position');
         });
 
         it('should describe selection commands', () => {
@@ -385,7 +359,7 @@ describe('CommandParser', () => {
         it('should handle ambiguous input', () => {
             const command = parser.parseCommand('do something');
             expect(command.action).toBe('edit'); // default fallback
-            expect(command.target).toBe('paragraph');
+            expect(command.target).toBe('cursor');
         });
 
         it('should handle complex natural language', () => {
@@ -393,17 +367,17 @@ describe('CommandParser', () => {
             const command = parser.parseCommand(input);
             
             expect(command.action).toBe('edit');
-            expect(command.target).toBe('section');
-            expect(command.location).toBe('methodology');
+            expect(command.target).toBe('cursor');
             expect(command.context).toContain('detailed');
             expect(command.context).toContain('examples');
         });
 
-        it('should handle commands with quotes and special characters', () => {
+        it('should handle commands with section references', () => {
             const input = 'Add content to the "Related Work & Analysis" section';
             const command = parser.parseCommand(input);
             
-            expect(command.location).toBe('Related Work & Analysis');
+            expect(command.action).toBe('add');
+            expect(command.target).toBe('end');
         });
     });
 });

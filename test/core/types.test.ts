@@ -20,16 +20,15 @@ describe('Document Engine Types', () => {
             expect(command.instruction).toBeTruthy();
         });
         
-        it('should create valid edit command with location', () => {
+        it('should create valid edit command with cursor target', () => {
             const command: EditCommand = {
                 action: 'edit',
-                target: 'section',
-                location: 'Introduction',
+                target: 'cursor',
                 instruction: 'Make it more concise'
             };
             
             expect(command.action).toBe('edit');
-            expect(command.location).toBe('Introduction');
+            expect(command.target).toBe('cursor');
         });
         
         it('should support all edit actions', () => {
@@ -148,10 +147,10 @@ describe('Document Engine Types', () => {
     
     describe('Type Validation', () => {
         it('should enforce valid targets', () => {
-            const validTargets = ['section', 'paragraph', 'selection', 'document', 'end'];
+            const validTargets = ['cursor', 'selection', 'document', 'end'];
             const command: EditCommand = {
                 action: 'add',
-                target: 'section',
+                target: 'cursor',
                 instruction: 'test'
             };
             

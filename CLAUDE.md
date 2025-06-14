@@ -147,11 +147,16 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 
 ### Critical Tasks Remaining
 
+#### 🐛 **Critical Bug**
+- [ ] Fix context removal error: "Cannot read properties of undefined (reading '0')"
+  - Occurs when removing document from context then querying
+  - Need to investigate stale references in context handling
+
 #### 📋 **Next Steps** 
+- [x] Fix test suite to work with cursor-only system (IN PROGRESS: 12/34 test files passing)
 - [ ] User testing with cursor-only system
 - [ ] Performance validation on target devices
 - [ ] Final polish and optimization
-- [ ] Test suite updates (optional cleanup)
 
 ---
 

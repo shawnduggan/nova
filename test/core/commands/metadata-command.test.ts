@@ -40,7 +40,6 @@ describe('MetadataCommand', () => {
             action: 'metadata',
             target: 'document',
             instruction: 'Set title to "Test Document" and add tags: work, important',
-            location: undefined,
             context: undefined
         };
 
