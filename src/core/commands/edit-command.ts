@@ -1,6 +1,6 @@
 /**
  * Edit command implementation for Nova
- * Handles modifying and improving existing content
+ * Handles modifying and improving existing content at cursor position
  */
 
 import { App } from 'obsidian';
@@ -86,9 +86,11 @@ export class EditCommand {
                 // Apply the edit based on target
                 const result = await this.applyEdit(command, documentContext, content);
 
-                // Don't log success messages - handled by UI
+                // Log result for conversation context
                 if (!result.success) {
                     await this.documentEngine.addAssistantMessage('Failed to edit content', result);
+                } else {
+                    await this.documentEngine.addAssistantMessage('Content edited successfully', result);
                 }
 
                 return result;
@@ -128,54 +130,25 @@ export class EditCommand {
     ): Promise<EditResult> {
         switch (command.target) {
             case 'selection':
-                return await this.documentEngine.applyEdit(
-                    content,
-                    'selection',
-                    {
-                        scrollToEdit: true,
-                        selectNewText: true
-                    }
-                );
-
-            case 'section':
-                if (command.location) {
-                    const section = await this.documentEngine.findSection(command.location);
-                    if (section) {
-                        // Replace the entire section content (excluding heading)
-                        const newSectionContent = `${section.heading}\n\n${content}`;
-                        
-                        // Calculate the position to replace from heading line to section end
-                        const startPos = { line: section.range.start, ch: 0 };
-                        const endPos = { line: section.range.end + 1, ch: 0 };
-                        
-                        const editor = this.documentEngine.getActiveEditor();
-                        if (!editor) {
-                            return {
-                                success: false,
-                                error: 'No active editor',
-                                editType: 'replace'
-                            };
+                if (documentContext.selectedText) {
+                    return await this.documentEngine.applyEdit(
+                        content,
+                        'selection',
+                        {
+                            scrollToEdit: true,
+                            selectNewText: true
                         }
-
-                        editor.replaceRange(newSectionContent, startPos, endPos);
-                        
-                        return {
-                            success: true,
-                            content: newSectionContent,
-                            editType: 'replace',
-                            appliedAt: startPos
-                        };
-                    } else {
-                        return {
-                            success: false,
-                            error: `Section "${command.location}" not found`,
-                            editType: 'replace'
-                        };
-                    }
+                    );
+                } else {
+                    return {
+                        success: false,
+                        error: 'No text selected for editing',
+                        editType: 'replace'
+                    };
                 }
-                // Fall through to paragraph if no location specified
-                
-            case 'paragraph':
+
+            case 'cursor':
+                // Insert content at cursor position
                 return await this.documentEngine.applyEdit(
                     content,
                     'cursor',
@@ -186,269 +159,60 @@ export class EditCommand {
                 );
 
             case 'document':
+                // Replace entire document
                 return await this.documentEngine.setDocumentContent(content);
 
             case 'end':
-                // For edit commands targeting end, treat as adding to end
+                // Append to end of document
                 return await this.documentEngine.applyEdit(
                     content,
                     'end',
                     {
                         scrollToEdit: true,
-                        selectNewText: false
+                        selectNewText: true
                     }
                 );
 
             default:
                 return {
                     success: false,
-                    error: 'Invalid edit target',
+                    error: `Invalid edit target: ${command.target}`,
                     editType: 'replace'
                 };
         }
     }
 
     /**
-     * Validate edit command requirements
+     * Validate edit command
      */
-    validateCommand(command: EditCommandType, hasSelection: boolean): {
-        valid: boolean;
-        error?: string;
-    } {
+    private validateCommand(
+        command: EditCommandType, 
+        hasSelection: boolean
+    ): { valid: boolean; error?: string } {
         // Check if selection is required but not available
         if (command.target === 'selection' && !hasSelection) {
             return {
                 valid: false,
-                error: 'This command requires text to be selected first'
+                error: 'Please select text to edit'
             };
         }
 
-        // Check if location is required but not provided for section edits
-        if (command.target === 'section' && command.action === 'edit' && command.location) {
-            // Location is provided, which is good for section edits
-            return { valid: true };
+        // Validate action is edit
+        if (command.action !== 'edit') {
+            return {
+                valid: false,
+                error: 'Command action must be edit'
+            };
+        }
+
+        // Validate instruction is provided
+        if (!command.instruction || command.instruction.trim().length === 0) {
+            return {
+                valid: false,
+                error: 'Edit instruction is required'
+            };
         }
 
         return { valid: true };
-    }
-
-    /**
-     * Get suggestions for edit commands
-     */
-    getSuggestions(documentContext: DocumentContext, hasSelection: boolean): string[] {
-        const suggestions: string[] = [];
-
-        if (hasSelection) {
-            suggestions.push(
-                'Make this more concise',
-                'Make this more professional',
-                'Make this more detailed',
-                'Improve clarity and flow',
-                'Make this more formal',
-                'Simplify this text',
-                'Expand on this point',
-                'Make this more engaging'
-            );
-        } else {
-            suggestions.push(
-                'Improve the writing style',
-                'Make the document more professional',
-                'Enhance clarity throughout',
-                'Improve the introduction',
-                'Polish the conclusion',
-                'Make it more concise',
-                'Add more detail',
-                'Improve the flow between sections'
-            );
-
-            // Add section-specific suggestions
-            if (documentContext.headings.length > 0) {
-                documentContext.headings.forEach(heading => {
-                    suggestions.push(`Improve the "${heading.text}" section`);
-                });
-            }
-        }
-
-        return suggestions.slice(0, 10); // Limit to 10 suggestions
-    }
-
-    /**
-     * Preview what would be edited
-     */
-    async preview(command: EditCommandType): Promise<{
-        success: boolean;
-        preview?: string;
-        affectedContent?: string;
-        error?: string;
-    }> {
-        try {
-            const documentContext = await this.documentEngine.getDocumentContext();
-            if (!documentContext) {
-                return {
-                    success: false,
-                    error: 'No active document found'
-                };
-            }
-
-            let affectedContent = '';
-            let previewText = '';
-
-            switch (command.target) {
-                case 'selection':
-                    if (documentContext.selectedText) {
-                        affectedContent = documentContext.selectedText;
-                        previewText = 'Will edit the selected text';
-                    } else {
-                        return {
-                            success: false,
-                            error: 'No text is currently selected'
-                        };
-                    }
-                    break;
-
-                case 'section':
-                    if (command.location) {
-                        const section = await this.documentEngine.findSection(command.location);
-                        if (section) {
-                            affectedContent = section.content;
-                            previewText = `Will edit the entire "${command.location}" section`;
-                        } else {
-                            return {
-                                success: false,
-                                error: `Section "${command.location}" not found`
-                            };
-                        }
-                    } else {
-                        previewText = 'Will edit content at cursor position';
-                    }
-                    break;
-
-                case 'paragraph':
-                    previewText = 'Will edit content at cursor position';
-                    // Get surrounding context
-                    if (documentContext.surroundingLines) {
-                        const currentLine = documentContext.cursorPosition?.line ?? 0;
-                        const editor = this.documentEngine.getActiveEditor();
-                        if (editor) {
-                            affectedContent = editor.getLine(currentLine);
-                        }
-                    }
-                    break;
-
-                case 'document':
-                    affectedContent = documentContext.content;
-                    previewText = 'Will edit the entire document';
-                    break;
-
-                case 'end':
-                    previewText = 'Will add edited content at the end of the document';
-                    break;
-
-                default:
-                    return {
-                        success: false,
-                        error: 'Invalid edit target'
-                    };
-            }
-
-            return {
-                success: true,
-                preview: previewText,
-                affectedContent: affectedContent.length > 200 ? 
-                    affectedContent.substring(0, 200) + '...' : 
-                    affectedContent
-            };
-
-        } catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
-            };
-        }
-    }
-
-    /**
-     * Get edit targets available for current context
-     */
-    getAvailableTargets(documentContext: DocumentContext): EditCommandType['target'][] {
-        const targets: EditCommandType['target'][] = ['paragraph', 'document', 'end'];
-
-        if (documentContext.selectedText) {
-            targets.unshift('selection');
-        }
-
-        if (documentContext.headings.length > 0) {
-            targets.splice(-2, 0, 'section'); // Insert before 'document' and 'end'
-        }
-
-        return targets;
-    }
-
-    /**
-     * Estimate the scope of changes
-     */
-    async estimateScope(command: EditCommandType): Promise<{
-        charactersAffected: number;
-        linesAffected: number;
-        scopeDescription: string;
-    }> {
-        const documentContext = await this.documentEngine.getDocumentContext();
-        if (!documentContext) {
-            return {
-                charactersAffected: 0,
-                linesAffected: 0,
-                scopeDescription: 'No document available'
-            };
-        }
-
-        let charactersAffected = 0;
-        let linesAffected = 0;
-        let scopeDescription = '';
-
-        switch (command.target) {
-            case 'selection':
-                if (documentContext.selectedText) {
-                    charactersAffected = documentContext.selectedText.length;
-                    linesAffected = documentContext.selectedText.split('\n').length;
-                    scopeDescription = 'Selected text only';
-                }
-                break;
-
-            case 'section':
-                if (command.location) {
-                    const section = await this.documentEngine.findSection(command.location);
-                    if (section) {
-                        charactersAffected = section.content.length;
-                        linesAffected = section.range.end - section.range.start;
-                        scopeDescription = `"${command.location}" section`;
-                    }
-                }
-                break;
-
-            case 'paragraph':
-                // Estimate single paragraph
-                charactersAffected = 100; // Rough estimate
-                linesAffected = 1;
-                scopeDescription = 'Current paragraph';
-                break;
-
-            case 'document':
-                charactersAffected = documentContext.content.length;
-                linesAffected = documentContext.content.split('\n').length;
-                scopeDescription = 'Entire document';
-                break;
-
-            case 'end':
-                charactersAffected = 0; // New content
-                linesAffected = 0;
-                scopeDescription = 'New content at end';
-                break;
-        }
-
-        return {
-            charactersAffected,
-            linesAffected,
-            scopeDescription
-        };
     }
 }
