@@ -263,7 +263,6 @@ export class PromptBuilder {
             action,
             target: 'document',
             instruction,
-            location: undefined,
             context: undefined
         };
 
