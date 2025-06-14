@@ -159,14 +159,51 @@ export class PromptBuilder {
             recentHistory = await this.conversationManager.getRecentMessages(file, 5);
         }
 
-        return this.contextBuilder.buildConversationPrompt(message, documentContext, recentHistory);
+        // Build a conversation-style command for natural interaction
+        const command: EditCommand = {
+            action: 'edit',
+            target: 'cursor',
+            instruction: message,
+            context: this.formatConversationHistory(recentHistory)
+        };
+        
+        const safeDocumentContext = documentContext || {
+            file: {} as any,
+            filename: 'untitled',
+            content: '',
+            headings: [],
+            selectedText: undefined,
+            cursorPosition: undefined,
+            surroundingLines: undefined
+        };
+        
+        return this.contextBuilder.buildPrompt(command, safeDocumentContext, options);
     }
 
     /**
      * Build simple prompt for basic operations
      */
     buildSimplePrompt(instruction: string, context?: string): GeneratedPrompt {
-        return this.contextBuilder.buildSimplePrompt(instruction, context);
+        // Create a simple command for basic operations
+        const command: EditCommand = {
+            action: 'edit',
+            target: 'cursor', 
+            instruction,
+            context
+        };
+        
+        // Create minimal document context
+        const documentContext: DocumentContext = {
+            file: {} as any, // Will be replaced if needed
+            filename: 'untitled',
+            content: '',
+            headings: [],
+            selectedText: undefined,
+            cursorPosition: undefined,
+            surroundingLines: undefined
+        };
+        
+        return this.contextBuilder.buildPrompt(command, documentContext);
     }
 
     /**
@@ -221,7 +258,7 @@ export class PromptBuilder {
             let optimizedPrompt = { ...prompt };
             
             // Truncate if too long
-            const tokenCount = this.contextBuilder.estimateTokenCount(prompt);
+            const tokenCount = this.estimateTokenCount(prompt);
             if (tokenCount > 8000) {
                 // Reduce context size more aggressively
                 const maxContextLength = Math.floor(prompt.context.length * 0.6);
@@ -248,7 +285,7 @@ export class PromptBuilder {
      * Get token count estimate for a prompt
      */
     getTokenCount(prompt: GeneratedPrompt): number {
-        return this.contextBuilder.estimateTokenCount(prompt);
+        return this.estimateTokenCount(prompt);
     }
 
     /**
@@ -275,6 +312,15 @@ export class PromptBuilder {
         } else {
             return this.buildSimplePrompt(instruction);
         }
+    }
+
+    /**
+     * Simple token count estimation
+     */
+    private estimateTokenCount(prompt: GeneratedPrompt): number {
+        // Rough estimation: ~4 characters per token
+        const totalText = prompt.systemPrompt + prompt.userPrompt + prompt.context;
+        return Math.ceil(totalText.length / 4);
     }
 
     /**
