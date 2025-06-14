@@ -1,5 +1,5 @@
 /**
- * Tests for DocumentEngine
+ * Tests for DocumentEngine - Cursor-Only System
  */
 
 import { DocumentEngine } from '../../src/core/document-engine';
@@ -20,7 +20,7 @@ describe('DocumentEngine', () => {
         engine = new DocumentEngine(app as unknown as ObsidianApp);
         
         mockFile = new TFile('test-doc.md');
-        mockEditor = new Editor('# Test Document\n\nThis is a test document.\n\n## Section One\n\nSome content here.\n\n## Section Two\n\nMore content here.');
+        mockEditor = new Editor('# Test Document\n\nThis is a test document with cursor at line 2.');
         
         // Mock the workspace to return our editor and file
         mockView = {
@@ -104,7 +104,7 @@ describe('DocumentEngine', () => {
     describe('getDocumentContext', () => {
         it('should extract complete document context', async () => {
             mockEditor.getCursor = jest.fn().mockReturnValue({ line: 2, ch: 10 });
-            mockEditor.getSelection = jest.fn().mockReturnValue('test');
+            mockEditor.getSelection = jest.fn().mockReturnValue('selected text');
             
             const context = await engine.getDocumentContext();
             
@@ -112,27 +112,20 @@ describe('DocumentEngine', () => {
             expect(context!.file).toBe(mockFile);
             expect(context!.filename).toBe('test-doc');
             expect(context!.content).toContain('# Test Document');
-            expect(context!.headings).toHaveLength(3);
-            expect(context!.selectedText).toBe('test');
+            expect(context!.selectedText).toBe('selected text');
             expect(context!.cursorPosition).toEqual({ line: 2, ch: 10 });
         });
 
         it('should extract headings correctly', async () => {
             const context = await engine.getDocumentContext();
             
-            expect(context!.headings).toHaveLength(3);
+            expect(context!.headings).toHaveLength(1);
             expect(context!.headings[0]).toEqual({
                 text: 'Test Document',
                 level: 1,
                 line: 0,
                 position: { start: 0, end: 15 }
             });
-            expect(context!.headings[1].text).toBe('Section One');
-            expect(context!.headings[1].level).toBe(2);
-            expect(context!.headings[1].line).toBe(4);
-            expect(context!.headings[2].text).toBe('Section Two');
-            expect(context!.headings[2].level).toBe(2);
-            expect(context!.headings[2].line).toBe(8);
         });
 
         it('should return null when no editor or file', async () => {
@@ -188,6 +181,17 @@ describe('DocumentEngine', () => {
                 mockFile, 
                 'existing content\nappended text'
             );
+        });
+
+        it('should handle specific position', async () => {
+            const specificPos = { line: 5, ch: 10 };
+            
+            const result = await engine.applyEdit('inserted text', specificPos);
+            
+            expect(result.success).toBe(true);
+            expect(result.editType).toBe('insert');
+            expect(result.appliedAt).toEqual(specificPos);
+            expect(mockEditor.replaceRange).toHaveBeenCalledWith('inserted text', specificPos);
         });
 
         it('should handle edit options', async () => {
@@ -249,44 +253,15 @@ describe('DocumentEngine', () => {
             );
         });
 
-        it('should delete a section by heading', async () => {
-            const result = await engine.deleteContent('section', 'Section One');
+        it('should return error when no editor', async () => {
+            app.workspace.getActiveViewOfType = jest.fn().mockReturnValue(null);
+            app.workspace.activeEditor = null;
+            app.workspace.getLeavesOfType = jest.fn().mockReturnValue([]);
             
-            expect(result.success).toBe(true);
-            expect(result.editType).toBe('delete');
-            expect(app.vault.modify).toHaveBeenCalled();
-        });
-
-        it('should return error when section not found', async () => {
-            const result = await engine.deleteContent('section', 'Nonexistent Section');
+            const result = await engine.deleteContent('selection');
             
             expect(result.success).toBe(false);
-            expect(result.error).toContain('Section "Nonexistent Section" not found');
-        });
-    });
-
-    describe('findSection', () => {
-        it('should find section by heading', async () => {
-            const section = await engine.findSection('Section One');
-            
-            expect(section).not.toBeNull();
-            expect(section!.heading).toBe('Section One');
-            expect(section!.level).toBe(2);
-            expect(section!.content).toBe('Some content here.');
-            expect(section!.range.start).toBe(4);
-        });
-
-        it('should handle case-insensitive search', async () => {
-            const section = await engine.findSection('section one');
-            
-            expect(section).not.toBeNull();
-            expect(section!.heading).toBe('Section One');
-        });
-
-        it('should return null when section not found', async () => {
-            const section = await engine.findSection('Nonexistent');
-            
-            expect(section).toBeNull();
+            expect(result.error).toContain('No active editor');
         });
     });
 
@@ -295,7 +270,7 @@ describe('DocumentEngine', () => {
             const content = await engine.getDocumentContent();
             
             expect(content).toContain('# Test Document');
-            expect(content).toContain('## Section One');
+            expect(content).toContain('This is a test document');
         });
 
         it('should return null when no editor', async () => {
@@ -309,7 +284,7 @@ describe('DocumentEngine', () => {
     });
 
     describe('setDocumentContent', () => {
-        it('should replace entire document', async () => {
+        it('should replace entire document using vault.modify', async () => {
             app.vault.modify = jest.fn().mockResolvedValue(undefined);
             
             const newContent = '# New Document\n\nCompletely new content';
@@ -327,6 +302,15 @@ describe('DocumentEngine', () => {
             
             expect(result.success).toBe(false);
             expect(result.error).toContain('No active file');
+        });
+
+        it('should handle vault.modify errors', async () => {
+            app.vault.modify = jest.fn().mockRejectedValue(new Error('Vault error'));
+            
+            const result = await engine.setDocumentContent('content');
+            
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Vault error');
         });
     });
 });

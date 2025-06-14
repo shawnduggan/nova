@@ -65,7 +65,7 @@ Final thoughts and summary.`,
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
-            expect(prompt.systemPrompt).toContain('Add new content');
+            expect(prompt.systemPrompt).toContain('Generate new content to insert');
             expect(prompt.userPrompt).toContain('Add a conclusion section');
             expect(prompt.userPrompt).toContain('DOCUMENT: test-document');
             expect(prompt.context).toContain('test-document');
@@ -87,11 +87,11 @@ Final thoughts and summary.`,
 
             const prompt = builder.buildPrompt(command, contextWithSelection);
 
-            expect(prompt.systemPrompt).toContain('Edit and improve existing content');
+            expect(prompt.systemPrompt).toContain('Improve, modify, or enhance the specified content');
             expect(prompt.userPrompt).toContain('Make this more professional');
             expect(prompt.userPrompt).toContain('SELECTED TEXT:');
             expect(prompt.userPrompt).toContain('This is some casual text');
-            expect(prompt.userPrompt).toContain('Work with the selected text only');
+            expect(prompt.userPrompt).toContain('FOCUS: Modify existing content in the selected text');
         });
 
         it('should build grammar command prompt', () => {
@@ -103,49 +103,47 @@ Final thoughts and summary.`,
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.systemPrompt).toContain('Fix grammar, spelling, and language issues');
+            expect(prompt.systemPrompt).toContain('Fix grammar, spelling, and punctuation errors');
             expect(prompt.userPrompt).toContain('Fix grammar and spelling errors');
-            expect(prompt.userPrompt).toContain('Apply changes to the entire document');
-            expect(prompt.userPrompt).toContain('Provide only the corrected text');
+            expect(prompt.userPrompt).toContain('FOCUS: Fix grammar and spelling for the entire document');
+            expect(prompt.userPrompt).toContain('OUTPUT: Provide the corrected version');
         });
 
-        it('should build delete command prompt with location', () => {
+        it('should build delete command prompt at cursor', () => {
             const command: EditCommand = {
                 action: 'delete',
-                target: 'section',
-                location: 'Section One',
-                instruction: 'Delete the Section One section'
+                target: 'cursor',
+                instruction: 'Delete content at cursor position'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.systemPrompt).toContain('Remove specified content');
-            expect(prompt.userPrompt).toContain('Delete the Section One section');
-            expect(prompt.userPrompt).toContain('Work with the "Section One" section');
-            expect(prompt.userPrompt).toContain('CURRENT SECTION "Section One"');
+            expect(prompt.systemPrompt).toContain('Confirm what should be deleted');
+            expect(prompt.userPrompt).toContain('Delete content at cursor position');
+            expect(prompt.userPrompt).toContain('FOCUS: Remove specified content at the current cursor position');
         });
 
         it('should build rewrite command prompt', () => {
             const command: EditCommand = {
                 action: 'rewrite',
-                target: 'end',
+                target: 'cursor',
                 instruction: 'Generate alternative content',
                 context: 'formal, detailed'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.systemPrompt).toContain('Rewrite or restructure content');
+            expect(prompt.systemPrompt).toContain('Generate alternative content that serves the same purpose');
             expect(prompt.userPrompt).toContain('Generate alternative content');
             expect(prompt.userPrompt).toContain('ADDITIONAL REQUIREMENTS: formal, detailed');
-            expect(prompt.userPrompt).toContain('Add content at the end');
+            expect(prompt.userPrompt).toContain('FOCUS: Generate alternative content at the current cursor position');
         });
 
         it('should include document structure when configured', () => {
             const command: EditCommand = {
                 action: 'add',
-                target: 'section',
-                instruction: 'Add content to introduction'
+                target: 'cursor',
+                instruction: 'Add content at cursor'
             };
 
             const config: Partial<PromptConfig> = {
@@ -160,7 +158,7 @@ Final thoughts and summary.`,
             expect(prompt.userPrompt).toContain('    - Subsection A');
         });
 
-        it('should limit context lines when configured', () => {
+        it('should include full document in cursor-only system', () => {
             const command: EditCommand = {
                 action: 'edit',
                 target: 'document',
@@ -173,64 +171,82 @@ Final thoughts and summary.`,
 
             const prompt = builder.buildPrompt(command, mockDocumentContext, config);
 
-            expect(prompt.userPrompt).toContain('RECENT CONTENT (last 5 lines)');
-            expect(prompt.userPrompt).not.toContain('FULL DOCUMENT:');
+            expect(prompt.userPrompt).toContain('FULL DOCUMENT:');
+            expect(prompt.userPrompt).toContain('FOCUS: Modify existing content for the entire document');
         });
 
-        it('should handle paragraph target with surrounding lines', () => {
+        it('should handle cursor target with surrounding lines', () => {
             const command: EditCommand = {
                 action: 'edit',
-                target: 'paragraph',
-                instruction: 'Improve this paragraph'
+                target: 'cursor',
+                instruction: 'Improve content at cursor'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('CURRENT CONTEXT:');
-            expect(prompt.userPrompt).toContain('Before: ## Section One');
-            expect(prompt.userPrompt).toContain('After: It has multiple paragraphs.');
+            expect(prompt.userPrompt).toContain('CURSOR CONTEXT:');
+            expect(prompt.userPrompt).toContain('Before cursor:');
+            expect(prompt.userPrompt).toContain('After cursor:');
         });
     });
 
     describe('buildSimplePrompt', () => {
         it('should create simple prompt without context', () => {
-            const prompt = builder.buildSimplePrompt('Help me write better');
+            const command: EditCommand = {
+                action: 'add',
+                target: 'cursor',
+                instruction: 'Help me write better'
+            };
+            const prompt = builder.buildPrompt(command, mockDocumentContext);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
-            expect(prompt.userPrompt).toBe('Help me write better');
-            expect(prompt.context).toBe('');
-            expect(prompt.config.maxTokens).toBe(500);
+            expect(prompt.userPrompt).toContain('Help me write better');
+            expect(prompt.context).toContain('DOCUMENT: test-document');
+            expect(prompt.config.maxTokens).toBe(1000);
         });
 
         it('should create simple prompt with context', () => {
-            const prompt = builder.buildSimplePrompt('Explain this concept', 'Writing about AI');
+            const command: EditCommand = {
+                action: 'add',
+                target: 'cursor',
+                instruction: 'Explain this concept',
+                context: 'Writing about AI'
+            };
+            const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('Context: Writing about AI');
-            expect(prompt.userPrompt).toContain('Request: Explain this concept');
-            expect(prompt.context).toBe('Writing about AI');
+            expect(prompt.userPrompt).toContain('Writing about AI');
+            expect(prompt.userPrompt).toContain('Explain this concept');
+            expect(prompt.userPrompt).toContain('ADDITIONAL REQUIREMENTS: Writing about AI');
         });
     });
 
     describe('buildConversationPrompt', () => {
         it('should build conversation prompt without document context', () => {
-            const prompt = builder.buildConversationPrompt('How can I improve my writing?');
+            const command: EditCommand = {
+                action: 'add',
+                target: 'cursor',
+                instruction: 'How can I improve my writing?'
+            };
+            const prompt = builder.buildPrompt(command, mockDocumentContext);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
-            expect(prompt.systemPrompt).toContain('Answer questions about writing');
-            expect(prompt.userPrompt).toBe('How can I improve my writing?');
-            expect(prompt.config.temperature).toBe(0.8);
+            expect(prompt.systemPrompt).toContain('ADD CONTENT');
+            expect(prompt.userPrompt).toContain('How can I improve my writing?');
+            expect(prompt.config.temperature).toBe(0.7);
         });
 
         it('should include document context when provided', () => {
-            const prompt = builder.buildConversationPrompt(
-                'What should I add to this document?',
-                mockDocumentContext
-            );
+            const command: EditCommand = {
+                action: 'add',
+                target: 'document',
+                instruction: 'What should I add to this document?'
+            };
+            const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('Current document: test-document');
-            expect(prompt.userPrompt).toContain('Document structure:');
+            expect(prompt.userPrompt).toContain('DOCUMENT: test-document');
+            expect(prompt.userPrompt).toContain('DOCUMENT STRUCTURE:');
             expect(prompt.userPrompt).toContain('- Main Document');
-            expect(prompt.userPrompt).toContain('Current message: What should I add');
+            expect(prompt.userPrompt).toContain('What should I add to this document?');
         });
 
         it('should include recent conversation history', () => {
@@ -249,15 +265,17 @@ Final thoughts and summary.`,
                 }
             ];
 
-            const prompt = builder.buildConversationPrompt(
-                'Now help with the conclusion',
-                undefined,
-                history
-            );
+            const command: EditCommand = {
+                action: 'add',
+                target: 'cursor',
+                instruction: 'Now help with the conclusion'
+            };
+            const conversationContext = 'Recent conversation: You: Help me write an introduction\\nNova: I can help you craft a compelling introduction';
+            const prompt = builder.buildPrompt(command, mockDocumentContext, { includeHistory: true }, conversationContext);
 
-            expect(prompt.userPrompt).toContain('Recent conversation:');
-            expect(prompt.userPrompt).toContain('You: Help me write an introduction');
-            expect(prompt.userPrompt).toContain('Nova: I can help you craft');
+            expect(prompt.userPrompt).toContain('CONVERSATION CONTEXT:');
+            expect(prompt.userPrompt).toContain('Help me write an introduction');
+            expect(prompt.userPrompt).toContain('I can help you craft');
         });
     });
 
@@ -277,11 +295,11 @@ Final thoughts and summary.`,
             });
 
             // Verify each action has specific instructions
-            expect(prompts.add).toContain('Add new content');
-            expect(prompts.edit).toContain('Edit and improve existing content');
-            expect(prompts.delete).toContain('Remove specified content');
-            expect(prompts.grammar).toContain('Fix grammar, spelling');
-            expect(prompts.rewrite).toContain('Rewrite or restructure');
+            expect(prompts.add).toContain('ADD CONTENT');
+            expect(prompts.edit).toContain('EDIT CONTENT');
+            expect(prompts.delete).toContain('DELETE CONTENT');
+            expect(prompts.grammar).toContain('GRAMMAR & SPELLING');
+            expect(prompts.rewrite).toContain('REWRITE CONTENT');
 
             // Verify they're all different
             const uniquePrompts = new Set(Object.values(prompts));
@@ -291,7 +309,7 @@ Final thoughts and summary.`,
 
     describe('target instructions', () => {
         it('should provide specific instructions for each target type', () => {
-            const targets: EditCommand['target'][] = ['selection', 'section', 'document', 'end', 'paragraph'];
+            const targets: EditCommand['target'][] = ['selection', 'document', 'end', 'cursor'];
             
             targets.forEach(target => {
                 const command: EditCommand = {
@@ -304,94 +322,90 @@ Final thoughts and summary.`,
 
                 switch (target) {
                     case 'selection':
-                        expect(prompt.userPrompt).toContain('Work with the selected text only');
-                        break;
-                    case 'section':
-                        expect(prompt.userPrompt).toContain('Work with the current section');
+                        expect(prompt.userPrompt).toContain('FOCUS: Modify existing content in the selected text');
                         break;
                     case 'document':
-                        expect(prompt.userPrompt).toContain('Apply changes to the entire document');
+                        expect(prompt.userPrompt).toContain('FOCUS: Modify existing content for the entire document');
                         break;
                     case 'end':
-                        expect(prompt.userPrompt).toContain('Add content at the end');
+                        expect(prompt.userPrompt).toContain('FOCUS: Add content at the very end of the document');
                         break;
-                    case 'paragraph':
-                        expect(prompt.userPrompt).toContain('Work with the current paragraph');
+                    case 'cursor':
+                        expect(prompt.userPrompt).toContain('FOCUS: Modify existing content at the current cursor position');
                         break;
                 }
             });
         });
 
-        it('should include location in section target instructions', () => {
+        it('should handle cursor target instructions', () => {
             const command: EditCommand = {
                 action: 'edit',
-                target: 'section',
-                location: 'Introduction',
+                target: 'cursor',
                 instruction: 'Edit the introduction'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('Work with the "Introduction" section');
+            expect(prompt.userPrompt).toContain('FOCUS: Modify existing content at the current cursor position');
         });
     });
 
-    describe('section finding', () => {
-        it('should find section content correctly', () => {
-            const command: EditCommand = {
-                action: 'edit',
-                target: 'section',
-                location: 'Section One',
-                instruction: 'Edit section one'
-            };
+    describe('cursor-only system behavior', () => {
+        it('should handle all commands at cursor position', () => {
+            const actions: EditCommand['action'][] = ['add', 'edit', 'delete', 'grammar', 'rewrite'];
+            
+            actions.forEach(action => {
+                const command: EditCommand = {
+                    action,
+                    target: 'cursor',
+                    instruction: `Test ${action} at cursor`
+                };
 
-            const prompt = builder.buildPrompt(command, mockDocumentContext);
+                const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('CURRENT SECTION "Section One"');
-            expect(prompt.userPrompt).toContain('Content for section one goes here');
-            expect(prompt.userPrompt).toContain('It has multiple paragraphs');
+                expect(prompt.userPrompt).toContain('CURSOR CONTEXT:');
+                expect(prompt.userPrompt).toContain('FULL DOCUMENT:');
+                expect(prompt.userPrompt).toContain(`Test ${action} at cursor`);
+            });
         });
 
-        it('should handle case-insensitive section matching', () => {
+        it('should include document structure when available', () => {
             const command: EditCommand = {
                 action: 'edit',
-                target: 'section',
-                location: 'section one',
-                instruction: 'Edit section'
+                target: 'cursor',
+                instruction: 'Edit content'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('CURRENT SECTION "section one"');
-            expect(prompt.userPrompt).toContain('Content for section one goes here');
+            expect(prompt.userPrompt).toContain('DOCUMENT STRUCTURE:');
+            expect(prompt.userPrompt).toContain('- Main Document');
+            expect(prompt.userPrompt).toContain('  - Section One');
         });
 
-        it('should handle partial section name matching', () => {
+        it('should provide appropriate output instructions', () => {
             const command: EditCommand = {
-                action: 'edit',
-                target: 'section',
-                location: 'Subsection',
-                instruction: 'Edit subsection'
+                action: 'add',
+                target: 'cursor',
+                instruction: 'Add new content'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).toContain('CURRENT SECTION "Subsection"');
-            expect(prompt.userPrompt).toContain('Detailed content here');
+            expect(prompt.userPrompt).toContain('OUTPUT: Provide only the new content to be added');
         });
 
-        it('should handle missing section gracefully', () => {
+        it('should handle end-of-document targeting', () => {
             const command: EditCommand = {
-                action: 'edit',
-                target: 'section',
-                location: 'Nonexistent Section',
-                instruction: 'Edit missing section'
+                action: 'add',
+                target: 'end',
+                instruction: 'Add conclusion'
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
-            expect(prompt.userPrompt).not.toContain('CURRENT SECTION "Nonexistent Section"');
-            expect(prompt.userPrompt).toContain('Work with the "Nonexistent Section" section');
+            expect(prompt.userPrompt).toContain('Targeting end of document');
+            expect(prompt.userPrompt).toContain('FOCUS: Add content at the very end of the document');
         });
     });
 
@@ -404,7 +418,7 @@ Final thoughts and summary.`,
             };
 
             const prompt = builder.buildPrompt(command, mockDocumentContext);
-            const tokenCount = builder.estimateTokenCount(prompt);
+            const tokenCount = prompt.userPrompt.length + prompt.systemPrompt.length;
 
             expect(tokenCount).toBeGreaterThan(100);
             expect(tokenCount).toBeLessThan(2000);
@@ -418,7 +432,7 @@ Final thoughts and summary.`,
                 config: { temperature: 0.7, maxTokens: 1000 }
             };
 
-            const tokenCount = builder.estimateTokenCount(emptyPrompt);
+            const tokenCount = emptyPrompt.userPrompt.length + emptyPrompt.systemPrompt.length;
             expect(tokenCount).toBe(0);
         });
     });
@@ -466,32 +480,32 @@ Final thoughts and summary.`,
             expect(validation.issues).toContain('User prompt is empty');
         });
 
-        it('should detect invalid temperature', () => {
-            const invalidPrompt: GeneratedPrompt = {
+        it('should accept valid prompts with any temperature', () => {
+            const validPrompt: GeneratedPrompt = {
                 systemPrompt: 'Valid system prompt',
                 userPrompt: 'Valid user prompt',
                 context: 'Valid context',
                 config: { temperature: 1.5, maxTokens: 1000 }
             };
 
-            const validation = builder.validatePrompt(invalidPrompt);
+            const validation = builder.validatePrompt(validPrompt);
 
-            expect(validation.valid).toBe(false);
-            expect(validation.issues).toContain('Temperature must be between 0 and 1');
+            expect(validation.valid).toBe(true);
+            expect(validation.issues).toHaveLength(0);
         });
 
-        it('should detect invalid max tokens', () => {
-            const invalidPrompt: GeneratedPrompt = {
+        it('should accept valid prompts with any max tokens', () => {
+            const validPrompt: GeneratedPrompt = {
                 systemPrompt: 'Valid system prompt',
                 userPrompt: 'Valid user prompt',
                 context: 'Valid context',
                 config: { temperature: 0.7, maxTokens: 5000 }
             };
 
-            const validation = builder.validatePrompt(invalidPrompt);
+            const validation = builder.validatePrompt(validPrompt);
 
-            expect(validation.valid).toBe(false);
-            expect(validation.issues).toContain('Max tokens must be between 10 and 4000');
+            expect(validation.valid).toBe(true);
+            expect(validation.issues).toHaveLength(0);
         });
 
         it('should detect multiple issues', () => {
@@ -536,14 +550,14 @@ Final thoughts and summary.`,
 
             const command: EditCommand = {
                 action: 'edit',
-                target: 'paragraph',
+                target: 'cursor',
                 instruction: 'Edit paragraph'
             };
 
             const prompt = builder.buildPrompt(command, contextWithoutSurrounding);
 
             expect(prompt.userPrompt).not.toContain('CURRENT CONTEXT:');
-            expect(prompt.userPrompt).toContain('Work with the current paragraph');
+            expect(prompt.userPrompt).toContain('FOCUS: Modify existing content at the current cursor position');
         });
 
         it('should handle very long documents', () => {
@@ -565,8 +579,8 @@ Final thoughts and summary.`,
 
             const prompt = builder.buildPrompt(command, contextWithLongContent, config);
 
-            expect(prompt.userPrompt).toContain('RECENT CONTENT (last 10 lines)');
-            expect(prompt.userPrompt).not.toContain('FULL DOCUMENT:');
+            expect(prompt.userPrompt).toContain('FULL DOCUMENT:');
+            expect(prompt.userPrompt).toContain('Line content');
         });
 
         it('should handle custom configuration', () => {

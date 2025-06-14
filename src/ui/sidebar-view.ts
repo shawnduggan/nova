@@ -938,14 +938,14 @@ export class NovaSidebarView extends ItemView {
 
 		this.contextIndicator.empty();
 		
-		if (!this.currentContext) {
+		if (!this.currentContext || !this.currentContext.persistentDocs) {
 			this.contextIndicator.style.display = 'none';
 			return;
 		}
 		
 		const allDocs = this.currentContext.persistentDocs;
 		
-		if (allDocs.length === 0) {
+		if (!allDocs || allDocs.length === 0) {
 			this.contextIndicator.style.display = 'none';
 			return;
 		}
@@ -1283,9 +1283,15 @@ export class NovaSidebarView extends ItemView {
 
 	private async refreshContext(): Promise<void> {
 		if (this.currentFile) {
-			const result = await this.multiDocHandler.buildContext('', this.currentFile);
-			this.currentContext = result.context;
-			this.updateContextIndicator();
+			try {
+				const result = await this.multiDocHandler.buildContext('', this.currentFile);
+				this.currentContext = result?.context || null;
+				this.updateContextIndicator();
+			} catch (error) {
+				// Handle context build failures gracefully
+				this.currentContext = null;
+				this.updateContextIndicator();
+			}
 		}
 	}
 
@@ -1333,15 +1339,15 @@ export class NovaSidebarView extends ItemView {
 				
 				// Check if message is just document references (context-only mode)
 				// Since all docs are now persistent, check if we have new docs and empty message
-				const previousPersistentCount = this.currentContext?.persistentDocs.length || 0;
-				const currentPersistentCount = multiDocContext.persistentDocs.length;
+				const previousPersistentCount = this.currentContext?.persistentDocs?.length || 0;
+				const currentPersistentCount = multiDocContext?.persistentDocs?.length || 0;
 				const hasNewDocs = currentPersistentCount > previousPersistentCount;
 				const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
 				
 				if (isContextOnlyMessage) {
 					// Handle context-only commands - show newly added documents
 					const newDocsCount = currentPersistentCount - previousPersistentCount;
-					if (newDocsCount > 0) {
+					if (newDocsCount > 0 && multiDocContext?.persistentDocs) {
 						// Get the newly added documents (last N documents)
 						const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
 						const docNames = newDocs.map(doc => doc.file.basename).join(', ');
@@ -1360,7 +1366,7 @@ export class NovaSidebarView extends ItemView {
 				}
 				
 				// Show context confirmation if documents were included in a regular message
-				if (multiDocContext.persistentDocs.length > 0) {
+				if (multiDocContext?.persistentDocs?.length > 0) {
 					const allDocs = multiDocContext.persistentDocs;
 					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
 					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
@@ -1369,7 +1375,7 @@ export class NovaSidebarView extends ItemView {
 				}
 				
 				// Check token limit
-				if (multiDocContext.isNearLimit) {
+				if (multiDocContext?.isNearLimit) {
 					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
 				}
 			}

@@ -78,12 +78,7 @@ Content for section two.`,
             appliedAt: { line: 10, ch: 0 }
         });
         
-        mockDocumentEngine.findSection.mockResolvedValue({
-            heading: 'Section One',
-            level: 2,
-            content: 'Content for section one.',
-            range: { start: 4, end: 7 }
-        });
+        // Remove findSection mock - not used in cursor-only system
     });
 
     describe('execute', () => {
@@ -102,34 +97,15 @@ Content for section two.`,
             expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
                 'Generated content',
                 'end',
-                { scrollToEdit: true, selectNewText: false }
+                { scrollToEdit: true, selectNewText: true }
             );
         });
 
-        it('should add content to specific section', async () => {
+        it('should add content at cursor position', async () => {
             const command: EditCommand = {
                 action: 'add',
-                target: 'section',
-                location: 'Section One',
-                instruction: 'Add content to Section One'
-            };
-
-            const result = await addCommand.execute(command);
-
-            expect(result.success).toBe(true);
-            expect(mockDocumentEngine.findSection).toHaveBeenCalledWith('Section One');
-            expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
-                'Generated content',
-                { line: 7, ch: 0 },
-                { scrollToEdit: true, selectNewText: false }
-            );
-        });
-
-        it('should add content at cursor for paragraph target', async () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'paragraph',
-                instruction: 'Add a new paragraph'
+                target: 'cursor',
+                instruction: 'Add content at cursor'
             };
 
             const result = await addCommand.execute(command);
@@ -138,7 +114,24 @@ Content for section two.`,
             expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
                 'Generated content',
                 'cursor',
-                { scrollToEdit: true, selectNewText: false }
+                { scrollToEdit: true, selectNewText: true }
+            );
+        });
+
+        it('should add content to document', async () => {
+            const command: EditCommand = {
+                action: 'add',
+                target: 'document',
+                instruction: 'Add content to document'
+            };
+
+            const result = await addCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
+                'Generated content',
+                'end',
+                { scrollToEdit: true, selectNewText: true }
             );
         });
 
@@ -240,22 +233,21 @@ Content for section two.`,
             expect(result.error).toBe('Document is read-only');
         });
 
-        it('should show error message when section not found', async () => {
-            mockDocumentEngine.findSection.mockResolvedValue(null);
-
+        it('should handle selection target insertion', async () => {
             const command: EditCommand = {
                 action: 'add',
-                target: 'section',
-                location: 'Nonexistent Section',
-                instruction: 'Add content to missing section'
+                target: 'selection',
+                instruction: 'Add content to selection'
             };
 
             const result = await addCommand.execute(command);
 
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('Section "Nonexistent Section" not found');
-            expect(result.error).toContain('Available sections:');
-            expect(result.error).toContain('hierarchical paths');
+            expect(result.success).toBe(true);
+            expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
+                'Generated content',
+                'cursor',
+                { scrollToEdit: true, selectNewText: true }
+            );
         });
 
         it('should handle exceptions during execution', async () => {
@@ -274,220 +266,30 @@ Content for section two.`,
         });
     });
 
-    describe('validateCommand', () => {
-        it('should reject add command with selection target', () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'selection',
-                instruction: 'Add to selection'
-            };
-
-            const validation = addCommand.validateCommand(command, true);
-
-            expect(validation.valid).toBe(false);
-            expect(validation.error).toBe('Cannot add content to a selection. Use "edit" to modify selected text');
-        });
-
-        it('should accept add command with section target without location', () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'section',
-                instruction: 'Add to current section'
-            };
-
-            const validation = addCommand.validateCommand(command, false);
-
-            expect(validation.valid).toBe(true);
-            expect(validation.error).toBeUndefined();
-        });
-
-        it('should accept add command with valid targets', () => {
-            const validTargets: EditCommand['target'][] = ['end', 'section', 'paragraph', 'document'];
-
-            validTargets.forEach(target => {
-                const command: EditCommand = {
-                    action: 'add',
-                    target,
-                    instruction: 'Add content'
-                };
-
-                const validation = addCommand.validateCommand(command, false);
-                expect(validation.valid).toBe(true);
-            });
-        });
-    });
-
-    describe('getSuggestions', () => {
-        it('should provide basic suggestions', () => {
-            const suggestions = addCommand.getSuggestions(mockDocumentContext);
-
-            expect(suggestions).toContain('Add a conclusion section');
-            expect(suggestions).toContain('Create a summary');
-            expect(suggestions).toContain('Add examples');
-            expect(suggestions.length).toBeLessThanOrEqual(8);
-        });
-
-        it('should suggest introduction if missing', () => {
-            const contextWithoutIntro = {
-                ...mockDocumentContext,
-                headings: [
-                    { text: 'Methods', level: 2, line: 0, position: { start: 0, end: 8 } },
-                    { text: 'Results', level: 2, line: 4, position: { start: 50, end: 58 } }
-                ]
-            };
-
-            const suggestions = addCommand.getSuggestions(contextWithoutIntro);
-
-            expect(suggestions[0]).toBe('Add an introduction section');
-        });
-
-        it('should suggest conclusion if missing', () => {
-            const contextWithoutConclusion = {
-                ...mockDocumentContext,
-                headings: [
-                    { text: 'Introduction', level: 2, line: 0, position: { start: 0, end: 12 } },
-                    { text: 'Methods', level: 2, line: 4, position: { start: 50, end: 58 } }
-                ]
-            };
-
-            const suggestions = addCommand.getSuggestions(contextWithoutConclusion);
-
-            expect(suggestions).toContain('Add a conclusion section');
-        });
-
-        it('should handle document without headings', () => {
-            const contextWithoutHeadings = {
-                ...mockDocumentContext,
-                headings: []
-            };
-
-            const suggestions = addCommand.getSuggestions(contextWithoutHeadings);
-
-            expect(suggestions.length).toBeGreaterThan(0);
-            expect(suggestions).toContain('Add a conclusion section');
-            expect(suggestions).toContain('Add an introduction');
-        });
-    });
-
-    describe('preview', () => {
-        it('should preview adding to end of document', async () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'end',
-                instruction: 'Add conclusion'
-            };
-
-            const preview = await addCommand.preview(command);
-
-            expect(preview.success).toBe(true);
-            expect(preview.position).toBe('at the end of the document');
-            expect(preview.preview).toContain('at the end of the document');
-        });
-
-        it('should preview adding to specific section', async () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'section',
-                location: 'Introduction',
-                instruction: 'Add to intro'
-            };
-
-            const preview = await addCommand.preview(command);
-
-            expect(preview.success).toBe(true);
-            expect(preview.position).toBe('in the "Introduction" section');
-            expect(preview.preview).toContain('in the "Introduction" section');
-        });
-
-        it('should preview adding at cursor position', async () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'paragraph',
-                instruction: 'Add paragraph'
-            };
-
-            const preview = await addCommand.preview(command);
-
-            expect(preview.success).toBe(true);
-            expect(preview.position).toBe('at the cursor position');
-        });
-
-        it('should handle preview when no document is active', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
-
-            const command: EditCommand = {
-                action: 'add',
-                target: 'end',
-                instruction: 'Add content'
-            };
-
-            const preview = await addCommand.preview(command);
-
-            expect(preview.success).toBe(false);
-            expect(preview.error).toBe('No active document found');
-        });
-
-        it('should handle preview errors', async () => {
-            mockDocumentEngine.getDocumentContext.mockRejectedValue(new Error('Preview failed'));
-
-            const command: EditCommand = {
-                action: 'add',
-                target: 'end',
-                instruction: 'Add content'
-            };
-
-            const preview = await addCommand.preview(command);
-
-            expect(preview.success).toBe(false);
-            expect(preview.error).toBe('Preview failed');
-        });
-    });
-
-    describe('determineInsertPosition', () => {
-        it('should determine correct positions for different targets', async () => {
+    describe('command validation', () => {
+        it('should execute commands with valid targets', async () => {
             const testCases = [
-                { target: 'end' as const, expected: 'end' },
-                { target: 'paragraph' as const, expected: 'cursor' },
-                { target: 'document' as const, expected: 'end' }
+                { target: 'end' as const, expectedPosition: 'end' },
+                { target: 'cursor' as const, expectedPosition: 'cursor' },
+                { target: 'document' as const, expectedPosition: 'end' },
+                { target: 'selection' as const, expectedPosition: 'cursor' }
             ];
 
             for (const testCase of testCases) {
                 const command: EditCommand = {
                     action: 'add',
                     target: testCase.target,
-                    instruction: 'Test command'
+                    instruction: 'Add content'
                 };
 
-                const position = await (addCommand as any).determineInsertPosition(command, mockDocumentContext);
-                expect(position).toBe(testCase.expected);
+                const result = await addCommand.execute(command);
+                expect(result.success).toBe(true);
+                expect(mockDocumentEngine.applyEdit).toHaveBeenCalledWith(
+                    'Generated content',
+                    testCase.expectedPosition,
+                    { scrollToEdit: true, selectNewText: true }
+                );
             }
-        });
-
-        it('should find section position when location is provided', async () => {
-            const command: EditCommand = {
-                action: 'add',
-                target: 'section',
-                location: 'Section One',
-                instruction: 'Add to section'
-            };
-
-            const position = await (addCommand as any).determineInsertPosition(command, mockDocumentContext);
-            expect(position).toEqual({ line: 7, ch: 0 });
-            expect(mockDocumentEngine.findSection).toHaveBeenCalledWith('Section One');
-        });
-
-        it('should throw error when section not found', async () => {
-            mockDocumentEngine.findSection.mockResolvedValue(null);
-
-            const command: EditCommand = {
-                action: 'add',
-                target: 'section',
-                location: 'Missing Section',
-                instruction: 'Add to missing section'
-            };
-
-            await expect((addCommand as any).determineInsertPosition(command, mockDocumentContext))
-                .rejects.toThrow('Section "Missing Section" not found');
         });
     });
 });

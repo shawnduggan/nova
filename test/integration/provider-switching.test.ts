@@ -4,6 +4,24 @@ import { LicenseValidator } from '../../src/licensing/license-validator';
 import { NovaSettings, DEFAULT_SETTINGS } from '../../src/settings';
 import { ProviderType } from '../../src/ai/types';
 
+// Mock Obsidian
+jest.mock('obsidian', () => ({
+    Platform: {
+        isMobile: false
+    },
+    ItemView: class MockItemView {},
+    Setting: class MockSetting {},
+    Notice: class MockNotice {},
+    Component: class MockComponent {},
+    Plugin: class MockPlugin {},
+    PluginSettingTab: class MockPluginSettingTab {},
+    TFile: class MockTFile {},
+    TFolder: class MockTFolder {},
+    Vault: class MockVault {},
+    Workspace: class MockWorkspace {},
+    App: class MockApp {}
+}));
+
 describe('Provider Switching in Supernova Model', () => {
     let providerManager: AIProviderManager;
     let featureManager: FeatureManager;
