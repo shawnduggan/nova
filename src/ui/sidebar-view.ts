@@ -980,7 +980,7 @@ export class NovaSidebarView extends ItemView {
 		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
 		
 		const tokenPercent = Math.round((this.currentContext.tokenCount / 8000) * 100);
-		const docNames = allDocs.map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
+		const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
 		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
 		
 		// Mobile-optimized text (shorter on mobile) with proper flex alignment
@@ -1123,7 +1123,7 @@ export class NovaSidebarView extends ItemView {
 		// Document list for expanded state
 		const docListEl = expandedEl.createDiv({ cls: 'nova-context-doc-list' });
 		
-		allDocs.forEach((doc, index) => {
+		allDocs.filter(doc => doc?.file?.basename).forEach((doc, index) => {
 			const docItemEl = docListEl.createDiv({ cls: 'nova-context-doc-item' });
 			docItemEl.style.cssText = `
 				display: flex;
@@ -1292,6 +1292,10 @@ export class NovaSidebarView extends ItemView {
 				this.currentContext = null;
 				this.updateContextIndicator();
 			}
+		} else {
+			// No current file - clear context
+			this.currentContext = null;
+			this.updateContextIndicator();
 		}
 	}
 
@@ -1347,11 +1351,13 @@ export class NovaSidebarView extends ItemView {
 				if (isContextOnlyMessage) {
 					// Handle context-only commands - show newly added documents
 					const newDocsCount = currentPersistentCount - previousPersistentCount;
-					if (newDocsCount > 0 && multiDocContext?.persistentDocs) {
+					if (newDocsCount > 0 && multiDocContext?.persistentDocs && multiDocContext.persistentDocs.length > 0) {
 						// Get the newly added documents (last N documents)
 						const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
-						const docNames = newDocs.map(doc => doc.file.basename).join(', ');
-						this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
+						const docNames = newDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
+						if (docNames) {
+							this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
+						}
 					}
 					
 					// Clear input and update context indicator
@@ -1368,10 +1374,12 @@ export class NovaSidebarView extends ItemView {
 				// Show context confirmation if documents were included in a regular message
 				if (multiDocContext?.persistentDocs?.length > 0) {
 					const allDocs = multiDocContext.persistentDocs;
-					const docNames = allDocs.map(doc => doc.file.basename).join(', ');
-					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
-					const currentFile = this.currentFile?.basename || 'current file';
-					this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
+					const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
+					if (docNames && allDocs.length > 0) {
+						const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
+						const currentFile = this.currentFile?.basename || 'current file';
+						this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
+					}
 				}
 				
 				// Check token limit

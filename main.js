@@ -2233,7 +2233,10 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
 		`;
     const summaryTextEl = summaryEl.createSpan({ cls: "nova-context-summary-text" });
     const tokenPercent = Math.round(this.currentContext.tokenCount / 8e3 * 100);
-    const docNames = allDocs.map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
+    const docNames = allDocs.filter((doc) => {
+      var _a;
+      return (_a = doc == null ? void 0 : doc.file) == null ? void 0 : _a.basename;
+    }).map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
     const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : "";
     summaryTextEl.style.cssText = "font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px;";
     if (isMobile) {
@@ -2354,7 +2357,10 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
       });
     }
     const docListEl = expandedEl.createDiv({ cls: "nova-context-doc-list" });
-    allDocs.forEach((doc, index) => {
+    allDocs.filter((doc) => {
+      var _a;
+      return (_a = doc == null ? void 0 : doc.file) == null ? void 0 : _a.basename;
+    }).forEach((doc, index) => {
       const docItemEl = docListEl.createDiv({ cls: "nova-context-doc-item" });
       docItemEl.style.cssText = `
 				display: flex;
@@ -2495,6 +2501,9 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
         this.currentContext = null;
         this.updateContextIndicator();
       }
+    } else {
+      this.currentContext = null;
+      this.updateContextIndicator();
     }
   }
   async handleSend(message) {
@@ -2533,10 +2542,15 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
         const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
         if (isContextOnlyMessage) {
           const newDocsCount = currentPersistentCount - previousPersistentCount;
-          if (newDocsCount > 0 && (multiDocContext == null ? void 0 : multiDocContext.persistentDocs)) {
+          if (newDocsCount > 0 && (multiDocContext == null ? void 0 : multiDocContext.persistentDocs) && multiDocContext.persistentDocs.length > 0) {
             const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
-            const docNames = newDocs.map((doc) => doc.file.basename).join(", ");
-            this.addSuccessMessage(this.createIconMessage("check-circle", `Added ${newDocsCount} document${newDocsCount !== 1 ? "s" : ""} to persistent context: ${docNames}`));
+            const docNames = newDocs.filter((doc) => {
+              var _a2;
+              return (_a2 = doc == null ? void 0 : doc.file) == null ? void 0 : _a2.basename;
+            }).map((doc) => doc.file.basename).join(", ");
+            if (docNames) {
+              this.addSuccessMessage(this.createIconMessage("check-circle", `Added ${newDocsCount} document${newDocsCount !== 1 ? "s" : ""} to persistent context: ${docNames}`));
+            }
           }
           this.inputHandler.setValue("");
           this.updateContextIndicator();
@@ -2547,10 +2561,15 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
         }
         if (((_d = multiDocContext == null ? void 0 : multiDocContext.persistentDocs) == null ? void 0 : _d.length) > 0) {
           const allDocs = multiDocContext.persistentDocs;
-          const docNames = allDocs.map((doc) => doc.file.basename).join(", ");
-          const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : "";
-          const currentFile = ((_e = this.currentFile) == null ? void 0 : _e.basename) || "current file";
-          this.addMessage("system", this.createIconMessage("book-open", `Included ${allDocs.length} document${allDocs.length !== 1 ? "s" : ""} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
+          const docNames = allDocs.filter((doc) => {
+            var _a2;
+            return (_a2 = doc == null ? void 0 : doc.file) == null ? void 0 : _a2.basename;
+          }).map((doc) => doc.file.basename).join(", ");
+          if (docNames && allDocs.length > 0) {
+            const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : "";
+            const currentFile = ((_e = this.currentFile) == null ? void 0 : _e.basename) || "current file";
+            this.addMessage("system", this.createIconMessage("book-open", `Included ${allDocs.length} document${allDocs.length !== 1 ? "s" : ""} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
+          }
         }
         if (multiDocContext == null ? void 0 : multiDocContext.isNearLimit) {
           new import_obsidian5.Notice("\u26A0\uFE0F Approaching token limit. Consider removing some documents from context.", _NovaSidebarView.NOTICE_DURATION_MS);
