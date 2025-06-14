@@ -97,12 +97,11 @@
   - Auto-select current file when using : command
   - Context-aware command filtering based on selected path
 
-#### 📋 **User Testing & Polish** 
-- [ ] Mobile performance testing on actual devices
-- [ ] Execute end-to-end user workflow testing
-- [ ] Real device testing (mobile, desktop, tablets)
-- [ ] Cross-platform compatibility validation
-- [ ] Final performance validation on actual devices
+#### 📋 **Next Steps** 
+- [ ] User testing with cursor-only system
+- [ ] Performance validation on target devices
+- [ ] Final polish and optimization
+- [ ] Test suite updates (optional cleanup)
 
 ---
 
@@ -128,18 +127,20 @@
 
 ---
 
-## File Locations
+## File Locations (Post-Transformation)
 ```
-main.ts                          # Plugin entry (complete)
-src/ui/sidebar-view.ts          # Main sidebar UI with new picker integration (complete)
-src/ui/input-handler.ts         # Input management and event handling (complete)
-src/ui/command-system.ts        # ":" trigger command picker (complete)
-src/ui/section-picker.ts        # "/" trigger section picker (complete)
-src/ui/context-manager.ts       # Multi-document context UI (complete)
-src/ui/chat-renderer.ts         # Message rendering (complete)
-src/core/document-engine.ts     # Document editing with hierarchical sections (complete)
-src/licensing/feature-manager.ts # Freemium logic (complete)
-styles.css                      # All UI styles (complete)
+main.ts                          # Plugin entry (cursor-only)
+src/ui/sidebar-view.ts          # Main sidebar UI (simplified)
+src/ui/input-handler.ts         # Input management (cursor-focused)
+src/ui/command-system.ts        # ":" trigger for Custom Commands (reserved)
+src/ui/context-manager.ts       # Multi-document context UI (simplified)
+src/ui/chat-renderer.ts         # Message rendering (unchanged)
+src/core/document-engine.ts     # Document editing (cursor-only operations)
+src/core/context-builder.ts     # AI prompt generation (cursor-focused)
+src/core/command-parser.ts      # Natural language processing (simplified)
+src/core/commands/*.ts          # Command handlers (all cursor-only)
+src/licensing/feature-manager.ts # Freemium logic (unchanged)
+styles.css                      # All UI styles (unchanged)
 ```
 
 ---
