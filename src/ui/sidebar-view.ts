@@ -1450,11 +1450,26 @@ export class NovaSidebarView extends ItemView {
 				
 				// Add multi-document context if available
 				if (multiDocContext && multiDocContext.contextString) {
-					// The context already includes the current file, so we can use it directly
-					const enhancedUserPrompt = `${multiDocContext.contextString}\n\n---\n\nUser Request: ${processedMessage}`;
+					// Enhance system prompt to clarify context vs content distinction
+					const enhancedSystemPrompt = (prompt.systemPrompt || '') + `
+
+MULTI-DOCUMENT CONTEXT INSTRUCTIONS:
+- You have access to multiple documents as REFERENCE CONTEXT ONLY
+- These documents are for your understanding and background knowledge
+- DO NOT echo, quote, or output content from these context documents unless specifically requested
+- When responding, focus on the user's request, not the content of context documents
+- Context documents are read-only; you can only edit the current working document
+- If the user asks about context documents, you may reference and discuss their content`;
+
+					const enhancedUserPrompt = `REFERENCE CONTEXT (for your understanding only):
+${multiDocContext.contextString}
+
+---
+
+USER REQUEST: ${processedMessage}`;
 					
 					// Get AI response using the provider manager
-					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', enhancedUserPrompt, {
+					response = await this.plugin.aiProviderManager.complete(enhancedSystemPrompt, enhancedUserPrompt, {
 						temperature: prompt.config.temperature,
 						maxTokens: prompt.config.maxTokens
 					});

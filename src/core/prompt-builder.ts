@@ -159,51 +159,78 @@ export class PromptBuilder {
             recentHistory = await this.conversationManager.getRecentMessages(file, 5);
         }
 
-        // Build a conversation-style command for natural interaction
-        const command: EditCommand = {
-            action: 'edit',
-            target: 'cursor',
-            instruction: message,
-            context: this.formatConversationHistory(recentHistory)
-        };
+        // Build conversation-style prompt (not command format)
+        const systemPrompt = `You are Nova, an AI writing partner that helps users with their documents and writing tasks.
+
+Key capabilities:
+- Answer questions about documents and content
+- Provide writing assistance and suggestions
+- Help with research and analysis
+- Engage in natural conversation about the user's work
+
+Guidelines:
+- Provide helpful, accurate responses
+- Stay focused on the user's needs
+- Be conversational but professional
+- Reference document context when relevant`;
+
+        let userPrompt = `USER REQUEST: ${message}`;
         
-        const safeDocumentContext = documentContext || {
-            file: {} as any,
-            filename: 'untitled',
-            content: '',
-            headings: [],
-            selectedText: undefined,
-            cursorPosition: undefined,
-            surroundingLines: undefined
-        };
+        // Add document context if available
+        if (documentContext && file) {
+            userPrompt = `Current document: ${documentContext.filename}
+
+${userPrompt}`;
+        }
         
-        return this.contextBuilder.buildPrompt(command, safeDocumentContext, options);
+        // Add conversation history if available
+        if (recentHistory.length > 0) {
+            const historyString = this.formatConversationHistory(recentHistory);
+            userPrompt = `RECENT CONVERSATION:
+${historyString}
+
+${userPrompt}`;
+        }
+
+        return {
+            systemPrompt,
+            userPrompt,
+            context: documentContext?.content || '',
+            config: {
+                temperature: options.temperature || 0.7,
+                maxTokens: options.maxTokens || 2000
+            }
+        };
     }
 
     /**
      * Build simple prompt for basic operations
      */
     buildSimplePrompt(instruction: string, context?: string): GeneratedPrompt {
-        // Create a simple command for basic operations
-        const command: EditCommand = {
-            action: 'edit',
-            target: 'cursor', 
-            instruction,
-            context
-        };
+        const systemPrompt = `You are Nova, an AI writing partner that helps users with their documents and writing tasks.
+
+Guidelines:
+- Provide helpful, accurate responses
+- Stay focused on the user's needs
+- Be conversational but professional`;
+
+        let userPrompt = `USER REQUEST: ${instruction}`;
         
-        // Create minimal document context
-        const documentContext: DocumentContext = {
-            file: {} as any, // Will be replaced if needed
-            filename: 'untitled',
-            content: '',
-            headings: [],
-            selectedText: undefined,
-            cursorPosition: undefined,
-            surroundingLines: undefined
+        if (context) {
+            userPrompt = `Context: ${context}
+
+${userPrompt}`;
+        }
+
+        return {
+            systemPrompt,
+            userPrompt,
+            context: context || '',
+            config: {
+                temperature: 0.7,
+                maxTokens: 2000
+            }
         };
-        
-        return this.contextBuilder.buildPrompt(command, documentContext);
     }
 
     /**

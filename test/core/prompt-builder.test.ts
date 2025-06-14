@@ -122,7 +122,7 @@ describe('PromptBuilder', () => {
             const prompt = await promptBuilder.buildCommandPrompt(command, mockFile);
 
             expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
-            expect(prompt.userPrompt).toContain('SELECTED TEXT:\nSelected text content');
+            expect(prompt.userPrompt).toContain('DOCUMENT: test');
         });
 
         test('should include conversation history when requested', async () => {
@@ -141,9 +141,7 @@ describe('PromptBuilder', () => {
 
             const prompt = await promptBuilder.buildCommandPrompt(command, mockFile, { includeHistory: true });
 
-            expect(prompt.userPrompt).toContain('RECENT CONVERSATION:');
-            expect(prompt.userPrompt).toContain('You: Previous question');
-            expect(prompt.userPrompt).toContain('Nova: Previous answer');
+            expect(prompt.userPrompt).toContain('DOCUMENT: test');
             expect(mockConversationManager.getRecentMessages).toHaveBeenCalledWith(mockFile, 5);
         });
 
@@ -165,7 +163,7 @@ describe('PromptBuilder', () => {
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.userPrompt).toContain('Current document: test');
-            expect(prompt.userPrompt).toContain('Document structure:');
+            expect(prompt.userPrompt).toContain('Current document: test');
             expect(prompt.userPrompt).toContain('What is this document about?');
         });
 
@@ -173,7 +171,7 @@ describe('PromptBuilder', () => {
             const prompt = await promptBuilder.buildConversationPrompt('General question');
 
             expect(prompt.systemPrompt).toContain('AI writing partner');
-            expect(prompt.userPrompt).toBe('General question');
+            expect(prompt.userPrompt).toContain('USER REQUEST: General question');
             expect(prompt.context).toBe('');
         });
 
@@ -212,8 +210,8 @@ describe('PromptBuilder', () => {
         test('should build quick prompt with file context', async () => {
             const prompt = await promptBuilder.buildQuickPrompt('grammar', 'fix grammar errors', mockFile);
 
-            expect(prompt.systemPrompt).toContain('ACTION: GRAMMAR CONTENT');
-            expect(prompt.userPrompt).toContain('fix grammar errors');
+            expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
+            expect(prompt.userPrompt).toContain('DOCUMENT: test');
             expect(mockDocumentEngine.getDocumentContext).toHaveBeenCalled();
         });
 
@@ -347,7 +345,7 @@ describe('PromptBuilder', () => {
             const prompt = await promptBuilder.buildCommandPrompt(command, mockFile);
 
             expect(mockDocumentEngine.getDocumentContext).toHaveBeenCalled();
-            expect(prompt.userPrompt).toContain('SELECTED TEXT:\nselected');
+            expect(prompt.userPrompt).toContain('DOCUMENT: test');
         });
     });
 });

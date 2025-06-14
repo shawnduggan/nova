@@ -2606,12 +2606,22 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
       } else {
         const prompt2 = await this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || void 0);
         if (multiDocContext && multiDocContext.contextString) {
-          const enhancedUserPrompt = `${multiDocContext.contextString}
+          const enhancedSystemPrompt = (prompt2.systemPrompt || "") + `
+
+MULTI-DOCUMENT CONTEXT INSTRUCTIONS:
+- You have access to multiple documents as REFERENCE CONTEXT ONLY
+- These documents are for your understanding and background knowledge
+- DO NOT echo, quote, or output content from these context documents unless specifically requested
+- When responding, focus on the user's request, not the content of context documents
+- Context documents are read-only; you can only edit the current working document
+- If the user asks about context documents, you may reference and discuss their content`;
+          const enhancedUserPrompt = `REFERENCE CONTEXT (for your understanding only):
+${multiDocContext.contextString}
 
 ---
 
-User Request: ${processedMessage}`;
-          response = await this.plugin.aiProviderManager.complete(prompt2.systemPrompt || "", enhancedUserPrompt, {
+USER REQUEST: ${processedMessage}`;
+          response = await this.plugin.aiProviderManager.complete(enhancedSystemPrompt, enhancedUserPrompt, {
             temperature: prompt2.config.temperature,
             maxTokens: prompt2.config.maxTokens
           });
@@ -6153,44 +6163,67 @@ var PromptBuilder = class {
       documentContext = await this.getDocumentContext(file);
       recentHistory = await this.conversationManager.getRecentMessages(file, 5);
     }
-    const command = {
-      action: "edit",
-      target: "cursor",
-      instruction: message,
-      context: this.formatConversationHistory(recentHistory)
+    const systemPrompt = `You are Nova, an AI writing partner that helps users with their documents and writing tasks.
+
+Key capabilities:
+- Answer questions about documents and content
+- Provide writing assistance and suggestions
+- Help with research and analysis
+- Engage in natural conversation about the user's work
+
+Guidelines:
+- Provide helpful, accurate responses
+- Stay focused on the user's needs
+- Be conversational but professional
+- Reference document context when relevant`;
+    let userPrompt = `USER REQUEST: ${message}`;
+    if (documentContext && file) {
+      userPrompt = `Current document: ${documentContext.filename}
+
+${userPrompt}`;
+    }
+    if (recentHistory.length > 0) {
+      const historyString = this.formatConversationHistory(recentHistory);
+      userPrompt = `RECENT CONVERSATION:
+${historyString}
+
+${userPrompt}`;
+    }
+    return {
+      systemPrompt,
+      userPrompt,
+      context: (documentContext == null ? void 0 : documentContext.content) || "",
+      config: {
+        temperature: options.temperature || 0.7,
+        maxTokens: options.maxTokens || 2e3
+      }
     };
-    const safeDocumentContext = documentContext || {
-      file: {},
-      filename: "untitled",
-      content: "",
-      headings: [],
-      selectedText: void 0,
-      cursorPosition: void 0,
-      surroundingLines: void 0
-    };
-    return this.contextBuilder.buildPrompt(command, safeDocumentContext, options);
   }
   /**
    * Build simple prompt for basic operations
    */
   buildSimplePrompt(instruction, context) {
-    const command = {
-      action: "edit",
-      target: "cursor",
-      instruction,
-      context
+    const systemPrompt = `You are Nova, an AI writing partner that helps users with their documents and writing tasks.
+
+Guidelines:
+- Provide helpful, accurate responses
+- Stay focused on the user's needs
+- Be conversational but professional`;
+    let userPrompt = `USER REQUEST: ${instruction}`;
+    if (context) {
+      userPrompt = `Context: ${context}
+
+${userPrompt}`;
+    }
+    return {
+      systemPrompt,
+      userPrompt,
+      context: context || "",
+      config: {
+        temperature: 0.7,
+        maxTokens: 2e3
+      }
     };
-    const documentContext = {
-      file: {},
-      // Will be replaced if needed
-      filename: "untitled",
-      content: "",
-      headings: [],
-      selectedText: void 0,
-      cursorPosition: void 0,
-      surroundingLines: void 0
-    };
-    return this.contextBuilder.buildPrompt(command, documentContext);
   }
   /**
    * Get document context for a file

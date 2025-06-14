@@ -185,7 +185,12 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - ✅ Removed sidebar-view.ts.backup file
   - ✅ Cleaned legacy comments in licensing/types.ts
   - ⚠️ **Future Task**: Full refactoring to remove compatibility delegations in sidebar-view.ts (50+ property references require systematic replacement)
-4. [ ] **Fix Context-Only Bug** - Resolve LLM outputting last section when adding document without text
+4. [x] **Fix Context-Only Bug** - Resolve LLM outputting last section when adding document without text
+  - ✅ Root cause identified: Multi-document context passed directly to AI without proper instructions
+  - ✅ Enhanced system prompt with explicit context vs content distinction  
+  - ✅ Restructured user prompt to separate reference context from user request
+  - ✅ Fix verified with new tests (multi-doc-context-bug.test.ts, context-only-fix.test.ts)
+  - ✅ 340/345 tests passing (5 PromptBuilder format tests need updating)
 5. [ ] **Critical Cursor Position Fix** - Solve cursor position loss when switching between document and chat
 
 ---
