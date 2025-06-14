@@ -172,6 +172,15 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - ✅ Clean, maintainable codebase
 - ✅ Build successful and stable
 
+#### 🔧 **Priority 0: Pre-Testing Polish & Bug Fixes** (IN PROGRESS)
+1. [x] **Fix UI Icons** - Replace delete buttons with proper icons and red hover states
+  - ✅ Clear all button uses trash-2 icon
+  - ✅ Document row delete buttons use × symbol (working solution)
+2. [ ] **Update Manual Testing Plan** - Create comprehensive test plan for all cursor-only features  
+3. [ ] **Code Cleanup** - Remove commented code, stubs, backup files, and dead code from architectural changes
+4. [ ] **Fix Context-Only Bug** - Resolve LLM outputting last section when adding document without text
+5. [ ] **Critical Cursor Position Fix** - Solve cursor position loss when switching between document and chat
+
 ---
 
 ## 📋 FUTURE PHASES (Lower Priority)

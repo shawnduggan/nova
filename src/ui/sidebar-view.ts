@@ -1064,9 +1064,9 @@ export class NovaSidebarView extends ItemView {
 		headerTitleEl.innerHTML = this.createInlineIcon('book-open') + ` Documents (${allDocs.length})`;
 		headerTitleEl.style.cssText = 'display: flex; align-items: center; gap: 6px;';
 		
-		// Clear all button using same icon as main sidebar
+		// Clear all button using Obsidian trash icon
 		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
-		clearAllBtnComponent.setIcon('eraser')
+		clearAllBtnComponent.setIcon('trash-2')
 			.setTooltip('Clear all documents from context')
 			.onClick(async () => {
 				if (this.currentFile) {
@@ -1177,9 +1177,9 @@ export class NovaSidebarView extends ItemView {
 				letter-spacing: 0.5px;
 			`;
 			
-			// Mobile-optimized remove button with larger touch target
+			// Mobile-optimized remove button with simple reliable icon
 			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
-			removeBtn.innerHTML = this.createInlineIcon('x', isMobile ? '18px' : '14px');
+			removeBtn.textContent = '×';
 			removeBtn.style.cssText = `
 				background: none;
 				border: none;
@@ -1187,13 +1187,14 @@ export class NovaSidebarView extends ItemView {
 				cursor: pointer;
 				width: ${isMobile ? '44px' : '20px'};
 				height: ${isMobile ? '44px' : '20px'};
-				border-radius: 50%;
+				border-radius: 4px;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				font-size: ${isMobile ? '18px' : '14px'};
 				transition: all 0.2s;
-				font-weight: bold;
+				font-weight: normal;
+				line-height: 1;
 			`;
 			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
 			
@@ -2226,6 +2227,12 @@ export class NovaSidebarView extends ItemView {
 				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
 				<path d="M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				<path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>`,
+			'trash-2': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: ${size}; height: ${size};">
+				<path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M8 6V4A2 2 0 0 1 10 2H14A2 2 0 0 1 16 4V6M19 6V20A2 2 0 0 1 17 22H7A2 2 0 0 1 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M10 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>`
 		};
 		
