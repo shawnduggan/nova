@@ -9,6 +9,7 @@ import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
+import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -26,6 +27,7 @@ export class NovaSidebarView extends ItemView {
 	private contextManager!: ContextManager;
 	private chatRenderer!: ChatRenderer;
 	private streamingManager!: StreamingManager;
+	private selectionContextMenu!: SelectionContextMenu;
 	
 	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
@@ -315,10 +317,11 @@ export class NovaSidebarView extends ItemView {
 		// Clear existing input area content
 		this.inputContainer.empty();
 		
-		// Initialize context manager, chat renderer, and streaming manager first
+		// Initialize context manager, chat renderer, streaming manager, and selection menu first
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
 		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
 		this.streamingManager = new StreamingManager();
+		this.selectionContextMenu = new SelectionContextMenu(this.app, this.plugin);
 		
 		// Create InputHandler which will handle all input UI creation
 		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
@@ -709,11 +712,32 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private getAvailableCommands(): Array<{trigger: string, name: string, description?: string}> {
-		const commands: Array<{trigger: string, name: string, description?: string}> = [
+		const commands: Array<{trigger: string, name: string, description?: string}> = [];
+
+		// Check if user has text selected in active editor
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const selectedText = activeView?.editor?.getSelection();
+		
+		// If text is selected, prioritize Nova selection actions
+		if (selectedText && selectedText.trim().length > 0) {
+			SELECTION_ACTIONS.forEach(action => {
+				commands.push({
+					trigger: action.id,
+					name: `Nova: ${action.label}`,
+					description: action.description
+				});
+			});
+			
+			// Add separator comment (not a real command)
+			commands.push({ trigger: '---', name: '─────────────', description: 'Provider Commands' });
+		}
+
+		// Add provider switching commands
+		commands.push(
 			{ trigger: 'claude', name: 'Switch to Claude', description: 'Anthropic Claude AI' },
 			{ trigger: 'chatgpt', name: 'Switch to ChatGPT', description: 'OpenAI GPT models' },
 			{ trigger: 'gemini', name: 'Switch to Gemini', description: 'Google Gemini AI' }
-		];
+		);
 
 		// Only add Ollama on desktop
 		if (Platform.isDesktopApp) {
@@ -723,13 +747,16 @@ export class NovaSidebarView extends ItemView {
 		// Add custom commands if feature is enabled
 		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const customCommands = this.plugin.settings.customCommands || [];
-			customCommands.forEach(cmd => {
-				commands.push({
-					trigger: cmd.trigger,
-					name: cmd.name,
-					...(cmd.description && { description: cmd.description })
+			if (customCommands.length > 0) {
+				commands.push({ trigger: '---', name: '─────────────', description: 'Custom Commands' });
+				customCommands.forEach(cmd => {
+					commands.push({
+						trigger: cmd.trigger,
+						name: cmd.name,
+						...(cmd.description && { description: cmd.description })
+					});
 				});
-			});
+			}
 		}
 
 		return commands;
@@ -785,6 +812,24 @@ export class NovaSidebarView extends ItemView {
 
 		// Commands list
 		commands.forEach(command => {
+			// Handle separator items
+			if (command.trigger === '---') {
+				const separator = this.commandMenu.createDiv({ cls: 'nova-command-menu-separator' });
+				separator.style.cssText = `
+					padding: 8px 16px 4px 16px;
+					font-size: 0.75em;
+					color: var(--text-muted);
+					font-weight: 600;
+					text-transform: uppercase;
+					letter-spacing: 0.5px;
+					border-top: 1px solid var(--background-modifier-border);
+					margin-top: 4px;
+					cursor: default;
+				`;
+				separator.textContent = command.description || '';
+				return;
+			}
+
 			const item = this.commandMenu.createDiv({ cls: 'nova-command-menu-item nova-panel-item-vertical' });
 
 			const nameEl = item.createDiv({ cls: 'nova-command-menu-name nova-panel-text' });
@@ -813,10 +858,31 @@ export class NovaSidebarView extends ItemView {
 		this.isCommandMenuVisible = false;
 	}
 
-	private executeCommandFromMenu(trigger: string): void {
+	private async executeCommandFromMenu(trigger: string): Promise<void> {
 		this.hideCommandMenu();
 		
-		// Execute the command directly
+		// Check if this is a Nova selection action
+		const selectionAction = SELECTION_ACTIONS.find(action => action.id === trigger);
+		if (selectionAction) {
+			// Handle selection action
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const selectedText = activeView?.editor?.getSelection();
+			
+			if (activeView?.editor && selectedText && selectedText.trim().length > 0) {
+				// Use the existing selection context menu handler
+				await this.selectionContextMenu.handleSelectionAction(trigger, activeView.editor, selectedText);
+			} else {
+				new Notice('No text selected. Please select text to use Nova editing commands.', 3000);
+			}
+			return;
+		}
+		
+		// Skip separator items
+		if (trigger === '---') {
+			return;
+		}
+		
+		// Execute regular command (provider switching, custom commands)
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.handleSend();
 	}

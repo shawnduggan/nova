@@ -3,7 +3,7 @@
  * Allows users to provide custom instructions for text transformation
  */
 
-import { App, Modal, Setting, ButtonComponent, TextAreaComponent } from 'obsidian';
+import { App, Modal, Setting, ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 
 export class CustomInstructionModal extends Modal {
     private instruction: string = '';
@@ -26,36 +26,100 @@ export class CustomInstructionModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
+        // Apply mobile-specific styling to modal container
+        if (Platform.isMobile) {
+            this.modalEl.style.cssText = `
+                width: 95vw !important;
+                height: auto !important;
+                max-width: none !important;
+                max-height: 80vh !important;
+                margin: 0 !important;
+                top: 60px !important;
+                left: 2.5vw !important;
+                transform: none !important;
+                border-radius: var(--radius-m);
+                position: fixed !important;
+            `;
+            
+            contentEl.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                padding: var(--size-4-2);
+                max-height: 80vh;
+                overflow-y: auto;
+            `;
+        }
+
         // Modal title
-        contentEl.createEl('h2', { text: 'Tell Nova' });
-        contentEl.createEl('p', { 
+        const titleEl = contentEl.createEl('h2', { text: 'Tell Nova' });
+        if (Platform.isMobile) {
+            titleEl.style.cssText = `
+                font-size: var(--font-ui-large);
+                margin: 0 0 var(--size-2-1) 0;
+            `;
+        }
+
+        const descEl = contentEl.createEl('p', { 
             text: 'Describe how you want Nova to transform your selected text:',
             cls: 'setting-item-description'
         });
+        if (Platform.isMobile) {
+            descEl.style.cssText = `
+                font-size: var(--font-ui-medium);
+                margin: 0 0 var(--size-2-3) 0;
+                line-height: 1.3;
+            `;
+        }
 
         // Instruction input area
         const inputContainer = contentEl.createDiv({ cls: 'nova-custom-instruction-input' });
-        inputContainer.style.cssText = `
-            margin: var(--size-4-3) 0;
-        `;
+        if (Platform.isMobile) {
+            inputContainer.style.cssText = `
+                margin: 0 0 var(--size-4-3) 0;
+            `;
+        } else {
+            inputContainer.style.cssText = `
+                margin: var(--size-4-3) 0;
+            `;
+        }
 
         // Create textarea for instruction
         this.textAreaComponent = new TextAreaComponent(inputContainer);
         this.textAreaComponent.setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"');
-        this.textAreaComponent.inputEl.style.cssText = `
-            width: 100%;
-            min-height: 80px;
-            max-height: 150px;
-            resize: vertical;
-            border-radius: var(--radius-s);
-            padding: var(--size-2-2) var(--size-2-3);
-            border: 1px solid var(--background-modifier-border);
-            background: var(--background-primary);
-            color: var(--text-normal);
-            font-family: var(--font-interface);
-            font-size: var(--font-ui-medium);
-            line-height: 1.4;
-        `;
+        
+        if (Platform.isMobile) {
+            this.textAreaComponent.inputEl.style.cssText = `
+                width: 100%;
+                min-height: 90px;
+                max-height: 140px;
+                resize: vertical;
+                border-radius: var(--radius-m);
+                padding: var(--size-4-3);
+                border: 1px solid var(--background-modifier-border);
+                background: var(--background-primary);
+                color: var(--text-normal);
+                font-family: var(--font-interface);
+                font-size: var(--font-ui-medium);
+                line-height: 1.4;
+                -webkit-appearance: none;
+                touch-action: manipulation;
+            `;
+        } else {
+            this.textAreaComponent.inputEl.style.cssText = `
+                width: 100%;
+                min-height: 80px;
+                max-height: 150px;
+                resize: vertical;
+                border-radius: var(--radius-s);
+                padding: var(--size-2-2) var(--size-2-3);
+                border: 1px solid var(--background-modifier-border);
+                background: var(--background-primary);
+                color: var(--text-normal);
+                font-family: var(--font-interface);
+                font-size: var(--font-ui-medium);
+                line-height: 1.4;
+            `;
+        }
 
         // Add input event listener
         this.textAreaComponent.onChange((value) => {
@@ -63,77 +127,41 @@ export class CustomInstructionModal extends Modal {
             this.updateSubmitButton();
         });
 
-        // Examples section
-        const examplesContainer = contentEl.createDiv({ cls: 'nova-instruction-examples' });
-        examplesContainer.style.cssText = `
-            margin: var(--size-4-3) 0;
-            padding: var(--size-2-3);
-            background: var(--background-modifier-form-field);
-            border-radius: var(--radius-s);
-            border: 1px solid var(--background-modifier-border);
-        `;
-
-        const examplesTitle = examplesContainer.createEl('h4', { text: 'Example instructions:' });
-        examplesTitle.style.cssText = `
-            margin: 0 0 var(--size-2-2) 0;
-            font-size: var(--font-ui-small);
-            color: var(--text-muted);
-        `;
-
-        const examples = [
-            'Make this more persuasive',
-            'Add specific examples',
-            'Write in bullet points',
-            'Make it sound more professional',
-            'Simplify for a general audience',
-            'Add transition sentences'
-        ];
-
-        const examplesList = examplesContainer.createEl('ul');
-        examplesList.style.cssText = `
-            margin: 0;
-            padding-left: var(--size-4-3);
-            font-size: var(--font-ui-smaller);
-            color: var(--text-muted);
-        `;
-
-        examples.forEach(example => {
-            const listItem = examplesList.createEl('li', { text: example });
-            listItem.style.cssText = `
-                margin-bottom: var(--size-2-1);
-                cursor: pointer;
-            `;
-            
-            // Click to use example
-            listItem.addEventListener('click', () => {
-                this.instruction = example;
-                this.textAreaComponent?.setValue(example);
-                this.updateSubmitButton();
-            });
-
-            // Hover effect
-            listItem.addEventListener('mouseenter', () => {
-                listItem.style.color = 'var(--interactive-accent)';
-            });
-            listItem.addEventListener('mouseleave', () => {
-                listItem.style.color = 'var(--text-muted)';
-            });
-        });
-
         // Buttons
         const buttonContainer = contentEl.createDiv({ cls: 'nova-instruction-buttons' });
-        buttonContainer.style.cssText = `
-            display: flex;
-            gap: var(--size-2-3);
-            justify-content: flex-end;
-            margin-top: var(--size-4-4);
-            padding-top: var(--size-4-3);
-            border-top: 1px solid var(--background-modifier-border);
-        `;
+        if (Platform.isMobile) {
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: var(--size-2-3);
+                justify-content: stretch;
+                margin-top: var(--size-4-3);
+                padding-top: var(--size-4-3);
+                border-top: 1px solid var(--background-modifier-border);
+            `;
+        } else {
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: var(--size-2-3);
+                justify-content: flex-end;
+                margin-top: var(--size-4-4);
+                padding-top: var(--size-4-3);
+                border-top: 1px solid var(--background-modifier-border);
+            `;
+        }
 
         // Cancel button
         const cancelBtn = new ButtonComponent(buttonContainer);
         cancelBtn.setButtonText('Cancel');
+        if (Platform.isMobile) {
+            cancelBtn.buttonEl.style.cssText = `
+                flex: 1;
+                min-height: 48px;
+                font-size: var(--font-ui-medium);
+                padding: var(--size-4-3);
+                border-radius: var(--radius-m);
+                touch-action: manipulation;
+            `;
+        }
         cancelBtn.onClick(() => {
             this.close();
             this.onCancel();
@@ -144,6 +172,16 @@ export class CustomInstructionModal extends Modal {
         this.submitButton.setButtonText('Transform Text');
         this.submitButton.setCta();
         this.submitButton.setDisabled(true);
+        if (Platform.isMobile) {
+            this.submitButton.buttonEl.style.cssText = `
+                flex: 2;
+                min-height: 48px;
+                font-size: var(--font-ui-medium);
+                padding: var(--size-4-3);
+                border-radius: var(--radius-m);
+                touch-action: manipulation;
+            `;
+        }
         this.submitButton.onClick(() => {
             if (this.instruction.trim()) {
                 this.close();

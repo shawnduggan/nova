@@ -17,6 +17,7 @@ import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
 import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
 import { SelectionContextMenu } from './src/ui/selection-context-menu';
+import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,44 +122,47 @@ export default class NovaPlugin extends Plugin {
 				this.activateView();
 			});
 
-			// Register core document editing commands
+			// Register selection-based commands
 			this.addCommand({
-				id: 'nova-add-content',
-				name: 'Nova: Add content',
-				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-					await this.handleAddCommand();
+				id: 'nova-improve-writing',
+				name: 'Nova: Improve Writing',
+				editorCallback: async (editor: Editor) => {
+					await this.handleSelectionCommand('improve', editor);
 				}
 			});
 
 			this.addCommand({
-				id: 'nova-edit-content',
-				name: 'Nova: Edit content',
-				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-					await this.handleEditCommand();
+				id: 'nova-make-longer',
+				name: 'Nova: Make Longer',
+				editorCallback: async (editor: Editor) => {
+					await this.handleSelectionCommand('longer', editor);
 				}
 			});
 
 			this.addCommand({
-				id: 'nova-delete-content',
-				name: 'Nova: Delete content',
-				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-					await this.handleDeleteCommand();
+				id: 'nova-make-shorter',
+				name: 'Nova: Make Shorter',
+				editorCallback: async (editor: Editor) => {
+					await this.handleSelectionCommand('shorter', editor);
 				}
 			});
 
-			this.addCommand({
-				id: 'nova-fix-grammar',
-				name: 'Nova: Fix grammar',
-				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-					await this.handleGrammarCommand();
-				}
+			// Individual tone commands
+			TONE_OPTIONS.forEach(tone => {
+				this.addCommand({
+					id: `nova-make-${tone.id}`,
+					name: `Nova: Make ${tone.label}`,
+					editorCallback: async (editor: Editor) => {
+						await this.handleToneCommand(tone.id, editor);
+					}
+				});
 			});
 
 			this.addCommand({
-				id: 'nova-rewrite-content',
-				name: 'Nova: Rewrite content',
-				editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-					await this.handleRewriteCommand();
+				id: 'nova-tell-nova',
+				name: 'Nova: Tell Nova...',
+				editorCallback: async (editor: Editor) => {
+					await this.handleSelectionCommand('custom', editor);
 				}
 			});
 
@@ -216,193 +220,42 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	/**
-	 * Handle add content command with user input
+	 * Handle selection-based commands
 	 */
-	private async handleAddCommand(): Promise<void> {
-		const instruction = await this.promptForInstruction('What would you like to add?');
-		if (!instruction) return;
-
+	private async handleSelectionCommand(actionId: string, editor: Editor): Promise<void> {
 		try {
-			const documentContext = await this.documentEngine.getDocumentContext();
-			const hasSelection = !!(documentContext?.selectedText);
-			const command = this.commandParser.parseCommand(instruction, hasSelection);
-			const result = await this.addCommandHandler.execute(command);
-			
-			if (result.success) {
-				new Notice('Content added successfully');
-			} else {
-				new Notice(`Failed to add content: ${result.error}`);
+			const selectedText = editor.getSelection();
+			if (!selectedText || selectedText.trim().length === 0) {
+				new Notice('Please select some text first');
+				return;
 			}
+
+			await this.selectionContextMenu.handleSelectionAction(actionId, editor, selectedText);
 		} catch (error) {
-			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error('Error executing Nova selection command:', error);
+			new Notice('Failed to execute Nova action. Please try again.', 3000);
 		}
 	}
 
 	/**
-	 * Handle edit content command with user input
+	 * Handle tone-specific commands
 	 */
-	private async handleEditCommand(): Promise<void> {
-		const instruction = await this.promptForInstruction('How would you like to edit the content?');
-		if (!instruction) return;
-
+	private async handleToneCommand(toneId: string, editor: Editor): Promise<void> {
 		try {
-			const documentContext = await this.documentEngine.getDocumentContext();
-			const hasSelection = !!(documentContext?.selectedText);
-			const command = this.commandParser.parseCommand(instruction, hasSelection);
-			const result = await this.editCommandHandler.execute(command);
-			
-			if (result.success) {
-				new Notice('Content edited successfully');
-			} else {
-				new Notice(`Failed to edit content: ${result.error}`);
+			const selectedText = editor.getSelection();
+			if (!selectedText || selectedText.trim().length === 0) {
+				new Notice('Please select some text first');
+				return;
 			}
+
+			// Call handleSelectionAction with tone action and the specific tone
+			await this.selectionContextMenu.handleSelectionAction('tone', editor, selectedText, toneId);
 		} catch (error) {
-			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error('Error executing Nova tone command:', error);
+			new Notice('Failed to execute Nova action. Please try again.', 3000);
 		}
 	}
 
-	/**
-	 * Handle delete content command with user input
-	 */
-	private async handleDeleteCommand(): Promise<void> {
-		const instruction = await this.promptForInstruction('What would you like to delete?');
-		if (!instruction) return;
-
-		try {
-			const documentContext = await this.documentEngine.getDocumentContext();
-			const hasSelection = !!(documentContext?.selectedText);
-			const command = this.commandParser.parseCommand(instruction, hasSelection);
-			const result = await this.deleteCommandHandler.execute(command);
-			
-			if (result.success) {
-				new Notice('Content deleted successfully');
-			} else {
-				new Notice(`Failed to delete content: ${result.error}`);
-			}
-		} catch (error) {
-			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-
-	/**
-	 * Handle grammar correction command
-	 */
-	private async handleGrammarCommand(): Promise<void> {
-		const documentContext = await this.documentEngine.getDocumentContext();
-		if (!documentContext) {
-			new Notice('No active document found');
-			return;
-		}
-
-		// Determine target based on selection
-		let target: 'selection' | 'document' = 'document';
-		let instruction = 'Fix grammar and spelling errors';
-		
-		if (documentContext.selectedText) {
-			target = 'selection';
-			instruction = 'Fix grammar and spelling errors in the selected text';
-		}
-
-		try {
-			const command = {
-				action: 'grammar' as const,
-				target,
-				instruction
-			};
-			
-			const result = await this.grammarCommandHandler.execute(command);
-			
-			if (result.success) {
-				new Notice('Grammar corrected successfully');
-			} else {
-				new Notice(`Failed to correct grammar: ${result.error}`);
-			}
-		} catch (error) {
-			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-
-	/**
-	 * Handle rewrite content command with user input
-	 */
-	private async handleRewriteCommand(): Promise<void> {
-		const instruction = await this.promptForInstruction('How would you like to rewrite the content?');
-		if (!instruction) return;
-
-		try {
-			const documentContext = await this.documentEngine.getDocumentContext();
-			const hasSelection = !!(documentContext?.selectedText);
-			const command = this.commandParser.parseCommand(instruction, hasSelection);
-			const result = await this.rewriteCommandHandler.execute(command);
-			
-			if (result.success) {
-				new Notice('Content rewritten successfully');
-			} else {
-				new Notice(`Failed to rewrite content: ${result.error}`);
-			}
-		} catch (error) {
-			new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-
-	/**
-	 * Prompt user for instruction input
-	 */
-	private async promptForInstruction(placeholder: string): Promise<string | null> {
-		return new Promise((resolve) => {
-			const modal = document.createElement('div');
-			modal.className = 'modal nova-input-modal';
-			modal.innerHTML = `
-				<div class="modal-container">
-					<div class="modal-bg" onclick="this.parentElement.parentElement.remove(); resolve(null);"></div>
-					<div class="modal-content">
-						<div class="modal-header">
-							<h3>Nova AI Command</h3>
-							<button class="modal-close-button" onclick="this.closest('.modal').remove(); resolve(null);">×</button>
-						</div>
-						<div class="modal-body">
-							<input type="text" class="nova-instruction-input" placeholder="${placeholder}" autofocus>
-						</div>
-						<div class="modal-footer">
-							<button class="mod-cta nova-submit-btn">Execute</button>
-							<button class="nova-cancel-btn">Cancel</button>
-						</div>
-					</div>
-				</div>
-			`;
-
-			const input = modal.querySelector('.nova-instruction-input') as HTMLInputElement;
-			const submitBtn = modal.querySelector('.nova-submit-btn') as HTMLButtonElement;
-			const cancelBtn = modal.querySelector('.nova-cancel-btn') as HTMLButtonElement;
-
-			const handleSubmit = () => {
-				const value = input.value.trim();
-				modal.remove();
-				resolve(value || null);
-			};
-
-			const handleCancel = () => {
-				modal.remove();
-				resolve(null);
-			};
-
-			input.addEventListener('keydown', (e) => {
-				if (e.key === 'Enter') {
-					e.preventDefault();
-					handleSubmit();
-				} else if (e.key === 'Escape') {
-					e.preventDefault();
-					handleCancel();
-				}
-			});
-
-			submitBtn.addEventListener('click', handleSubmit);
-			cancelBtn.addEventListener('click', handleCancel);
-
-			document.body.appendChild(modal);
-			input.focus();
-		});
-	}
 
 	/**
 	 * Show upgrade prompt for Core tier mobile users

@@ -1,4 +1,4 @@
-import { ButtonComponent, TextAreaComponent } from 'obsidian';
+import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 
@@ -75,7 +75,7 @@ export class CommandSystem {
 	}
 
 	shouldShowCommandButton(): boolean {
-		return this.plugin.settings.showCommandButton && this.plugin.featureManager.isFeatureEnabled('commands');
+		return Platform.isMobile && this.plugin.settings.showCommandButton && this.plugin.featureManager.isFeatureEnabled('commands');
 	}
 
 	updateCommandButtonVisibility(): void {

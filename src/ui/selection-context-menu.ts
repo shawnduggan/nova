@@ -101,21 +101,21 @@ export class SelectionContextMenu {
     /**
      * Handle selection action when menu item is clicked
      */
-    private async handleSelectionAction(actionId: string, editor: Editor, selectedText: string): Promise<void> {
+    public async handleSelectionAction(actionId: string, editor: Editor, selectedText: string, customInstruction?: string): Promise<void> {
         try {
-            // Handle tone selection with modal
-            if (actionId === 'tone') {
+            // Handle tone selection with modal (when no specific tone provided)
+            if (actionId === 'tone' && !customInstruction) {
                 this.showToneSelectionModal(editor, selectedText);
                 return;
             }
             
-            if (actionId === 'custom') {
+            if (actionId === 'custom' && !customInstruction) {
                 this.showCustomInstructionModal(editor, selectedText);
                 return;
             }
 
-            // Execute the selection edit command for other actions
-            await this.executeSelectionEdit(actionId, editor, selectedText);
+            // Execute the selection edit command for other actions or direct tone/custom calls
+            await this.executeSelectionEdit(actionId, editor, selectedText, customInstruction);
         } catch (error) {
             console.error('Error executing Nova selection action:', error);
             new Notice('Failed to execute Nova action. Please try again.', 3000);

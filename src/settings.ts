@@ -924,10 +924,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			</p>
 		`;
 
-		// Show Command Button setting (Supernova-only)
+		// Show Command Button setting (Supernova-only, Mobile-only)
 		new Setting(commandContainer)
-			.setName('Show Command Button in Chat')
-			.setDesc('Show the Commands button beside the Send button for quick command access')
+			.setName('Show Command Button in Chat (Mobile)')
+			.setDesc('Show the Commands button beside the Send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showCommandButton)
 				.onChange(async (value) => {
