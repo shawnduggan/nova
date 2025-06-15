@@ -267,6 +267,11 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - **✅ Mobile-Optimized Modals** - Perfect mobile UX for "Tell Nova"
 - **✅ Selection-Based AI Editing** - Right-click context menu with dynamic thinking phrases
 - **✅ File Picker Auto-Selection** - First item auto-selected, Enter key works immediately
+- **✅ Mobile File Picker Optimization** - Responsive design with platform-specific UX
+  - **Desktop**: 3x taller file picker (600px) for better file visibility
+  - **Mobile**: Compact 100px picker with single-line layout, 3-line textarea
+  - **Context-aware spacing**: Dynamic 10px bottom padding when no context files
+  - **Platform detection**: Seamless mobile/desktop experience with optimal sizing
 - **✅ Drag-and-Drop File Context** - Intuitive file addition via drag from file explorer
 - **✅ Unified Streaming System** - All chat commands with notice + streaming
 - **✅ Enhanced File Context Experience** - Auto-add to context with clean UI

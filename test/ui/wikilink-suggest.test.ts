@@ -1,5 +1,5 @@
 import { NovaWikilinkAutocomplete } from '../../src/ui/wikilink-suggest';
-import { App, TFile, Vault } from 'obsidian';
+import { App, TFile, Vault, Platform } from 'obsidian';
 
 // Mock the Obsidian modules
 jest.mock('obsidian', () => ({
@@ -13,6 +13,9 @@ jest.mock('obsidian', () => ({
             this.path = path;
             this.basename = name.replace(/\.md$/, '');
         }
+    },
+    Platform: {
+        isMobile: false
     }
 }));
 
@@ -143,7 +146,7 @@ describe('NovaWikilinkAutocomplete', () => {
             expect(suggestions[0].file.basename).toMatch(/note/i);
         });
 
-        it('should limit results to 8', () => {
+        it('should limit results based on platform', () => {
             // Add more files to test limit
             const manyFiles = [];
             for (let i = 0; i < 20; i++) {
@@ -152,6 +155,7 @@ describe('NovaWikilinkAutocomplete', () => {
             mockVault.getMarkdownFiles = jest.fn().mockReturnValue(manyFiles);
             
             const suggestions = (autocomplete as any).getSuggestions('file');
+            // Platform.isMobile is false in tests, so should be 8
             expect(suggestions.length).toBeLessThanOrEqual(8);
         });
     });
@@ -216,7 +220,7 @@ describe('NovaWikilinkAutocomplete', () => {
             expect((autocomplete as any).selectedIndex).toBe(0);
         });
 
-        it('should select first item on Enter even if not explicitly selected', () => {
+        it('should select first item on Enter even if not explicitly selected', async () => {
             // Setup suggestions
             mockTextArea.value = '[[note';
             Object.defineProperty(mockTextArea, 'selectionStart', {
@@ -237,7 +241,8 @@ describe('NovaWikilinkAutocomplete', () => {
 
             // Should have selected something
             expect(enterEvent.preventDefault).toHaveBeenCalled();
-            expect(mockTextArea.value).toContain('[[Note');
+            // The new implementation removes the [[ pattern when selecting
+            expect(mockTextArea.value).toBe('');
         });
     });
 });

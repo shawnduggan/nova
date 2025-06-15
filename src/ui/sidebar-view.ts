@@ -1046,6 +1046,10 @@ export class NovaSidebarView extends ItemView {
 		
 		if (!this.currentContext || !this.currentContext.persistentDocs) {
 			this.contextIndicator.style.display = 'none';
+			// Update input container state for mobile spacing
+			if (this.inputHandler) {
+				this.inputHandler.updateContextState(false);
+			}
 			return;
 		}
 		
@@ -1053,7 +1057,16 @@ export class NovaSidebarView extends ItemView {
 		
 		if (!allDocs || allDocs.length === 0) {
 			this.contextIndicator.style.display = 'none';
+			// Update input container state for mobile spacing
+			if (this.inputHandler) {
+				this.inputHandler.updateContextState(false);
+			}
 			return;
+		}
+
+		// Update input container state for mobile spacing
+		if (this.inputHandler) {
+			this.inputHandler.updateContextState(true);
 		}
 
 		// Show as thin line with mobile-optimized sizing

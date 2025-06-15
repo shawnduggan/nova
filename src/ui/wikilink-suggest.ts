@@ -3,7 +3,7 @@
  * Provides [[document]] suggestions when typing in Nova's textarea
  */
 
-import { TFile, App } from 'obsidian';
+import { TFile, App, Platform } from 'obsidian';
 
 export interface WikilinkSuggestion {
     file: TFile;
@@ -131,6 +131,10 @@ export class NovaWikilinkAutocomplete {
     private createSuggestionPopup(): void {
         this.suggestionPopup = document.createElement('div');
         this.suggestionPopup.className = 'nova-wikilink-suggestions';
+        
+        // Mobile-optimized max-height
+        const maxHeight = Platform.isMobile ? '100px' : '600px';
+        
         this.suggestionPopup.style.cssText = `
             position: absolute;
             bottom: 100%;
@@ -140,12 +144,19 @@ export class NovaWikilinkAutocomplete {
             border: 1px solid var(--background-modifier-border);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            max-height: 200px;
+            max-height: ${maxHeight};
             overflow-y: auto;
             z-index: 1000;
             display: none;
             margin-bottom: 4px;
         `;
+        
+        // Add mobile class for additional styling
+        if (Platform.isMobile) {
+            this.suggestionPopup.classList.add('is-mobile');
+            // Also ensure body has mobile class for CSS targeting
+            document.body.classList.add('is-mobile');
+        }
         
         // Insert in the provided container for consistent width
         this.container.appendChild(this.suggestionPopup);
@@ -159,47 +170,91 @@ export class NovaWikilinkAutocomplete {
         this.suggestions.forEach((suggestion, index) => {
             const item = document.createElement('div');
             item.className = 'nova-suggestion-item';
-            item.style.cssText = `
-                padding: 8px 12px;
-                cursor: pointer;
-                border-bottom: 1px solid var(--background-modifier-border-hover);
-                transition: background-color 0.2s;
-            `;
             
-            // Name (standardized to match command picker)
-            const nameEl = document.createElement('div');
-            nameEl.className = 'nova-suggestion-name';
-            nameEl.textContent = suggestion.file.basename;
-            nameEl.style.cssText = `
-                font-weight: 500;
-                color: var(--text-normal);
-                margin-bottom: 4px;
-            `;
-            item.appendChild(nameEl);
-            
-            // Description (standardized)
-            const descEl = document.createElement('div');
-            descEl.className = 'nova-suggestion-desc';
-            descEl.textContent = `Link to document in ${suggestion.file.path.includes('/') ? suggestion.file.path.substring(0, suggestion.file.path.lastIndexOf('/')) : 'root'}`;
-            descEl.style.cssText = `
-                font-size: 0.85em;
-                color: var(--text-muted);
-                margin-bottom: 4px;
-            `;
-            item.appendChild(descEl);
-            
-            // Content Preview (standardized with monospace)
-            const exampleEl = document.createElement('div');
-            exampleEl.className = 'nova-suggestion-example';
-            this.getFilePreview(suggestion.file).then(preview => {
-                exampleEl.textContent = `Preview: ${preview}`;
-            });
-            exampleEl.style.cssText = `
-                font-size: 0.8em;
-                color: var(--text-accent);
-                font-family: var(--font-monospace);
-            `;
-            item.appendChild(exampleEl);
+            if (Platform.isMobile) {
+                // Mobile: Compact single-line layout
+                item.style.cssText = `
+                    padding: 6px 10px;
+                    cursor: pointer;
+                    border-bottom: 1px solid var(--background-modifier-border-hover);
+                    transition: background-color 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                `;
+                
+                // Name only for mobile
+                const nameEl = document.createElement('div');
+                nameEl.className = 'nova-suggestion-name';
+                nameEl.textContent = suggestion.file.basename;
+                nameEl.style.cssText = `
+                    font-weight: 500;
+                    color: var(--text-normal);
+                    font-size: 0.9em;
+                    flex: 1;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                `;
+                item.appendChild(nameEl);
+                
+                // Small path indicator for mobile
+                if (suggestion.file.path.includes('/')) {
+                    const pathEl = document.createElement('div');
+                    pathEl.className = 'nova-suggestion-path';
+                    const folderPath = suggestion.file.path.substring(0, suggestion.file.path.lastIndexOf('/'));
+                    pathEl.textContent = folderPath.length > 15 ? '...' + folderPath.slice(-15) : folderPath;
+                    pathEl.style.cssText = `
+                        font-size: 0.75em;
+                        color: var(--text-muted);
+                        opacity: 0.7;
+                    `;
+                    item.appendChild(pathEl);
+                }
+            } else {
+                // Desktop: Full layout with preview
+                item.style.cssText = `
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    border-bottom: 1px solid var(--background-modifier-border-hover);
+                    transition: background-color 0.2s;
+                `;
+                
+                // Name (standardized to match command picker)
+                const nameEl = document.createElement('div');
+                nameEl.className = 'nova-suggestion-name';
+                nameEl.textContent = suggestion.file.basename;
+                nameEl.style.cssText = `
+                    font-weight: 500;
+                    color: var(--text-normal);
+                    margin-bottom: 4px;
+                `;
+                item.appendChild(nameEl);
+                
+                // Description (standardized)
+                const descEl = document.createElement('div');
+                descEl.className = 'nova-suggestion-desc';
+                descEl.textContent = `Link to document in ${suggestion.file.path.includes('/') ? suggestion.file.path.substring(0, suggestion.file.path.lastIndexOf('/')) : 'root'}`;
+                descEl.style.cssText = `
+                    font-size: 0.85em;
+                    color: var(--text-muted);
+                    margin-bottom: 4px;
+                `;
+                item.appendChild(descEl);
+                
+                // Content Preview (standardized with monospace)
+                const exampleEl = document.createElement('div');
+                exampleEl.className = 'nova-suggestion-example';
+                this.getFilePreview(suggestion.file).then(preview => {
+                    exampleEl.textContent = `Preview: ${preview}`;
+                });
+                exampleEl.style.cssText = `
+                    font-size: 0.8em;
+                    color: var(--text-accent);
+                    font-family: var(--font-monospace);
+                `;
+                item.appendChild(exampleEl);
+            }
             
             this.suggestionPopup!.appendChild(item);
             
@@ -288,9 +343,10 @@ export class NovaWikilinkAutocomplete {
         }
         
         // Sort by score (highest first) and limit results
+        const maxResults = Platform.isMobile ? 5 : 8;
         return suggestions
             .sort((a, b) => b.score - a.score)
-            .slice(0, 8);
+            .slice(0, maxResults);
     }
 
     private scoreFile(file: TFile, query: string): number {

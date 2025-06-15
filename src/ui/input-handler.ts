@@ -461,6 +461,16 @@ export class InputHandler {
 		}
 	}
 
+	updateContextState(hasContext: boolean): void {
+		if (this.container) {
+			if (hasContext) {
+				this.container.classList.add('has-context');
+			} else {
+				this.container.classList.remove('has-context');
+			}
+		}
+	}
+
 	cleanup(): void {
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
