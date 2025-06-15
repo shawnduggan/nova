@@ -6,6 +6,45 @@ This file contains all completed work items that have been removed from CLAUDE.m
 
 ## June 15, 2025 - Selection-Based AI Editing Feature ✅
 
+### ✅ COMPLETED: Hybrid Notice-Based Thinking Animation System (FINAL)
+**Perfect Implementation Achieved:**
+- **Obsidian Notice Integration**: Clean UI feedback using native Notice API
+- **Context-Aware Personality**: 10 unique thinking phrases per action type
+  - Improve: "refining...", "polishing...", "enhancing...", "crafting...", etc.
+  - Longer: "expanding...", "developing...", "elaborating...", "building...", etc.
+  - Shorter: "condensing...", "distilling...", "tightening...", "focusing...", etc.
+  - Tone: "adjusting tone...", "reshaping...", "reframing...", "adapting...", etc.
+  - Custom: "working on it...", "considering...", "thinking...", "processing...", etc.
+- **Progressive Dots Animation**: Starts with 1 dot, cycles through 5 (. → .. → ... → .... → .....)
+- **Auto-Dismissing Notices**: Notice disappears when AI streaming begins
+- **Perfect Streaming**: Text appears cleanly without selection highlighting
+- **Optimal Undo Behavior**: Two-step undo (empty → AI content → original text)
+
+**Technical Implementation:**
+- **Hybrid Approach**: Notice for feedback + document clearing for clean streaming
+- **Selection Clearing**: Removes selected text immediately to create clean streaming position
+- **Streaming Logic**: Fixed cascading replacement bugs with proper start/end position tracking
+- **Notice Management**: Persistent notices with manual dismissal, dot animation management
+- **Error Handling**: Comprehensive cleanup of positions and notices on errors
+
+**User Experience Flow:**
+1. Select text → Right-click → Choose Nova action
+2. Notice appears: "Nova: refining." with animated dots cycling
+3. Selected text clears from document (creates clean streaming position)
+4. Notice dismisses when AI content begins streaming
+5. AI content streams smoothly without text selection highlighting
+6. Two clean undo steps: AI content → empty → original text
+
+**Files Modified:**
+- `src/ui/selection-context-menu.ts` - Complete notice system implementation
+- Added notice creation, dots animation, streaming position management
+- Fixed streaming logic with proper start/end position tracking
+- Clean hybrid approach combining UI feedback with document streaming
+
+**Status**: Perfect implementation ready for production. Provides excellent user feedback with clean streaming experience and intuitive undo behavior.
+
+## June 15, 2025 - Selection-Based AI Editing Feature ✅
+
 ### ✅ COMPLETED: Dynamic Context-Aware Thinking Phrases
 **Implementation Details:**
 - **Feature**: Right-click context menu for AI-powered text transformations

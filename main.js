@@ -8590,8 +8590,11 @@ var _SelectionContextMenu = class _SelectionContextMenu {
      */
     this.currentStreamingEndPos = null;
     this.streamingTextContainer = null;
+    this.streamingStartPos = null;
     this.animatedSelection = null;
     this.dotsAnimationInterval = null;
+    this.thinkingNotice = null;
+    this.originalSelectionRange = null;
     this.selectionEditCommand = new SelectionEditCommand(plugin);
   }
   /**
@@ -8707,29 +8710,31 @@ var _SelectionContextMenu = class _SelectionContextMenu {
   updateStreamingText(editor, newText, startPos, isComplete) {
     try {
       if (this.currentStreamingEndPos) {
-        this.stopDotsAnimation();
+        if (this.thinkingNotice) {
+          this.stopDotsAnimation();
+        }
+        if (!this.streamingStartPos) {
+          this.streamingStartPos = { ...this.currentStreamingEndPos };
+        }
         const lines = newText.split("\n");
         const newEndPos = {
-          line: startPos.line + lines.length - 1,
-          ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
+          line: this.streamingStartPos.line + lines.length - 1,
+          ch: lines.length > 1 ? lines[lines.length - 1].length : this.streamingStartPos.ch + newText.length
         };
-        editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
+        editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
         this.currentStreamingEndPos = newEndPos;
-      } else {
-        editor.replaceRange(newText, startPos);
-        const lines = newText.split("\n");
-        this.currentStreamingEndPos = {
-          line: startPos.line + lines.length - 1,
-          ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
-        };
       }
       if (isComplete) {
         editor.setCursor(this.currentStreamingEndPos);
         this.currentStreamingEndPos = null;
+        this.streamingStartPos = null;
+        this.originalSelectionRange = null;
       }
     } catch (error) {
       console.warn("Error updating streaming text:", error);
       this.currentStreamingEndPos = null;
+      this.streamingStartPos = null;
+      this.originalSelectionRange = null;
     }
   }
   /**
@@ -8768,57 +8773,71 @@ var _SelectionContextMenu = class _SelectionContextMenu {
     }
   }
   /**
-   * Show Nova thinking dots animation at cursor position
+   * Show Nova thinking animation with notice + document placeholder
    */
   async showThinkingAnimation(editor, startPos, endPos, actionId) {
     try {
       const phrases = _SelectionContextMenu.THINKING_PHRASES[actionId] || _SelectionContextMenu.THINKING_PHRASES["custom"];
       const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-      const baseText = `*${randomPhrase}.*`;
-      await this.plugin.documentEngine.replaceSelection(baseText, startPos, endPos);
-      this.currentStreamingEndPos = {
-        line: startPos.line,
-        ch: startPos.ch + baseText.length
-      };
-      this.startProgressiveDotsAnimation(editor, startPos, baseText);
+      this.showThinkingNotice(randomPhrase);
+      editor.replaceRange("", startPos, endPos);
+      this.currentStreamingEndPos = startPos;
+      this.originalSelectionRange = { from: startPos, to: endPos };
     } catch (error) {
       console.warn("Failed to show thinking animation:", error);
-      await this.plugin.documentEngine.replaceSelection("", startPos, endPos);
     }
   }
   /**
-   * Start progressive dots animation (Nova is thinking . -> .. -> ... -> .... -> ..... -> reset)
+   * Show thinking notice with animated dots
    */
-  startProgressiveDotsAnimation(editor, startPos, baseText) {
+  showThinkingNotice(basePhrase) {
+    try {
+      this.thinkingNotice = new import_obsidian13.Notice(`Nova: ${basePhrase}.`, 0);
+      const initialNoticeText = `Nova: ${basePhrase}.`;
+      const noticeEl = this.thinkingNotice.noticeEl;
+      if (noticeEl) {
+        noticeEl.textContent = initialNoticeText;
+      }
+      this.startNoticeDotsAnimation(basePhrase);
+    } catch (error) {
+      console.warn("Failed to create thinking notice:", error);
+    }
+  }
+  /**
+   * Animate dots in notice text
+   */
+  startNoticeDotsAnimation(basePhrase) {
     let dotCount = 1;
     this.dotsAnimationInterval = setInterval(() => {
       try {
+        if (!this.thinkingNotice) return;
         dotCount++;
         if (dotCount > 5) {
           dotCount = 1;
         }
-        const additionalDots = ".".repeat(dotCount - 1);
-        const newText = baseText.slice(0, -1) + additionalDots + "*";
-        if (this.currentStreamingEndPos) {
-          editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
-          this.currentStreamingEndPos = {
-            line: startPos.line,
-            ch: startPos.ch + newText.length
-          };
+        const dots = ".".repeat(dotCount);
+        const noticeText = `Nova: ${basePhrase}${dots}`;
+        const noticeEl = this.thinkingNotice.noticeEl;
+        if (noticeEl) {
+          noticeEl.textContent = noticeText;
         }
       } catch (error) {
-        console.warn("Error in dots animation:", error);
+        console.warn("Error in notice dots animation:", error);
         this.stopDotsAnimation();
       }
     }, 400);
   }
   /**
-   * Stop the dots animation
+   * Stop the dots animation and dismiss notice
    */
   stopDotsAnimation() {
     if (this.dotsAnimationInterval) {
       clearInterval(this.dotsAnimationInterval);
       this.dotsAnimationInterval = null;
+    }
+    if (this.thinkingNotice) {
+      this.thinkingNotice.hide();
+      this.thinkingNotice = null;
     }
   }
   /**

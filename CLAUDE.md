@@ -153,6 +153,14 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Visual feedback** - accent-colored drop zone with plus icon during drag
   - **User-friendly messages** for invalid drops (folders, non-markdown files)
   - **Clean implementation** - 150 lines, well-separated in InputHandler class
+- **✅ NEW: Hybrid Notice-Based Thinking Animation System**
+  - **Obsidian Notice feedback** - Clean UI thinking phrases with animated dots
+  - **Context-aware personality** - 10 unique phrases per action type (improve, longer, shorter, tone, custom)
+  - **Perfect streaming** - Text streams cleanly without selection highlighting
+  - **Clean undo behavior** - Two-step undo (empty → AI content → original text)
+  - **Auto-dismissing notices** - Notice disappears when streaming begins
+  - **Progressive dots animation** - Starts with 1 dot, cycles through 5 (. → .. → ... → .... → .....)
+  - **Hybrid approach** - Combines notice feedback with document streaming for optimal UX
 
 ---
 

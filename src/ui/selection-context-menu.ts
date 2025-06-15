@@ -217,6 +217,8 @@ export class SelectionContextMenu {
     private currentStreamingEndPos: any = null;
     private streamingTextContainer: HTMLSpanElement | null = null;
 
+    private streamingStartPos: any = null;
+
     private updateStreamingText(
         editor: Editor, 
         newText: string, 
@@ -224,40 +226,41 @@ export class SelectionContextMenu {
         isComplete: boolean
     ): void {
         try {
-            // If this is the first chunk, stop dots animation and replace with actual content
             if (this.currentStreamingEndPos) {
-                // Stop the dots animation since streaming is starting
-                this.stopDotsAnimation();
+                // Stop the notice animation since streaming is starting (only on first chunk)
+                if (this.thinkingNotice) {
+                    this.stopDotsAnimation();
+                }
                 
-                // Replace the thinking dots or previous content with new text
+                // If we don't have a start position yet, set it
+                if (!this.streamingStartPos) {
+                    this.streamingStartPos = { ...this.currentStreamingEndPos };
+                }
+                
+                // Calculate new end position based on the complete new text
                 const lines = newText.split('\n');
                 const newEndPos = {
-                    line: startPos.line + lines.length - 1,
-                    ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
+                    line: this.streamingStartPos.line + lines.length - 1,
+                    ch: lines.length > 1 ? lines[lines.length - 1].length : this.streamingStartPos.ch + newText.length
                 };
 
-                editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
+                // Replace all content from start to current end with new text
+                editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
                 this.currentStreamingEndPos = newEndPos;
-            } else {
-                // Fallback: Insert new text if no position tracking
-                editor.replaceRange(newText, startPos);
-                
-                // Calculate new end position
-                const lines = newText.split('\n');
-                this.currentStreamingEndPos = {
-                    line: startPos.line + lines.length - 1,
-                    ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
-                };
             }
             
-            // Set cursor at the end of the new text if complete
+            // Set cursor at the end of the new text only when complete
             if (isComplete) {
                 editor.setCursor(this.currentStreamingEndPos);
                 this.currentStreamingEndPos = null; // Reset for next use
+                this.streamingStartPos = null; // Reset start position
+                this.originalSelectionRange = null; // Clear selection reference
             }
         } catch (error) {
             console.warn('Error updating streaming text:', error);
             this.currentStreamingEndPos = null;
+            this.streamingStartPos = null;
+            this.originalSelectionRange = null;
         }
     }
 
@@ -371,7 +374,7 @@ export class SelectionContextMenu {
     };
 
     /**
-     * Show Nova thinking dots animation at cursor position
+     * Show Nova thinking animation with notice + document placeholder
      */
     private async showThinkingAnimation(editor: Editor, startPos: any, endPos: any, actionId: string): Promise<void> {
         try {
@@ -379,73 +382,92 @@ export class SelectionContextMenu {
             const phrases = SelectionContextMenu.THINKING_PHRASES[actionId as keyof typeof SelectionContextMenu.THINKING_PHRASES] || SelectionContextMenu.THINKING_PHRASES['custom'];
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
             
-            // Start with italic markdown formatting
-            const baseText = `*${randomPhrase}.*`;
+            // Show thinking notice for user feedback
+            this.showThinkingNotice(randomPhrase);
             
-            // Replace selection with initial thinking text
-            await this.plugin.documentEngine.replaceSelection(baseText, startPos, endPos);
+            // Clear the selection in document to create clean streaming position
+            editor.replaceRange('', startPos, endPos);
             
-            // Update cursor position to account for the thinking text
-            this.currentStreamingEndPos = {
-                line: startPos.line,
-                ch: startPos.ch + baseText.length
-            };
-            
-            // Start progressive dots animation
-            this.startProgressiveDotsAnimation(editor, startPos, baseText);
+            // Set streaming position to where selection was cleared
+            this.currentStreamingEndPos = startPos;
+            this.originalSelectionRange = { from: startPos, to: endPos }; // Store for undo context
             
         } catch (error) {
             console.warn('Failed to show thinking animation:', error);
-            // Fallback to clearing selection
-            await this.plugin.documentEngine.replaceSelection('', startPos, endPos);
         }
     }
 
     private dotsAnimationInterval: NodeJS.Timeout | null = null;
+    private thinkingNotice: Notice | null = null;
+    private originalSelectionRange: { from: any; to: any } | null = null;
 
     /**
-     * Start progressive dots animation (Nova is thinking . -> .. -> ... -> .... -> ..... -> reset)
+     * Show thinking notice with animated dots
      */
-    private startProgressiveDotsAnimation(editor: Editor, startPos: any, baseText: string): void {
-        let dotCount = 1; // Start with 1 dot (already included in baseText)
+    private showThinkingNotice(basePhrase: string): void {
+        try {
+            // Create persistent notice (0 timeout = manual dismissal)
+            this.thinkingNotice = new Notice(`Nova: ${basePhrase}.`, 0);
+            
+            // Show initial state with 1 dot immediately
+            const initialNoticeText = `Nova: ${basePhrase}.`;
+            const noticeEl = (this.thinkingNotice as any).noticeEl;
+            if (noticeEl) {
+                noticeEl.textContent = initialNoticeText;
+            }
+            
+            // Start dots animation in notice
+            this.startNoticeDotsAnimation(basePhrase);
+            
+        } catch (error) {
+            console.warn('Failed to create thinking notice:', error);
+        }
+    }
+
+    /**
+     * Animate dots in notice text
+     */
+    private startNoticeDotsAnimation(basePhrase: string): void {
+        let dotCount = 1;
         
         this.dotsAnimationInterval = setInterval(() => {
             try {
-                dotCount++;
+                if (!this.thinkingNotice) return;
                 
-                // Reset to 1 dot after reaching 5 dots
+                dotCount++;
                 if (dotCount > 5) {
                     dotCount = 1;
                 }
                 
-                // Create the new text with the appropriate number of dots
-                const additionalDots = '.'.repeat(dotCount - 1); // -1 because baseText already has one dot
-                const newText = baseText.slice(0, -1) + additionalDots + '*'; // Keep italic formatting
+                const dots = '.'.repeat(dotCount);
+                const noticeText = `Nova: ${basePhrase}${dots}`;
                 
-                // Replace current text with new text
-                if (this.currentStreamingEndPos) {
-                    editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
-                    
-                    // Update end position
-                    this.currentStreamingEndPos = {
-                        line: startPos.line,
-                        ch: startPos.ch + newText.length
-                    };
+                // Update notice text directly
+                const noticeEl = (this.thinkingNotice as any).noticeEl;
+                if (noticeEl) {
+                    noticeEl.textContent = noticeText;
                 }
+                
             } catch (error) {
-                console.warn('Error in dots animation:', error);
+                console.warn('Error in notice dots animation:', error);
                 this.stopDotsAnimation();
             }
-        }, 400); // Change dots every 400ms for a nice rhythm
+        }, 400);
     }
 
     /**
-     * Stop the dots animation
+     * Stop the dots animation and dismiss notice
      */
     private stopDotsAnimation(): void {
         if (this.dotsAnimationInterval) {
             clearInterval(this.dotsAnimationInterval);
             this.dotsAnimationInterval = null;
+        }
+        
+        // Dismiss thinking notice
+        if (this.thinkingNotice) {
+            this.thinkingNotice.hide();
+            this.thinkingNotice = null;
         }
     }
 
