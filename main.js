@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => NovaPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian10 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian6 = require("obsidian");
@@ -5713,6 +5713,45 @@ var DocumentEngine = class {
     if (!file) return null;
     return this.conversationManager.exportConversation(file);
   }
+  /**
+   * Replace selected text with new content
+   * Handles undo/redo properly and preserves cursor position
+   */
+  async replaceSelection(newText, from, to) {
+    const editor = this.getActiveEditor();
+    const file = this.getActiveFile();
+    if (!editor || !file) {
+      return {
+        success: false,
+        error: "No active editor or file",
+        editType: "replace"
+      };
+    }
+    try {
+      const fromPos = from || editor.getCursor("from");
+      const toPos = to || editor.getCursor("to");
+      editor.replaceRange(newText, fromPos, toPos);
+      const newCursorPos = {
+        line: fromPos.line + (newText.split("\n").length - 1),
+        ch: newText.includes("\n") ? newText.split("\n").pop().length : fromPos.ch + newText.length
+      };
+      editor.setCursor(newCursorPos);
+      editor.focus();
+      return {
+        success: true,
+        content: newText,
+        appliedAt: fromPos,
+        editType: "replace"
+      };
+    } catch (error) {
+      console.error("Error replacing selection:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        editType: "replace"
+      };
+    }
+  }
 };
 
 // src/core/context-builder.ts
@@ -8024,6 +8063,905 @@ var LicenseValidator = class {
   }
 };
 
+// src/ui/selection-context-menu.ts
+var import_obsidian13 = require("obsidian");
+
+// src/core/commands/selection-edit-command.ts
+var import_obsidian10 = require("obsidian");
+var SelectionEditCommand = class {
+  constructor(plugin) {
+    this.plugin = plugin;
+  }
+  /**
+   * Execute a selection-based edit action
+   */
+  async execute(action, editor, selectedText, customInstruction) {
+    try {
+      const selectionRange = {
+        from: editor.getCursor("from"),
+        to: editor.getCursor("to")
+      };
+      const loadingNotice = new import_obsidian10.Notice("Nova is processing your request...", 0);
+      const prompt2 = this.buildPrompt(action, selectedText, customInstruction);
+      const response = await this.plugin.aiProviderManager.complete(
+        prompt2.systemPrompt,
+        prompt2.userPrompt
+      );
+      loadingNotice.hide();
+      const transformedText = this.cleanAIResponse(response);
+      return {
+        success: true,
+        transformedText,
+        originalRange: selectionRange
+      };
+    } catch (error) {
+      console.error("Selection edit command error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      };
+    }
+  }
+  /**
+   * Execute a selection-based edit action with streaming
+   */
+  async executeStreaming(action, editor, selectedText, onChunk, customInstruction) {
+    try {
+      const selectionRange = {
+        from: editor.getCursor("from"),
+        to: editor.getCursor("to")
+      };
+      const prompt2 = this.buildPrompt(action, selectedText, customInstruction);
+      await new Promise((resolve) => setTimeout(resolve, 1e3));
+      let fullResponse = "";
+      const stream = this.plugin.aiProviderManager.generateTextStream(prompt2.userPrompt, {
+        systemPrompt: prompt2.systemPrompt
+      });
+      for await (const chunk of stream) {
+        if (chunk.error) {
+          throw new Error(chunk.error);
+        }
+        fullResponse += chunk.content;
+        const cleanedChunk = this.cleanAIResponse(fullResponse);
+        onChunk(cleanedChunk, chunk.done);
+        if (chunk.done) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return {
+        success: true,
+        transformedText: this.cleanAIResponse(fullResponse),
+        originalRange: selectionRange
+      };
+    } catch (error) {
+      console.error("Selection edit streaming error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      };
+    }
+  }
+  /**
+   * Build prompt for the AI based on the action type
+   */
+  buildPrompt(action, selectedText, customInstruction) {
+    const baseSystemPrompt = `You are Nova, an AI writing assistant. Your task is to transform the provided text according to the user's request. 
+
+CRITICAL RULES:
+- Provide ONLY the transformed text, no explanations or meta-commentary
+- Maintain the original meaning unless specifically asked to change it
+- Preserve the original format (markdown, structure, etc.) unless instructed otherwise
+- Do not add introductory phrases like "Here's the improved text:" or similar
+- Return only the content that should replace the selected text`;
+    let specificPrompt = "";
+    let userPrompt = "";
+    switch (action) {
+      case "improve":
+        specificPrompt = `
+TASK: Improve the writing quality
+- Make the text clearer and more concise
+- Improve flow and readability
+- Fix any awkward phrasing
+- Preserve the original tone and meaning`;
+        userPrompt = `Improve this text:
+
+${selectedText}`;
+        break;
+      case "longer":
+        specificPrompt = `
+TASK: Expand the text with more detail
+- Add relevant examples, context, or explanations
+- Maintain the original style and voice
+- Expand ideas without changing the core message
+- Make it more comprehensive and detailed`;
+        userPrompt = `Make this text longer and more detailed:
+
+${selectedText}`;
+        break;
+      case "shorter":
+        specificPrompt = `
+TASK: Condense the text to essential points
+- Remove redundancy and unnecessary words
+- Keep all key information and meaning
+- Make it more concise and direct
+- Preserve the original tone`;
+        userPrompt = `Make this text shorter and more concise:
+
+${selectedText}`;
+        break;
+      case "tone":
+        const toneMap = {
+          "formal": "professional and structured, suitable for business or academic contexts",
+          "casual": "relaxed and conversational, suitable for informal communication",
+          "academic": "scholarly and precise, using technical vocabulary where appropriate",
+          "friendly": "warm and approachable, building connection with the reader"
+        };
+        const toneDescription = toneMap[customInstruction || "formal"] || toneMap.formal;
+        specificPrompt = `
+TASK: Change the tone to be ${toneDescription}
+- Adjust language and vocabulary to match the requested tone
+- Keep the same content and meaning
+- Maintain appropriate formality level for the chosen tone`;
+        userPrompt = `Rewrite this text in a ${customInstruction || "formal"} tone:
+
+${selectedText}`;
+        break;
+      case "custom":
+        specificPrompt = `
+TASK: Apply custom transformation
+- Follow the user's specific instruction exactly
+- Maintain content integrity unless asked to change it
+- Apply the requested changes precisely`;
+        userPrompt = `Apply this instruction to the text: "${customInstruction}"
+
+Text to transform:
+
+${selectedText}`;
+        break;
+      default:
+        specificPrompt = `
+TASK: General text improvement
+- Enhance clarity and readability
+- Preserve original meaning and tone`;
+        userPrompt = `Improve this text:
+
+${selectedText}`;
+    }
+    return {
+      systemPrompt: baseSystemPrompt + "\n" + specificPrompt,
+      userPrompt
+    };
+  }
+  /**
+   * Clean AI response to extract only the transformed text
+   */
+  cleanAIResponse(response) {
+    let cleaned = response.trim();
+    const introPatterns = [
+      /^Here's the improved text:?\s*/i,
+      /^Here's the rewritten text:?\s*/i,
+      /^Here's the transformed text:?\s*/i,
+      /^Improved version:?\s*/i,
+      /^Rewritten:?\s*/i,
+      /^Result:?\s*/i,
+      /^Output:?\s*/i
+    ];
+    for (const pattern of introPatterns) {
+      cleaned = cleaned.replace(pattern, "");
+    }
+    cleaned = cleaned.split(/\n\s*---+\s*/).shift() || cleaned;
+    cleaned = cleaned.split(/\n\s*\*\*?Explanation\*?\*?:/i).shift() || cleaned;
+    return cleaned.trim();
+  }
+};
+
+// src/ui/tone-selection-modal.ts
+var import_obsidian11 = require("obsidian");
+var TONE_OPTIONS = [
+  {
+    id: "formal",
+    label: "Formal",
+    description: "Professional, structured language suitable for business or academic contexts"
+  },
+  {
+    id: "casual",
+    label: "Casual",
+    description: "Relaxed, conversational tone for informal communication"
+  },
+  {
+    id: "academic",
+    label: "Academic",
+    description: "Scholarly, precise language with technical vocabulary"
+  },
+  {
+    id: "friendly",
+    label: "Friendly",
+    description: "Warm, approachable tone that builds connection"
+  }
+];
+var ToneSelectionModal = class extends import_obsidian11.Modal {
+  constructor(app, onSelect, onCancel) {
+    super(app);
+    this.selectedTone = null;
+    this.applyButton = null;
+    this.onSelect = onSelect;
+    this.onCancel = onCancel;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Choose Writing Tone" });
+    contentEl.createEl("p", {
+      text: "Select how you want Nova to adjust the tone of your selected text:",
+      cls: "setting-item-description"
+    });
+    const toneContainer = contentEl.createDiv({ cls: "nova-tone-options" });
+    TONE_OPTIONS.forEach((tone) => {
+      const optionEl = toneContainer.createDiv({
+        cls: "nova-tone-option"
+      });
+      optionEl.style.cssText = `
+                padding: var(--size-4-3);
+                margin-bottom: var(--size-2-2);
+                border: 1px solid var(--background-modifier-border);
+                border-radius: var(--radius-s);
+                cursor: pointer;
+                transition: all 0.2s ease;
+            `;
+      const headerEl = optionEl.createDiv({ cls: "nova-tone-header" });
+      headerEl.style.cssText = `
+                display: flex;
+                align-items: center;
+                margin-bottom: var(--size-2-1);
+            `;
+      const radioEl = headerEl.createSpan({ cls: "nova-tone-radio" });
+      radioEl.style.cssText = `
+                width: 16px;
+                height: 16px;
+                border: 2px solid var(--interactive-normal);
+                border-radius: 50%;
+                margin-right: var(--size-2-2);
+                transition: all 0.2s ease;
+            `;
+      const labelEl = headerEl.createSpan({
+        text: tone.label,
+        cls: "nova-tone-label"
+      });
+      labelEl.style.cssText = `
+                font-weight: 600;
+                color: var(--text-normal);
+            `;
+      const descEl = optionEl.createDiv({
+        text: tone.description,
+        cls: "nova-tone-description"
+      });
+      descEl.style.cssText = `
+                font-size: var(--font-ui-smaller);
+                color: var(--text-muted);
+                line-height: 1.4;
+            `;
+      optionEl.addEventListener("click", () => {
+        this.selectTone(tone.id);
+      });
+      optionEl.addEventListener("mouseenter", () => {
+        optionEl.style.borderColor = "var(--interactive-accent)";
+        optionEl.style.backgroundColor = "var(--background-modifier-hover)";
+      });
+      optionEl.addEventListener("mouseleave", () => {
+        if (this.selectedTone !== tone.id) {
+          optionEl.style.borderColor = "var(--background-modifier-border)";
+          optionEl.style.backgroundColor = "";
+        }
+      });
+      optionEl.setAttribute("data-tone", tone.id);
+    });
+    const buttonContainer = contentEl.createDiv({ cls: "nova-tone-buttons" });
+    buttonContainer.style.cssText = `
+            display: flex;
+            gap: var(--size-2-3);
+            justify-content: flex-end;
+            margin-top: var(--size-4-4);
+            padding-top: var(--size-4-3);
+            border-top: 1px solid var(--background-modifier-border);
+        `;
+    const cancelBtn = new import_obsidian11.ButtonComponent(buttonContainer);
+    cancelBtn.setButtonText("Cancel");
+    cancelBtn.onClick(() => {
+      this.close();
+      this.onCancel();
+    });
+    const applyBtn = new import_obsidian11.ButtonComponent(buttonContainer);
+    applyBtn.setButtonText("Apply Tone");
+    applyBtn.setCta();
+    applyBtn.setDisabled(true);
+    applyBtn.onClick(() => {
+      if (this.selectedTone) {
+        this.close();
+        this.onSelect(this.selectedTone);
+      }
+    });
+    this.applyButton = applyBtn;
+  }
+  selectTone(toneId) {
+    this.selectedTone = toneId;
+    const options = this.contentEl.querySelectorAll(".nova-tone-option");
+    options.forEach((option) => {
+      const optionEl = option;
+      const radio = optionEl.querySelector(".nova-tone-radio");
+      if (optionEl.getAttribute("data-tone") === toneId) {
+        optionEl.style.borderColor = "var(--interactive-accent)";
+        optionEl.style.backgroundColor = "var(--background-modifier-selected)";
+        radio.style.backgroundColor = "var(--interactive-accent)";
+        radio.style.borderColor = "var(--interactive-accent)";
+      } else {
+        optionEl.style.borderColor = "var(--background-modifier-border)";
+        optionEl.style.backgroundColor = "";
+        radio.style.backgroundColor = "";
+        radio.style.borderColor = "var(--interactive-normal)";
+      }
+    });
+    if (this.applyButton) {
+      this.applyButton.setDisabled(false);
+    }
+  }
+  onClose() {
+  }
+};
+
+// src/ui/custom-instruction-modal.ts
+var import_obsidian12 = require("obsidian");
+var CustomInstructionModal = class extends import_obsidian12.Modal {
+  constructor(app, onSubmit, onCancel) {
+    super(app);
+    this.instruction = "";
+    this.textAreaComponent = null;
+    this.submitButton = null;
+    this.onSubmit = onSubmit;
+    this.onCancel = onCancel;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Tell Nova" });
+    contentEl.createEl("p", {
+      text: "Describe how you want Nova to transform your selected text:",
+      cls: "setting-item-description"
+    });
+    const inputContainer = contentEl.createDiv({ cls: "nova-custom-instruction-input" });
+    inputContainer.style.cssText = `
+            margin: var(--size-4-3) 0;
+        `;
+    this.textAreaComponent = new import_obsidian12.TextAreaComponent(inputContainer);
+    this.textAreaComponent.setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"');
+    this.textAreaComponent.inputEl.style.cssText = `
+            width: 100%;
+            min-height: 80px;
+            max-height: 150px;
+            resize: vertical;
+            border-radius: var(--radius-s);
+            padding: var(--size-2-2) var(--size-2-3);
+            border: 1px solid var(--background-modifier-border);
+            background: var(--background-primary);
+            color: var(--text-normal);
+            font-family: var(--font-interface);
+            font-size: var(--font-ui-medium);
+            line-height: 1.4;
+        `;
+    this.textAreaComponent.onChange((value) => {
+      this.instruction = value;
+      this.updateSubmitButton();
+    });
+    const examplesContainer = contentEl.createDiv({ cls: "nova-instruction-examples" });
+    examplesContainer.style.cssText = `
+            margin: var(--size-4-3) 0;
+            padding: var(--size-2-3);
+            background: var(--background-modifier-form-field);
+            border-radius: var(--radius-s);
+            border: 1px solid var(--background-modifier-border);
+        `;
+    const examplesTitle = examplesContainer.createEl("h4", { text: "Example instructions:" });
+    examplesTitle.style.cssText = `
+            margin: 0 0 var(--size-2-2) 0;
+            font-size: var(--font-ui-small);
+            color: var(--text-muted);
+        `;
+    const examples = [
+      "Make this more persuasive",
+      "Add specific examples",
+      "Write in bullet points",
+      "Make it sound more professional",
+      "Simplify for a general audience",
+      "Add transition sentences"
+    ];
+    const examplesList = examplesContainer.createEl("ul");
+    examplesList.style.cssText = `
+            margin: 0;
+            padding-left: var(--size-4-3);
+            font-size: var(--font-ui-smaller);
+            color: var(--text-muted);
+        `;
+    examples.forEach((example) => {
+      const listItem = examplesList.createEl("li", { text: example });
+      listItem.style.cssText = `
+                margin-bottom: var(--size-2-1);
+                cursor: pointer;
+            `;
+      listItem.addEventListener("click", () => {
+        var _a;
+        this.instruction = example;
+        (_a = this.textAreaComponent) == null ? void 0 : _a.setValue(example);
+        this.updateSubmitButton();
+      });
+      listItem.addEventListener("mouseenter", () => {
+        listItem.style.color = "var(--interactive-accent)";
+      });
+      listItem.addEventListener("mouseleave", () => {
+        listItem.style.color = "var(--text-muted)";
+      });
+    });
+    const buttonContainer = contentEl.createDiv({ cls: "nova-instruction-buttons" });
+    buttonContainer.style.cssText = `
+            display: flex;
+            gap: var(--size-2-3);
+            justify-content: flex-end;
+            margin-top: var(--size-4-4);
+            padding-top: var(--size-4-3);
+            border-top: 1px solid var(--background-modifier-border);
+        `;
+    const cancelBtn = new import_obsidian12.ButtonComponent(buttonContainer);
+    cancelBtn.setButtonText("Cancel");
+    cancelBtn.onClick(() => {
+      this.close();
+      this.onCancel();
+    });
+    this.submitButton = new import_obsidian12.ButtonComponent(buttonContainer);
+    this.submitButton.setButtonText("Transform Text");
+    this.submitButton.setCta();
+    this.submitButton.setDisabled(true);
+    this.submitButton.onClick(() => {
+      if (this.instruction.trim()) {
+        this.close();
+        this.onSubmit(this.instruction.trim());
+      }
+    });
+    setTimeout(() => {
+      var _a;
+      (_a = this.textAreaComponent) == null ? void 0 : _a.inputEl.focus();
+    }, 100);
+    this.textAreaComponent.inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (this.instruction.trim()) {
+          this.close();
+          this.onSubmit(this.instruction.trim());
+        }
+      }
+    });
+  }
+  updateSubmitButton() {
+    if (this.submitButton) {
+      this.submitButton.setDisabled(!this.instruction.trim());
+    }
+  }
+  onClose() {
+  }
+};
+
+// src/ui/selection-context-menu.ts
+var SELECTION_ACTIONS = [
+  {
+    id: "improve",
+    label: "Improve Writing",
+    icon: "sparkles",
+    description: "Make text clearer, more concise, better flow"
+  },
+  {
+    id: "longer",
+    label: "Make Longer",
+    icon: "plus-circle",
+    description: "Expand ideas with more detail and examples"
+  },
+  {
+    id: "shorter",
+    label: "Make Shorter",
+    icon: "minus-circle",
+    description: "Condense to essential points"
+  },
+  {
+    id: "tone",
+    label: "Change Tone",
+    icon: "palette",
+    description: "Adjust writing style and tone"
+  },
+  {
+    id: "custom",
+    label: "Tell Nova...",
+    icon: "message-circle",
+    description: "Custom instruction for transformation"
+  }
+];
+var _SelectionContextMenu = class _SelectionContextMenu {
+  constructor(app, plugin) {
+    this.app = app;
+    this.plugin = plugin;
+    /**
+     * Update text with streaming effect
+     */
+    this.currentStreamingEndPos = null;
+    this.streamingTextContainer = null;
+    this.animatedSelection = null;
+    this.dotsAnimationInterval = null;
+    this.selectionEditCommand = new SelectionEditCommand(plugin);
+  }
+  /**
+   * Register the context menu with Obsidian's editor
+   */
+  register() {
+    this.plugin.registerEvent(
+      this.app.workspace.on("editor-menu", (menu, editor) => {
+        this.addNovaSubmenu(menu, editor);
+      })
+    );
+  }
+  /**
+   * Add Nova submenu to the context menu if text is selected
+   */
+  addNovaSubmenu(menu, editor) {
+    const selectedText = editor.getSelection();
+    if (!selectedText || selectedText.trim().length === 0) {
+      return;
+    }
+    menu.addSeparator();
+    SELECTION_ACTIONS.forEach((action) => {
+      menu.addItem((item) => {
+        item.setTitle(`Nova: ${action.label}`).setIcon(action.icon || "edit").onClick(() => {
+          this.handleSelectionAction(action.id, editor, selectedText);
+        });
+      });
+    });
+  }
+  /**
+   * Handle selection action when menu item is clicked
+   */
+  async handleSelectionAction(actionId, editor, selectedText) {
+    try {
+      if (actionId === "tone") {
+        this.showToneSelectionModal(editor, selectedText);
+        return;
+      }
+      if (actionId === "custom") {
+        this.showCustomInstructionModal(editor, selectedText);
+        return;
+      }
+      await this.executeSelectionEdit(actionId, editor, selectedText);
+    } catch (error) {
+      console.error("Error executing Nova selection action:", error);
+      new import_obsidian13.Notice("Failed to execute Nova action. Please try again.", 3e3);
+    }
+  }
+  /**
+   * Show tone selection modal
+   */
+  showToneSelectionModal(editor, selectedText) {
+    const modal = new ToneSelectionModal(
+      this.app,
+      async (selectedTone) => {
+        await this.executeSelectionEdit("tone", editor, selectedText, selectedTone);
+      },
+      () => {
+      }
+    );
+    modal.open();
+  }
+  /**
+   * Show custom instruction modal
+   */
+  showCustomInstructionModal(editor, selectedText) {
+    const modal = new CustomInstructionModal(
+      this.app,
+      async (instruction) => {
+        await this.executeSelectionEdit("custom", editor, selectedText, instruction);
+      },
+      () => {
+      }
+    );
+    modal.open();
+  }
+  /**
+   * Execute the selection edit command with streaming
+   */
+  async executeSelectionEdit(actionId, editor, selectedText, customInstruction) {
+    this.startSelectionAnimation(editor);
+    const originalRange = {
+      from: editor.getCursor("from"),
+      to: editor.getCursor("to")
+    };
+    try {
+      await this.showThinkingAnimation(editor, originalRange.from, originalRange.to, actionId);
+      const result = await this.selectionEditCommand.executeStreaming(
+        actionId,
+        editor,
+        selectedText,
+        (chunk, isComplete) => {
+          this.updateStreamingText(editor, chunk, originalRange.from, isComplete);
+        },
+        customInstruction
+      );
+      if (result.success) {
+        const actionName = this.getActionDisplayName(actionId);
+        new import_obsidian13.Notice(`Nova: Text ${actionName} successfully`, 2e3);
+        this.addSuccessChatMessage(actionId, selectedText, customInstruction);
+      } else {
+        new import_obsidian13.Notice(`Nova: ${result.error || "Failed to process text"}`, 3e3);
+        this.addFailureChatMessage(actionId, result.error || "Failed to process text");
+      }
+    } catch (error) {
+      console.error("Error in streaming selection edit:", error);
+      new import_obsidian13.Notice("Failed to execute Nova action. Please try again.", 3e3);
+    } finally {
+      this.stopSelectionAnimation();
+      this.stopDotsAnimation();
+    }
+  }
+  updateStreamingText(editor, newText, startPos, isComplete) {
+    try {
+      if (this.currentStreamingEndPos) {
+        this.stopDotsAnimation();
+        const lines = newText.split("\n");
+        const newEndPos = {
+          line: startPos.line + lines.length - 1,
+          ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
+        };
+        editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
+        this.currentStreamingEndPos = newEndPos;
+      } else {
+        editor.replaceRange(newText, startPos);
+        const lines = newText.split("\n");
+        this.currentStreamingEndPos = {
+          line: startPos.line + lines.length - 1,
+          ch: lines.length > 1 ? lines[lines.length - 1].length : startPos.ch + newText.length
+        };
+      }
+      if (isComplete) {
+        editor.setCursor(this.currentStreamingEndPos);
+        this.currentStreamingEndPos = null;
+      }
+    } catch (error) {
+      console.warn("Error updating streaming text:", error);
+      this.currentStreamingEndPos = null;
+    }
+  }
+  /**
+   * Start pulsing animation on selected text
+   */
+  startSelectionAnimation(editor) {
+    var _a;
+    try {
+      const editorContainer = ((_a = editor.cm) == null ? void 0 : _a.dom) || document.querySelector(".cm-editor");
+      if (editorContainer) {
+        editorContainer.classList.add("nova-selection-processing");
+      }
+      const selection = editor.getSelection();
+      if (selection) {
+        this.animatedSelection = {
+          from: editor.getCursor("from"),
+          to: editor.getCursor("to")
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to start selection animation:", error);
+    }
+  }
+  /**
+   * Stop pulsing animation
+   */
+  stopSelectionAnimation() {
+    try {
+      const editorElements = document.querySelectorAll(".CodeMirror, .cm-editor");
+      editorElements.forEach((el) => {
+        el.classList.remove("nova-selection-processing");
+      });
+      this.animatedSelection = null;
+    } catch (error) {
+      console.warn("Failed to stop selection animation:", error);
+    }
+  }
+  /**
+   * Show Nova thinking dots animation at cursor position
+   */
+  async showThinkingAnimation(editor, startPos, endPos, actionId) {
+    try {
+      const phrases = _SelectionContextMenu.THINKING_PHRASES[actionId] || _SelectionContextMenu.THINKING_PHRASES["custom"];
+      const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+      const baseText = `*${randomPhrase}.*`;
+      await this.plugin.documentEngine.replaceSelection(baseText, startPos, endPos);
+      this.currentStreamingEndPos = {
+        line: startPos.line,
+        ch: startPos.ch + baseText.length
+      };
+      this.startProgressiveDotsAnimation(editor, startPos, baseText);
+    } catch (error) {
+      console.warn("Failed to show thinking animation:", error);
+      await this.plugin.documentEngine.replaceSelection("", startPos, endPos);
+    }
+  }
+  /**
+   * Start progressive dots animation (Nova is thinking . -> .. -> ... -> .... -> ..... -> reset)
+   */
+  startProgressiveDotsAnimation(editor, startPos, baseText) {
+    let dotCount = 1;
+    this.dotsAnimationInterval = setInterval(() => {
+      try {
+        dotCount++;
+        if (dotCount > 5) {
+          dotCount = 1;
+        }
+        const additionalDots = ".".repeat(dotCount - 1);
+        const newText = baseText.slice(0, -1) + additionalDots + "*";
+        if (this.currentStreamingEndPos) {
+          editor.replaceRange(newText, startPos, this.currentStreamingEndPos);
+          this.currentStreamingEndPos = {
+            line: startPos.line,
+            ch: startPos.ch + newText.length
+          };
+        }
+      } catch (error) {
+        console.warn("Error in dots animation:", error);
+        this.stopDotsAnimation();
+      }
+    }, 400);
+  }
+  /**
+   * Stop the dots animation
+   */
+  stopDotsAnimation() {
+    if (this.dotsAnimationInterval) {
+      clearInterval(this.dotsAnimationInterval);
+      this.dotsAnimationInterval = null;
+    }
+  }
+  /**
+   * Get display name for action
+   */
+  getActionDisplayName(actionId) {
+    switch (actionId) {
+      case "improve":
+        return "improved";
+      case "longer":
+        return "expanded";
+      case "shorter":
+        return "condensed";
+      case "tone":
+        return "tone adjusted";
+      case "custom":
+        return "transformed";
+      default:
+        return "processed";
+    }
+  }
+  /**
+   * Add success message to chat
+   */
+  addSuccessChatMessage(actionId, originalText, customInstruction) {
+    try {
+      const leaves = this.app.workspace.getLeavesOfType("nova-sidebar");
+      if (leaves.length > 0) {
+        const sidebarView = leaves[0].view;
+        if (sidebarView && sidebarView.chatRenderer) {
+          const actionDescription = this.getActionDescription(actionId, customInstruction);
+          const truncatedText = originalText.length > 50 ? originalText.substring(0, 50) + "..." : originalText;
+          const message = `\u2713 ${actionDescription} text: "${truncatedText}"`;
+          sidebarView.chatRenderer.addSuccessMessage(message);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to add success chat message:", error);
+    }
+  }
+  /**
+   * Add failure message to chat
+   */
+  addFailureChatMessage(actionId, errorMessage) {
+    try {
+      const leaves = this.app.workspace.getLeavesOfType("nova-sidebar");
+      if (leaves.length > 0) {
+        const sidebarView = leaves[0].view;
+        if (sidebarView && sidebarView.chatRenderer) {
+          const actionName = this.getActionDisplayName(actionId);
+          const message = `\u2717 Failed to ${actionName.replace("ed", "")} text: ${errorMessage}`;
+          sidebarView.chatRenderer.addErrorMessage(message);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to add error chat message:", error);
+    }
+  }
+  /**
+   * Get detailed action description for chat
+   */
+  getActionDescription(actionId, customInstruction) {
+    switch (actionId) {
+      case "improve":
+        return "Improved";
+      case "longer":
+        return "Expanded";
+      case "shorter":
+        return "Condensed";
+      case "tone":
+        return `Changed tone to ${customInstruction || "formal"}`;
+      case "custom":
+        return `Applied "${customInstruction}"`;
+      default:
+        return "Processed";
+    }
+  }
+};
+// Dynamic thinking phrases for each action type
+_SelectionContextMenu.THINKING_PHRASES = {
+  "improve": [
+    "refining...",
+    "polishing...",
+    "enhancing...",
+    "crafting...",
+    "perfecting...",
+    "smoothing...",
+    "sharpening...",
+    "elevating...",
+    "fine-tuning...",
+    "sculpting..."
+  ],
+  "longer": [
+    "expanding...",
+    "developing...",
+    "elaborating...",
+    "building...",
+    "enriching...",
+    "deepening...",
+    "growing...",
+    "extending...",
+    "amplifying...",
+    "unfolding..."
+  ],
+  "shorter": [
+    "condensing...",
+    "distilling...",
+    "tightening...",
+    "focusing...",
+    "streamlining...",
+    "compressing...",
+    "trimming...",
+    "clarifying...",
+    "simplifying...",
+    "concentrating..."
+  ],
+  "tone": [
+    "adjusting tone...",
+    "reshaping...",
+    "reframing...",
+    "adapting...",
+    "transforming...",
+    "modulating...",
+    "recasting...",
+    "shifting...",
+    "reforming...",
+    "reimagining..."
+  ],
+  "custom": [
+    "working on it...",
+    "considering...",
+    "thinking...",
+    "processing...",
+    "analyzing...",
+    "contemplating...",
+    "understanding...",
+    "interpreting...",
+    "exploring...",
+    "evaluating..."
+  ]
+};
+var SelectionContextMenu = _SelectionContextMenu;
+
 // main.ts
 var NOVA_ICON_SVG2 = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -8042,7 +8980,7 @@ var NOVA_ICON_SVG2 = `
   <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
   <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 </svg>`;
-var NovaPlugin = class extends import_obsidian10.Plugin {
+var NovaPlugin = class extends import_obsidian14.Plugin {
   async onload() {
     try {
       await this.loadSettings();
@@ -8061,7 +8999,7 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
           sidebarView.refreshSupernovaUI();
         }
       });
-      (0, import_obsidian10.addIcon)("nova-star", NOVA_ICON_SVG2);
+      (0, import_obsidian14.addIcon)("nova-star", NOVA_ICON_SVG2);
       this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
       await this.aiProviderManager.initialize();
       const dataStore = {
@@ -8129,6 +9067,8 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
           this.activateView();
         }
       });
+      this.selectionContextMenu = new SelectionContextMenu(this.app, this);
+      this.selectionContextMenu.register();
       this.settingTab = new NovaSettingTab(this.app, this);
       this.addSettingTab(this.settingTab);
     } catch (error) {
@@ -8174,12 +9114,12 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       const command = this.commandParser.parseCommand(instruction, hasSelection);
       const result = await this.addCommandHandler.execute(command);
       if (result.success) {
-        new import_obsidian10.Notice("Content added successfully");
+        new import_obsidian14.Notice("Content added successfully");
       } else {
-        new import_obsidian10.Notice(`Failed to add content: ${result.error}`);
+        new import_obsidian14.Notice(`Failed to add content: ${result.error}`);
       }
     } catch (error) {
-      new import_obsidian10.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      new import_obsidian14.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
   /**
@@ -8194,12 +9134,12 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       const command = this.commandParser.parseCommand(instruction, hasSelection);
       const result = await this.editCommandHandler.execute(command);
       if (result.success) {
-        new import_obsidian10.Notice("Content edited successfully");
+        new import_obsidian14.Notice("Content edited successfully");
       } else {
-        new import_obsidian10.Notice(`Failed to edit content: ${result.error}`);
+        new import_obsidian14.Notice(`Failed to edit content: ${result.error}`);
       }
     } catch (error) {
-      new import_obsidian10.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      new import_obsidian14.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
   /**
@@ -8214,12 +9154,12 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       const command = this.commandParser.parseCommand(instruction, hasSelection);
       const result = await this.deleteCommandHandler.execute(command);
       if (result.success) {
-        new import_obsidian10.Notice("Content deleted successfully");
+        new import_obsidian14.Notice("Content deleted successfully");
       } else {
-        new import_obsidian10.Notice(`Failed to delete content: ${result.error}`);
+        new import_obsidian14.Notice(`Failed to delete content: ${result.error}`);
       }
     } catch (error) {
-      new import_obsidian10.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      new import_obsidian14.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
   /**
@@ -8228,7 +9168,7 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
   async handleGrammarCommand() {
     const documentContext = await this.documentEngine.getDocumentContext();
     if (!documentContext) {
-      new import_obsidian10.Notice("No active document found");
+      new import_obsidian14.Notice("No active document found");
       return;
     }
     let target = "document";
@@ -8245,12 +9185,12 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       };
       const result = await this.grammarCommandHandler.execute(command);
       if (result.success) {
-        new import_obsidian10.Notice("Grammar corrected successfully");
+        new import_obsidian14.Notice("Grammar corrected successfully");
       } else {
-        new import_obsidian10.Notice(`Failed to correct grammar: ${result.error}`);
+        new import_obsidian14.Notice(`Failed to correct grammar: ${result.error}`);
       }
     } catch (error) {
-      new import_obsidian10.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      new import_obsidian14.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
   /**
@@ -8265,12 +9205,12 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       const command = this.commandParser.parseCommand(instruction, hasSelection);
       const result = await this.rewriteCommandHandler.execute(command);
       if (result.success) {
-        new import_obsidian10.Notice("Content rewritten successfully");
+        new import_obsidian14.Notice("Content rewritten successfully");
       } else {
-        new import_obsidian10.Notice(`Failed to rewrite content: ${result.error}`);
+        new import_obsidian14.Notice(`Failed to rewrite content: ${result.error}`);
       }
     } catch (error) {
-      new import_obsidian10.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      new import_obsidian14.Notice(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
   /**
@@ -8376,7 +9316,7 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
     closeBtn.addEventListener("click", closeModal);
     modalBg.addEventListener("click", closeModal);
     document.body.appendChild(modal);
-    new import_obsidian10.Notice("Nova mobile access requires SuperNova license", 8e3);
+    new import_obsidian14.Notice("Nova mobile access requires SuperNova license", 8e3);
   }
   // DataStore interface implementation for ConversationManager
   async loadDataWithKey(key) {

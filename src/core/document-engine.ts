@@ -477,4 +477,60 @@ export class DocumentEngine {
         return this.conversationManager.exportConversation(file);
     }
 
+    /**
+     * Replace selected text with new content
+     * Handles undo/redo properly and preserves cursor position
+     */
+    async replaceSelection(
+        newText: string,
+        from?: EditorPosition,
+        to?: EditorPosition
+    ): Promise<EditResult> {
+        const editor = this.getActiveEditor();
+        const file = this.getActiveFile();
+        
+        if (!editor || !file) {
+            return {
+                success: false,
+                error: 'No active editor or file',
+                editType: 'replace'
+            };
+        }
+
+        try {
+            // Use provided range or current selection
+            const fromPos = from || editor.getCursor('from');
+            const toPos = to || editor.getCursor('to');
+            
+            // Perform the replacement using Obsidian's transaction system for proper undo/redo
+            editor.replaceRange(newText, fromPos, toPos);
+            
+            // Set cursor at the end of the replaced text
+            const newCursorPos = {
+                line: fromPos.line + (newText.split('\n').length - 1),
+                ch: newText.includes('\n') ? 
+                    newText.split('\n').pop()!.length : 
+                    fromPos.ch + newText.length
+            };
+            
+            editor.setCursor(newCursorPos);
+            editor.focus();
+
+            return {
+                success: true,
+                content: newText,
+                appliedAt: fromPos,
+                editType: 'replace'
+            };
+
+        } catch (error) {
+            console.error('Error replacing selection:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                editType: 'replace'
+            };
+        }
+    }
+
 }

@@ -200,6 +200,15 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 ### ✅ Completed Features Ready for Testing
 - **File Picker Auto-Selection** - First item auto-selected, Enter key works immediately
 - **Drag-and-Drop File Context** - Intuitive file addition via drag from file explorer
+- **✅ NEW: Selection-Based AI Editing with Dynamic Thinking Phrases**
+  - **Right-click context menu** for AI transformations on selected text
+  - **5 editing actions**: Improve Writing, Make Longer, Make Shorter, Change Tone, Tell Nova...
+  - **Context-aware thinking phrases** - 10 unique phrases per action type
+  - **Progressive dot animation** - phrases cycle through 5 dots during processing
+  - **Streaming typewriter effect** - 50ms intervals for magical text replacement
+  - **Success/failure chat integration** - styled messages for operation feedback
+  - **Italic markdown formatting** - thinking phrases appear as `*refining...*` etc.
+  - **1-second minimum delay** - guarantees users see Nova's personality before streaming
 
 #### 📋 **User Testing & Validation**
 - [ ] User testing with cursor-only system

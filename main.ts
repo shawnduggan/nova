@@ -16,6 +16,7 @@ import { MetadataCommand } from './src/core/commands/metadata-command';
 import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
 import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
+import { SelectionContextMenu } from './src/ui/selection-context-menu';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -53,6 +54,7 @@ export default class NovaPlugin extends Plugin {
 	licenseValidator!: LicenseValidator;
 	settingTab!: NovaSettingTab;
 	sidebarView!: NovaSidebarView;
+	selectionContextMenu!: SelectionContextMenu;
 
 	async onload() {
 		try {
@@ -167,6 +169,10 @@ export default class NovaPlugin extends Plugin {
 					this.activateView();
 				}
 			});
+
+			// Initialize selection context menu
+			this.selectionContextMenu = new SelectionContextMenu(this.app, this);
+			this.selectionContextMenu.register();
 
 			this.settingTab = new NovaSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);

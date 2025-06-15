@@ -4,6 +4,44 @@ This file contains all completed work items that have been removed from CLAUDE.m
 
 ---
 
+## June 15, 2025 - Selection-Based AI Editing Feature ✅
+
+### ✅ COMPLETED: Dynamic Context-Aware Thinking Phrases
+**Implementation Details:**
+- **Feature**: Right-click context menu for AI-powered text transformations
+- **5 Actions**: Improve Writing, Make Longer, Make Shorter, Change Tone, Tell Nova...
+- **Personality System**: 10 unique thinking phrases per action type
+  - Improve: "refining...", "polishing...", "enhancing...", "crafting...", etc.
+  - Longer: "expanding...", "developing...", "elaborating...", "building...", etc.
+  - Shorter: "condensing...", "distilling...", "tightening...", "focusing...", etc.
+  - Tone: "adjusting tone...", "reshaping...", "reframing...", "adapting...", etc.
+  - Custom: "working on it...", "considering...", "thinking...", "processing...", etc.
+
+**Technical Implementation:**
+- Random phrase selection based on action type with fallback
+- Italic markdown formatting: `*refining.*` → `*refining..*` → `*refining.....*`
+- Progressive 5-dot animation every 400ms (2.5 cycles in 1-second window)
+- 1-second minimum delay guarantees thinking animation visibility
+- Streaming typewriter effect at 50ms intervals after delay
+- Success/failure messages in Nova chat with proper styling
+- Clean integration with existing selection-edit-command.ts
+
+**User Experience Flow:**
+1. Select text → Right-click → Choose Nova action
+2. Selected text replaced with context-aware thinking phrase
+3. Dots animate progressively for 1+ seconds showing Nova's intent
+4. Seamless transition to streaming AI response
+5. Success message appears in chat with operation summary
+
+**Files Modified:**
+- `src/ui/selection-context-menu.ts` - Added phrase arrays and dynamic selection
+- `src/core/commands/selection-edit-command.ts` - Added 1-second minimum delay
+- Enhanced thinking animation with action-specific personality
+
+**Status**: Complete and ready for user testing. Provides clear personality feedback while maintaining magical streaming experience.
+
+---
+
 ## Phase 0: Monetization Pivot COMPLETE ✅
 
 ### ✅ COMPLETED: All Core/Supernova tier restrictions removed
