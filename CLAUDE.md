@@ -129,7 +129,7 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 
 ---
 
-## Current Project State (Updated: June 15, 2025 - Morning)
+## Current Project State (Updated: June 15, 2025 - Afternoon)
 
 ### ✅ STATUS: Ship Preparation Ready
 - **Cursor-only editing system fully implemented and verified**
@@ -145,6 +145,14 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Fixed file-editor consistency** for multi-document workflows
   - **Robust getActiveEditor()** method ensures correct file targeting
 - **Critical context removal bug fixed**
+- **✅ NEW: Drag-and-Drop File Context Feature**
+  - **Drag markdown files** from Obsidian's file explorer onto chat input
+  - **Automatic wikilink insertion** (`[[filename]]` syntax) at cursor position
+  - **Multiple file support** - drag multiple files simultaneously
+  - **Smart filtering** - only accepts `.md` files, rejects folders and other formats
+  - **Visual feedback** - accent-colored drop zone with plus icon during drag
+  - **User-friendly messages** for invalid drops (folders, non-markdown files)
+  - **Clean implementation** - 150 lines, well-separated in InputHandler class
 
 ---
 
@@ -188,6 +196,10 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - Currently may show built-in editing commands that shouldn't be there
   - Should display "No custom commands yet" or similar empty state message
   - The entire ":" system is reserved for future Custom Commands feature
+
+### ✅ Completed Features Ready for Testing
+- **File Picker Auto-Selection** - First item auto-selected, Enter key works immediately
+- **Drag-and-Drop File Context** - Intuitive file addition via drag from file explorer
 
 #### 📋 **User Testing & Validation**
 - [ ] User testing with cursor-only system

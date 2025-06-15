@@ -583,6 +583,8 @@ var NovaWikilinkAutocomplete = class {
 // src/ui/input-handler.ts
 var _InputHandler = class _InputHandler {
   constructor(plugin, container, contextManager) {
+    this.dropZoneOverlay = null;
+    this.isDragging = false;
     // Event cleanup tracking
     this.eventListeners = [];
     this.plugin = plugin;
@@ -686,6 +688,7 @@ var _InputHandler = class _InputHandler {
         this.commandSystem.handleInputChange();
       }
     });
+    this.setupDragAndDrop();
   }
   focus() {
     setTimeout(() => {
@@ -746,6 +749,162 @@ var _InputHandler = class _InputHandler {
     element.addEventListener(event, handler);
     this.eventListeners.push({ element, event, handler });
   }
+  setupDragAndDrop() {
+    const dropZone = this.textArea.inputEl;
+    this.addEventListener(dropZone, "dragenter", (e) => {
+      e.preventDefault();
+      this.handleDragEnter();
+    });
+    this.addEventListener(dropZone, "dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    });
+    this.addEventListener(dropZone, "dragleave", (e) => {
+      if (e.target === dropZone) {
+        this.handleDragLeave();
+      }
+    });
+    this.addEventListener(dropZone, "drop", (e) => {
+      e.preventDefault();
+      this.handleDrop(e);
+    });
+  }
+  handleDragEnter() {
+    if (this.isDragging) return;
+    this.isDragging = true;
+    if (!this.dropZoneOverlay) {
+      this.dropZoneOverlay = document.createElement("div");
+      this.dropZoneOverlay.className = "nova-drop-zone-overlay";
+      this.dropZoneOverlay.style.cssText = `
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: var(--interactive-accent);
+				opacity: 0;
+				border: 2px dashed var(--interactive-accent);
+				border-radius: var(--radius-s);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				pointer-events: none;
+				transition: opacity 0.2s ease;
+				z-index: 10;
+			`;
+      const iconContainer = document.createElement("div");
+      iconContainer.style.cssText = `
+				background: var(--background-primary);
+				border-radius: 50%;
+				width: 48px;
+				height: 48px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+				opacity: 0;
+				transform: scale(0.8);
+				transition: all 0.2s ease;
+			`;
+      const icon = document.createElement("div");
+      icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+      icon.style.cssText = `
+				color: var(--interactive-accent);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			`;
+      iconContainer.appendChild(icon);
+      this.dropZoneOverlay.appendChild(iconContainer);
+    }
+    const textAreaContainer = this.textArea.inputEl.parentElement;
+    textAreaContainer.style.position = "relative";
+    textAreaContainer.appendChild(this.dropZoneOverlay);
+    setTimeout(() => {
+      if (this.dropZoneOverlay) {
+        this.dropZoneOverlay.style.opacity = "0.1";
+        const icon = this.dropZoneOverlay.querySelector("div");
+        if (icon) {
+          icon.style.opacity = "1";
+          icon.style.transform = "scale(1)";
+        }
+      }
+    }, 10);
+  }
+  handleDragLeave() {
+    this.isDragging = false;
+    if (this.dropZoneOverlay) {
+      this.dropZoneOverlay.style.opacity = "0";
+      const icon = this.dropZoneOverlay.querySelector("div");
+      if (icon) {
+        icon.style.opacity = "0";
+        icon.style.transform = "scale(0.8)";
+      }
+      setTimeout(() => {
+        var _a;
+        (_a = this.dropZoneOverlay) == null ? void 0 : _a.remove();
+        this.dropZoneOverlay = null;
+      }, 200);
+    }
+  }
+  handleDrop(e) {
+    var _a;
+    this.handleDragLeave();
+    const files = [];
+    const textPlainData = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain");
+    if (textPlainData && textPlainData.includes("obsidian://open?")) {
+      const urls = textPlainData.split(/[\n\r]/).filter((line) => line.trim().startsWith("obsidian://open?"));
+      for (const urlString of urls) {
+        try {
+          const url = new URL(urlString.trim());
+          const filePath = url.searchParams.get("file");
+          if (filePath) {
+            const decodedPath = decodeURIComponent(filePath);
+            const pathParts = decodedPath.split(/[/\\]/);
+            const filename = pathParts[pathParts.length - 1];
+            if (filename.endsWith(".md")) {
+              const baseName = filename.replace(".md", "");
+              if (baseName && !files.includes(baseName)) {
+                files.push(baseName);
+              }
+            } else {
+              if (filename && !files.includes(filename)) {
+                files.push(filename);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to parse Obsidian URL:", urlString, error);
+        }
+      }
+    }
+    if (files.length > 0) {
+      this.insertFileReferences(files);
+    } else if (textPlainData && textPlainData.includes("obsidian://open?")) {
+      new import_obsidian2.Notice("Only markdown files can be added to context", 3e3);
+    } else if (textPlainData && textPlainData.trim() && !textPlainData.includes("://")) {
+      new import_obsidian2.Notice("Folders cannot be added to context. Please select individual files.", 3e3);
+    }
+  }
+  insertFileReferences(filenames) {
+    if (filenames.length === 0) return;
+    const wikilinks = filenames.map((name) => `[[${name}]]`).join(" ");
+    const currentValue = this.textArea.getValue();
+    const textarea = this.textArea.inputEl;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const needsSpaceBefore = start > 0 && currentValue[start - 1] !== " " && currentValue[start - 1] !== "\n";
+    const needsSpaceAfter = end < currentValue.length && currentValue[end] !== " " && currentValue[end] !== "\n";
+    const insertion = (needsSpaceBefore ? " " : "") + wikilinks + (needsSpaceAfter ? " " : "");
+    const newValue = currentValue.slice(0, start) + insertion + currentValue.slice(end);
+    this.textArea.setValue(newValue);
+    const newPosition = start + insertion.length;
+    setTimeout(() => {
+      textarea.setSelectionRange(newPosition, newPosition);
+      textarea.focus();
+      this.autoGrowTextarea();
+    }, 0);
+  }
   refreshCommandButton() {
     if (this.commandSystem) {
       this.commandSystem.updateCommandButtonVisibility();
@@ -754,6 +913,10 @@ var _InputHandler = class _InputHandler {
   cleanup() {
     if (this.wikilinkAutocomplete) {
       this.wikilinkAutocomplete.destroy();
+    }
+    if (this.dropZoneOverlay) {
+      this.dropZoneOverlay.remove();
+      this.dropZoneOverlay = null;
     }
     this.eventListeners.forEach(({ element, event, handler }) => {
       element.removeEventListener(event, handler);
