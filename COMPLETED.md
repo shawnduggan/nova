@@ -249,3 +249,29 @@ The new dual-trigger picker system is now fully integrated and working:
 - ✅ **Fixed command-parser.test.ts** - Updated all section/location tests for cursor-only behavior
 - ✅ **Progress tracking** - Improved from ~6 to 12 passing test files out of 34 total
 - ✅ **Systematic approach established** - Pattern for fixing remaining test files documented
+
+---
+
+## June 15, 2025: Critical Bug Fixes & Ship Preparation
+
+### 📋 **COMPLETED: Cursor Position Preservation Bug** ✅
+- ✅ **Identified root causes** - Auto-focus stealing, no cursor storage, race conditions in focus management
+- ✅ **Implemented file-scoped cursor tracking** - Eliminates cross-file contamination completely
+- ✅ **Fixed file-editor consistency** - Robust getActiveEditor() ensures correct file targeting
+- ✅ **Added event-based tracking** - editor-change events track cursor as it moves
+- ✅ **Fixed command targeting** - Changed command parser defaults from 'end' to 'cursor'
+- ✅ **Optimized context for add commands** - Only includes local context, not full document
+- ✅ **Added comprehensive tests** - cursor-position.test.ts and cursor-preservation.test.ts
+- ✅ **Removed all debug statements** - Clean production build ready
+
+#### **Technical Details**
+- Changed from global cursor map to file-scoped `currentFileCursorPosition`
+- Modified getActiveEditor() to explicitly match editor to active file
+- Updated command parser to default 'add' and 'rewrite' to 'cursor' target
+- Context builder now sends minimal context for cursor-only add commands
+- All cursor tracking resets when switching files (like conversation history)
+
+### 📋 **COMPLETED: Git Hygiene** ✅
+- ✅ **Removed .DS_Store from tracking** - macOS system file no longer in repository
+- ✅ **Added .DS_Store to .gitignore** - Will be ignored in all future commits
+- ✅ **Clean repository state** - No system-specific files in version control
