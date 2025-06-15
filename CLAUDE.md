@@ -178,6 +178,8 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Seamless workflow** - Type [[, select file, continue typing your message
   - **Code cleanup** - Removed obsolete + prefix handling and simplified pattern matching
   - **Consistent behavior** - Both [[ picker and drag-and-drop use identical workflow
+  - **✅ Accurate duplicate detection** - Correctly identifies and reports duplicate files in notifications
+  - **✅ Fixed persistent context** - Context is properly maintained between drag operations
 
 ---
 

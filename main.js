@@ -2713,11 +2713,16 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian6.ItemView 
       return (_a = doc == null ? void 0 : doc.file) == null ? void 0 : _a.basename;
     }).map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
     const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : "";
-    summaryTextEl.style.cssText = "font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px;";
+    summaryTextEl.style.cssText = "font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px; min-width: 0;";
+    const filenamePartEl = summaryTextEl.createSpan();
+    filenamePartEl.style.cssText = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;";
+    filenamePartEl.innerHTML = this.createInlineIcon("book-open") + ` ${docNames.join(", ")}${moreCount}`;
+    const tokenPartEl = summaryTextEl.createSpan();
+    tokenPartEl.style.cssText = "white-space: nowrap; flex-shrink: 0; margin-left: 8px;";
     if (isMobile) {
-      summaryTextEl.innerHTML = this.createInlineIcon("book-open") + ` ${docNames.join(", ")}${moreCount} (${tokenPercent}%)`;
+      tokenPartEl.textContent = `(${tokenPercent}%)`;
     } else {
-      summaryTextEl.innerHTML = this.createInlineIcon("book-open") + ` ${docNames.join(", ")}${moreCount} (${tokenPercent}% tokens)`;
+      tokenPartEl.textContent = `(${tokenPercent}% tokens)`;
     }
     const expandIndicatorEl = summaryEl.createSpan({ cls: "nova-context-expand-indicator" });
     expandIndicatorEl.innerHTML = this.createInlineIcon("more-horizontal", isMobile ? "16px" : "14px");
@@ -2885,6 +2890,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian6.ItemView 
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
 				flex-shrink: 0;
+				margin-right: 8px;
 			`;
       const removeBtn = docItemEl.createEl("button", { cls: "nova-context-doc-remove" });
       removeBtn.textContent = "\xD7";
@@ -2973,8 +2979,19 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian6.ItemView 
   async refreshContext() {
     if (this.currentFile) {
       try {
-        const result = await this.multiDocHandler.buildContext("", this.currentFile);
-        this.currentContext = (result == null ? void 0 : result.context) || null;
+        const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+        if (persistentDocs.length > 0) {
+          this.currentContext = {
+            persistentDocs,
+            contextString: "",
+            // Not needed for UI
+            tokenCount: 0,
+            // Not needed for UI refresh
+            isNearLimit: false
+          };
+        } else {
+          this.currentContext = null;
+        }
         this.updateContextIndicator();
       } catch (error) {
         this.currentContext = null;
@@ -3978,6 +3995,8 @@ USER REQUEST: ${processedMessage}`;
       return;
     }
     const addedFiles = [];
+    const alreadyExistingFiles = [];
+    const notFoundFiles = [];
     const existingPersistent = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
     const updatedPersistent = [...existingPersistent];
     for (const filename of filenames) {
@@ -4001,19 +4020,45 @@ USER REQUEST: ${processedMessage}`;
             rawReference: `+[[${file.basename}]]`
           });
           addedFiles.push(file.basename);
+        } else {
+          alreadyExistingFiles.push(file.basename);
         }
+      } else {
+        notFoundFiles.push(filename);
       }
     }
-    if (addedFiles.length > 0) {
+    if (addedFiles.length > 0 || alreadyExistingFiles.length > 0) {
       const handler = this.multiDocHandler;
       handler.persistentContext.set(this.currentFile.path, updatedPersistent);
     }
     await this.refreshContext();
+    const totalFiles = filenames.length;
+    const messages = [];
     if (addedFiles.length > 0) {
-      const message = addedFiles.length === 1 ? `Added "${addedFiles[0]}" to context` : `Added ${addedFiles.length} files to context`;
-      new import_obsidian6.Notice(message, 2e3);
-    } else if (filenames.length > 0) {
-      new import_obsidian6.Notice("Could not find the specified files", 3e3);
+      if (addedFiles.length === 1) {
+        messages.push(`Added "${addedFiles[0]}" to context`);
+      } else {
+        messages.push(`Added ${addedFiles.length} files to context`);
+      }
+    }
+    if (alreadyExistingFiles.length > 0) {
+      if (alreadyExistingFiles.length === 1) {
+        messages.push(`"${alreadyExistingFiles[0]}" already in context`);
+      } else {
+        messages.push(`${alreadyExistingFiles.length} already in context`);
+      }
+    }
+    if (notFoundFiles.length > 0) {
+      if (notFoundFiles.length === 1) {
+        messages.push(`"${notFoundFiles[0]}" not found`);
+      } else {
+        messages.push(`${notFoundFiles.length} not found`);
+      }
+    }
+    if (messages.length > 0) {
+      const combinedMessage = messages.join(", ");
+      const duration = notFoundFiles.length > 0 ? 3e3 : 2e3;
+      new import_obsidian6.Notice(combinedMessage, duration);
     }
   }
 };

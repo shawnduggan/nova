@@ -1023,13 +1023,21 @@ export class NovaSidebarView extends ItemView {
 		const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
 		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
 		
-		// Mobile-optimized text (shorter on mobile) with proper flex alignment
-		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px;';
+		// Split into filename part and token part to ensure tokens are always visible
+		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px; min-width: 0;';
 		
+		// Create filename part that can truncate
+		const filenamePartEl = summaryTextEl.createSpan();
+		filenamePartEl.style.cssText = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;';
+		filenamePartEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount}`;
+		
+		// Create token part that always stays visible
+		const tokenPartEl = summaryTextEl.createSpan();
+		tokenPartEl.style.cssText = 'white-space: nowrap; flex-shrink: 0; margin-left: 8px;';
 		if (isMobile) {
-			summaryTextEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount} (${tokenPercent}%)`;
+			tokenPartEl.textContent = `(${tokenPercent}%)`;
 		} else {
-			summaryTextEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount} (${tokenPercent}% tokens)`;
+			tokenPartEl.textContent = `(${tokenPercent}% tokens)`;
 		}
 		
 		// Mobile-friendly more menu indicator
@@ -1218,6 +1226,7 @@ export class NovaSidebarView extends ItemView {
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
 				flex-shrink: 0;
+				margin-right: 8px;
 			`;
 			
 			// Mobile-optimized remove button with simple reliable icon
@@ -1328,8 +1337,22 @@ export class NovaSidebarView extends ItemView {
 	private async refreshContext(): Promise<void> {
 		if (this.currentFile) {
 			try {
-				const result = await this.multiDocHandler.buildContext('', this.currentFile);
-				this.currentContext = result?.context || null;
+				// Don't call buildContext with empty message as it can interfere with persistent context
+				// Instead, just get persistent context and build a minimal context object for UI display
+				const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+				
+				if (persistentDocs.length > 0) {
+					// Build a minimal context object for UI display only
+					this.currentContext = {
+						persistentDocs: persistentDocs,
+						contextString: '', // Not needed for UI
+						tokenCount: 0, // Not needed for UI refresh
+						isNearLimit: false
+					};
+				} else {
+					this.currentContext = null;
+				}
+				
 				this.updateContextIndicator();
 			} catch (error) {
 				// Handle context build failures gracefully
@@ -2667,10 +2690,13 @@ USER REQUEST: ${processedMessage}`;
 		}
 
 		const addedFiles: string[] = [];
+		const alreadyExistingFiles: string[] = [];
+		const notFoundFiles: string[] = [];
 		
-		// Get existing persistent context
+		// Get existing persistent context directly (without clearing it)
 		const existingPersistent = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
 		const updatedPersistent = [...existingPersistent];
+		
 		
 		for (const filename of filenames) {
 			// Find the file by name
@@ -2686,7 +2712,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 			
 			if (file instanceof TFile) {
-				// Check if already in persistent context
+				// Check if already in persistent context (check both existing and newly added in this batch)
 				const exists = updatedPersistent.some(ref => ref.file.path === (file as TFile).path);
 				if (!exists) {
 					// Add to persistent context
@@ -2697,12 +2723,18 @@ USER REQUEST: ${processedMessage}`;
 						rawReference: `+[[${file.basename}]]`
 					});
 					addedFiles.push(file.basename);
+				} else {
+					// File already exists in context
+					alreadyExistingFiles.push(file.basename);
 				}
+			} else {
+				// File not found
+				notFoundFiles.push(filename);
 			}
 		}
 		
-		// Update persistent context if we added any files
-		if (addedFiles.length > 0) {
+		// Update persistent context if we made any changes
+		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0) {
 			// Use reflection to access private property (since TypeScript doesn't expose it)
 			const handler = this.multiDocHandler as any;
 			handler.persistentContext.set(this.currentFile.path, updatedPersistent);
@@ -2711,14 +2743,39 @@ USER REQUEST: ${processedMessage}`;
 		// Refresh context UI
 		await this.refreshContext();
 		
-		// Show success notification
+		// Show a single comprehensive notification for better UX
+		const totalFiles = filenames.length;
+		const messages: string[] = [];
+		
 		if (addedFiles.length > 0) {
-			const message = addedFiles.length === 1 
-				? `Added "${addedFiles[0]}" to context`
-				: `Added ${addedFiles.length} files to context`;
-			new Notice(message, 2000);
-		} else if (filenames.length > 0) {
-			new Notice('Could not find the specified files', 3000);
+			if (addedFiles.length === 1) {
+				messages.push(`Added "${addedFiles[0]}" to context`);
+			} else {
+				messages.push(`Added ${addedFiles.length} files to context`);
+			}
+		}
+		
+		if (alreadyExistingFiles.length > 0) {
+			if (alreadyExistingFiles.length === 1) {
+				messages.push(`"${alreadyExistingFiles[0]}" already in context`);
+			} else {
+				messages.push(`${alreadyExistingFiles.length} already in context`);
+			}
+		}
+		
+		if (notFoundFiles.length > 0) {
+			if (notFoundFiles.length === 1) {
+				messages.push(`"${notFoundFiles[0]}" not found`);
+			} else {
+				messages.push(`${notFoundFiles.length} not found`);
+			}
+		}
+		
+		// Show single combined message if we have any results
+		if (messages.length > 0) {
+			const combinedMessage = messages.join(', ');
+			const duration = notFoundFiles.length > 0 ? 3000 : 2000; // Longer duration if there are errors
+			new Notice(combinedMessage, duration);
 		}
 	}
 

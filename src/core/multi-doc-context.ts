@@ -143,7 +143,6 @@ export class MultiDocContextHandler {
         // Filter out any stale file references (files that no longer exist)
         const allPersistentDocs = rawPersistentDocs.filter(docRef => {
             if (!docRef?.file || !this.app.vault.getAbstractFileByPath(docRef.file.path)) {
-                // Removing stale file reference
                 return false;
             }
             return true;
