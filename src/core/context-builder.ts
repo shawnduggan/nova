@@ -81,9 +81,10 @@ IMPORTANT GUIDELINES:
             'add': `
 
 ACTION: ADD CONTENT
-- Generate new content to insert at the specified location
-- Match the style and tone of surrounding content
-- Ensure proper formatting and structure`,
+- Generate EXACTLY what the user requested - follow their instruction literally
+- Do NOT create content related to the document theme unless specifically asked
+- Focus on the user's specific request, not the document's existing content
+- Match basic formatting style but prioritize the user's exact request`,
 
             'edit': `
 
@@ -150,8 +151,18 @@ ACTION: UPDATE METADATA
             context += `\nCONVERSATION CONTEXT:\n${conversationContext}\n`;
         }
 
-        // Add full document content
-        context += `\nFULL DOCUMENT:\n${documentContext.content}\n`;
+        // Add document content based on command type and target
+        if (command.action === 'add' && command.target === 'cursor') {
+            // For cursor-only add commands, only include surrounding context to avoid AI generating document-related content
+            if (documentContext.surroundingLines) {
+                const before = documentContext.surroundingLines.before.slice(-3).join('\n'); // Last 3 lines before cursor
+                const after = documentContext.surroundingLines.after.slice(0, 3).join('\n'); // First 3 lines after cursor
+                context += `\nLOCAL CONTEXT (for style reference only):\nBefore cursor:\n${before}\n\nAfter cursor:\n${after}\n`;
+            }
+        } else {
+            // For other commands, include full document content
+            context += `\nFULL DOCUMENT:\n${documentContext.content}\n`;
+        }
 
         return context;
     }

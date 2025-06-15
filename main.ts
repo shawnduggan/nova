@@ -56,9 +56,7 @@ export default class NovaPlugin extends Plugin {
 
 	async onload() {
 		try {
-			console.log('Nova: onload starting...');
 			await this.loadSettings();
-			console.log('Nova: settings loaded');
 
 			// Initialize licensing system
 			this.licenseValidator = new LicenseValidator();
@@ -71,7 +69,6 @@ export default class NovaPlugin extends Plugin {
 			if (this.settings.licensing.licenseKey) {
 				await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
 			}
-			console.log('Nova: feature manager initialized');
 
 			// Refresh Supernova UI after license validation to handle expired licenses
 			this.app.workspace.onLayoutReady(() => {
@@ -87,11 +84,9 @@ export default class NovaPlugin extends Plugin {
 
 			// Register custom icon
 			addIcon('nova-star', NOVA_ICON_SVG);
-			console.log('Nova: icon registered');
 
 			this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
 			await this.aiProviderManager.initialize();
-			console.log('Nova: AI provider manager initialized');
 
 			// Initialize conversation manager and document engine
 			const dataStore = {
@@ -112,23 +107,17 @@ export default class NovaPlugin extends Plugin {
 			this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.metadataCommandHandler = new MetadataCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
-			console.log('Nova: document engine and commands initialized');
 
 			this.registerView(
 				VIEW_TYPE_NOVA_SIDEBAR,
 				(leaf) => new NovaSidebarView(leaf, this)
 			);
-			console.log('Nova: view registered');
 
 			// Note: Wikilink autocomplete is now handled directly in sidebar view
 
 			const ribbonIcon = this.addRibbonIcon('nova-star', 'Nova AI', (evt: MouseEvent) => {
 				this.activateView();
 			});
-			console.log('Nova: ribbon icon added');
-			console.log('Nova: ribbon icon element:', ribbonIcon);
-			console.log('Nova: ribbon icon innerHTML:', ribbonIcon.innerHTML);
-			console.log('Nova: ribbon icon classList:', ribbonIcon.classList.toString());
 
 			// Register core document editing commands
 			this.addCommand({
@@ -178,14 +167,10 @@ export default class NovaPlugin extends Plugin {
 					this.activateView();
 				}
 			});
-			console.log('Nova: commands registered');
 
 			this.settingTab = new NovaSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
-			console.log('Nova: settings tab added');
-			console.log('Nova: onload completed successfully');
 		} catch (error) {
-			console.error('Nova: Error in onload:', error);
 		}
 	}
 

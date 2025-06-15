@@ -24,38 +24,36 @@ export class DocumentEngine {
     }
 
     /**
-     * Get the active editor instance
+     * Get the active editor instance - ensures we get the editor for the active file
      */
     getActiveEditor(): Editor | null {
-        // First try the workspace method
-        const activeEditor = this.app.workspace.activeEditor;
-        if (activeEditor?.editor) {
-            return activeEditor.editor;
-        }
-        
-        // Try to get the active markdown view
-        let view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        
-        // If no active markdown view, try to find any markdown view
-        if (!view) {
-            const leaves = this.app.workspace.getLeavesOfType('markdown');
-            for (const leaf of leaves) {
-                const leafView = leaf.view;
-                if (leafView instanceof MarkdownView) {
-                    view = leafView;
-                    break;
-                }
-            }
-        }
-        
-        if (!view) {
+        // Get the active file first to ensure consistency
+        const activeFile = this.getActiveFile();
+        if (!activeFile) {
             return null;
         }
         
-        // Try different ways to get the editor
-        const editor = view.editor;
+        // Find the markdown view for the active file specifically
+        const leaves = this.app.workspace.getLeavesOfType('markdown');
+        for (const leaf of leaves) {
+            const view = leaf.view;
+            if (view instanceof MarkdownView && view.file === activeFile) {
+                return view.editor;
+            }
+        }
         
-        return editor || null;
+        // Fallback: try the workspace active editor if it matches the active file
+        const activeEditor = this.app.workspace.activeEditor;
+        if (activeEditor?.editor && activeEditor.file === activeFile) {
+            return activeEditor.editor;
+        }
+        
+        // Final fallback: try getActiveViewOfType
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view && view.file === activeFile) {
+            return view.editor;
+        }
+        return null;
     }
 
     /**
@@ -83,6 +81,19 @@ export class DocumentEngine {
         if (!editor) return null;
         
         return editor.getCursor();
+    }
+
+    /**
+     * Set the cursor position (optionally focus the editor)
+     */
+    setCursorPosition(position: EditorPosition, shouldFocus: boolean = false): void {
+        const editor = this.getActiveEditor();
+        if (!editor) return;
+        
+        editor.setCursor(position);
+        if (shouldFocus) {
+            editor.focus();
+        }
     }
 
     /**

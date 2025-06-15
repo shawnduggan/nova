@@ -174,10 +174,10 @@ export class CommandParser {
             return 'selection';
         }
         
-        // Action-specific defaults
+        // Action-specific defaults for cursor-only editing
         switch (action) {
             case 'add':
-                return 'end';
+                return 'cursor';  // Changed from 'end' to 'cursor' for cursor-only editing
             case 'edit':
                 return hasSelection ? 'selection' : 'cursor';
             case 'delete':
@@ -185,7 +185,7 @@ export class CommandParser {
             case 'grammar':
                 return hasSelection ? 'selection' : 'document';
             case 'rewrite':
-                return 'end';
+                return hasSelection ? 'selection' : 'cursor';  // Changed from 'end' to support cursor-only
             case 'metadata':
                 return 'document';
             default:

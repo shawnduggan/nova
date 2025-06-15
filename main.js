@@ -1476,6 +1476,8 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
     this._commandPickerItems = [];
     this._selectedCommandIndex = -1;
     this._isCommandMenuVisible = false;
+    // Cursor position tracking - file-scoped like conversation history
+    this.currentFileCursorPosition = null;
     // Performance optimization - debouncing and timing constants
     this.contextPreviewDebounceTimeout = null;
     // Event listener cleanup tracking
@@ -1592,14 +1594,39 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian5.ItemView 
         this.loadConversationForActiveFile();
       })
     );
+    this.registerEvent(
+      this.app.workspace.on("editor-change", (editor) => {
+        this.trackCursorPosition(editor);
+      })
+    );
     this.loadConversationForActiveFile();
     setTimeout(() => this.refreshProviderStatus(), 100);
-    setTimeout(() => {
-      var _a;
-      if ((_a = this.textArea) == null ? void 0 : _a.inputEl) {
-        this.inputHandler.getTextArea().inputEl.focus();
+  }
+  /**
+   * Track cursor position changes in the active editor (file-scoped)
+   */
+  trackCursorPosition(editor) {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile || !editor) {
+      return;
+    }
+    if (this.currentFile && activeFile.path === this.currentFile.path) {
+      const cursorPos = editor.getCursor();
+      if (cursorPos) {
+        this.currentFileCursorPosition = cursorPos;
       }
-    }, _NovaSidebarView.FOCUS_DELAY_MS);
+    }
+  }
+  /**
+   * Restore cursor position for current file (file-scoped)
+   */
+  restoreCursorPosition() {
+    if (this.currentFileCursorPosition) {
+      const editor = this.plugin.documentEngine.getActiveEditor();
+      if (editor) {
+        editor.setCursor(this.currentFileCursorPosition);
+      }
+    }
   }
   async onClose() {
     var _a;
@@ -2690,12 +2717,18 @@ USER REQUEST: ${processedMessage}`;
       }
       const activeFile = this.app.workspace.getActiveFile();
       if (!activeFile || activeFile !== this.currentFile) {
-        this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: true });
+        this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: false });
+        await new Promise((resolve) => setTimeout(resolve, 50));
         const nowActiveFile = this.app.workspace.getActiveFile();
         if (!nowActiveFile || nowActiveFile !== this.currentFile) {
           return this.createIconMessage("x-circle", `Unable to set "${this.currentFile.basename}" as the active file. Edit commands can only modify the file you're chatting about to prevent accidental changes to context documents.`);
         }
       }
+      const currentPos = this.plugin.documentEngine.getCursorPosition();
+      if (currentPos) {
+        this.currentFileCursorPosition = currentPos;
+      }
+      this.restoreCursorPosition();
       let result;
       switch (command.action) {
         case "add":
@@ -2754,7 +2787,12 @@ USER REQUEST: ${processedMessage}`;
     if (!targetFile || targetFile === this.currentFile) {
       return;
     }
+    this.currentFileCursorPosition = null;
     this.currentFile = targetFile;
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+    if (activeView && activeView.editor) {
+      this.trackCursorPosition(activeView.editor);
+    }
     this.chatContainer.empty();
     await this.refreshContext();
     try {
@@ -5157,29 +5195,29 @@ var DocumentEngine = class {
     this.conversationManager = conversationManager;
   }
   /**
-   * Get the active editor instance
+   * Get the active editor instance - ensures we get the editor for the active file
    */
   getActiveEditor() {
-    const activeEditor = this.app.workspace.activeEditor;
-    if (activeEditor == null ? void 0 : activeEditor.editor) {
-      return activeEditor.editor;
-    }
-    let view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
-    if (!view) {
-      const leaves = this.app.workspace.getLeavesOfType("markdown");
-      for (const leaf of leaves) {
-        const leafView = leaf.view;
-        if (leafView instanceof import_obsidian9.MarkdownView) {
-          view = leafView;
-          break;
-        }
-      }
-    }
-    if (!view) {
+    const activeFile = this.getActiveFile();
+    if (!activeFile) {
       return null;
     }
-    const editor = view.editor;
-    return editor || null;
+    const leaves = this.app.workspace.getLeavesOfType("markdown");
+    for (const leaf of leaves) {
+      const view2 = leaf.view;
+      if (view2 instanceof import_obsidian9.MarkdownView && view2.file === activeFile) {
+        return view2.editor;
+      }
+    }
+    const activeEditor = this.app.workspace.activeEditor;
+    if ((activeEditor == null ? void 0 : activeEditor.editor) && activeEditor.file === activeFile) {
+      return activeEditor.editor;
+    }
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
+    if (view && view.file === activeFile) {
+      return view.editor;
+    }
+    return null;
   }
   /**
    * Get the active file
@@ -5202,6 +5240,17 @@ var DocumentEngine = class {
     const editor = this.getActiveEditor();
     if (!editor) return null;
     return editor.getCursor();
+  }
+  /**
+   * Set the cursor position (optionally focus the editor)
+   */
+  setCursorPosition(position, shouldFocus = false) {
+    const editor = this.getActiveEditor();
+    if (!editor) return;
+    editor.setCursor(position);
+    if (shouldFocus) {
+      editor.focus();
+    }
   }
   /**
    * Extract comprehensive document context
@@ -5547,9 +5596,10 @@ IMPORTANT GUIDELINES:
       "add": `
 
 ACTION: ADD CONTENT
-- Generate new content to insert at the specified location
-- Match the style and tone of surrounding content
-- Ensure proper formatting and structure`,
+- Generate EXACTLY what the user requested - follow their instruction literally
+- Do NOT create content related to the document theme unless specifically asked
+- Focus on the user's specific request, not the document's existing content
+- Match basic formatting style but prioritize the user's exact request`,
       "edit": `
 
 ACTION: EDIT CONTENT  
@@ -5602,10 +5652,25 @@ CONVERSATION CONTEXT:
 ${conversationContext}
 `;
     }
-    context += `
+    if (command.action === "add" && command.target === "cursor") {
+      if (documentContext.surroundingLines) {
+        const before = documentContext.surroundingLines.before.slice(-3).join("\n");
+        const after = documentContext.surroundingLines.after.slice(0, 3).join("\n");
+        context += `
+LOCAL CONTEXT (for style reference only):
+Before cursor:
+${before}
+
+After cursor:
+${after}
+`;
+      }
+    } else {
+      context += `
 FULL DOCUMENT:
 ${documentContext.content}
 `;
+    }
     return context;
   }
   /**
@@ -5888,7 +5953,8 @@ var CommandParser = class {
     }
     switch (action) {
       case "add":
-        return "end";
+        return "cursor";
+      // Changed from 'end' to 'cursor' for cursor-only editing
       case "edit":
         return hasSelection ? "selection" : "cursor";
       case "delete":
@@ -5896,7 +5962,8 @@ var CommandParser = class {
       case "grammar":
         return hasSelection ? "selection" : "document";
       case "rewrite":
-        return "end";
+        return hasSelection ? "selection" : "cursor";
+      // Changed from 'end' to support cursor-only
       case "metadata":
         return "document";
       default:
@@ -7813,9 +7880,7 @@ var NOVA_ICON_SVG2 = `
 var NovaPlugin = class extends import_obsidian10.Plugin {
   async onload() {
     try {
-      console.log("Nova: onload starting...");
       await this.loadSettings();
-      console.log("Nova: settings loaded");
       this.licenseValidator = new LicenseValidator();
       this.featureManager = new FeatureManager(
         this.licenseValidator,
@@ -7824,7 +7889,6 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       if (this.settings.licensing.licenseKey) {
         await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
       }
-      console.log("Nova: feature manager initialized");
       this.app.workspace.onLayoutReady(() => {
         const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
         if (leaves.length > 0) {
@@ -7833,10 +7897,8 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
         }
       });
       (0, import_obsidian10.addIcon)("nova-star", NOVA_ICON_SVG2);
-      console.log("Nova: icon registered");
       this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
       await this.aiProviderManager.initialize();
-      console.log("Nova: AI provider manager initialized");
       const dataStore = {
         loadData: (key) => this.loadDataWithKey(key),
         saveData: (key, data) => this.saveDataWithKey(key, data)
@@ -7853,19 +7915,13 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
       this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
       this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
       this.metadataCommandHandler = new MetadataCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
-      console.log("Nova: document engine and commands initialized");
       this.registerView(
         VIEW_TYPE_NOVA_SIDEBAR,
         (leaf) => new NovaSidebarView(leaf, this)
       );
-      console.log("Nova: view registered");
       const ribbonIcon = this.addRibbonIcon("nova-star", "Nova AI", (evt) => {
         this.activateView();
       });
-      console.log("Nova: ribbon icon added");
-      console.log("Nova: ribbon icon element:", ribbonIcon);
-      console.log("Nova: ribbon icon innerHTML:", ribbonIcon.innerHTML);
-      console.log("Nova: ribbon icon classList:", ribbonIcon.classList.toString());
       this.addCommand({
         id: "nova-add-content",
         name: "Nova: Add content",
@@ -7908,13 +7964,9 @@ var NovaPlugin = class extends import_obsidian10.Plugin {
           this.activateView();
         }
       });
-      console.log("Nova: commands registered");
       this.settingTab = new NovaSettingTab(this.app, this);
       this.addSettingTab(this.settingTab);
-      console.log("Nova: settings tab added");
-      console.log("Nova: onload completed successfully");
     } catch (error) {
-      console.error("Nova: Error in onload:", error);
     }
   }
   onunload() {

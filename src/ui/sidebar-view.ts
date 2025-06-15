@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
@@ -51,6 +51,9 @@ export class NovaSidebarView extends ItemView {
 	private commandPicker!: HTMLElement;
 	private commandMenu!: HTMLElement;
 	private commandButton!: ButtonComponent;
+	
+	// Cursor position tracking - file-scoped like conversation history
+	private currentFileCursorPosition: EditorPosition | null = null;
 	
 	
 	// Performance optimization - debouncing and timing constants
@@ -163,18 +166,51 @@ export class NovaSidebarView extends ItemView {
 			})
 		);
 		
+		// Register cursor position tracking for the active editor
+		this.registerEvent(
+			this.app.workspace.on('editor-change', (editor) => {
+				this.trackCursorPosition(editor);
+			})
+		);
+		
 		// Load conversation for current file
 		this.loadConversationForActiveFile();
 		
 		// Initial status refresh to ensure all indicators are up to date
 		setTimeout(() => this.refreshProviderStatus(), 100);
 		
-		// Auto-focus input for immediate typing
-		setTimeout(() => {
-			if (this.textArea?.inputEl) {
-				this.inputHandler.getTextArea().inputEl.focus();
+		// Note: Auto-focus removed to prevent stealing cursor from editor
+	}
+
+	/**
+	 * Track cursor position changes in the active editor (file-scoped)
+	 */
+	private trackCursorPosition(editor: any) {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile || !editor) {
+			return;
+		}
+		
+		// Only track cursor position if this is the current file we're working with
+		if (this.currentFile && activeFile.path === this.currentFile.path) {
+			const cursorPos = editor.getCursor();
+			if (cursorPos) {
+				this.currentFileCursorPosition = cursorPos;
 			}
-		}, NovaSidebarView.FOCUS_DELAY_MS);
+		}
+	}
+	
+	/**
+	 * Restore cursor position for current file (file-scoped)
+	 */
+	private restoreCursorPosition(): void {
+		if (this.currentFileCursorPosition) {
+			// Restore without stealing focus
+			const editor = this.plugin.documentEngine.getActiveEditor();
+			if (editor) {
+				editor.setCursor(this.currentFileCursorPosition);
+			}
+		}
 	}
 
 	async onClose() {
@@ -1570,8 +1606,11 @@ USER REQUEST: ${processedMessage}`;
 			// This prevents accidentally editing context documents that might be open
 			const activeFile = this.app.workspace.getActiveFile();
 			if (!activeFile || activeFile !== this.currentFile) {
-				// Make the conversation file active before executing commands
-				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: true });
+				// Make the conversation file active before executing commands (without forcing focus)
+				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: false });
+				
+				// Wait for workspace transition to complete before proceeding
+				await new Promise(resolve => setTimeout(resolve, 50));
 				
 				// Double-check that the file is now active
 				const nowActiveFile = this.app.workspace.getActiveFile();
@@ -1579,6 +1618,16 @@ USER REQUEST: ${processedMessage}`;
 					return this.createIconMessage('x-circle', `Unable to set "${this.currentFile.basename}" as the active file. Edit commands can only modify the file you're chatting about to prevent accidental changes to context documents.`);
 				}
 			}
+			
+			// Save current cursor position before executing command (in case editor-change event missed it)
+			const currentPos = this.plugin.documentEngine.getCursorPosition();
+			if (currentPos) {
+				this.currentFileCursorPosition = currentPos;
+			}
+			
+			// Restore cursor position for this file before executing command
+			// This now happens AFTER workspace has switched to ensure correct file is active
+			this.restoreCursorPosition();
 			
 			let result;
 			
@@ -1651,7 +1700,16 @@ USER REQUEST: ${processedMessage}`;
 			return;
 		}
 		
+		// Clear cursor tracking when switching to a new file
+		this.currentFileCursorPosition = null;
+		
 		this.currentFile = targetFile;
+		
+		// Immediately track cursor position for the newly active file
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (activeView && activeView.editor) {
+			this.trackCursorPosition(activeView.editor);
+		}
 		
 		// Clear current chat
 		this.chatContainer.empty();
