@@ -21,12 +21,17 @@ export class NovaWikilinkAutocomplete {
     private isVisible: boolean = false;
     private currentQuery: string = '';
     private currentTriggerPos: number = -1;
+    private sidebarView: any; // Reference to NovaSidebarView
 
     constructor(app: App, textArea: HTMLTextAreaElement, container?: HTMLElement) {
         this.app = app;
         this.textArea = textArea;
         this.container = container || textArea.parentElement!;
         this.setupEventListeners();
+    }
+
+    setSidebarView(sidebarView: any): void {
+        this.sidebarView = sidebarView;
     }
 
     private setupEventListeners(): void {
@@ -51,12 +56,12 @@ export class NovaWikilinkAutocomplete {
         const text = this.textArea.value;
         const cursorPos = this.textArea.selectionStart;
         
-        // Look for [[ pattern before cursor
+        // Look for [[ pattern before cursor (simplified - no need for + prefix anymore)
         const beforeCursor = text.substring(0, cursorPos);
-        const linkMatch = beforeCursor.match(/(\+)?\[\[([^\]]*?)$/);
+        const linkMatch = beforeCursor.match(/\[\[([^\]]*?)$/);
         
         if (linkMatch) {
-            this.currentQuery = linkMatch[2] || '';
+            this.currentQuery = linkMatch[1] || '';
             this.currentTriggerPos = cursorPos - linkMatch[0].length;
             this.showSuggestions();
         } else {
@@ -85,7 +90,7 @@ export class NovaWikilinkAutocomplete {
                 if (this.selectedIndex >= 0 || this.suggestions.length > 0) {
                     e.preventDefault();
                     const index = this.selectedIndex >= 0 ? this.selectedIndex : 0;
-                    this.selectSuggestion(this.suggestions[index]);
+                    this.selectSuggestion(this.suggestions[index]).then();
                 }
                 break;
                 
@@ -198,8 +203,8 @@ export class NovaWikilinkAutocomplete {
             
             this.suggestionPopup!.appendChild(item);
             
-            item.addEventListener('click', () => {
-                this.selectSuggestion(suggestion);
+            item.addEventListener('click', async () => {
+                await this.selectSuggestion(suggestion);
             });
             
             item.addEventListener('mouseenter', () => {
@@ -236,33 +241,32 @@ export class NovaWikilinkAutocomplete {
         this.suggestionPopup.style.marginBottom = '4px';
     }
 
-    private selectSuggestion(suggestion: WikilinkSuggestion): void {
+    private async selectSuggestion(suggestion: WikilinkSuggestion): Promise<void> {
         const text = this.textArea.value;
         const cursorPos = this.textArea.selectionStart;
         
-        // Find the [[ pattern to replace
+        // Find the [[ pattern to remove (simplified - no + prefix needed)
         const beforeCursor = text.substring(0, cursorPos);
-        const linkMatch = beforeCursor.match(/(\+)?\[\[([^\]]*?)$/);
+        const linkMatch = beforeCursor.match(/\[\[([^\]]*?)$/);
         
-        if (!linkMatch) return;
+        if (linkMatch) {
+            const startPos = cursorPos - linkMatch[0].length;
+            
+            // Remove the incomplete [[ pattern from the input
+            const newText = text.substring(0, startPos) + text.substring(cursorPos);
+            this.textArea.value = newText;
+            
+            // Position cursor at the cleared position
+            this.textArea.setSelectionRange(startPos, startPos);
+            
+            // Trigger input event to update any auto-grow functionality
+            this.textArea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         
-        const isPersistent = !!linkMatch[1];
-        const startPos = cursorPos - linkMatch[0].length;
-        
-        // Create the replacement text
-        const linkText = `[[${suggestion.file.basename}]]`;
-        const replacement = isPersistent ? `+${linkText}` : linkText;
-        
-        // Replace the text
-        const newText = text.substring(0, startPos) + replacement + text.substring(cursorPos);
-        this.textArea.value = newText;
-        
-        // Position cursor after the link
-        const newCursorPos = startPos + replacement.length;
-        this.textArea.setSelectionRange(newCursorPos, newCursorPos);
-        
-        // Trigger input event to update any auto-grow functionality
-        this.textArea.dispatchEvent(new Event('input', { bubbles: true }));
+        // Add file to context automatically 
+        if (this.sidebarView && this.sidebarView.addFilesToContext) {
+            await this.sidebarView.addFilesToContext([suggestion.file.basename]);
+        }
         
         this.hideSuggestions();
         this.textArea.focus();

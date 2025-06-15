@@ -20,6 +20,7 @@ export class InputHandler {
 	private static readonly FOCUS_DELAY_MS = 150;
 	private dropZoneOverlay: HTMLElement | null = null;
 	private isDragging: boolean = false;
+	private sidebarView: any; // Reference to NovaSidebarView for context operations
 
 	// Event cleanup tracking
 	private eventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
@@ -32,6 +33,14 @@ export class InputHandler {
 		this.plugin = plugin;
 		this.container = container;
 		this.contextManager = contextManager;
+	}
+
+	setSidebarView(sidebarView: any): void {
+		this.sidebarView = sidebarView;
+		// Also pass to wikilink autocomplete if it exists
+		if (this.wikilinkAutocomplete) {
+			this.wikilinkAutocomplete.setSidebarView(sidebarView);
+		}
 	}
 
 	setCommandSystem(commandSystem: CommandSystem): void {
@@ -111,7 +120,11 @@ export class InputHandler {
 
 		// Initialize wikilink autocomplete with inputRow for consistent width
 		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.textArea.inputEl, this.inputRow);
-
+		
+		// Pass sidebar view reference when available
+		if (this.sidebarView) {
+			this.wikilinkAutocomplete.setSidebarView(this.sidebarView);
+		}
 
 		// Add debounced context preview
 		this.addEventListener(this.textArea.inputEl, 'input', () => {
@@ -413,9 +426,9 @@ export class InputHandler {
 			}
 		}
 
-		// Insert file references if we got any
+		// Add files to context if we got any
 		if (files.length > 0) {
-			this.insertFileReferences(files);
+			this.addFilesToContext(files);
 		} else if (textPlainData && textPlainData.includes('obsidian://open?')) {
 			// User dropped something from Obsidian but no files were extracted
 			// This likely means they dropped non-markdown files
@@ -426,34 +439,19 @@ export class InputHandler {
 		}
 	}
 
-	private insertFileReferences(filenames: string[]): void {
+	private async addFilesToContext(filenames: string[]): Promise<void> {
 		if (filenames.length === 0) return;
 
-		// Generate wikilink syntax for each file
-		const wikilinks = filenames.map(name => `[[${name}]]`).join(' ');
-		
-		// Insert at current cursor position
-		const currentValue = this.textArea.getValue();
-		const textarea = this.textArea.inputEl;
-		const start = textarea.selectionStart;
-		const end = textarea.selectionEnd;
+		// Check if multi-doc context feature is enabled
+		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+			new Notice('Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.', 3000);
+			return;
+		}
 
-		// Add space before if needed
-		const needsSpaceBefore = start > 0 && currentValue[start - 1] !== ' ' && currentValue[start - 1] !== '\n';
-		const needsSpaceAfter = end < currentValue.length && currentValue[end] !== ' ' && currentValue[end] !== '\n';
-
-		const insertion = (needsSpaceBefore ? ' ' : '') + wikilinks + (needsSpaceAfter ? ' ' : '');
-		const newValue = currentValue.slice(0, start) + insertion + currentValue.slice(end);
-		
-		this.textArea.setValue(newValue);
-
-		// Position cursor after inserted text
-		const newPosition = start + insertion.length;
-		setTimeout(() => {
-			textarea.setSelectionRange(newPosition, newPosition);
-			textarea.focus();
-			this.autoGrowTextarea();
-		}, 0);
+		// Add files to context
+		if (this.sidebarView) {
+			await this.sidebarView.addFilesToContext(filenames);
+		}
 	}
 
 

@@ -169,6 +169,15 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Backward compatibility** - Fallback to synchronous mode if streaming fails
   - **Comprehensive testing** - Unit tests verify all streaming functionality
   - **✅ Phase 3 complete** - All chat commands unified with selection-based editing experience
+- **✅ NEW: Enhanced File Context Experience**
+  - **Auto-add to context** - Files selected via [[ picker or drag-and-drop are automatically added to context
+  - **Clean input field** - No more clutter with [[wikilinks]], files go straight to context
+  - **Visual feedback** - Success notifications confirm when files are added
+  - **Fixed UI layout** - Long filenames now truncate properly with ellipsis
+  - **Flexbox improvements** - "read-only" label stays anchored to the right
+  - **Seamless workflow** - Type [[, select file, continue typing your message
+  - **Code cleanup** - Removed obsolete + prefix handling and simplified pattern matching
+  - **Consistent behavior** - Both [[ picker and drag-and-drop use identical workflow
 
 ---
 

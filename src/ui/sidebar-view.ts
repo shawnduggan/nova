@@ -323,6 +323,9 @@ export class NovaSidebarView extends ItemView {
 		// Create InputHandler which will handle all input UI creation
 		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
 		
+		// Pass sidebar view reference for context operations
+		this.inputHandler.setSidebarView(this);
+		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
 		
@@ -1183,7 +1186,7 @@ export class NovaSidebarView extends ItemView {
 			
 			const iconEl = docInfoEl.createSpan();
 			iconEl.innerHTML = this.createInlineIcon('file-text');
-			iconEl.style.cssText = 'display: flex; align-items: center; font-size: 1em;';
+			iconEl.style.cssText = 'display: flex; align-items: center; font-size: 1em; flex-shrink: 0;';
 			
 			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
 			const suffix = doc.property ? `#${doc.property}` : '';
@@ -1196,6 +1199,9 @@ export class NovaSidebarView extends ItemView {
 				white-space: nowrap;
 				font-size: 1em;
 				line-height: 1.4;
+				flex: 1;
+				min-width: 0;
+				margin-right: 8px;
 			`;
 			nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
 			
@@ -1208,10 +1214,10 @@ export class NovaSidebarView extends ItemView {
 				background: var(--background-modifier-hover);
 				padding: 1px 4px;
 				border-radius: 3px;
-				margin-left: 6px;
 				font-weight: 500;
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
+				flex-shrink: 0;
 			`;
 			
 			// Mobile-optimized remove button with simple reliable icon
@@ -1365,7 +1371,7 @@ export class NovaSidebarView extends ItemView {
 		if (this.currentFile) {
 			// Check for early access
 			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-				if (messageText.includes('[[') || messageText.includes('+[[')) {
+				if (messageText.includes('[[')) {
 					this.addMessage('system', this.createIconMessage('book-open', 'Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.'));
 					return;
 				}
@@ -2648,6 +2654,71 @@ USER REQUEST: ${processedMessage}`;
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
 			};
+		}
+	}
+
+	/**
+	 * Add files to persistent context
+	 */
+	async addFilesToContext(filenames: string[]): Promise<void> {
+		if (!this.currentFile) {
+			new Notice('No file is open. Please open a file to add context.', 3000);
+			return;
+		}
+
+		const addedFiles: string[] = [];
+		
+		// Get existing persistent context
+		const existingPersistent = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+		const updatedPersistent = [...existingPersistent];
+		
+		for (const filename of filenames) {
+			// Find the file by name
+			let file = this.app.vault.getAbstractFileByPath(filename);
+			if (!file || !(file instanceof TFile)) {
+				file = this.app.vault.getAbstractFileByPath(filename + '.md');
+			}
+			if (!file || !(file instanceof TFile)) {
+				const files = this.app.vault.getMarkdownFiles();
+				file = files.find(
+					(f) => f.basename === filename || f.name === filename || f.path.endsWith('/' + filename) || f.path.endsWith('/' + filename + '.md')
+				) || null;
+			}
+			
+			if (file instanceof TFile) {
+				// Check if already in persistent context
+				const exists = updatedPersistent.some(ref => ref.file.path === (file as TFile).path);
+				if (!exists) {
+					// Add to persistent context
+					updatedPersistent.push({
+						file: file,
+						property: undefined,
+						isPersistent: true,
+						rawReference: `+[[${file.basename}]]`
+					});
+					addedFiles.push(file.basename);
+				}
+			}
+		}
+		
+		// Update persistent context if we added any files
+		if (addedFiles.length > 0) {
+			// Use reflection to access private property (since TypeScript doesn't expose it)
+			const handler = this.multiDocHandler as any;
+			handler.persistentContext.set(this.currentFile.path, updatedPersistent);
+		}
+		
+		// Refresh context UI
+		await this.refreshContext();
+		
+		// Show success notification
+		if (addedFiles.length > 0) {
+			const message = addedFiles.length === 1 
+				? `Added "${addedFiles[0]}" to context`
+				: `Added ${addedFiles.length} files to context`;
+			new Notice(message, 2000);
+		} else if (filenames.length > 0) {
+			new Notice('Could not find the specified files', 3000);
 		}
 	}
 
