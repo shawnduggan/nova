@@ -177,7 +177,18 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - ✅ Clean production build (main.js: 289KB)
 - ✅ Documentation fully updated
 
-### Next Phase: User Testing & Validation
+### Next Phase: Pre-Testing Fixes & User Testing
+
+#### 🐛 **Critical UI Fixes Required Before Testing**
+- [ ] **Fix Command Button** - When clicked, should trigger the ":" command panel
+  - Currently the command button may not properly trigger the command system
+  - Should insert ":" into textarea and show command picker
+- [ ] **Review ":" Command List** - Should be empty until user adds Custom Commands
+  - The ":" trigger is reserved for future Custom Commands feature
+  - Currently may show built-in editing commands that shouldn't be there
+  - Should display "No custom commands yet" or similar message
+
+#### 📋 **User Testing & Validation**
 - [ ] User testing with cursor-only system
 - [ ] Performance validation on target devices
 - [ ] Final polish based on user feedback
