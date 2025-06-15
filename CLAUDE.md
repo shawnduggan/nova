@@ -180,13 +180,14 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 ### Next Phase: Pre-Testing Fixes & User Testing
 
 #### 🐛 **Critical UI Fixes Required Before Testing**
-- [ ] **Fix Command Button** - When clicked, should trigger the ":" command panel
-  - Currently the command button may not properly trigger the command system
-  - Should insert ":" into textarea and show command picker
-- [ ] **Review ":" Command List** - Should be empty until user adds Custom Commands
-  - The ":" trigger is reserved for future Custom Commands feature
+- [ ] **Fix Command Button & ":" System** - Align with Custom Commands feature design
+  - Command button should only appear when Custom Commands feature is available (time-gated)
+  - "Show Command Button in Chat" setting should be part of Custom Commands feature
+  - When clicked, button should trigger the ":" command panel
+  - ":" command list should be empty until user adds Custom Commands
   - Currently may show built-in editing commands that shouldn't be there
-  - Should display "No custom commands yet" or similar message
+  - Should display "No custom commands yet" or similar empty state message
+  - The entire ":" system is reserved for future Custom Commands feature
 
 #### 📋 **User Testing & Validation**
 - [ ] User testing with cursor-only system
