@@ -199,4 +199,45 @@ describe('NovaWikilinkAutocomplete', () => {
             }
         });
     });
+
+    describe('Auto-selection', () => {
+        it('should auto-select first item when showing suggestions', () => {
+            // Trigger suggestions
+            mockTextArea.value = 'Test [[';
+            Object.defineProperty(mockTextArea, 'selectionStart', {
+                get: () => 7,
+                configurable: true
+            });
+
+            const inputEvent = new Event('input');
+            mockTextArea.dispatchEvent(inputEvent);
+
+            // Check that first item is selected
+            expect((autocomplete as any).selectedIndex).toBe(0);
+        });
+
+        it('should select first item on Enter even if not explicitly selected', () => {
+            // Setup suggestions
+            mockTextArea.value = '[[note';
+            Object.defineProperty(mockTextArea, 'selectionStart', {
+                get: () => 6,
+                configurable: true
+            });
+
+            mockTextArea.dispatchEvent(new Event('input'));
+
+            // Reset selection to -1 to simulate no explicit selection
+            (autocomplete as any).selectedIndex = -1;
+
+            // Press Enter
+            const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+            Object.defineProperty(enterEvent, 'preventDefault', { value: jest.fn() });
+            
+            mockTextArea.dispatchEvent(enterEvent);
+
+            // Should have selected something
+            expect(enterEvent.preventDefault).toHaveBeenCalled();
+            expect(mockTextArea.value).toContain('[[Note');
+        });
+    });
 });

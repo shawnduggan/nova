@@ -375,9 +375,10 @@ var NovaWikilinkAutocomplete = class {
         break;
       case "Enter":
       case "Tab":
-        if (this.selectedIndex >= 0) {
+        if (this.selectedIndex >= 0 || this.suggestions.length > 0) {
           e.preventDefault();
-          this.selectSuggestion(this.suggestions[this.selectedIndex]);
+          const index = this.selectedIndex >= 0 ? this.selectedIndex : 0;
+          this.selectSuggestion(this.suggestions[index]);
         }
         break;
       case "Escape":
@@ -398,7 +399,8 @@ var NovaWikilinkAutocomplete = class {
     this.renderSuggestions();
     this.positionPopup();
     this.isVisible = true;
-    this.selectedIndex = -1;
+    this.selectedIndex = 0;
+    this.updateSelection();
   }
   hideSuggestions() {
     if (this.suggestionPopup) {
