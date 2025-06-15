@@ -137,3 +137,6 @@ dist
 
 # Project-specific files
 data.json
+
+# macOS
+.DS_Store
