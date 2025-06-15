@@ -8,6 +8,7 @@ import { InputHandler } from './input-handler';
 import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
+import { StreamingManager } from './streaming-manager';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -24,6 +25,7 @@ export class NovaSidebarView extends ItemView {
 	private commandSystem!: CommandSystem;
 	private contextManager!: ContextManager;
 	private chatRenderer!: ChatRenderer;
+	private streamingManager!: StreamingManager;
 	
 	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
@@ -313,9 +315,10 @@ export class NovaSidebarView extends ItemView {
 		// Clear existing input area content
 		this.inputContainer.empty();
 		
-		// Initialize context manager and chat renderer first
+		// Initialize context manager, chat renderer, and streaming manager first
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
 		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
+		this.streamingManager = new StreamingManager();
 		
 		// Create InputHandler which will handle all input UI creation
 		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
@@ -1633,19 +1636,19 @@ USER REQUEST: ${processedMessage}`;
 			
 			switch (command.action) {
 				case 'add':
-					result = await this.plugin.addCommandHandler.execute(command);
+					result = await this.executeAddCommandWithStreaming(command);
 					break;
 				case 'edit':
-					result = await this.plugin.editCommandHandler.execute(command);
+					result = await this.executeEditCommandWithStreaming(command);
 					break;
 				case 'delete':
 					result = await this.plugin.deleteCommandHandler.execute(command);
 					break;
 				case 'grammar':
-					result = await this.plugin.grammarCommandHandler.execute(command);
+					result = await this.executeGrammarCommandWithStreaming(command);
 					break;
 				case 'rewrite':
-					result = await this.plugin.rewriteCommandHandler.execute(command);
+					result = await this.executeRewriteCommandWithStreaming(command);
 					break;
 				case 'metadata':
 					result = await this.plugin.metadataCommandHandler.execute(command);
@@ -2414,6 +2417,238 @@ USER REQUEST: ${processedMessage}`;
 		// No need to manually adjust textarea width - flexbox handles it
 		// The textarea container has flex: 1, so it will expand/contract automatically
 		// when the command button is shown/hidden
+	}
+
+	/**
+	 * Execute add command with streaming support
+	 */
+	private async executeAddCommandWithStreaming(command: EditCommand): Promise<any> {
+		try {
+			// Get the active editor
+			const editor = this.plugin.documentEngine.getActiveEditor();
+			if (!editor) {
+				return {
+					success: false,
+					error: 'No active editor found'
+				};
+			}
+
+			// Get cursor position for streaming
+			const cursorPosition = this.plugin.documentEngine.getCursorPosition();
+			if (!cursorPosition) {
+				return {
+					success: false,
+					error: 'Could not determine cursor position'
+				};
+			}
+
+			// Show thinking notice with 'add' action type
+			this.streamingManager.showThinkingNotice('add');
+
+			// Start streaming at cursor position
+			const { updateStream, stopStream } = this.streamingManager.startStreaming(
+				editor,
+				cursorPosition
+			);
+
+			try {
+				// Execute add command with streaming callback
+				const result = await this.plugin.addCommandHandler.execute(command, (chunk: string, isComplete: boolean) => {
+					updateStream(chunk, isComplete);
+				});
+
+				// Stop streaming
+				stopStream();
+
+				return result;
+
+			} catch (error) {
+				// Stop streaming on error
+				stopStream();
+				throw error;
+			}
+
+		} catch (error) {
+			console.error('Error in streaming add command:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Execute edit command with streaming support
+	 */
+	private async executeEditCommandWithStreaming(command: EditCommand): Promise<any> {
+		try {
+			// Get the active editor
+			const editor = this.plugin.documentEngine.getActiveEditor();
+			if (!editor) {
+				return {
+					success: false,
+					error: 'No active editor found'
+				};
+			}
+
+			// Get cursor position for streaming
+			const cursorPosition = this.plugin.documentEngine.getCursorPosition();
+			if (!cursorPosition) {
+				return {
+					success: false,
+					error: 'Could not determine cursor position'
+				};
+			}
+
+			// Show thinking notice with 'edit' action type
+			this.streamingManager.showThinkingNotice('edit');
+
+			// Start streaming at cursor position
+			const { updateStream, stopStream } = this.streamingManager.startStreaming(
+				editor,
+				cursorPosition
+			);
+
+			try {
+				// Execute edit command with streaming callback
+				const result = await this.plugin.editCommandHandler.execute(command, (chunk: string, isComplete: boolean) => {
+					updateStream(chunk, isComplete);
+				});
+
+				// Stop streaming
+				stopStream();
+
+				return result;
+
+			} catch (error) {
+				// Stop streaming on error
+				stopStream();
+				throw error;
+			}
+
+		} catch (error) {
+			console.error('Error in streaming edit command:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Execute rewrite command with streaming support
+	 */
+	private async executeRewriteCommandWithStreaming(command: EditCommand): Promise<any> {
+		try {
+			// Get the active editor
+			const editor = this.plugin.documentEngine.getActiveEditor();
+			if (!editor) {
+				return {
+					success: false,
+					error: 'No active editor found'
+				};
+			}
+
+			// Get cursor position for streaming
+			const cursorPosition = this.plugin.documentEngine.getCursorPosition();
+			if (!cursorPosition) {
+				return {
+					success: false,
+					error: 'Could not determine cursor position'
+				};
+			}
+
+			// Show thinking notice with 'rewrite' action type
+			this.streamingManager.showThinkingNotice('rewrite');
+
+			// Start streaming at cursor position
+			const { updateStream, stopStream } = this.streamingManager.startStreaming(
+				editor,
+				cursorPosition
+			);
+
+			try {
+				// Execute rewrite command with streaming callback
+				const result = await this.plugin.rewriteCommandHandler.execute(command, (chunk: string, isComplete: boolean) => {
+					updateStream(chunk, isComplete);
+				});
+
+				// Stop streaming
+				stopStream();
+
+				return result;
+
+			} catch (error) {
+				// Stop streaming on error
+				stopStream();
+				throw error;
+			}
+
+		} catch (error) {
+			console.error('Error in streaming rewrite command:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Execute grammar command with streaming support
+	 */
+	private async executeGrammarCommandWithStreaming(command: EditCommand): Promise<any> {
+		try {
+			// Get the active editor
+			const editor = this.plugin.documentEngine.getActiveEditor();
+			if (!editor) {
+				return {
+					success: false,
+					error: 'No active editor found'
+				};
+			}
+
+			// Get cursor position for streaming
+			const cursorPosition = this.plugin.documentEngine.getCursorPosition();
+			if (!cursorPosition) {
+				return {
+					success: false,
+					error: 'Could not determine cursor position'
+				};
+			}
+
+			// Show thinking notice with 'grammar' action type
+			this.streamingManager.showThinkingNotice('grammar');
+
+			// Start streaming at cursor position
+			const { updateStream, stopStream } = this.streamingManager.startStreaming(
+				editor,
+				cursorPosition
+			);
+
+			try {
+				// Execute grammar command with streaming callback
+				const result = await this.plugin.grammarCommandHandler.execute(command, (chunk: string, isComplete: boolean) => {
+					updateStream(chunk, isComplete);
+				});
+
+				// Stop streaming
+				stopStream();
+
+				return result;
+
+			} catch (error) {
+				// Stop streaming on error
+				stopStream();
+				throw error;
+			}
+
+		} catch (error) {
+			console.error('Error in streaming grammar command:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
 	}
 
 }

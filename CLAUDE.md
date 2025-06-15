@@ -153,7 +153,7 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Visual feedback** - accent-colored drop zone with plus icon during drag
   - **User-friendly messages** for invalid drops (folders, non-markdown files)
   - **Clean implementation** - 150 lines, well-separated in InputHandler class
-- **✅ NEW: Hybrid Notice-Based Thinking Animation System**
+- **✅ NEW: Hybrid Notice-Based Thinking Animation System (Selection)**
   - **Obsidian Notice feedback** - Clean UI thinking phrases with animated dots
   - **Context-aware personality** - 10 unique phrases per action type (improve, longer, shorter, tone, custom)
   - **Perfect streaming** - Text streams cleanly without selection highlighting
@@ -161,6 +161,14 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - **Auto-dismissing notices** - Notice disappears when streaming begins
   - **Progressive dots animation** - Starts with 1 dot, cycles through 5 (. → .. → ... → .... → .....)
   - **Hybrid approach** - Combines notice feedback with document streaming for optimal UX
+- **✅ NEW: Unified Streaming System (All Chat Commands)**
+  - **StreamingManager** - Shared infrastructure for all command types
+  - **Complete streaming coverage** - All AI-powered commands (add, edit, rewrite, grammar) use notice + streaming
+  - **Extended thinking phrases** - 10 unique phrases per action type (add, edit, rewrite, grammar, etc.)
+  - **Cursor-based streaming** - Clean insertion at cursor position without text selection
+  - **Backward compatibility** - Fallback to synchronous mode if streaming fails
+  - **Comprehensive testing** - Unit tests verify all streaming functionality
+  - **✅ Phase 3 complete** - All chat commands unified with selection-based editing experience
 
 ---
 
