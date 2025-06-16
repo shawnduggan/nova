@@ -94,6 +94,13 @@ export class NovaSidebarView extends ItemView {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-sidebar-container');
+		
+		// Add platform-specific class for styling
+		if (Platform.isMobile) {
+			container.addClass('is-mobile');
+		} else {
+			container.addClass('is-desktop');
+		}
 
 		// Mobile access is now available to all users with their own API keys
 		

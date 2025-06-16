@@ -908,6 +908,11 @@
     max-height: 120px !important; /* Allow expansion but limit it */
 }
 
+/* Desktop-specific textarea optimization */
+.is-desktop .nova-input-row textarea {
+    min-height: 120px !important; /* ~5-6 lines of text for better desktop UX */
+}
+
 /* Mobile spacing when no context files are added */
 .is-mobile .nova-input-container:not(.has-context) {
     padding-bottom: calc(var(--size-2-2) + 10px) !important;

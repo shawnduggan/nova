@@ -4,6 +4,20 @@ This file contains all completed work items that have been removed from CLAUDE.m
 
 ---
 
+## June 16, 2025 - UI Polish Tasks ✅
+
+### ✅ COMPLETED: Desktop Textarea Height Increase
+**Implementation Details:**
+- **Increased desktop textarea from 80px to 120px** (~5-6 lines of text)
+- **Platform-specific CSS classes** already in place (`is-desktop` and `is-mobile`)
+- **Desktop styling**: `.is-desktop .nova-input-row textarea { min-height: 120px !important; }`
+- **Mobile preserved**: Keeps optimized 65px min-height for compact mobile experience
+- **Clean separation**: Desktop and mobile have distinct, appropriate textarea sizes
+- **Build verified**: Successfully compiles with no errors
+- **Status**: Already implemented in codebase (found during task review)
+
+---
+
 ## June 16, 2025 - Enhanced Tag Operations ✅
 
 ### ✅ COMPLETED: AI-Powered Tag Management System
@@ -196,5 +210,19 @@ This file contains all completed work items that have been removed from CLAUDE.m
 - **Robust getActiveEditor()** method ensures correct file targeting
 - **Critical context removal bug fixed**
 - **Status**: All critical bugs resolved
+
+---
+
+## June 16, 2025 - UI Polish Tasks ✅
+
+### ✅ COMPLETED: Desktop Textarea Height Increase
+**Implementation Details:**
+- **Increased desktop textarea from 80px to 120px** (~5-6 lines of text)
+- **Platform-specific CSS classes** already in place (`is-desktop` and `is-mobile`)
+- **Desktop styling**: `.is-desktop .nova-input-row textarea { min-height: 120px !important; }`
+- **Mobile preserved**: Keeps optimized 65px min-height for compact mobile experience
+- **Clean separation**: Desktop and mobile have distinct, appropriate textarea sizes
+- **Build verified**: Successfully compiles with no errors
+- **Status**: Already implemented in codebase (found during task review)
 
 ---

@@ -3015,6 +3015,11 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("nova-sidebar-container");
+    if (import_obsidian11.Platform.isMobile) {
+      container.addClass("is-mobile");
+    } else {
+      container.addClass("is-desktop");
+    }
     const wrapperEl = container.createDiv({ cls: "nova-wrapper" });
     wrapperEl.style.cssText = `
 			display: flex;

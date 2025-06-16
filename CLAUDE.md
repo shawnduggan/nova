@@ -242,6 +242,20 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 
 ### 🎯 **Next Phase: Market Readiness** (Ready to Begin)
 
+#### **UI Polish Tasks** (Next Session)
+- [ ] **Remove unnecessary separator line**
+  - Remove `border-top` from `.nova-input-container` (line 492 in styles.css)
+  - Reduces visual clutter between chat and input areas
+- [ ] **Update plugin version to 1.0**
+  - Update manifest.json version from "0.1.0" to "1.0.0" (package.json already correct)
+- [ ] **Fix plugin name consistency**
+  - Change `getDisplayText()` in sidebar-view.ts from "Nova AI" to "Nova"
+  - Fixes mobile sidebar display showing "Nova AI" instead of "Nova"
+- [ ] **Fix double "Nova" prefix in command palette**
+  - Remove "Nova: " prefix from all command names in main.ts
+  - Obsidian automatically prepends plugin name, causing "Nova: Nova: Make Shorter"
+  - Commands should be named like "Make Shorter", "Improve Writing", etc.
+
 #### **Command System Polish (Optional)**
 - [ ] **Fix Command Button & ":" System** - Align with Custom Commands feature design
   - Command button should only appear when Custom Commands feature is available (time-gated)
