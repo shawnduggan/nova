@@ -399,3 +399,49 @@ This file contains all completed work items that have been removed from CLAUDE.m
 - **Mobile compatibility**: Native components handle responsive design automatically
 
 **Status**: All UI components now use native Obsidian patterns. Context menu fully functional with proper error recovery.
+
+---
+
+## June 16, 2025 - Sidebar Message Styling Unification ✅
+
+### ✅ COMPLETED: Unified Message System
+**Created consistent visual hierarchy for all sidebar messages:**
+
+**Problem Solved**: Inconsistent message styling with different widths and border radius
+- Success messages appeared in narrow green pill boxes
+- Longer success messages had excessive rounding and incorrect width
+- Visual inconsistency between message types
+
+**Solution Implemented**:
+
+**1. User Messages** (No changes - already perfect)
+- Blue chat bubbles with 80% max-width
+- Standard rounded corners (--radius-m)
+
+**2. System Responses** (Standardized)
+- **Success messages**: Now match chat bubble width (80%) and border-radius
+- **Error messages**: Same standardization as success messages
+- **Color scheme**:
+  - Success: Light green background (#f0f9f0) with dark green text (#2d5a2d)
+  - Error: Light red background (#fef2f2) with dark red text (#7f1d1d)
+- Left-aligned text for better readability
+
+**3. Quick Status Pills** (Smart threshold)
+- **20-character threshold** implemented in ChatRenderer
+- Short messages (≤20 chars) use pill styling: "Content added", "Saved", etc.
+- Longer messages use full message styling
+- Pills: Centered, 20px border-radius, max-width 200px
+
+**Technical Implementation**:
+- Updated `.nova-message-success` and `.nova-message-error` CSS classes
+- Added new `.nova-status-pill` class for short status messages
+- Modified `addSuccessMessage()` to check message length
+- Character count logic: `content.length <= 20 ? 'nova-status-pill' : 'nova-message-success'`
+
+**Files Modified**:
+- `styles.css` - Unified message styling with consistent dimensions
+- `src/ui/chat-renderer.ts` - Added 20-character threshold logic
+
+**Result**: Clean, consistent visual hierarchy throughout the sidebar with smart message type detection
+
+**Status**: Sidebar now has professional, unified message styling that enhances readability and user experience.

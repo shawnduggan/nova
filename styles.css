@@ -850,38 +850,56 @@
     display: none; /* Hide role for system messages */
 }
 
-/* Error Message Styles */
+/* Error Message Styles - Full width like chat messages */
 .nova-message-error {
-    margin: 0 auto !important;
-    background: rgba(244, 67, 54, 0.1) !important;
-    color: #f44336 !important;
-    border: 1px solid rgba(244, 67, 54, 0.3) !important;
-    text-align: center !important;
-    font-size: 0.9em !important;
-    border-radius: 12px !important;
-    max-width: 70% !important;
-    padding: 8px 12px !important;
+    margin-right: auto !important;
+    background: #fef2f2 !important;
+    color: #7f1d1d !important;
+    border: 1px solid #fecaca !important;
+    font-size: var(--font-text-size) !important;
+    border-radius: var(--radius-m) !important;
+    max-width: 80% !important;
+    padding: var(--size-4-2) var(--size-4-3) !important;
+    text-align: left !important;
 }
 
 .nova-message-error .nova-message-role {
     display: none; /* Hide role for error messages */
 }
 
-/* Success Message Styles */
+/* Success Message Styles - Full width like chat messages */
 .nova-message-success {
+    margin-right: auto !important;
+    background: #f0f9f0 !important;
+    color: #2d5a2d !important;
+    border: 1px solid #d4edda !important;
+    font-size: var(--font-text-size) !important;
+    border-radius: var(--radius-m) !important;
+    max-width: 80% !important;
+    padding: var(--size-4-2) var(--size-4-3) !important;
+    text-align: left !important;
+}
+
+.nova-message-success .nova-message-role {
+    display: none; /* Hide role for success messages */
+}
+
+/* Status pill for short messages (under 20 chars) */
+.nova-status-pill {
     margin: 0 auto !important;
     background: rgba(76, 175, 80, 0.1) !important;
     color: #4caf50 !important;
     border: 1px solid rgba(76, 175, 80, 0.3) !important;
     text-align: center !important;
     font-size: 0.9em !important;
-    border-radius: 12px !important;
-    max-width: 70% !important;
-    padding: 8px 12px !important;
+    border-radius: 20px !important;
+    max-width: 200px !important;
+    padding: 6px 12px !important;
+    display: inline-block !important;
 }
 
-.nova-message-success .nova-message-role {
-    display: none; /* Hide role for success messages */
+.nova-status-pill .nova-message-role {
+    display: none;
 }
 
 

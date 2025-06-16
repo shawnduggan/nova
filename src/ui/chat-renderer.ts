@@ -76,7 +76,9 @@ export class ChatRenderer {
 	}
 
 	addSuccessMessage(content: string): void {
-		this.createSimpleMessage(content, 'nova-message-success');
+		// Use pill style for short messages (under 20 chars)
+		const className = content.length <= 20 ? 'nova-status-pill' : 'nova-message-success';
+		this.createSimpleMessage(content, className);
 	}
 
 	addWelcomeMessage(message?: string): void {

@@ -1416,7 +1416,8 @@ var _ChatRenderer = class _ChatRenderer {
     this.createSimpleMessage(content, "nova-message-error");
   }
   addSuccessMessage(content) {
-    this.createSimpleMessage(content, "nova-message-success");
+    const className = content.length <= 20 ? "nova-status-pill" : "nova-message-success";
+    this.createSimpleMessage(content, className);
   }
   addWelcomeMessage(message) {
     const welcomeEl = this.chatContainer.createDiv({ cls: "nova-welcome" });
