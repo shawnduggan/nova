@@ -301,6 +301,144 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
   - [ ] Marketing materials creation
   - [ ] Documentation site setup
 
+### **Phase 2.5: Document-First UI Transformation** (HIGH PRIORITY - Future Session)
+
+#### **Objective**
+Transform Nova from a chat-first interface to a document-first collaborative writing partner that immediately understands context and provides actionable assistance.
+
+#### **Core Principle**
+**Remove the chatbot personality. Embrace the collaborative writing partner identity.**
+
+#### **Interface Changes**
+
+##### 1. Remove Redundant Branding
+- **Remove:** "Hi! I'm Nova" greeting message
+- **Remove:** "Nova" as document title when working on actual documents
+- **Keep:** Small Nova logo/icon in corner for identification only
+- **Replace:** Document title with actual document name being worked on
+
+##### 2. Transform Input Placeholder
+- **Remove:** "Ask Nova anything..." (reinforces chat paradigm)
+- **Replace with:** "How can I help with your writing?" or "What would you like to do with this document?"
+
+##### 3. Document-Centric Header
+**Current:** "Nova" + "Working on '2025-06-15'"
+**New Format:** "[Document Name]" + contextual info
+
+```
+Project Analysis
+1,716 words • 6 sections • Last edited 2 hours ago
+```
+
+#### **Contextual Information System**
+
+##### On Chat Start, Display:
+1. **Document Overview**
+   - Title and basic stats (word count, character count)
+   - Last modification time
+   - Document type (if identifiable from templates/frontmatter)
+
+2. **Structure Analysis**
+   ```
+   Document Structure:
+   • Introduction (245 words) ✓
+   • Background (156 words) ⚠️ Could expand
+   • Analysis (Empty heading) ❌ Needs content
+   • Recommendations (3 incomplete bullets) ⚠️
+   • Conclusion (78 words) ✓
+   ```
+
+3. **Actionable Opportunities**
+   - Incomplete sections (empty headings, placeholder text)
+   - Thin sections (significantly shorter than others)
+   - Incomplete thoughts (unfinished bullet points, TODO markers)
+   - Orphaned content (isolated paragraphs, disconnected ideas)
+   - Missing citations or incomplete links
+
+4. **Related Context**
+   - Linked documents in vault that might inform current document
+   - Relevant tags or categories
+   - Recent related documents worked on
+
+#### **Implementation Requirements**
+
+##### Document Analysis Functions
+```javascript
+// Analyze document structure
+function analyzeDocumentStructure(content) {
+  return {
+    headings: extractHeadings(content),
+    wordCounts: getWordCountBySection(content),
+    incompleteElements: findIncompleteElements(content),
+    orphanedContent: identifyOrphanedContent(content)
+  }
+}
+
+// Find actionable opportunities
+function findActionableOpportunities(analysis) {
+  return {
+    emptyHeadings: analysis.headings.filter(h => h.content.length === 0),
+    thinSections: analysis.wordCounts.filter(s => s.words < averageWordCount * 0.5),
+    incompleteBullets: findIncompleteBullets(analysis),
+    todoItems: findTodoMarkers(analysis)
+  }
+}
+```
+
+##### Context Display Component
+```
+┌─────────────────────────────────────────┐
+│ Project Analysis                        │
+│ 1,716 words • 6 sections • 2 hours ago │
+├─────────────────────────────────────────┤
+│ Structure:                              │
+│ • Introduction ✓                       │
+│ • Analysis (empty) ❌                   │
+│ • Recommendations (3 incomplete) ⚠️     │
+│                                         │
+│ Ready to help with:                     │
+│ • Expand the Analysis section          │
+│ • Complete recommendation bullets      │
+│ • Review conclusion length             │
+└─────────────────────────────────────────┘
+```
+
+#### **Success Metrics**
+- **Before:** User starts with empty chat, explains context
+- **After:** Nova immediately understands document state and suggests specific improvements
+- **Goal:** Zero setup time - Nova is ready to collaborate from first interaction
+
+#### **Example New User Experience**
+
+**User opens Nova on document "Marketing Strategy Draft"**
+
+```
+Marketing Strategy Draft
+2,340 words • 8 sections • Last edited 30 minutes ago
+
+Document overview:
+• Executive Summary ✓ (234 words)
+• Market Analysis ✓ (456 words)  
+• Target Audience ⚠️ (89 words - could expand)
+• Competitive Analysis (empty heading) ❌
+• Marketing Tactics ⚠️ (3 incomplete bullet points)
+• Budget & Timeline ✓ (234 words)
+• Success Metrics ✓ (167 words)
+• Conclusion ✓ (145 words)
+
+I can help you:
+• Draft the Competitive Analysis section
+• Expand the Target Audience details
+• Complete the Marketing Tactics bullets
+• Suggest additional success metrics
+
+What would you like to work on first?
+```
+
+**Input placeholder:** "How can I help with your writing?"
+
+This transforms Nova from "another AI chat tool" into "a writing partner that already understands your work."
+
 ### **Phase 3: Advanced Features** (DEFERRED - Based on User Feedback)
 - Enhanced / and : Command System (context panel integration)
 - Templates system implementation
