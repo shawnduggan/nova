@@ -128,7 +128,7 @@ export default class NovaPlugin extends Plugin {
 			// Register selection-based commands
 			this.addCommand({
 				id: 'nova-improve-writing',
-				name: 'Nova: Improve Writing',
+				name: 'Improve Writing',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('improve', editor);
 				}
@@ -136,7 +136,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'nova-make-longer',
-				name: 'Nova: Make Longer',
+				name: 'Make Longer',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('longer', editor);
 				}
@@ -144,7 +144,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'nova-make-shorter',
-				name: 'Nova: Make Shorter',
+				name: 'Make Shorter',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('shorter', editor);
 				}
@@ -154,7 +154,7 @@ export default class NovaPlugin extends Plugin {
 			TONE_OPTIONS.forEach(tone => {
 				this.addCommand({
 					id: `nova-make-${tone.id}`,
-					name: `Nova: Make ${tone.label}`,
+					name: `Make ${tone.label}`,
 					editorCallback: async (editor: Editor) => {
 						await this.handleToneCommand(tone.id, editor);
 					}
@@ -163,7 +163,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'nova-tell-nova',
-				name: 'Nova: Tell Nova...',
+				name: 'Tell Nova...',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('custom', editor);
 				}
@@ -171,7 +171,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'open-nova-sidebar',
-				name: 'Nova: Open sidebar',
+				name: 'Open sidebar',
 				callback: () => {
 					this.activateView();
 				}
