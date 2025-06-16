@@ -35,13 +35,6 @@
 - Modifying config files
 - Any system-level changes
 
-**SUBAGENT WORKFLOW:**
-1. Write test + implementation
-2. Use subagent to run test immediately
-3. Report results: "Test passed/failed"
-4. If failed: use subagent to investigate (lint, compile check)
-5. Wait for user confirmation before proceeding
-
 ### ATOMIC CHANGE DEFINITION
 - ONE logical concern per response
 - ONE function/component/test per response
@@ -55,63 +48,7 @@
 - Integration change: 40-100 lines
 - **ABSOLUTE MAX: 100 lines per response**
 
-### REJECTION CRITERIA
-**TOO BIG if it involves:**
-- Multiple unrelated files
-- Multiple logical concerns
-- Changes that affect multiple features
-- "And also..." in the description
-
-**COUNTER-OFFER:** "That's too big. Pick ONE specific change."
-
-### ANTI-REFACTOR RULES
-**ONLY modify code needed to pass the test**
-**NEVER "improve" untested code**
-**NEVER touch working code without explicit test**
-**If you see "opportunities" - IGNORE THEM**
-
-**FORBIDDEN PHRASES:**
-- "While we're here..."
-- "This would be cleaner if..."
-- "Let me also fix..."
-- "I noticed we could improve..."
-
-**IF YOU MODIFY MORE THAN THE TEST REQUIRES:**
-Immediately revert and respond: "I overstepped. Focusing only on: [test requirement]"
-
-### SCOPE LOCKDOWN
-**SCOPE TEST:** Can you describe this change in one sentence without "and"?
-- GOOD: "Add validation to email input field"
-- BAD: "Add validation to email and fix the styling and update the tests"
-
-**REVERT TRIGGER:** If you find yourself changing something unrelated to the test, STOP immediately.
-
-### REQUIRED RESPONSE STRUCTURE
-```
-[3 lines max describing the ONE change]
-
-**Test:**
-[Test code block]
-
-**Implementation:**
-[Implementation code block]
-
-**Verification:**
-[Subagent runs test automatically]
-Test result: PASS/FAIL
-
-Test this change. Type PASS or FAIL:
-```
-[STOP - no additional text]
-
-### VIOLATION = IMMEDIATE STOP
-If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
-"This change is too big. Breaking into smaller pieces..."
-
-**NO EXCEPTIONS** - Even if the user says "just do it all"
-**NO NEGOTIATIONS** - Don't explain why, just enforce
-
-### Design Guidelines
+### DESIGN GUIDELINES
 - **ALWAYS use Obsidian's native design language and iconography**
 - NO emojis - use clean SVG outline icons that match Obsidian's style
 - Use ButtonComponent.setIcon() for all buttons and UI elements
@@ -119,388 +56,70 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - Icons should use currentColor for theme compatibility
 - Follow Obsidian's responsive design patterns for mobile/desktop
 
-### Code Quality Principles
-**ALWAYS strive for simple, clean, and maintainable code:**
-- **Simplicity**: Remove unnecessary complexity, prefer straightforward solutions
-- **Cleanliness**: No dead code, clear naming, consistent formatting
-- **Maintainability**: Easy to understand, modify, and extend
-- **When refactoring**: Always simplify and clean up, don't just add features
-- **Code reviews**: Ask "Is this the simplest way to solve this problem?"
-
 ---
 
-## Current Project State (Updated: June 15, 2025 - Afternoon)
+## Current Project State (Updated: June 16, 2025)
 
-### ✅ STATUS: Ship Preparation Ready
+### ✅ STATUS: Ship Ready - Core Features Complete
 - **Cursor-only editing system fully implemented and verified**
-- **All "/" command functionality removed**
-- **No location/targeting UI components remain**
-- **":" command system preserved for Custom Commands**
-- **Source code builds successfully** (main.js: 289KB)
-- **All edits now happen at cursor position only**
-- **Clean, simplified architecture achieved**
-- **Test suite completely updated and passing** (22/22 test suites)
-- **✅ FIXED: Critical cursor position preservation bug**
-  - **File-scoped cursor tracking** (eliminates cross-file contamination)
-  - **Fixed file-editor consistency** for multi-document workflows
-  - **Robust getActiveEditor()** method ensures correct file targeting
-- **Critical context removal bug fixed**
-- **✅ NEW: Drag-and-Drop File Context Feature**
-  - **Drag markdown files** from Obsidian's file explorer onto chat input
-  - **Automatic wikilink insertion** (`[[filename]]` syntax) at cursor position
-  - **Multiple file support** - drag multiple files simultaneously
-  - **Smart filtering** - only accepts `.md` files, rejects folders and other formats
-  - **Visual feedback** - accent-colored drop zone with plus icon during drag
-  - **User-friendly messages** for invalid drops (folders, non-markdown files)
-  - **Clean implementation** - 150 lines, well-separated in InputHandler class
-- **✅ NEW: Hybrid Notice-Based Thinking Animation System (Selection)**
-  - **Obsidian Notice feedback** - Clean UI thinking phrases with animated dots
-  - **Context-aware personality** - 10 unique phrases per action type (improve, longer, shorter, tone, custom)
-  - **Perfect streaming** - Text streams cleanly without selection highlighting
-  - **Clean undo behavior** - Two-step undo (empty → AI content → original text)
-  - **Auto-dismissing notices** - Notice disappears when streaming begins
-  - **Progressive dots animation** - Starts with 1 dot, cycles through 5 (. → .. → ... → .... → .....)
-  - **Hybrid approach** - Combines notice feedback with document streaming for optimal UX
-- **✅ NEW: Unified Streaming System (All Chat Commands)**
-  - **StreamingManager** - Shared infrastructure for all command types
-  - **Complete streaming coverage** - All AI-powered commands (add, edit, rewrite, grammar) use notice + streaming
-  - **Extended thinking phrases** - 10 unique phrases per action type (add, edit, rewrite, grammar, etc.)
-  - **Cursor-based streaming** - Clean insertion at cursor position without text selection
-  - **Backward compatibility** - Fallback to synchronous mode if streaming fails
-  - **Comprehensive testing** - Unit tests verify all streaming functionality
-  - **✅ Phase 3 complete** - All chat commands unified with selection-based editing experience
-- **✅ NEW: Enhanced File Context Experience**
-  - **Auto-add to context** - Files selected via [[ picker or drag-and-drop are automatically added to context
-  - **Clean input field** - No more clutter with [[wikilinks]], files go straight to context
-  - **Visual feedback** - Success notifications confirm when files are added
-  - **Fixed UI layout** - Long filenames now truncate properly with ellipsis
-  - **Flexbox improvements** - "read-only" label stays anchored to the right
-  - **Seamless workflow** - Type [[, select file, continue typing your message
-  - **Code cleanup** - Removed obsolete + prefix handling and simplified pattern matching
-  - **Consistent behavior** - Both [[ picker and drag-and-drop use identical workflow
-  - **✅ Accurate duplicate detection** - Correctly identifies and reports duplicate files in notifications
-  - **✅ Fixed persistent context** - Context is properly maintained between drag operations
+- **Selection-based AI editing with context menu** (right-click → Nova actions)
+- **Command palette integration** (9 clean commands without confusing modals)
+- **Drag-and-drop file context** from Obsidian file explorer
+- **Unified streaming system** with notice-based thinking animations
+- **Mobile-optimized UI** with responsive design
+- **Test suite passing** (22/22 test suites)
+- **Clean architecture** with simplified document editing
 
 ---
 
-## 🎯 CURRENT PHASE: Ready for User Testing & Market Preparation - COMPLETE ✅
+## 🎯 CURRENT FOCUS: Modal System Standardization
 
-### ✅ **COMPLETED: Command Palette Cleanup & Mobile UX Enhancement**
-
-#### **Native Selection-Based Command System** ✅
-**Successfully replaced confusing commands with native selection actions:**
-
-**Removed 5 problematic commands:**
-- `nova-add-content` - Prompted "What would you like to add?" (confusing)
-- `nova-edit-content` - Prompted "How would you like to edit?" (vague)  
-- `nova-delete-content` - Prompted for deletion target (unclear)
-- `nova-rewrite-content` - Prompted for rewrite instruction (vague)
-- `nova-fix-grammar` - Prompted for input (inconsistent)
-
-**Added 9 clean, direct-action commands:**
-1. `Nova: Improve Writing` - Direct improvement action
-2. `Nova: Make Longer` - Expand with detail
-3. `Nova: Make Shorter` - Condense to essentials  
-4. `Nova: Make Formal` - Professional tone
-5. `Nova: Make Casual` - Conversational tone
-6. `Nova: Make Academic` - Scholarly language
-7. `Nova: Make Friendly` - Warm, approachable tone
-8. `Nova: Tell Nova...` - Custom instruction modal
-9. `Nova: Open Sidebar` - Utility command
-
-**Key Achievements:**
-- ✅ **Individual tone commands** eliminate modal steps for speed
-- ✅ **Selection validation** - all commands check for selected text first
-- ✅ **Consistent logic** - delegates to `SelectionContextMenu.handleSelectionAction()`
-- ✅ **Mobile compatibility** - text selection preserved with command palette
-- ✅ **Dual UX patterns** - context menu (discovery) + command palette (efficiency)
-
-#### **Mobile-Optimized "Tell Nova" Modal** ✅
-**Completely redesigned for mobile accessibility and usability:**
-
-**Mobile Positioning & Sizing:**
-- ✅ **Top-left positioning** (60px from top, 2.5vw from left)
-- ✅ **Keyboard-friendly** - stays accessible when mobile keyboard appears
-- ✅ **Optimal height** - 80vh max-height, auto-sizing to content
-- ✅ **No centering issues** - fixed positioning prevents off-screen problems
-
-**Mobile UX Optimizations:**
-- ✅ **Clean, focused layout** - removed examples section (placeholder text sufficient)
-- ✅ **3-line input area** - 90px min-height shows proper text input
-- ✅ **Tighter spacing** - eliminated dead space around title/description
-- ✅ **Touch-friendly buttons** - 48px min-height, full-width layout
-- ✅ **Proper touch handling** - touch-action manipulation, visual feedback
-
-**Cross-Platform Compatibility:**
-- ✅ **Desktop unchanged** - maintains existing modal experience
-- ✅ **Responsive design** - Platform.isMobile detection for conditional styling
-- ✅ **Selection requirement maintained** - keeps focused transformation workflow
+### **Ready for Next Phase: Modal System Implementation**
+- **Foundation**: Test suite restored to 22/22 passing (321 tests total)
+- **Cleanup**: Removed UI fluff tests, kept valuable business logic tests
+- **Status**: Stable foundation ready for modal system rearchitecture
+- **Approach**: Implement Obsidian-native modals one component at a time
 
 ---
 
-## 🎯 PREVIOUS PHASE: Ready for User Testing - COMPLETE ✅
+## 🎯 IMPLEMENTATION QUEUE
 
-### 🎯 **Next Phase: Market Readiness** (Ready to Begin)
+### **Next: Modal System Standardization**
+- **Problem**: Custom file picker creates inconsistent UX and mobile issues
+- **Solution**: Standardize on Obsidian-native modals for all selection interfaces
+- **Scope**: File picker first, then foundation for command system
+- **Preserves**: Context drawer (serves different persistent state management purpose)
+- **Detailed specs**: Will be provided at implementation time
 
-#### **Command System Polish (Optional)**
-- [ ] **Fix Command Button & ":" System** - Align with Custom Commands feature design
-  - Command button should only appear when Custom Commands feature is available (time-gated)
-  - "Show Command Button in Chat" setting should be part of Custom Commands feature
-  - When clicked, button should trigger the ":" command panel
-  - ":" command list should be empty until user adds Custom Commands
-  - Should display "No custom commands yet" or similar empty state message
-  - The entire ":" system is reserved for future Custom Commands feature
+### **Then: Chat UI Contextualization**
+- **Concept**: Transform from chat-first to document-first collaborative writing partner
+- **Key changes**: Remove chatbot personality, immediate document context understanding
+- **UX shift**: Actionable suggestions based on document structure analysis
+- **Input transformation**: "Ask Nova anything" → "How can I help with your writing?"
+- **Detailed specs**: Will be provided at implementation time
 
-#### **Market Preparation Tasks**
-- [ ] Business infrastructure setup
-  - [ ] Landing page for novawriter.ai
-  - [ ] Payment integration (Stripe/Paddle)
-  - [ ] License key generation system
-  - [ ] Customer support setup
-- [ ] Distribution preparation
-  - [ ] Obsidian Community Plugin submission
-  - [ ] Marketing materials creation
-  - [ ] Documentation site setup
-
-### ✅ **Features Ready for Market Release**
-- **✅ Native Command Palette** - 9 clean, direct-action commands
-- **✅ Mobile-Optimized Modals** - Perfect mobile UX for "Tell Nova"
-- **✅ Selection-Based AI Editing** - Right-click context menu with dynamic thinking phrases
-- **✅ File Picker Auto-Selection** - First item auto-selected, Enter key works immediately
-- **✅ Mobile File Picker Optimization** - Responsive design with platform-specific UX
-  - **Desktop**: 3x taller file picker (600px) for better file visibility
-  - **Mobile**: Compact 100px picker with single-line layout, 3-line textarea
-  - **Context-aware spacing**: Dynamic 10px bottom padding when no context files
-  - **Platform detection**: Seamless mobile/desktop experience with optimal sizing
-- **✅ Drag-and-Drop File Context** - Intuitive file addition via drag from file explorer
-- **✅ Unified Streaming System** - All chat commands with notice + streaming
-- **✅ Enhanced File Context Experience** - Auto-add to context with clean UI
-- **✅ Cursor-Only Editing System** - Simplified, predictable document editing
-- **✅ Hybrid Notice-Based Thinking Animation** - Context-aware personality
-- **✅ Clean Architecture** - 22/22 test suites passing, stable build (347KB)
-- **✅ Enhanced Tag Operations** - AI-powered tag suggestions and management
-  - **Unified provider handling** - All AI providers use the same code path
-  - **Respects user settings** - Uses "Default Max Tokens" from plugin settings
-  - **Comprehensive error handling** - All API errors displayed to users in chat
-  - **Multi-word tag support** - Spaces converted to hyphens (e.g., "nova scotia" → "nova-scotia")
-  - **Smart tag parsing** - Handles JSON, comma-separated, and line-based formats
-  - **Clear error messages** - Users see actionable errors for troubleshooting
+### **Lower Priority Items**
+- Command System Polish (Custom Commands feature alignment)
+- Market Preparation Tasks (business infrastructure, plugin submission)
+- Technical Debt Cleanup (sidebar refactoring, legacy code removal)
 
 ---
 
-## 📋 FUTURE PHASES (Lower Priority)
-
-### **Phase 2: Market Readiness** (Next 2-4 weeks)
-- [ ] Business infrastructure
-  - [ ] Landing page for novawriter.ai
-  - [ ] Payment integration (Stripe/Paddle)
-  - [ ] License key generation system
-  - [ ] Customer support setup
-- [ ] Distribution preparation
-  - [ ] Obsidian Community Plugin submission
-  - [ ] Marketing materials creation
-  - [ ] Documentation site setup
-
-### **Phase 2.5: Document-First UI Transformation** (HIGH PRIORITY - Future Session)
-
-#### **Objective**
-Transform Nova from a chat-first interface to a document-first collaborative writing partner that immediately understands context and provides actionable assistance.
-
-#### **Core Principle**
-**Remove the chatbot personality. Embrace the collaborative writing partner identity.**
-
-#### **Interface Changes**
-
-##### 1. Remove Redundant Branding
-- **Remove:** "Hi! I'm Nova" greeting message
-- **Remove:** "Nova" as document title when working on actual documents
-- **Keep:** Small Nova logo/icon in corner for identification only
-- **Replace:** Document title with actual document name being worked on
-
-##### 2. Transform Input Placeholder
-- **Remove:** "Ask Nova anything..." (reinforces chat paradigm)
-- **Replace with:** "How can I help with your writing?" or "What would you like to do with this document?"
-
-##### 3. Document-Centric Header
-**Current:** "Nova" + "Working on '2025-06-15'"
-**New Format:** "[Document Name]" + contextual info
-
-```
-Project Analysis
-1,716 words • 6 sections • Last edited 2 hours ago
-```
-
-#### **Contextual Information System**
-
-##### On Chat Start, Display:
-1. **Document Overview**
-   - Title and basic stats (word count, character count)
-   - Last modification time
-   - Document type (if identifiable from templates/frontmatter)
-
-2. **Structure Analysis**
-   ```
-   Document Structure:
-   • Introduction (245 words) ✓
-   • Background (156 words) ⚠️ Could expand
-   • Analysis (Empty heading) ❌ Needs content
-   • Recommendations (3 incomplete bullets) ⚠️
-   • Conclusion (78 words) ✓
-   ```
-
-3. **Actionable Opportunities**
-   - Incomplete sections (empty headings, placeholder text)
-   - Thin sections (significantly shorter than others)
-   - Incomplete thoughts (unfinished bullet points, TODO markers)
-   - Orphaned content (isolated paragraphs, disconnected ideas)
-   - Missing citations or incomplete links
-
-4. **Related Context**
-   - Linked documents in vault that might inform current document
-   - Relevant tags or categories
-   - Recent related documents worked on
-
-#### **Implementation Requirements**
-
-##### Document Analysis Functions
-```javascript
-// Analyze document structure
-function analyzeDocumentStructure(content) {
-  return {
-    headings: extractHeadings(content),
-    wordCounts: getWordCountBySection(content),
-    incompleteElements: findIncompleteElements(content),
-    orphanedContent: identifyOrphanedContent(content)
-  }
-}
-
-// Find actionable opportunities
-function findActionableOpportunities(analysis) {
-  return {
-    emptyHeadings: analysis.headings.filter(h => h.content.length === 0),
-    thinSections: analysis.wordCounts.filter(s => s.words < averageWordCount * 0.5),
-    incompleteBullets: findIncompleteBullets(analysis),
-    todoItems: findTodoMarkers(analysis)
-  }
-}
-```
-
-##### Context Display Component
-```
-┌─────────────────────────────────────────┐
-│ Project Analysis                        │
-│ 1,716 words • 6 sections • 2 hours ago │
-├─────────────────────────────────────────┤
-│ Structure:                              │
-│ • Introduction ✓                       │
-│ • Analysis (empty) ❌                   │
-│ • Recommendations (3 incomplete) ⚠️     │
-│                                         │
-│ Ready to help with:                     │
-│ • Expand the Analysis section          │
-│ • Complete recommendation bullets      │
-│ • Review conclusion length             │
-└─────────────────────────────────────────┘
-```
-
-#### **Success Metrics**
-- **Before:** User starts with empty chat, explains context
-- **After:** Nova immediately understands document state and suggests specific improvements
-- **Goal:** Zero setup time - Nova is ready to collaborate from first interaction
-
-#### **Example New User Experience**
-
-**User opens Nova on document "Marketing Strategy Draft"**
-
-```
-Marketing Strategy Draft
-2,340 words • 8 sections • Last edited 30 minutes ago
-
-Document overview:
-• Executive Summary ✓ (234 words)
-• Market Analysis ✓ (456 words)  
-• Target Audience ⚠️ (89 words - could expand)
-• Competitive Analysis (empty heading) ❌
-• Marketing Tactics ⚠️ (3 incomplete bullet points)
-• Budget & Timeline ✓ (234 words)
-• Success Metrics ✓ (167 words)
-• Conclusion ✓ (145 words)
-
-I can help you:
-• Draft the Competitive Analysis section
-• Expand the Target Audience details
-• Complete the Marketing Tactics bullets
-• Suggest additional success metrics
-
-What would you like to work on first?
-```
-
-**Input placeholder:** "How can I help with your writing?"
-
-This transforms Nova from "another AI chat tool" into "a writing partner that already understands your work."
-
-### **Phase 3: Advanced Features** (DEFERRED - Based on User Feedback)
-- Enhanced / and : Command System (context panel integration)
-- Templates system implementation
-- Command usage analytics and smart sorting
-- Usage insights dashboard
-- Enterprise features development
-- Advanced conversation management
-
-### **Phase 4: Technical Debt & Architecture** (Low Priority)
-- [ ] **Full Sidebar Refactoring** - Remove compatibility delegations in sidebar-view.ts
-  - Replace 50+ legacy property references with direct component access
-  - Systematic method-by-method refactoring required
-  - Should be treated as dedicated architectural improvement task
-  - Requires comprehensive testing after each component update
-
----
-
-## File Locations (Post-Transformation)
+## File Architecture (Current)
 ```
 main.ts                          # Plugin entry (cursor-only)
 src/ui/sidebar-view.ts          # Main sidebar UI (simplified)
 src/ui/input-handler.ts         # Input management (cursor-focused)
 src/ui/command-system.ts        # ":" trigger for Custom Commands (reserved)
 src/ui/context-manager.ts       # Multi-document context UI (simplified)
-src/ui/chat-renderer.ts         # Message rendering (unchanged)
+src/ui/chat-renderer.ts         # Message rendering
 src/core/document-engine.ts     # Document editing (cursor-only operations)
-src/core/context-builder.ts     # AI prompt generation (cursor-focused)
-src/core/command-parser.ts      # Natural language processing (simplified)
+src/core/context-builder.ts     # AI prompt generation
+src/core/command-parser.ts      # Natural language processing
 src/core/commands/*.ts          # Command handlers (all cursor-only)
-src/licensing/feature-manager.ts # Freemium logic (unchanged)
-styles.css                      # All UI styles (unchanged)
+src/licensing/feature-manager.ts # Freemium logic
+styles.css                      # All UI styles
 ```
-
----
-
-## Development Workflow
-
-### ⚠️ IMPORTANT: Progress Tracking
-**Track PENDING work only in this CLAUDE.md file.**
-**When work completes: REMOVE from here and APPEND to COMPLETED.md**
-**Do NOT use TodoWrite/TodoRead or any other session-based tracking tools.**
-
-### Making Changes
-1. Focus on current phase tasks in order
-2. One atomic change at a time only
-3. **When tasks complete: REMOVE from CLAUDE.md and APPEND to COMPLETED.md**
-4. **Add any new bugs/tasks to the appropriate phase section**
-5. **Always prioritize code simplicity and maintainability**
-
-### Commit Messages
-- Do NOT add "Generated with Claude Code" text to commits
-- Keep commit messages clean and professional
-- Focus on what was changed and why
-- **NEVER commit changes unless explicitly asked by the user**
-- Always wait for user confirmation before committing and pushing
-
-### If Something Breaks
-- Revert the last change
-- Try a different approach
-- Don't apologize, just fix
-
----
 
 ## Key Technical Patterns
 
@@ -517,17 +136,25 @@ interface AIProvider {
 }
 ```
 
-### Message Types
-```typescript
-type MessageRole = 'user' | 'assistant' | 'system';
-interface ChatMessage {
-    role: MessageRole;
-    content: string;
-    timestamp: number;
-    command?: EditCommand;
-    result?: EditResult;
-}
-```
+---
+
+## Development Workflow
+
+### ⚠️ IMPORTANT: Progress Tracking
+**Track PENDING work only in this CLAUDE.md file.**
+**When work completes: REMOVE from here and APPEND to COMPLETED.md**
+
+### Making Changes
+1. Focus on current phase tasks in order
+2. One atomic change at a time only
+3. **When tasks complete: REMOVE from CLAUDE.md and APPEND to COMPLETED.md**
+4. **Always prioritize code simplicity and maintainability**
+
+### Commit Messages
+- Do NOT add "Generated with Claude Code" text to commits
+- Keep commit messages clean and professional
+- **NEVER commit changes unless explicitly asked by the user**
+- Always wait for user confirmation before committing and pushing
 
 ---
 
@@ -535,5 +162,5 @@ interface ChatMessage {
 - MVP only - no extra features
 - Working > Perfect  
 - One atomic change at a time
-- Build everything, gate for Supernova value
 - **All completed work is archived in COMPLETED.md**
+- Detailed specs provided at implementation time

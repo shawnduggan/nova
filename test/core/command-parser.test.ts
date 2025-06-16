@@ -127,8 +127,8 @@ describe('CommandParser', () => {
                 expect(parser.parseCommand('Edit the methodology section').target).toBe('cursor');
                 expect(parser.parseCommand('Update this section').target).toBe('cursor');
                 
-                // Add commands default to end for new content
-                expect(parser.parseCommand('Add content to the introduction heading').target).toBe('end');
+                // Add commands use cursor in cursor-only editing mode
+                expect(parser.parseCommand('Add content to the introduction heading').target).toBe('cursor');
             });
 
             it('should detect document target', () => {
@@ -158,9 +158,9 @@ describe('CommandParser', () => {
             });
 
             it('should use action-specific defaults', () => {
-                expect(parser.parseCommand('Add some content').target).toBe('end');
+                expect(parser.parseCommand('Add some content').target).toBe('cursor');
                 expect(parser.parseCommand('Fix grammar').target).toBe('document');
-                expect(parser.parseCommand('Rewrite this').target).toBe('end');
+                expect(parser.parseCommand('Rewrite this').target).toBe('cursor');
             });
         });
 
@@ -397,7 +397,7 @@ describe('CommandParser', () => {
             const command = parser.parseCommand(input);
             
             expect(command.action).toBe('add');
-            expect(command.target).toBe('end');
+            expect(command.target).toBe('cursor');
         });
     });
 });

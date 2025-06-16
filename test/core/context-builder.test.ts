@@ -65,7 +65,7 @@ Final thoughts and summary.`,
             const prompt = builder.buildPrompt(command, mockDocumentContext);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
-            expect(prompt.systemPrompt).toContain('Generate new content to insert');
+            expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
             expect(prompt.userPrompt).toContain('Add a conclusion section');
             expect(prompt.userPrompt).toContain('DOCUMENT: test-document');
             expect(prompt.context).toContain('test-document');
@@ -364,7 +364,14 @@ Final thoughts and summary.`,
                 const prompt = builder.buildPrompt(command, mockDocumentContext);
 
                 expect(prompt.userPrompt).toContain('CURSOR CONTEXT:');
-                expect(prompt.userPrompt).toContain('FULL DOCUMENT:');
+                
+                // Add commands at cursor only include local context, not full document
+                if (action === 'add') {
+                    expect(prompt.userPrompt).toContain('LOCAL CONTEXT');
+                } else {
+                    expect(prompt.userPrompt).toContain('FULL DOCUMENT:');
+                }
+                
                 expect(prompt.userPrompt).toContain(`Test ${action} at cursor`);
             });
         });

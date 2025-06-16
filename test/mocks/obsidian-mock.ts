@@ -479,6 +479,47 @@ export class TextAreaComponent {
     }
 }
 
+export class Modal {
+    app: App;
+    contentEl: ExtendedHTMLElement;
+    private _isOpen: boolean = false;
+    
+    constructor(app: App) {
+        this.app = app;
+        this.contentEl = this.createExtendedElement('div') as ExtendedHTMLElement;
+    }
+    
+    private createExtendedElement(tag: string): ExtendedHTMLElement {
+        const element = document.createElement(tag) as any;
+        // Copy all methods from ExtendedHTMLElement prototype
+        Object.setPrototypeOf(element, ExtendedHTMLElement.prototype);
+        Object.getOwnPropertyNames(ExtendedHTMLElement.prototype).forEach(name => {
+            if (name !== 'constructor' && typeof (ExtendedHTMLElement.prototype as any)[name] === 'function') {
+                element[name] = (ExtendedHTMLElement.prototype as any)[name];
+            }
+        });
+        return element as ExtendedHTMLElement;
+    }
+    
+    open(): void {
+        this._isOpen = true;
+        this.onOpen();
+    }
+    
+    close(): void {
+        this._isOpen = false;
+        this.onClose();
+    }
+    
+    onOpen(): void {
+        // Override in subclasses
+    }
+    
+    onClose(): void {
+        // Override in subclasses
+    }
+}
+
 export default {
     App,
     Editor,
@@ -494,5 +535,6 @@ export default {
     MetadataCache,
     WorkspaceLeaf,
     ButtonComponent,
-    TextAreaComponent
+    TextAreaComponent,
+    Modal
 };

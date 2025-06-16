@@ -37,11 +37,11 @@ describe('Cursor Position Management', () => {
 
         mockWorkspace = {
             getActiveFile: jest.fn(() => mockFile),
-            getActiveViewOfType: jest.fn(() => ({ editor: mockEditor })),
-            activeEditor: { editor: mockEditor },
+            getActiveViewOfType: jest.fn(() => ({ editor: mockEditor, file: mockFile })),
+            activeEditor: { editor: mockEditor, file: mockFile },
             on: jest.fn(),
             setActiveLeaf: jest.fn(),
-            getLeavesOfType: jest.fn(() => [])
+            getLeavesOfType: jest.fn(() => [{ view: { editor: mockEditor, file: mockFile } }])
         };
 
         const mockApp = { workspace: mockWorkspace };
@@ -75,9 +75,9 @@ describe('Cursor Position Management', () => {
         }).not.toThrow();
     });
 
-    test('should focus editor when setting cursor position', () => {
+    test('should focus editor when setting cursor position with focus flag', () => {
         const newPosition = { line: 1, ch: 5 };
-        documentEngine.setCursorPosition(newPosition);
+        documentEngine.setCursorPosition(newPosition, true);
         
         expect(mockEditor.setCursor).toHaveBeenCalledWith(newPosition);
         expect(mockEditor.focus).toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe('Cursor Position Management', () => {
 
     test('should handle selection state when setting cursor', () => {
         const position = { line: 1, ch: 5 };
-        documentEngine.setCursorPosition(position);
+        documentEngine.setCursorPosition(position, true);
         
         // Should set cursor to specific position
         expect(mockEditor.setCursor).toHaveBeenCalledWith(position);
