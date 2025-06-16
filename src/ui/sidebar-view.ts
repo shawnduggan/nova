@@ -83,7 +83,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	getDisplayText() {
-		return 'Nova AI';
+		return 'Nova';
 	}
 
 	getIcon() {

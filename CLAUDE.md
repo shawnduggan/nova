@@ -243,9 +243,6 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 ### 🎯 **Next Phase: Market Readiness** (Ready to Begin)
 
 #### **UI Polish Tasks** (Next Session)
-- [ ] **Fix plugin name consistency**
-  - Change `getDisplayText()` in sidebar-view.ts from "Nova AI" to "Nova"
-  - Fixes mobile sidebar display showing "Nova AI" instead of "Nova"
 - [ ] **Fix double "Nova" prefix in command palette**
   - Remove "Nova: " prefix from all command names in main.ts
   - Obsidian automatically prepends plugin name, causing "Nova: Nova: Make Shorter"
