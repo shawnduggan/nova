@@ -94,6 +94,26 @@ describe('CommandParser', () => {
                     expect(command.action).toBe('rewrite');
                 });
             });
+
+            it('should detect metadata actions', () => {
+                const testCases = [
+                    'Add tags: research, important',
+                    'Set title: My Document',
+                    'Update metadata',
+                    'Change properties',
+                    'Add property: status = draft',
+                    'Update frontmatter',
+                    'Set author: John Doe',
+                    'Add tags to this document',
+                    'Change tag values',
+                    'Remove tags: old, deprecated'
+                ];
+
+                testCases.forEach(input => {
+                    const command = parser.parseCommand(input);
+                    expect(command.action).toBe('metadata');
+                });
+            });
         });
 
         describe('target detection', () => {

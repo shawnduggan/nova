@@ -278,6 +278,13 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 - **✅ Cursor-Only Editing System** - Simplified, predictable document editing
 - **✅ Hybrid Notice-Based Thinking Animation** - Context-aware personality
 - **✅ Clean Architecture** - 22/22 test suites passing, stable build (347KB)
+- **✅ Enhanced Tag Operations** - AI-powered tag suggestions and management
+  - **Unified provider handling** - All AI providers use the same code path
+  - **Respects user settings** - Uses "Default Max Tokens" from plugin settings
+  - **Comprehensive error handling** - All API errors displayed to users in chat
+  - **Multi-word tag support** - Spaces converted to hyphens (e.g., "nova scotia" → "nova-scotia")
+  - **Smart tag parsing** - Handles JSON, comma-separated, and line-based formats
+  - **Clear error messages** - Users see actionable errors for troubleshooting
 
 ---
 

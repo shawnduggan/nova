@@ -96,6 +96,9 @@ export interface EditResult {
     
     /** Type of edit that was performed */
     editType: 'insert' | 'replace' | 'append' | 'delete';
+    
+    /** Optional success message to display instead of default */
+    successMessage?: string;
 }
 
 /**

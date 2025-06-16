@@ -30,7 +30,7 @@ export class GoogleProvider implements AIProvider {
 	private formatMessagesForGemini(messages: AIMessage[], systemPrompt?: string): any {
 		const contents = [];
 		
-		if (systemPrompt) {
+		if (systemPrompt && systemPrompt.trim()) {
 			contents.push({
 				role: 'user',
 				parts: [{ text: `System: ${systemPrompt}` }]
@@ -45,6 +45,11 @@ export class GoogleProvider implements AIProvider {
 			});
 		}
 
+		// Ensure we have at least one message
+		if (contents.length === 0) {
+			throw new Error('No messages provided for Google API');
+		}
+
 		return contents;
 	}
 
@@ -53,29 +58,66 @@ export class GoogleProvider implements AIProvider {
 			throw new Error('Google API key not configured');
 		}
 
-		const model = options?.model || this.config.model || 'gemini-pro';
+		// Use a newer model by default if no model is specified
+		const model = options?.model || this.config.model || 'gemini-2.0-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
+
+		const requestBody = {
+			contents: this.formatMessagesForGemini(messages, options?.systemPrompt),
+			generationConfig: {
+				temperature: options?.temperature || this.config.temperature || 0.7,
+				maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
+			}
+		};
 
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
-				contents: this.formatMessagesForGemini(messages, options?.systemPrompt),
-				generationConfig: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
-				}
-			})
+			body: JSON.stringify(requestBody)
 		});
 
 		if (!response.ok) {
-			throw new Error(`Google API error: ${response.statusText}`);
+			const errorText = await response.text();
+			throw new Error(`Google API error: ${response.statusText} - ${errorText}`);
 		}
 
 		const data = await response.json();
-		return data.candidates[0].content.parts[0].text;
+		
+		// Check if response has valid structure
+		if (!data.candidates || data.candidates.length === 0) {
+			// Check if there's an error message in the response
+			if (data.error) {
+				throw new Error(`Google API error: ${data.error.message || JSON.stringify(data.error)}`);
+			}
+			throw new Error('Google API returned no candidates');
+		}
+		
+		// Check if the response was blocked or filtered
+		if (data.candidates[0].finishReason === 'SAFETY' || data.candidates[0].finishReason === 'BLOCKED') {
+			throw new Error('Google API blocked the response due to safety filters');
+		}
+		
+		// Check if we hit the token limit before generating content
+		if (data.candidates[0].finishReason === 'MAX_TOKENS' && 
+		    (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0)) {
+			throw new Error('API hit token limit before generating any content. Please increase "Default Max Tokens" in settings.');
+		}
+		
+		// Check if response has content
+		if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+			const text = data.candidates[0].content.parts[0].text;
+			
+			// If response was truncated, throw error instead of returning partial content
+			if (data.candidates[0].finishReason === 'MAX_TOKENS') {
+				throw new Error('Response was truncated due to token limit. Please increase "Default Max Tokens" in settings.');
+			}
+			
+			return text || '';
+		}
+		
+		throw new Error('Google API returned empty response');
 	}
 
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
@@ -89,7 +131,8 @@ export class GoogleProvider implements AIProvider {
 			throw new Error('Google API key not configured');
 		}
 
-		const model = options?.model || this.config.model || 'gemini-pro';
+		// Use a newer model by default if no model is specified
+		const model = options?.model || this.config.model || 'gemini-2.0-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
 
 		const response = await fetch(url, {

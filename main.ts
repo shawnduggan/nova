@@ -18,6 +18,7 @@ import { LicenseValidator } from './src/licensing/license-validator';
 import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
 import { SelectionContextMenu } from './src/ui/selection-context-menu';
 import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
+import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,6 +46,7 @@ export default class NovaPlugin extends Plugin {
 	commandParser!: CommandParser;
 	promptBuilder!: PromptBuilder;
 	conversationManager!: ConversationManager;
+	aiIntentClassifier!: AIIntentClassifier;
 	addCommandHandler!: AddCommand;
 	editCommandHandler!: EditCommand;
 	deleteCommandHandler!: DeleteCommand;
@@ -99,9 +101,10 @@ export default class NovaPlugin extends Plugin {
 			this.conversationManager = new ConversationManager(dataStore);
 			this.documentEngine = new DocumentEngine(this.app, dataStore);
 			this.documentEngine.setConversationManager(this.conversationManager);
-			this.contextBuilder = new ContextBuilder();
+			this.contextBuilder = new ContextBuilder(this.settings);
 			this.commandParser = new CommandParser();
 			this.promptBuilder = new PromptBuilder(this.documentEngine, this.conversationManager);
+			this.aiIntentClassifier = new AIIntentClassifier(this.aiProviderManager);
 			
 			// Initialize command implementations
 			this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);

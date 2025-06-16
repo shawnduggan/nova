@@ -30,6 +30,26 @@ const COMMAND_PATTERNS: CommandPattern[] = [
         targets: ['selection', 'document']
     },
     {
+        action: 'metadata',
+        patterns: [
+            // Tag-specific patterns with colon format (highest priority)
+            /^(add|set|update|remove)\s+tags?:/i,
+            // Tag optimization patterns
+            /\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i,
+            /\b(suggest|recommend)\s+.*\btags?\b/i,
+            /^add suggested tags$/i,
+            /^add tags$/i,  // Simple "add tags" for AI suggestions
+            // General metadata patterns
+            /\b(update|set|change|modify)\s+.*\b(property|properties|metadata|frontmatter|tag|tags)\b/i,
+            /\b(set|update|change|add)\s+.*\b(title|author|date|status)\b/i,
+            /\bupdate\s+.*\bfrontmatter\b/i,
+            // Tag-specific patterns that exclude content/text/section
+            /\b(add|remove|update)\s+(?!.*\b(content|text|section|paragraph|about)\b).*\btag[s]?\b/i,
+            /\bset\s+.*\bproperty\b/i
+        ],
+        targets: ['document']
+    },
+    {
         action: 'rewrite',
         patterns: [
             /\b(rewrite|reword|rephrase|restructure|reorganize)\b/i,
@@ -53,7 +73,7 @@ const COMMAND_PATTERNS: CommandPattern[] = [
         action: 'add',
         patterns: [
             /\b(add|create|write|insert|include|append|prepend)\b.*\b(section|paragraph|heading|content|text|part)\b/i,
-            /\b(add|create|write|insert|append|prepend)\b(?!\s+.*\b(better|clearer|more|less)\b)/i,
+            /\b(add|create|write|insert|append|prepend)\b(?!\s+.*\b(better|clearer|more|less|tags?|property|properties|metadata|frontmatter)\b)/i,
             /\bmake\s+.*\b(section|part)\b/i,
             /\bgenerate\b.*\b(section|content|text)\b/i,
             // Specific patterns for append/prepend with location
@@ -71,17 +91,6 @@ const COMMAND_PATTERNS: CommandPattern[] = [
             /\b(expand|shorten|condense)\b/i
         ],
         targets: ['selection']
-    },
-    {
-        action: 'metadata',
-        patterns: [
-            /\b(update|set|change|modify|add)\s+.*\b(property|properties|metadata|frontmatter|tag|tags)\b/i,
-            /\b(set|update|change|add)\s+.*\b(title|author|date|status)\b/i,
-            /\bupdate\s+.*\bfrontmatter\b/i,
-            /\b(add|remove|update)\s+.*\btag[s]?\b/i,
-            /\bset\s+.*\bproperty\b/i
-        ],
-        targets: ['document']
     }
 ];
 

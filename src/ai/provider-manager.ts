@@ -182,4 +182,11 @@ export class AIProviderManager {
 	cleanup() {
 		this.providers.clear();
 	}
+
+	/**
+	 * Get the default max tokens from settings
+	 */
+	getDefaultMaxTokens(): number {
+		return this.settings.general.defaultMaxTokens;
+	}
 }

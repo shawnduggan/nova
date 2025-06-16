@@ -4,6 +4,7 @@
  */
 
 import { EditCommand, DocumentContext, PromptConfig } from './types';
+import { NovaSettings } from '../settings';
 
 /**
  * Generated prompt for AI completion
@@ -29,13 +30,17 @@ export interface GeneratedPrompt {
  * Context builder for generating AI prompts
  */
 export class ContextBuilder {
-    private defaultConfig: PromptConfig = {
-        maxContextLines: 20,
-        includeStructure: true,
-        includeHistory: false,
-        temperature: 0.7,
-        maxTokens: 1000
-    };
+    private defaultConfig: PromptConfig;
+
+    constructor(settings?: NovaSettings) {
+        this.defaultConfig = {
+            maxContextLines: 20,
+            includeStructure: true,
+            includeHistory: false,
+            temperature: settings?.general?.defaultTemperature ?? 0.7,
+            maxTokens: settings?.general?.defaultMaxTokens ?? 1000
+        };
+    }
 
     /**
      * Build prompt for a specific command
@@ -118,8 +123,11 @@ ACTION: REWRITE CONTENT
 
 ACTION: UPDATE METADATA
 - Modify frontmatter properties, tags, or document metadata
-- Follow YAML formatting conventions
-- Update only the specified metadata fields`
+- Return ONLY a JSON object with the properties to update
+- For tags, return as an array: {"tags": ["tag1", "tag2"]}
+- For other properties: {"title": "New Title", "author": "Name"}
+- Do NOT include properties that shouldn't be changed
+- Do NOT return any explanatory text, ONLY the JSON object`
         };
 
         return basePrompt + (actionSpecificPrompts[action] || '');

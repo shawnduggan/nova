@@ -4074,7 +4074,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     }
   }
   async handleSend(message) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const messageText = message || this.inputHandler.getValue().trim();
     if (!messageText) return;
     const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
@@ -4178,9 +4178,15 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
       if (activeFile) {
         await this.plugin.documentEngine.addUserMessage(messageText);
       }
-      const isLikelyCommand = this.plugin.promptBuilder["isLikelyCommand"](processedMessage);
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
+      const selectedText = (_f = activeView == null ? void 0 : activeView.editor) == null ? void 0 : _f.getSelection();
+      const hasSelection = !!(selectedText && selectedText.trim().length > 0);
+      const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
       let response = null;
-      if (isLikelyCommand && activeFile) {
+      if (intent === "METADATA" && activeFile) {
+        const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
+        response = await this.executeCommand(parsedCommand);
+      } else if (intent === "CONTENT" && activeFile) {
         const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
         response = await this.executeCommand(parsedCommand);
       } else {
@@ -4306,7 +4312,11 @@ USER REQUEST: ${processedMessage}`;
           return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
       }
       if (result.success) {
-        this.addSuccessIndicator(command.action);
+        if (result.successMessage) {
+          this.addSuccessMessage(this.createIconMessage("check-circle", result.successMessage));
+        } else {
+          this.addSuccessIndicator(command.action);
+        }
         return null;
       } else {
         return `Failed to ${command.action}: ${result.error}`;
@@ -6195,7 +6205,7 @@ var GoogleProvider = class {
   }
   formatMessagesForGemini(messages, systemPrompt) {
     const contents = [];
-    if (systemPrompt) {
+    if (systemPrompt && systemPrompt.trim()) {
       contents.push({
         role: "user",
         parts: [{ text: `System: ${systemPrompt}` }]
@@ -6208,32 +6218,56 @@ var GoogleProvider = class {
         parts: [{ text: message.content }]
       });
     }
+    if (contents.length === 0) {
+      throw new Error("No messages provided for Google API");
+    }
     return contents;
   }
   async chatCompletion(messages, options) {
     if (!this.config.apiKey) {
       throw new Error("Google API key not configured");
     }
-    const model = (options == null ? void 0 : options.model) || this.config.model || "gemini-pro";
+    const model = (options == null ? void 0 : options.model) || this.config.model || "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
+    const requestBody = {
+      contents: this.formatMessagesForGemini(messages, options == null ? void 0 : options.systemPrompt),
+      generationConfig: {
+        temperature: (options == null ? void 0 : options.temperature) || this.config.temperature || 0.7,
+        maxOutputTokens: (options == null ? void 0 : options.maxTokens) || this.config.maxTokens || 1e3
+      }
+    };
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        contents: this.formatMessagesForGemini(messages, options == null ? void 0 : options.systemPrompt),
-        generationConfig: {
-          temperature: (options == null ? void 0 : options.temperature) || this.config.temperature || 0.7,
-          maxOutputTokens: (options == null ? void 0 : options.maxTokens) || this.config.maxTokens || 1e3
-        }
-      })
+      body: JSON.stringify(requestBody)
     });
     if (!response.ok) {
-      throw new Error(`Google API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Google API error: ${response.statusText} - ${errorText}`);
     }
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    if (!data.candidates || data.candidates.length === 0) {
+      if (data.error) {
+        throw new Error(`Google API error: ${data.error.message || JSON.stringify(data.error)}`);
+      }
+      throw new Error("Google API returned no candidates");
+    }
+    if (data.candidates[0].finishReason === "SAFETY" || data.candidates[0].finishReason === "BLOCKED") {
+      throw new Error("Google API blocked the response due to safety filters");
+    }
+    if (data.candidates[0].finishReason === "MAX_TOKENS" && (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0)) {
+      throw new Error('API hit token limit before generating any content. Please increase "Default Max Tokens" in settings.');
+    }
+    if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
+      const text = data.candidates[0].content.parts[0].text;
+      if (data.candidates[0].finishReason === "MAX_TOKENS") {
+        throw new Error('Response was truncated due to token limit. Please increase "Default Max Tokens" in settings.');
+      }
+      return text || "";
+    }
+    throw new Error("Google API returned empty response");
   }
   async complete(systemPrompt, userPrompt, options) {
     const messages = [{ role: "user", content: userPrompt }];
@@ -6245,7 +6279,7 @@ var GoogleProvider = class {
     if (!this.config.apiKey) {
       throw new Error("Google API key not configured");
     }
-    const model = (options == null ? void 0 : options.model) || this.config.model || "gemini-pro";
+    const model = (options == null ? void 0 : options.model) || this.config.model || "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
     const response = await fetch(url, {
       method: "POST",
@@ -6668,6 +6702,12 @@ var AIProviderManager = class {
   }
   cleanup() {
     this.providers.clear();
+  }
+  /**
+   * Get the default max tokens from settings
+   */
+  getDefaultMaxTokens() {
+    return this.settings.general.defaultMaxTokens;
   }
 };
 
@@ -7387,13 +7427,14 @@ var DocumentEngine = class {
 
 // src/core/context-builder.ts
 var ContextBuilder = class {
-  constructor() {
+  constructor(settings) {
+    var _a, _b, _c, _d;
     this.defaultConfig = {
       maxContextLines: 20,
       includeStructure: true,
       includeHistory: false,
-      temperature: 0.7,
-      maxTokens: 1e3
+      temperature: (_b = (_a = settings == null ? void 0 : settings.general) == null ? void 0 : _a.defaultTemperature) != null ? _b : 0.7,
+      maxTokens: (_d = (_c = settings == null ? void 0 : settings.general) == null ? void 0 : _c.defaultMaxTokens) != null ? _d : 1e3
     };
   }
   /**
@@ -7463,8 +7504,11 @@ ACTION: REWRITE CONTENT
 
 ACTION: UPDATE METADATA
 - Modify frontmatter properties, tags, or document metadata
-- Follow YAML formatting conventions
-- Update only the specified metadata fields`
+- Return ONLY a JSON object with the properties to update
+- For tags, return as an array: {"tags": ["tag1", "tag2"]}
+- For other properties: {"title": "New Title", "author": "Name"}
+- Do NOT include properties that shouldn't be changed
+- Do NOT return any explanatory text, ONLY the JSON object`
     };
     return basePrompt + (actionSpecificPrompts[action] || "");
   }
@@ -7670,6 +7714,27 @@ var COMMAND_PATTERNS = [
     targets: ["selection", "document"]
   },
   {
+    action: "metadata",
+    patterns: [
+      // Tag-specific patterns with colon format (highest priority)
+      /^(add|set|update|remove)\s+tags?:/i,
+      // Tag optimization patterns
+      /\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i,
+      /\b(suggest|recommend)\s+.*\btags?\b/i,
+      /^add suggested tags$/i,
+      /^add tags$/i,
+      // Simple "add tags" for AI suggestions
+      // General metadata patterns
+      /\b(update|set|change|modify)\s+.*\b(property|properties|metadata|frontmatter|tag|tags)\b/i,
+      /\b(set|update|change|add)\s+.*\b(title|author|date|status)\b/i,
+      /\bupdate\s+.*\bfrontmatter\b/i,
+      // Tag-specific patterns that exclude content/text/section
+      /\b(add|remove|update)\s+(?!.*\b(content|text|section|paragraph|about)\b).*\btag[s]?\b/i,
+      /\bset\s+.*\bproperty\b/i
+    ],
+    targets: ["document"]
+  },
+  {
     action: "rewrite",
     patterns: [
       /\b(rewrite|reword|rephrase|restructure|reorganize)\b/i,
@@ -7693,7 +7758,7 @@ var COMMAND_PATTERNS = [
     action: "add",
     patterns: [
       /\b(add|create|write|insert|include|append|prepend)\b.*\b(section|paragraph|heading|content|text|part)\b/i,
-      /\b(add|create|write|insert|append|prepend)\b(?!\s+.*\b(better|clearer|more|less)\b)/i,
+      /\b(add|create|write|insert|append|prepend)\b(?!\s+.*\b(better|clearer|more|less|tags?|property|properties|metadata|frontmatter)\b)/i,
       /\bmake\s+.*\b(section|part)\b/i,
       /\bgenerate\b.*\b(section|content|text)\b/i,
       // Specific patterns for append/prepend with location
@@ -7711,17 +7776,6 @@ var COMMAND_PATTERNS = [
       /\b(expand|shorten|condense)\b/i
     ],
     targets: ["selection"]
-  },
-  {
-    action: "metadata",
-    patterns: [
-      /\b(update|set|change|modify|add)\s+.*\b(property|properties|metadata|frontmatter|tag|tags)\b/i,
-      /\b(set|update|change|add)\s+.*\b(title|author|date|status)\b/i,
-      /\bupdate\s+.*\bfrontmatter\b/i,
-      /\b(add|remove|update)\s+.*\btag[s]?\b/i,
-      /\bset\s+.*\bproperty\b/i
-    ],
-    targets: ["document"]
   }
 ];
 var TARGET_PATTERNS = [
@@ -8031,7 +8085,12 @@ var PromptBuilder = class {
       /\b(grammar|spell|spelling|proofread|polish)\b.*\b(check|fix|correct)\b/i,
       // Metadata commands with different structures
       /\bset\s+(the\s+)?(title|tags|metadata|properties)/i,
-      /\bupdate\s+(the\s+)?(title|tags|metadata|properties)/i
+      /\bupdate\s+(the\s+)?(title|tags|metadata|properties)/i,
+      // Tag-specific patterns
+      /^(add|set|update|remove)\s+tags?:/i,
+      /\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i,
+      /\b(suggest|recommend)\s+.*\btags?\b/i,
+      /^add suggested tags$/i
     ];
     for (const pattern of explicitCommandPatterns) {
       if (pattern.test(lowerMessage)) {
@@ -9195,6 +9254,10 @@ var MetadataCommand = class {
           editType: "replace"
         };
       }
+      const tagResult = await this.handleDirectTagOperation(command.instruction, documentContext);
+      if (tagResult) {
+        return tagResult;
+      }
       const conversationContext = this.documentEngine.getConversationContext();
       const promptConfig = conversationContext ? { includeHistory: true } : {};
       const prompt2 = this.contextBuilder.buildPrompt(command, documentContext, promptConfig, conversationContext);
@@ -9216,19 +9279,23 @@ var MetadataCommand = class {
       );
       const updates = this.parsePropertyUpdates(aiResponse);
       if (!updates || Object.keys(updates).length === 0) {
+        console.error("Failed to parse metadata updates. AI response:", aiResponse);
         return {
           success: false,
           error: "No property updates found in AI response",
           editType: "replace"
         };
       }
+      console.log("Metadata updates:", updates);
       const updatedContent = this.updateFrontmatter(documentContext.content, updates);
       await this.app.vault.modify(documentContext.file, updatedContent);
+      const successMessage = this.generateSuccessMessage(updates);
       return {
         success: true,
         content: updatedContent,
         appliedAt: { line: 0, ch: 0 },
-        editType: "replace"
+        editType: "replace",
+        successMessage
       };
     } catch (error) {
       return {
@@ -9322,6 +9389,296 @@ var MetadataCommand = class {
     }
     newFrontmatter.push("---", "");
     return newFrontmatter.join("\n") + content;
+  }
+  /**
+   * Handle direct tag operations (add, remove, set tags)
+   */
+  async handleDirectTagOperation(instruction, documentContext) {
+    const lowerInstruction = instruction.toLowerCase().trim();
+    const colonMatch = lowerInstruction.match(/^(add|set|update|remove)\s+tags?:\s*(.*)$/);
+    if (colonMatch) {
+      const action = colonMatch[1];
+      const tagString = colonMatch[2];
+      const newTags = tagString ? tagString.split(",").map((t) => t.trim()).filter((t) => t) : [];
+      if (action === "add" && newTags.length === 0) {
+        return await this.handleAITagOperation("add suggested tags", documentContext);
+      }
+      const currentTags = this.getCurrentTags(documentContext.content);
+      let updatedTags = [];
+      let message = "";
+      switch (action) {
+        case "add":
+          const tagsToAdd = newTags.filter(
+            (tag) => !currentTags.some((existing) => existing.toLowerCase() === tag.toLowerCase())
+          );
+          updatedTags = [...currentTags, ...tagsToAdd];
+          message = tagsToAdd.length > 0 ? `Added ${tagsToAdd.length} tag${tagsToAdd.length !== 1 ? "s" : ""}: ${tagsToAdd.join(", ")}` : "No new tags to add (duplicates filtered)";
+          break;
+        case "remove":
+          const lowerNewTags = newTags.map((t) => t.toLowerCase());
+          const beforeCount = currentTags.length;
+          updatedTags = currentTags.filter(
+            (tag) => !lowerNewTags.includes(tag.toLowerCase())
+          );
+          const removedCount = beforeCount - updatedTags.length;
+          message = removedCount > 0 ? `Removed ${removedCount} tag${removedCount !== 1 ? "s" : ""}` : "No tags found to remove";
+          break;
+        case "set":
+        case "update":
+          updatedTags = [...new Set(newTags.map((t) => t.toLowerCase()))];
+          message = `Set ${updatedTags.length} tag${updatedTags.length !== 1 ? "s" : ""}`;
+          break;
+      }
+      const updates = { tags: updatedTags };
+      const updatedContent = this.updateFrontmatter(documentContext.content, updates);
+      await this.app.vault.modify(documentContext.file, updatedContent);
+      return {
+        success: true,
+        content: updatedContent,
+        appliedAt: { line: 0, ch: 0 },
+        editType: "replace",
+        successMessage: message
+      };
+    }
+    if (/\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i.test(lowerInstruction) || /\b(suggest|recommend)\s+.*\btags?\b/i.test(lowerInstruction) || /^add suggested tags$/i.test(lowerInstruction) || /^add tags$/i.test(lowerInstruction) || // Handle simple "add tags" as AI suggestion
+    /^update tags$/i.test(lowerInstruction)) {
+      return await this.handleAITagOperation(instruction, documentContext);
+    }
+    return null;
+  }
+  /**
+   * Handle AI-powered tag operations (suggest, optimize, clean up)
+   */
+  async handleAITagOperation(instruction, documentContext) {
+    const currentTags = this.getCurrentTags(documentContext.content);
+    const systemPrompt = `You are an expert at document tagging and metadata organization. Your task is to analyze documents and provide optimal tags.
+
+Rules for tags:
+- Tags should be lowercase
+- Use hyphens for multi-word tags (e.g., "machine-learning")
+- Be specific but not overly granular
+- Aim for 5-10 tags per document
+- Focus on key concepts, topics, and themes FROM THE ACTUAL DOCUMENT CONTENT
+- Tags must be directly relevant to the document's subject matter
+- Avoid generic tags like "document" or "text"
+- Consider the document's purpose, audience, and main topics
+- Extract tags based on the document's actual content, not random topics
+
+IMPORTANT: Base your tag suggestions ONLY on the content provided. Do not invent unrelated tags.
+
+Return ONLY a JSON object with a "tags" array and a "reasoning" field explaining your choices.`;
+    let userPrompt = "";
+    if (/add suggested/i.test(instruction) || /^add tags$/i.test(instruction)) {
+      userPrompt = `Carefully analyze the following document and suggest relevant tags based on its actual content.
+
+Current tags: ${currentTags.length > 0 ? currentTags.join(", ") : "none"}
+
+DOCUMENT TO ANALYZE:
+===START OF DOCUMENT===
+${documentContext.content}
+===END OF DOCUMENT===
+
+Based on the above document content, suggest additional tags that:
+1. Reflect the actual topics discussed in the document
+2. Capture key concepts, technologies, or themes mentioned
+3. Would help with discoverability and organization
+4. Are directly relevant to what this document is about
+
+DO NOT suggest tags about topics not mentioned in the document.`;
+    } else if (/clean up|cleanup/i.test(instruction)) {
+      userPrompt = `Clean up and optimize the tags for this document by analyzing both the current tags and the document content.
+
+Current tags: ${currentTags.join(", ")}
+
+DOCUMENT CONTENT:
+===START OF DOCUMENT===
+${documentContext.content}
+===END OF DOCUMENT===
+
+Tasks:
+1. Remove duplicate or redundant tags
+2. Consolidate similar tags (e.g., "js" and "javascript")
+3. Remove tags that aren't relevant to the document content
+4. Standardize tag format (lowercase, hyphenated)
+5. Ensure remaining tags accurately reflect the document
+
+Provide a cleaned-up tag list based on the actual document content.`;
+    } else if (/optimize|improve|review|analyze|update/i.test(instruction)) {
+      userPrompt = `Analyze this document thoroughly and provide an optimized set of tags that accurately represents its content.
+
+Current tags: ${currentTags.length > 0 ? currentTags.join(", ") : "none"}
+
+DOCUMENT TO ANALYZE:
+===START OF DOCUMENT===
+${documentContext.content}
+===END OF DOCUMENT===
+
+Tasks:
+1. Review the document content carefully
+2. Remove any tags that aren't relevant to the actual content
+3. Add tags for important concepts, topics, or themes that are missing
+4. Ensure all tags directly relate to what's discussed in the document
+5. Aim for 5-10 highly relevant tags
+
+Provide an optimized tag list that best represents THIS SPECIFIC document's content.`;
+    }
+    try {
+      const defaultMaxTokens = this.providerManager.getDefaultMaxTokens();
+      const aiResponse = await this.providerManager.complete(systemPrompt, userPrompt, {
+        temperature: 0.3,
+        maxTokens: defaultMaxTokens
+      });
+      const parsed = this.parseAITagResponse(aiResponse);
+      if (!parsed || !parsed.tags || parsed.tags.length === 0) {
+        const preview = aiResponse.length > 100 ? aiResponse.substring(0, 100) + "..." : aiResponse;
+        return {
+          success: false,
+          error: `Could not parse AI tag suggestions. AI response: "${preview}"`,
+          editType: "replace"
+        };
+      }
+      const updates = { tags: parsed.tags };
+      const updatedContent = this.updateFrontmatter(documentContext.content, updates);
+      await this.app.vault.modify(documentContext.file, updatedContent);
+      let message = "";
+      if (/add suggested/i.test(instruction) || /^add tags$/i.test(instruction)) {
+        const addedTags = parsed.tags.filter(
+          (tag) => !currentTags.some((existing) => existing.toLowerCase() === tag.toLowerCase())
+        );
+        message = `Added ${addedTags.length} suggested tag${addedTags.length !== 1 ? "s" : ""}: ${addedTags.join(", ")}`;
+      } else if (/clean up|cleanup/i.test(instruction)) {
+        message = `Cleaned up tags: ${currentTags.length} \u2192 ${parsed.tags.length} tags`;
+      } else {
+        message = `Optimized tags: ${parsed.tags.length} tag${parsed.tags.length !== 1 ? "s" : ""} (was ${currentTags.length})`;
+      }
+      return {
+        success: true,
+        content: updatedContent,
+        appliedAt: { line: 0, ch: 0 },
+        editType: "replace",
+        successMessage: message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to process tag operation: ${error.message}`,
+        editType: "replace"
+      };
+    }
+  }
+  /**
+   * Get current tags from document content
+   */
+  getCurrentTags(content) {
+    if (!content) return [];
+    const lines = content.split("\n");
+    if (lines.length > 0 && lines[0] === "---") {
+      let inFrontmatter = true;
+      for (let i = 1; i < lines.length && inFrontmatter; i++) {
+        if (lines[i] === "---") {
+          break;
+        }
+        const tagMatch = lines[i].match(/^tags:\s*(.*)$/);
+        if (tagMatch) {
+          const tagValue = tagMatch[1].trim();
+          if (!tagValue) return [];
+          try {
+            const parsed = JSON.parse(tagValue);
+            if (Array.isArray(parsed)) {
+              return parsed.filter((t) => t);
+            }
+          } catch (e) {
+            return tagValue.split(",").map((t) => t.trim()).filter((t) => t);
+          }
+        }
+      }
+    }
+    return [];
+  }
+  /**
+   * Parse AI response for tag operations
+   */
+  parseAITagResponse(response) {
+    try {
+      const cleanResponse = response.trim();
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.tags && Array.isArray(parsed.tags)) {
+            return {
+              tags: parsed.tags.map((t) => String(t).toLowerCase().trim().replace(/\s+/g, "-")).filter((t) => t),
+              reasoning: parsed.reasoning
+            };
+          }
+        } catch (e) {
+        }
+      }
+      const patterns = [
+        // JSON array: tags: ["tag1", "tag2"]
+        /tags?:\s*\[([^\]]+)\]/i,
+        // Comma list: Tags: tag1, tag2, tag3
+        /tags?:\s*([^\n]+?)(?:\n|$)/i,
+        // Bullet list: - tag1\n- tag2
+        /(?:tags?:)?\s*(?:\n)?(\s*[-•*]\s*.+(?:\n\s*[-•*]\s*.+)*)/i
+      ];
+      for (const pattern of patterns) {
+        const match = cleanResponse.match(pattern);
+        if (match) {
+          let tagString = match[1];
+          let tags = [];
+          if (tagString.includes("-") || tagString.includes("\u2022") || tagString.includes("*")) {
+            tags = tagString.split(/\n/).map((line) => line.replace(/^\s*[-•*]\s*/, "").trim()).filter((t) => t);
+          } else {
+            tags = tagString.split(",").map((t) => t.trim().replace(/["']/g, "")).filter((t) => t);
+          }
+          if (tags.length > 0) {
+            return {
+              tags: tags.map((t) => t.toLowerCase().trim().replace(/\s+/g, "-")).filter((t) => t)
+            };
+          }
+        }
+      }
+      const suggestMatch = cleanResponse.match(/(?:suggest|recommend|propose|here are|tags are)[:\s]+([^.]+)/i);
+      if (suggestMatch) {
+        const tags = suggestMatch[1].split(/[,\n]/).map((t) => t.trim().replace(/["']/g, "").replace(/^and\s+/i, "")).filter((t) => t);
+        if (tags.length > 0) {
+          return {
+            tags: tags.map((t) => t.toLowerCase().trim()).filter((t) => t)
+          };
+        }
+      }
+      const lines = cleanResponse.split("\n").map((line) => line.trim()).filter((line) => line);
+      const validTags = lines.filter((line) => {
+        return line.length > 0 && line.length < 50 && !line.includes(":") && !line.toLowerCase().includes("tag") && !line.toLowerCase().includes("here") && !line.toLowerCase().includes("suggest");
+      }).map((line) => {
+        return line.toLowerCase().replace(/^[-•*#]\s*/, "").replace(/^\d+\.\s*/, "").trim().replace(/\s+/g, "-");
+      }).filter((tag) => tag);
+      if (validTags.length > 0) {
+        return { tags: validTags };
+      }
+      console.error("Failed to parse AI tag response:", cleanResponse);
+      return null;
+    } catch (error) {
+      console.error("Error parsing AI tag response:", error, "Response was:", response);
+      return null;
+    }
+  }
+  /**
+   * Generate success message based on updates
+   */
+  generateSuccessMessage(updates) {
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return "Metadata updated";
+    if (keys.length === 1) {
+      const key = keys[0];
+      if (key === "tags") {
+        const count = Array.isArray(updates.tags) ? updates.tags.length : 0;
+        return `Updated tags (${count} tag${count !== 1 ? "s" : ""})`;
+      }
+      return `Updated ${key}`;
+    }
+    return `Updated ${keys.length} properties`;
   }
 };
 
@@ -9886,6 +10243,44 @@ var LicenseValidator = class {
   }
 };
 
+// src/core/ai-intent-classifier.ts
+var AIIntentClassifier = class {
+  constructor(providerManager) {
+    this.providerManager = providerManager;
+  }
+  /**
+   * Classify user input into one of three intents
+   */
+  async classifyIntent(userInput, hasSelection = false) {
+    if (userInput.startsWith(":")) {
+      return "CHAT";
+    }
+    return this.fallbackClassification(userInput);
+  }
+  /**
+   * Simple heuristic fallback for when AI classification fails
+   */
+  fallbackClassification(userInput) {
+    const lowerInput = userInput.toLowerCase().trim();
+    if (lowerInput.includes("?") || lowerInput.startsWith("what") || lowerInput.startsWith("why") || lowerInput.startsWith("how") || lowerInput.startsWith("when") || lowerInput.startsWith("where") || lowerInput.startsWith("who") || lowerInput.startsWith("can you") || lowerInput.startsWith("could you") || lowerInput.includes("explain") || lowerInput.includes("help me understand")) {
+      return "CHAT";
+    }
+    if (
+      // Tag-specific patterns
+      /\btags?\b/i.test(lowerInput) || /\btagging\b/i.test(lowerInput) || // Property patterns
+      /\b(title|author|date|status|category|categories)\b/i.test(lowerInput) || // Metadata/frontmatter patterns
+      /\b(metadata|frontmatter|properties|property)\b/i.test(lowerInput) || // Common metadata actions
+      /^(add|update|set|remove|clean|optimize)\s+(tags?|title|author|metadata)/i.test(lowerInput)
+    ) {
+      return "METADATA";
+    }
+    if (/^(add|write|create|insert)\s+(a\s+)?(section|paragraph|conclusion|introduction|summary)/i.test(lowerInput) || /^(fix|correct|improve)\s+(grammar|spelling|writing)/i.test(lowerInput) || /^(make|rewrite|edit|modify|change)/i.test(lowerInput) || /^(delete|remove)\s+(the\s+)?(section|paragraph|sentence)/i.test(lowerInput)) {
+      return "CONTENT";
+    }
+    return "CONTENT";
+  }
+};
+
 // main.ts
 var NOVA_ICON_SVG2 = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -9933,9 +10328,10 @@ var NovaPlugin = class extends import_obsidian16.Plugin {
       this.conversationManager = new ConversationManager(dataStore);
       this.documentEngine = new DocumentEngine(this.app, dataStore);
       this.documentEngine.setConversationManager(this.conversationManager);
-      this.contextBuilder = new ContextBuilder();
+      this.contextBuilder = new ContextBuilder(this.settings);
       this.commandParser = new CommandParser();
       this.promptBuilder = new PromptBuilder(this.documentEngine, this.conversationManager);
+      this.aiIntentClassifier = new AIIntentClassifier(this.aiProviderManager);
       this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
       this.editCommandHandler = new EditCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
       this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);

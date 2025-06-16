@@ -100,7 +100,13 @@ export class PromptBuilder {
             
             // Metadata commands with different structures
             /\bset\s+(the\s+)?(title|tags|metadata|properties)/i,
-            /\bupdate\s+(the\s+)?(title|tags|metadata|properties)/i
+            /\bupdate\s+(the\s+)?(title|tags|metadata|properties)/i,
+            
+            // Tag-specific patterns
+            /^(add|set|update|remove)\s+tags?:/i,
+            /\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i,
+            /\b(suggest|recommend)\s+.*\btags?\b/i,
+            /^add suggested tags$/i
         ];
         
         // Check if message matches explicit command patterns

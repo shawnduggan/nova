@@ -1583,12 +1583,19 @@ export class NovaSidebarView extends ItemView {
 				await this.plugin.documentEngine.addUserMessage(messageText);
 			}
 
-			// Check if this is a command or conversation
-			const isLikelyCommand = this.plugin.promptBuilder['isLikelyCommand'](processedMessage);
+			// Use AI to classify the user's intent
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const selectedText = activeView?.editor?.getSelection();
+			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
+			const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
 			let response: string | null = null;
 			
-			if (isLikelyCommand && activeFile) {
-				// Parse as command and route to appropriate handler
+			if (intent === 'METADATA' && activeFile) {
+				// Handle metadata commands
+				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
+				response = await this.executeCommand(parsedCommand);
+			} else if (intent === 'CONTENT' && activeFile) {
+				// Handle content editing commands
 				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
 				response = await this.executeCommand(parsedCommand);
 			} else {
@@ -1766,8 +1773,12 @@ USER REQUEST: ${processedMessage}`;
 			}
 			
 			if (result.success) {
-				// Add compact success indicator instead of full message
-				this.addSuccessIndicator(command.action);
+				// Use custom success message if provided, otherwise use default indicator
+				if (result.successMessage) {
+					this.addSuccessMessage(this.createIconMessage('check-circle', result.successMessage));
+				} else {
+					this.addSuccessIndicator(command.action);
+				}
 				return null; // Don't return text for regular message
 			} else {
 				return `Failed to ${command.action}: ${result.error}`;
