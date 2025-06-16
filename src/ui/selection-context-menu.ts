@@ -200,10 +200,16 @@ export class SelectionContextMenu {
                 new Notice(`Nova: ${result.error || 'Failed to process text'}`, 3000);
                 // Add failure message to chat
                 this.addFailureChatMessage(actionId, result.error || 'Failed to process text');
+                
+                // Restore original text when streaming fails
+                this.restoreOriginalText(editor);
             }
         } catch (error) {
             console.error('Error in streaming selection edit:', error);
             new Notice('Failed to execute Nova action. Please try again.', 3000);
+            
+            // Restore original text on complete failure
+            this.restoreOriginalText(editor);
         } finally {
             // Always stop animations and clean up
             this.stopSelectionAnimation();
@@ -232,38 +238,97 @@ export class SelectionContextMenu {
                     this.stopDotsAnimation();
                 }
                 
-                // If we don't have a start position yet, set it
+                // On first chunk, set the start position to current streaming position
                 if (!this.streamingStartPos) {
                     this.streamingStartPos = { ...this.currentStreamingEndPos };
                 }
                 
-                // Calculate new end position based on the complete new text
-                const lines = newText.split('\n');
-                const newEndPos = {
-                    line: this.streamingStartPos.line + lines.length - 1,
-                    ch: lines.length > 1 ? lines[lines.length - 1].length : this.streamingStartPos.ch + newText.length
-                };
+                // Only update if we have actual content
+                if (newText.trim().length > 0) {
+                    // Calculate new end position based on the complete new text from start position
+                    const lines = newText.split('\n');
+                    const newEndPos = {
+                        line: this.streamingStartPos.line + lines.length - 1,
+                        ch: lines.length > 1 ? lines[lines.length - 1].length : this.streamingStartPos.ch + newText.length
+                    };
 
-                // Replace all content from start to current end with new text
-                editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
-                this.currentStreamingEndPos = newEndPos;
+                    // Replace content from start position to current end position with new text
+                    editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
+                    
+                    // Update the end position for next chunk
+                    this.currentStreamingEndPos = newEndPos;
+                }
             }
             
             // Set cursor at the end of the new text only when complete
             if (isComplete) {
-                editor.setCursor(this.currentStreamingEndPos);
-                this.currentStreamingEndPos = null; // Reset for next use
-                this.streamingStartPos = null; // Reset start position
-                this.originalSelectionRange = null; // Clear selection reference
+                if (this.currentStreamingEndPos) {
+                    editor.setCursor(this.currentStreamingEndPos);
+                }
+                // Reset for next use
+                this.currentStreamingEndPos = null;
+                this.streamingStartPos = null;
+                this.originalSelectionRange = null;
             }
         } catch (error) {
             console.warn('Error updating streaming text:', error);
+            // On error, try to restore original text if we have it
+            if (this.originalSelectionRange && this.originalSelectionRange.text) {
+                try {
+                    // Restore the original text at the start position
+                    const restorePos = this.streamingStartPos || this.currentStreamingEndPos;
+                    if (restorePos) {
+                        editor.replaceRange(this.originalSelectionRange.text, restorePos, this.currentStreamingEndPos || restorePos);
+                        // Position cursor after restored text
+                        const lines = this.originalSelectionRange.text.split('\n');
+                        const endPos = {
+                            line: restorePos.line + lines.length - 1,
+                            ch: lines.length > 1 ? lines[lines.length - 1].length : restorePos.ch + this.originalSelectionRange.text.length
+                        };
+                        editor.setCursor(endPos);
+                    }
+                } catch (restoreError) {
+                    console.warn('Could not restore original text:', restoreError);
+                }
+            }
             this.currentStreamingEndPos = null;
             this.streamingStartPos = null;
             this.originalSelectionRange = null;
         }
     }
 
+    /**
+     * Restore original text if streaming fails completely
+     */
+    private restoreOriginalText(editor: Editor): void {
+        if (this.originalSelectionRange && this.originalSelectionRange.text) {
+            try {
+                // Find the position to restore to - either where streaming started or current position
+                const restorePos = this.streamingStartPos || this.currentStreamingEndPos || this.originalSelectionRange.from;
+                
+                if (restorePos) {
+                    // Replace any content at current position with original text
+                    const currentEndPos = this.currentStreamingEndPos || restorePos;
+                    editor.replaceRange(this.originalSelectionRange.text, restorePos, currentEndPos);
+                    
+                    // Position cursor after restored text
+                    const lines = this.originalSelectionRange.text.split('\n');
+                    const endPos = {
+                        line: restorePos.line + lines.length - 1,
+                        ch: lines.length > 1 ? lines[lines.length - 1].length : restorePos.ch + this.originalSelectionRange.text.length
+                    };
+                    editor.setCursor(endPos);
+                }
+            } catch (restoreError) {
+                console.warn('Could not restore original text after failure:', restoreError);
+            }
+        }
+        
+        // Clean up state
+        this.currentStreamingEndPos = null;
+        this.streamingStartPos = null;
+        this.originalSelectionRange = null;
+    }
 
     /**
      * Start pulsing animation on selected text
@@ -385,12 +450,19 @@ export class SelectionContextMenu {
             // Show thinking notice for user feedback
             this.showThinkingNotice(randomPhrase);
             
+            // Store original text before clearing it (for error recovery)
+            const originalText = editor.getRange(startPos, endPos);
+            
             // Clear the selection in document to create clean streaming position
             editor.replaceRange('', startPos, endPos);
             
             // Set streaming position to where selection was cleared
             this.currentStreamingEndPos = startPos;
-            this.originalSelectionRange = { from: startPos, to: endPos }; // Store for undo context
+            this.originalSelectionRange = { 
+                from: startPos, 
+                to: endPos, 
+                text: originalText  // Store original text for restoration
+            };
             
         } catch (error) {
             console.warn('Failed to show thinking animation:', error);
@@ -399,7 +471,7 @@ export class SelectionContextMenu {
 
     private dotsAnimationInterval: NodeJS.Timeout | null = null;
     private thinkingNotice: Notice | null = null;
-    private originalSelectionRange: { from: any; to: any } | null = null;
+    private originalSelectionRange: { from: any; to: any; text?: string } | null = null;
 
     /**
      * Show thinking notice with animated dots

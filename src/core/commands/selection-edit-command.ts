@@ -99,8 +99,12 @@ export class SelectionEditCommand {
                 }
                 
                 fullResponse += chunk.content;
-                const cleanedChunk = this.cleanAIResponse(fullResponse);
-                onChunk(cleanedChunk, chunk.done);
+                
+                // Only call onChunk if we have content or if it's the final chunk
+                if (fullResponse.trim().length > 0 || chunk.done) {
+                    const cleanedChunk = this.cleanAIResponse(fullResponse);
+                    onChunk(cleanedChunk, chunk.done);
+                }
                 
                 if (chunk.done) {
                     break;
@@ -110,9 +114,19 @@ export class SelectionEditCommand {
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
 
+            // Check if we actually got a response
+            const finalText = this.cleanAIResponse(fullResponse);
+            if (!finalText.trim()) {
+                return {
+                    success: false,
+                    error: 'AI provider returned empty response',
+                    originalRange: selectionRange
+                };
+            }
+
             return {
                 success: true,
-                transformedText: this.cleanAIResponse(fullResponse),
+                transformedText: finalText,
                 originalRange: selectionRange
             };
 

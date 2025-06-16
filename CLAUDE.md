@@ -73,7 +73,14 @@
 
 ---
 
-## 🎯 CURRENT FOCUS: Context Menu Repair
+## 🎯 CURRENT FOCUS: Chat UI Contextualization
+
+### **✅ COMPLETED: Context Menu Function Repair**
+- **Problem Solved**: Right-click context menu actions removed text but didn't replace with AI output
+- **Root Cause**: Streaming text replacement had flawed position tracking and no error recovery
+- **Solution**: Fixed streaming logic, added original text restoration on failures
+- **Key Fixes**: Enhanced `updateStreamingText()`, added `restoreOriginalText()`, improved error handling
+- **Result**: All context menu actions (Make Shorter, Make Longer, Improve Writing, Change Tone, Tell Nova) now work correctly
 
 ### **✅ COMPLETED: Native File Picker Implementation**
 - **Problem Solved**: Custom file picker UI didn't match Obsidian design standards
@@ -87,13 +94,7 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Context Menu Function Repair**
-- **Problem**: Right-click context menu functions are currently broken
-- **Scope**: Fix Nova submenu functionality in Obsidian's context menu
-- **Priority**: High - core selection-based editing feature
-- **Investigation**: Identify what broke and restore functionality
-
-### **Then: Chat UI Contextualization**
+### **Next: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
 - **Key changes**: Remove chatbot personality, immediate document context understanding
 - **UX shift**: Actionable suggestions based on document structure analysis
