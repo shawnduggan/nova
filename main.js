@@ -2021,132 +2021,32 @@ var TONE_OPTIONS = [
     description: "Warm, approachable tone that builds connection"
   }
 ];
-var ToneSelectionModal = class extends import_obsidian8.Modal {
+var ToneSelectionModal = class extends import_obsidian8.FuzzySuggestModal {
   constructor(app, onSelect, onCancel) {
     super(app);
-    this.selectedTone = null;
-    this.applyButton = null;
     this.onSelect = onSelect;
     this.onCancel = onCancel;
+    this.setPlaceholder("Choose a writing tone...");
+    this.setInstructions([
+      { command: "\u2191\u2193", purpose: "to navigate" },
+      { command: "\u21B5", purpose: "to apply tone" },
+      { command: "esc", purpose: "to cancel" }
+    ]);
   }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "Choose Writing Tone" });
-    contentEl.createEl("p", {
-      text: "Select how you want Nova to adjust the tone of your selected text:",
-      cls: "setting-item-description"
-    });
-    const toneContainer = contentEl.createDiv({ cls: "nova-tone-options" });
-    TONE_OPTIONS.forEach((tone) => {
-      const optionEl = toneContainer.createDiv({
-        cls: "nova-tone-option"
-      });
-      optionEl.style.cssText = `
-                padding: var(--size-4-3);
-                margin-bottom: var(--size-2-2);
-                border: 1px solid var(--background-modifier-border);
-                border-radius: var(--radius-s);
-                cursor: pointer;
-                transition: all 0.2s ease;
-            `;
-      const headerEl = optionEl.createDiv({ cls: "nova-tone-header" });
-      headerEl.style.cssText = `
-                display: flex;
-                align-items: center;
-                margin-bottom: var(--size-2-1);
-            `;
-      const radioEl = headerEl.createSpan({ cls: "nova-tone-radio" });
-      radioEl.style.cssText = `
-                width: 16px;
-                height: 16px;
-                border: 2px solid var(--interactive-normal);
-                border-radius: 50%;
-                margin-right: var(--size-2-2);
-                transition: all 0.2s ease;
-            `;
-      const labelEl = headerEl.createSpan({
-        text: tone.label,
-        cls: "nova-tone-label"
-      });
-      labelEl.style.cssText = `
-                font-weight: 600;
-                color: var(--text-normal);
-            `;
-      const descEl = optionEl.createDiv({
-        text: tone.description,
-        cls: "nova-tone-description"
-      });
-      descEl.style.cssText = `
-                font-size: var(--font-ui-smaller);
-                color: var(--text-muted);
-                line-height: 1.4;
-            `;
-      optionEl.addEventListener("click", () => {
-        this.selectTone(tone.id);
-      });
-      optionEl.addEventListener("mouseenter", () => {
-        optionEl.style.borderColor = "var(--interactive-accent)";
-        optionEl.style.backgroundColor = "var(--background-modifier-hover)";
-      });
-      optionEl.addEventListener("mouseleave", () => {
-        if (this.selectedTone !== tone.id) {
-          optionEl.style.borderColor = "var(--background-modifier-border)";
-          optionEl.style.backgroundColor = "";
-        }
-      });
-      optionEl.setAttribute("data-tone", tone.id);
-    });
-    const buttonContainer = contentEl.createDiv({ cls: "nova-tone-buttons" });
-    buttonContainer.style.cssText = `
-            display: flex;
-            gap: var(--size-2-3);
-            justify-content: flex-end;
-            margin-top: var(--size-4-4);
-            padding-top: var(--size-4-3);
-            border-top: 1px solid var(--background-modifier-border);
-        `;
-    const cancelBtn = new import_obsidian8.ButtonComponent(buttonContainer);
-    cancelBtn.setButtonText("Cancel");
-    cancelBtn.onClick(() => {
-      this.close();
-      this.onCancel();
-    });
-    const applyBtn = new import_obsidian8.ButtonComponent(buttonContainer);
-    applyBtn.setButtonText("Apply Tone");
-    applyBtn.setCta();
-    applyBtn.setDisabled(true);
-    applyBtn.onClick(() => {
-      if (this.selectedTone) {
-        this.close();
-        this.onSelect(this.selectedTone);
-      }
-    });
-    this.applyButton = applyBtn;
+  getItems() {
+    return TONE_OPTIONS;
   }
-  selectTone(toneId) {
-    this.selectedTone = toneId;
-    const options = this.contentEl.querySelectorAll(".nova-tone-option");
-    options.forEach((option) => {
-      const optionEl = option;
-      const radio = optionEl.querySelector(".nova-tone-radio");
-      if (optionEl.getAttribute("data-tone") === toneId) {
-        optionEl.style.borderColor = "var(--interactive-accent)";
-        optionEl.style.backgroundColor = "var(--background-modifier-selected)";
-        radio.style.backgroundColor = "var(--interactive-accent)";
-        radio.style.borderColor = "var(--interactive-accent)";
-      } else {
-        optionEl.style.borderColor = "var(--background-modifier-border)";
-        optionEl.style.backgroundColor = "";
-        radio.style.backgroundColor = "";
-        radio.style.borderColor = "var(--interactive-normal)";
-      }
-    });
-    if (this.applyButton) {
-      this.applyButton.setDisabled(false);
-    }
+  getItemText(tone) {
+    return `${tone.label} - ${tone.description}`;
+  }
+  onChooseItem(tone, evt) {
+    this.onSelect(tone.id);
   }
   onClose() {
+    const { contentEl } = this;
+    if (contentEl.parentElement) {
+      this.onCancel();
+    }
   }
 };
 
@@ -2156,178 +2056,52 @@ var CustomInstructionModal = class extends import_obsidian9.Modal {
   constructor(app, onSubmit, onCancel) {
     super(app);
     this.instruction = "";
-    this.textAreaComponent = null;
-    this.submitButton = null;
     this.onSubmit = onSubmit;
     this.onCancel = onCancel;
   }
   onOpen() {
+    var _a;
     const { contentEl } = this;
     contentEl.empty();
-    if (import_obsidian9.Platform.isMobile) {
-      this.modalEl.style.cssText = `
-                width: 95vw !important;
-                height: auto !important;
-                max-width: none !important;
-                max-height: 80vh !important;
-                margin: 0 !important;
-                top: 60px !important;
-                left: 2.5vw !important;
-                transform: none !important;
-                border-radius: var(--radius-m);
-                position: fixed !important;
-            `;
-      contentEl.style.cssText = `
-                display: flex;
-                flex-direction: column;
-                padding: var(--size-4-2);
-                max-height: 80vh;
-                overflow-y: auto;
-            `;
-    }
-    const titleEl = contentEl.createEl("h2", { text: "Tell Nova" });
-    if (import_obsidian9.Platform.isMobile) {
-      titleEl.style.cssText = `
-                font-size: var(--font-ui-large);
-                margin: 0 0 var(--size-2-1) 0;
-            `;
-    }
-    const descEl = contentEl.createEl("p", {
-      text: "Describe how you want Nova to transform your selected text:",
-      cls: "setting-item-description"
+    this.modalEl.addClass("nova-custom-instruction-modal");
+    contentEl.createEl("h2", { text: "Tell Nova" });
+    new import_obsidian9.Setting(contentEl).setName("Instruction").setDesc("Describe how you want Nova to transform your selected text");
+    const textAreaSetting = new import_obsidian9.Setting(contentEl).addTextArea((text) => {
+      text.setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"').setValue(this.instruction).onChange((value) => {
+        this.instruction = value;
+      });
+      text.inputEl.rows = 4;
+      text.inputEl.style.width = "100%";
+      text.inputEl.style.minHeight = "100px";
+      setTimeout(() => text.inputEl.focus(), 50);
+      text.inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          this.submit();
+        }
+      });
+      return text;
     });
-    if (import_obsidian9.Platform.isMobile) {
-      descEl.style.cssText = `
-                font-size: var(--font-ui-medium);
-                margin: 0 0 var(--size-2-3) 0;
-                line-height: 1.3;
-            `;
+    textAreaSetting.settingEl.style.border = "none";
+    (_a = textAreaSetting.settingEl.querySelector(".setting-item-info")) == null ? void 0 : _a.remove();
+    const control = textAreaSetting.settingEl.querySelector(".setting-item-control");
+    if (control instanceof HTMLElement) {
+      control.style.width = "100%";
     }
-    const inputContainer = contentEl.createDiv({ cls: "nova-custom-instruction-input" });
-    if (import_obsidian9.Platform.isMobile) {
-      inputContainer.style.cssText = `
-                margin: 0 0 var(--size-4-3) 0;
-            `;
-    } else {
-      inputContainer.style.cssText = `
-                margin: var(--size-4-3) 0;
-            `;
-    }
-    this.textAreaComponent = new import_obsidian9.TextAreaComponent(inputContainer);
-    this.textAreaComponent.setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"');
-    if (import_obsidian9.Platform.isMobile) {
-      this.textAreaComponent.inputEl.style.cssText = `
-                width: 100%;
-                min-height: 90px;
-                max-height: 140px;
-                resize: vertical;
-                border-radius: var(--radius-m);
-                padding: var(--size-4-3);
-                border: 1px solid var(--background-modifier-border);
-                background: var(--background-primary);
-                color: var(--text-normal);
-                font-family: var(--font-interface);
-                font-size: var(--font-ui-medium);
-                line-height: 1.4;
-                -webkit-appearance: none;
-                touch-action: manipulation;
-            `;
-    } else {
-      this.textAreaComponent.inputEl.style.cssText = `
-                width: 100%;
-                min-height: 80px;
-                max-height: 150px;
-                resize: vertical;
-                border-radius: var(--radius-s);
-                padding: var(--size-2-2) var(--size-2-3);
-                border: 1px solid var(--background-modifier-border);
-                background: var(--background-primary);
-                color: var(--text-normal);
-                font-family: var(--font-interface);
-                font-size: var(--font-ui-medium);
-                line-height: 1.4;
-            `;
-    }
-    this.textAreaComponent.onChange((value) => {
-      this.instruction = value;
-      this.updateSubmitButton();
-    });
-    const buttonContainer = contentEl.createDiv({ cls: "nova-instruction-buttons" });
-    if (import_obsidian9.Platform.isMobile) {
-      buttonContainer.style.cssText = `
-                display: flex;
-                gap: var(--size-2-3);
-                justify-content: stretch;
-                margin-top: var(--size-4-3);
-                padding-top: var(--size-4-3);
-                border-top: 1px solid var(--background-modifier-border);
-            `;
-    } else {
-      buttonContainer.style.cssText = `
-                display: flex;
-                gap: var(--size-2-3);
-                justify-content: flex-end;
-                margin-top: var(--size-4-4);
-                padding-top: var(--size-4-3);
-                border-top: 1px solid var(--background-modifier-border);
-            `;
-    }
-    const cancelBtn = new import_obsidian9.ButtonComponent(buttonContainer);
-    cancelBtn.setButtonText("Cancel");
-    if (import_obsidian9.Platform.isMobile) {
-      cancelBtn.buttonEl.style.cssText = `
-                flex: 1;
-                min-height: 48px;
-                font-size: var(--font-ui-medium);
-                padding: var(--size-4-3);
-                border-radius: var(--radius-m);
-                touch-action: manipulation;
-            `;
-    }
-    cancelBtn.onClick(() => {
+    new import_obsidian9.Setting(contentEl).addButton((btn) => btn.setButtonText("Cancel").onClick(() => {
       this.close();
       this.onCancel();
-    });
-    this.submitButton = new import_obsidian9.ButtonComponent(buttonContainer);
-    this.submitButton.setButtonText("Transform Text");
-    this.submitButton.setCta();
-    this.submitButton.setDisabled(true);
-    if (import_obsidian9.Platform.isMobile) {
-      this.submitButton.buttonEl.style.cssText = `
-                flex: 2;
-                min-height: 48px;
-                font-size: var(--font-ui-medium);
-                padding: var(--size-4-3);
-                border-radius: var(--radius-m);
-                touch-action: manipulation;
-            `;
-    }
-    this.submitButton.onClick(() => {
-      if (this.instruction.trim()) {
-        this.close();
-        this.onSubmit(this.instruction.trim());
-      }
-    });
-    setTimeout(() => {
-      var _a;
-      (_a = this.textAreaComponent) == null ? void 0 : _a.inputEl.focus();
-    }, 100);
-    this.textAreaComponent.inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        if (this.instruction.trim()) {
-          this.close();
-          this.onSubmit(this.instruction.trim());
-        }
-      }
-    });
+    })).addButton((btn) => btn.setButtonText("Transform Text").setCta().onClick(() => this.submit()));
   }
-  updateSubmitButton() {
-    if (this.submitButton) {
-      this.submitButton.setDisabled(!this.instruction.trim());
+  submit() {
+    if (this.instruction.trim()) {
+      this.close();
+      this.onSubmit(this.instruction.trim());
     }
   }
   onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 };
 

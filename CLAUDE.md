@@ -75,21 +75,6 @@
 
 ## 🎯 CURRENT FOCUS: Chat UI Contextualization
 
-### **✅ COMPLETED: Context Menu Function Repair**
-- **Problem Solved**: Right-click context menu actions removed text but didn't replace with AI output
-- **Root Cause**: Streaming text replacement had flawed position tracking and no error recovery
-- **Solution**: Fixed streaming logic, added original text restoration on failures
-- **Key Fixes**: Enhanced `updateStreamingText()`, added `restoreOriginalText()`, improved error handling
-- **Result**: All context menu actions (Make Shorter, Make Longer, Improve Writing, Change Tone, Tell Nova) now work correctly
-
-### **✅ COMPLETED: Native File Picker Implementation**
-- **Problem Solved**: Custom file picker UI didn't match Obsidian design standards
-- **Solution**: Replaced custom HTML/CSS popup with Obsidian's native `FuzzySuggestModal`
-- **Trigger**: Type `[[` in Nova textarea → native Obsidian file picker opens
-- **Features**: Search, navigation arrows, instruction footer - exactly like core Obsidian
-- **Code Reduction**: 425 lines → 153 lines (-68% in wikilink-suggest.ts)
-- **Architecture**: Simplified from custom popup to native modal integration
-
 ---
 
 ## 🎯 IMPLEMENTATION QUEUE

@@ -355,3 +355,47 @@ This file contains all completed work items that have been removed from CLAUDE.m
 - **Mobile-friendly** - Touch cursor placement works perfectly
 
 **Status**: Architectural transformation complete. Nova now provides collaborative writing through simple, predictable cursor-based editing.
+
+---
+
+## June 16, 2025 - Context Menu & Modal System Completion ✅
+
+### ✅ COMPLETED: Context Menu Function Repair
+**Problem Solved**: Right-click context menu actions removed text but didn't replace with AI output
+- **Root Cause**: Streaming text replacement had flawed position tracking and no error recovery
+- **Solution**: Fixed streaming logic, added original text restoration on failures
+- **Key Fixes**: 
+  - Enhanced `updateStreamingText()` with proper position tracking
+  - Added `restoreOriginalText()` method for error recovery
+  - Improved empty response detection
+  - Store original text before clearing for restoration
+- **Result**: All context menu actions now work correctly (Make Shorter, Make Longer, Improve Writing, Change Tone, Tell Nova)
+
+### ✅ COMPLETED: Native Modal System Implementation
+**Converted all modals to use Obsidian's native design patterns:**
+
+**Tone Selection Modal** (`src/ui/tone-selection-modal.ts`):
+- **Before**: Custom Modal with HTML/CSS styling (213 lines)
+- **After**: Native `FuzzySuggestModal<ToneOption>` (80 lines)
+- **Features**: 
+  - Fuzzy search for tone options
+  - Native keyboard navigation (↑↓ to navigate, ↵ to select)
+  - Instruction footer like core Obsidian
+  - Clean item display: "Formal - Professional, structured language..."
+
+**Custom Instruction Modal** (`src/ui/custom-instruction-modal.ts`):
+- **Before**: Complex Modal with platform-specific styling (218 lines)
+- **After**: Native Modal with `Setting` components (92 lines)
+- **Features**:
+  - Native Obsidian Settings UI pattern
+  - Full-width textarea using Setting component
+  - Consistent button styling with ButtonComponent
+  - Ctrl/Cmd+Enter to submit
+
+**Technical Achievements:**
+- **Code reduction**: 431 → 172 lines (-60% across both modals)
+- **Consistency**: All modals now match Obsidian's native design language
+- **Maintainability**: Using Obsidian's built-in components reduces custom code
+- **Mobile compatibility**: Native components handle responsive design automatically
+
+**Status**: All UI components now use native Obsidian patterns. Context menu fully functional with proper error recovery.
