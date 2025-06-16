@@ -2065,7 +2065,10 @@ var CustomInstructionModal = class extends import_obsidian9.Modal {
     contentEl.empty();
     this.modalEl.addClass("nova-custom-instruction-modal");
     contentEl.createEl("h2", { text: "Tell Nova" });
-    new import_obsidian9.Setting(contentEl).setName("Instruction").setDesc("Describe how you want Nova to transform your selected text");
+    contentEl.createEl("p", {
+      text: "Describe how you want to transform your text",
+      cls: "setting-item-description"
+    });
     const textAreaSetting = new import_obsidian9.Setting(contentEl).addTextArea((text) => {
       text.setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"').setValue(this.instruction).onChange((value) => {
         this.instruction = value;

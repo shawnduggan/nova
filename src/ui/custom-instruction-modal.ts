@@ -30,10 +30,11 @@ export class CustomInstructionModal extends Modal {
         // Title
         contentEl.createEl('h2', { text: 'Tell Nova' });
 
-        // Description
-        new Setting(contentEl)
-            .setName('Instruction')
-            .setDesc('Describe how you want Nova to transform your selected text');
+        // Single line description without Setting component to reduce space
+        contentEl.createEl('p', { 
+            text: 'Describe how you want to transform your text',
+            cls: 'setting-item-description'
+        });
 
         // Text area using Setting component for consistent styling
         const textAreaSetting = new Setting(contentEl)
