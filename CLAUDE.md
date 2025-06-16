@@ -243,8 +243,6 @@ If you catch yourself writing >100 lines, STOP MID-SENTENCE and say:
 ### 🎯 **Next Phase: Market Readiness** (Ready to Begin)
 
 #### **UI Polish Tasks** (Next Session)
-- [ ] **Update plugin version to 1.0**
-  - Update manifest.json version from "0.1.0" to "1.0.0" (package.json already correct)
 - [ ] **Fix plugin name consistency**
   - Change `getDisplayText()` in sidebar-view.ts from "Nova AI" to "Nova"
   - Fixes mobile sidebar display showing "Nova AI" instead of "Nova"
