@@ -79,7 +79,13 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Chat UI Contextualization**
+### **Next: Critical Bug Fixes**
+1. **Conversation history not persisting message styling** - Menu commands and chat write to conversation differently. Dynamic CSS causes styling loss. Need persistent styling saved each time.
+2. **Conversation restore brings back duplicate messages** - Not sure if saving or rendering issue
+3. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
+4. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
+
+### **Second: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
 - **Key changes**: Remove chatbot personality, immediate document context understanding
 - **UX shift**: Actionable suggestions based on document structure analysis
