@@ -520,6 +520,35 @@ export class Modal {
     }
 }
 
+export class FuzzySuggestModal<T> extends Modal {
+    inputEl!: HTMLInputElement;
+
+    constructor(app: App) {
+        super(app);
+        this.inputEl = document.createElement('input');
+    }
+
+    getItems(): T[] {
+        return [];
+    }
+
+    getItemText(item: T): string {
+        return String(item);
+    }
+
+    onChooseItem(item: T): void {
+        // Override in subclasses
+    }
+
+    renderSuggestion(match: any, el: HTMLElement): void {
+        // Override in subclasses
+    }
+
+    setPlaceholder(placeholder: string): void {
+        this.inputEl.placeholder = placeholder;
+    }
+}
+
 export default {
     App,
     Editor,
@@ -536,5 +565,6 @@ export default {
     WorkspaceLeaf,
     ButtonComponent,
     TextAreaComponent,
-    Modal
+    Modal,
+    FuzzySuggestModal
 };

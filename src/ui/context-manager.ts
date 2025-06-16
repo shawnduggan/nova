@@ -13,6 +13,7 @@ export class ContextManager {
 	public contextIndicator!: HTMLElement;
 	public contextPreview!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
+	private sidebarView: any; // Reference to NovaSidebarView for adding files
 	private static readonly NOTICE_DURATION_MS = 5000;
 
 	constructor(plugin: NovaPlugin, app: App, container: HTMLElement) {
@@ -20,6 +21,10 @@ export class ContextManager {
 		this.app = app;
 		this.container = container;
 		this.multiDocHandler = new MultiDocContextHandler(app);
+	}
+
+	setSidebarView(sidebarView: any): void {
+		this.sidebarView = sidebarView;
 	}
 
 	createContextIndicator(): void {
@@ -205,13 +210,23 @@ export class ContextManager {
 			previewEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted); margin-top: var(--size-2-1);';
 		});
 
-		const closeBtn = content.createEl('button', { text: 'Close' });
-		closeBtn.style.cssText = `
+		// Button container
+		const buttonContainer = content.createDiv();
+		buttonContainer.style.cssText = `
 			margin-top: var(--size-4-3);
+			display: flex;
+			gap: var(--size-2-2);
+			justify-content: flex-end;
+		`;
+
+
+		// Close button
+		const closeBtn = buttonContainer.createEl('button', { text: 'Close' });
+		closeBtn.style.cssText = `
 			padding: var(--size-2-2) var(--size-4-3);
-			background: var(--interactive-accent);
-			color: var(--text-on-accent);
-			border: none;
+			background: var(--background-secondary);
+			color: var(--text-normal);
+			border: 1px solid var(--background-modifier-border);
 			border-radius: var(--radius-s);
 			cursor: pointer;
 		`;
@@ -243,6 +258,7 @@ export class ContextManager {
 	getCurrentContext(): MultiDocContext | null {
 		return this.currentContext;
 	}
+
 
 	cleanup(): void {
 		this.clearCurrentContext();

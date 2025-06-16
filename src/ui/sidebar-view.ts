@@ -335,6 +335,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Pass sidebar view reference for context operations
 		this.inputHandler.setSidebarView(this);
+		this.contextManager.setSidebarView(this);
 		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);

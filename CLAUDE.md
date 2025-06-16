@@ -65,31 +65,33 @@
 - **Selection-based AI editing with context menu** (right-click → Nova actions)
 - **Command palette integration** (9 clean commands without confusing modals)
 - **Drag-and-drop file context** from Obsidian file explorer
+- **Native Obsidian file picker** for `[[` wikilink autocomplete (indistinguishable from core Obsidian)
 - **Unified streaming system** with notice-based thinking animations
 - **Mobile-optimized UI** with responsive design
-- **Test suite passing** (22/22 test suites)
+- **Test suite passing** (22/22 test suites, 321 tests total)
 - **Clean architecture** with simplified document editing
 
 ---
 
-## 🎯 CURRENT FOCUS: Modal System Standardization
+## 🎯 CURRENT FOCUS: Context Menu Repair
 
-### **Ready for Next Phase: Modal System Implementation**
-- **Foundation**: Test suite restored to 22/22 passing (321 tests total)
-- **Cleanup**: Removed UI fluff tests, kept valuable business logic tests
-- **Status**: Stable foundation ready for modal system rearchitecture
-- **Approach**: Implement Obsidian-native modals one component at a time
+### **✅ COMPLETED: Native File Picker Implementation**
+- **Problem Solved**: Custom file picker UI didn't match Obsidian design standards
+- **Solution**: Replaced custom HTML/CSS popup with Obsidian's native `FuzzySuggestModal`
+- **Trigger**: Type `[[` in Nova textarea → native Obsidian file picker opens
+- **Features**: Search, navigation arrows, instruction footer - exactly like core Obsidian
+- **Code Reduction**: 425 lines → 153 lines (-68% in wikilink-suggest.ts)
+- **Architecture**: Simplified from custom popup to native modal integration
 
 ---
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Modal System Standardization**
-- **Problem**: Custom file picker creates inconsistent UX and mobile issues
-- **Solution**: Standardize on Obsidian-native modals for all selection interfaces
-- **Scope**: File picker first, then foundation for command system
-- **Preserves**: Context drawer (serves different persistent state management purpose)
-- **Detailed specs**: Will be provided at implementation time
+### **Next: Context Menu Function Repair**
+- **Problem**: Right-click context menu functions are currently broken
+- **Scope**: Fix Nova submenu functionality in Obsidian's context menu
+- **Priority**: High - core selection-based editing feature
+- **Investigation**: Identify what broke and restore functionality
 
 ### **Then: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
