@@ -667,30 +667,6 @@
     background: var(--background-modifier-border-hover);
 }
 
-/* Native modal optimizations */
-.nova-custom-instruction-modal {
-    .setting-item {
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-    }
-    
-    .setting-item-description {
-        margin-bottom: 0.75rem;
-    }
-}
-
-/* Mobile-specific modal adjustments */
-.is-mobile .nova-custom-instruction-modal {
-    .setting-item {
-        padding: 0.5rem 0;
-    }
-    
-    /* Reduce button container padding on mobile */
-    .setting-item:last-child {
-        padding-top: 1rem;
-    }
-}
-
 /* Mobile Upgrade Interface */
 .nova-mobile-upgrade {
     height: 100%;
