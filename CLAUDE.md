@@ -82,8 +82,9 @@
 
 ### **Next: Remaining Critical Bug Fixes**
 1. **Model switch messages not persisted** - When switching AI models (e.g., `:claude`, `:chatgpt`), the success message is not persisted to conversation history and disappears when switching files
-2. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
-3. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
+2. **Welcome message styling broken** - When editing or viewing a document for the first time, shows ugly unstyled message "Working on [filename]" instead of the nicely styled welcome message
+3. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
+4. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
 
 ### **Second: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
