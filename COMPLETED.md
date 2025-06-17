@@ -2,42 +2,66 @@
 
 This file contains all completed work items that have been removed from CLAUDE.md to keep it focused on current/pending work only.
 
+**Items are listed in chronological order (newest first)**
+
 ---
 
-## June 17, 2025 - Model Switch Message Persistence Fix ✅
+## June 17, 2025 - UI Bug Fix ✅
 
-### ✅ COMPLETED: Model Switch Message Persistence & System Message Cleanup
-**Problem**: Model/provider switch messages weren't persisting to conversation history and appeared as unstyled bubbles instead of styled pills.
+### ✅ COMPLETED: File Drawer Header Row Vertical Centering
+**Problem**: File drawer header row had misaligned content when in closed state:
+- Book icon was not properly vertically centered with text
+- Header container lacked proper flex alignment for min-height constraints
 
-**Root Cause**: Messages used `createIconMessage()` which generated HTML with SVG icons, making them >30 characters and triggering 'bubble' display instead of 'pill' styling. Also used `this.addMessage('system')` instead of unified message system.
+**Solution**: Fixed vertical alignment through CSS improvements:
+- Changed parent `contextIndicator` from `display: block` to `display: flex`
+- Added `height: 100%` to `nova-context-summary` element
+- Updated `filenamePartEl` to use flexbox with proper icon/text separation
+- Created separate spans for icon and text with proper flex properties
 
-**Implementation Details:**
-- **Fixed model switching methods**: Replaced `createIconMessage` calls with simple text in `switchToModel()` and `switchToProvider()` 
-- **Fixed colon commands**: Updated `:claude`, `:chatgpt`, `:gemini`, `:ollama` to use unified system
-- **Cleaned up 6 broken system messages**: Feature gates, custom templates, multi-doc context, unknown commands
-- **Enforced emoji policy**: Only checkmark (✓) for success, X (❌) for errors - removed ⚡, ❓, 📚
-- **Unified message system**: All messages now use `addSuccessMessage()` or `addErrorMessage()`
+**Files Changed**: `src/ui/sidebar-view.ts` (lines 982, 998, 1019-1027)
+**Testing**: All 34 test suites passing, project builds successfully
 
-**Files Modified:**
-- `src/ui/sidebar-view.ts`: Fixed all system message calls (8 locations)
+---
 
-**Technical Changes:**
-```typescript
-// Before (broken):
-this.addMessage('system', this.createIconMessage('refresh-cw', 'Switched to...'));
+## June 17, 2025 - Message System Improvements ✅
 
-// After (working):
-this.addSuccessMessage('✓ Switched to ${provider}');
-```
+### ✅ COMPLETED: Unified Message System Implementation
+**Problem**: Three different message creation paths caused inconsistent UX:
+- Success messages = Styled green pills ("✓ Content added")
+- Command failures = Plain assistant bubbles ("Failed to add content") 
+- System errors = Icon messages with mixed styling
+
+**Solution**: Implemented unified error handling to match success message patterns:
+- Added `addErrorIndicator()` method to sidebar matching `addSuccessIndicator()`
+- Removed all `addAssistantMessage()` calls from command handlers for failures
+- Updated sidebar command execution to use unified error display
+- Both success and error messages now use consistent styled pills
 
 **Result**: 
-- All model switch messages appear as styled green pills immediately
-- Messages persist to conversation history correctly  
-- Messages restore with proper styling when switching files
-- Consistent UX across all system notifications
+- Success = "✓ Content added" (styled green pill)
+- Failure = "❌ Failed to add content" (styled red pill)  
+- Both persist and restore consistently with conversation history
 - All 34 test suites passing (368 tests)
 
-**Status**: Fully implemented and tested
+### ✅ COMPLETED: Model Switch Message Persistence Fixed 
+**Problem**: Model/provider switch messages used HTML icon messages that were too long, causing them to display as unstyled bubbles instead of styled pills, and weren't persisting to conversation history.
+
+**Solution**: 
+- Replaced `createIconMessage()` calls with simple text in `switchToModel()` and `switchToProvider()` methods
+- Updated colon command handlers (`:claude`, `:chatgpt`, etc.) to use plain text messages
+- Fixed 6 additional system messages that weren't using unified message system
+- Enforced emoji policy: only checkmark (✓) for success, X (❌) for errors
+
+**Changes Made**:
+- `switchToModel`: `createIconMessage` → `✓ Switched to ${provider} ${model}`
+- `switchToProvider`: `createIconMessage` → `✓ Switched to ${provider}`  
+- Colon commands: `createIconMessage` → `✓ Switched to ${provider}`
+- Feature gates: `createIconMessage` → `❌ Commands are currently in early access...`
+- Multi-doc context: `createIconMessage` → `✓ Included ${count} documents...`
+- Custom templates: `createIconMessage` → `✓ Loaded template: ${name}`
+
+**Result**: All model switch and system messages now appear as properly styled pills, persist to conversation history, and restore correctly when switching files.
 
 ---
 
@@ -51,7 +75,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Mobile preserved**: Keeps optimized 65px min-height for compact mobile experience
 - **Clean separation**: Desktop and mobile have distinct, appropriate textarea sizes
 - **Build verified**: Successfully compiles with no errors
-- **Status**: Already implemented in codebase (found during task review)
 
 ---
 
@@ -162,8 +185,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 
 **Status**: Perfect implementation ready for production. Provides excellent user feedback with clean streaming experience and intuitive undo behavior.
 
-## June 15, 2025 - Selection-Based AI Editing Feature ✅
-
 ### ✅ COMPLETED: Dynamic Context-Aware Thinking Phrases
 **Implementation Details:**
 - **Feature**: Right-click context menu for AI-powered text transformations
@@ -174,7 +195,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
   - Tone Changes: "Nova is adjusting the tone..."
   - Custom: "Nova is working on your request..."
 - **Implementation**: Added getThinkingMessage() method in selection-context-menu.ts
-- **Status**: Fully implemented and tested
 
 ### ✅ COMPLETED: Selection Menu Enhancements
 **Implementation Details:**
@@ -182,7 +202,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Tone Submenu**: 4 tone options (Formal, Casual, Academic, Friendly)
 - **Icons**: Consistent use of 'wand' icon for all AI actions
 - **Custom Action**: "Tell Nova..." option with modal for custom instructions
-- **Status**: Production ready
 
 ### ✅ COMPLETED: Modal Input System
 **Implementation Details:**
@@ -191,7 +210,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Placeholder Text**: Helpful example "Make this sound more professional..."
 - **Validation**: Prevents empty submissions
 - **Keyboard Support**: Ctrl/Cmd+Enter to submit
-- **Status**: Fully functional
 
 ---
 
@@ -209,7 +227,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Consistent behavior**: Both [[ picker and drag-and-drop use identical workflow
 - **Accurate duplicate detection**: Correctly identifies and reports duplicate files in notifications
 - **Fixed persistent context**: Context is properly maintained between drag operations
-- **Status**: Production ready with polished UX
 
 ### ✅ COMPLETED: Drag-and-Drop File Context Feature
 **Implementation Details:**
@@ -220,7 +237,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Visual feedback** - accent-colored drop zone with plus icon during drag
 - **User-friendly messages** for invalid drops (folders, non-markdown files)
 - **Clean implementation** - 150 lines, well-separated in InputHandler class
-- **Status**: Fully implemented and tested
 
 ---
 
@@ -234,7 +250,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Cursor-based streaming** without text selection
 - **Backward compatibility** with fallback to synchronous
 - **Comprehensive testing** with unit tests
-- **Status**: All chat commands now use unified streaming system
 
 ---
 
@@ -258,7 +273,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - Clean, focused layout without examples section
 - Touch-friendly buttons with proper sizing
 - Platform-specific responsive design
-- **Status**: Production ready
 
 ---
 
@@ -270,30 +284,16 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - All edits happen at cursor position only
 - Clean, simplified architecture
 - Test suite updated and passing (22/22)
-- **Status**: Fully implemented
 
 ### ✅ COMPLETED: Critical Bug Fixes
 - **File-scoped cursor tracking** eliminates cross-file contamination
 - **Fixed file-editor consistency** for multi-document workflows
 - **Robust getActiveEditor()** method ensures correct file targeting
 - **Critical context removal bug fixed**
-- **Status**: All critical bugs resolved
 
 ---
 
 ## June 16, 2025 - UI Polish Tasks ✅
-
-### ✅ COMPLETED: Desktop Textarea Height Increase
-**Implementation Details:**
-- **Increased desktop textarea from 80px to 120px** (~5-6 lines of text)
-- **Platform-specific CSS classes** already in place (`is-desktop` and `is-mobile`)
-- **Desktop styling**: `.is-desktop .nova-input-row textarea { min-height: 120px !important; }`
-- **Mobile preserved**: Keeps optimized 65px min-height for compact mobile experience
-- **Clean separation**: Desktop and mobile have distinct, appropriate textarea sizes
-- **Build verified**: Successfully compiles with no errors
-- **Status**: Already implemented in codebase (found during task review)
-
----
 
 ### ✅ COMPLETED: Remove Unnecessary Separator Line
 **Implementation Details:**
@@ -301,7 +301,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Cleaner visual flow** between chat area and input container
 - **Reduced visual clutter** for a more cohesive interface
 - **Build verified**: Successfully compiles with no errors
-- **Status**: Completed, creates smoother transition in sidebar UI
 
 ### ✅ COMPLETED: Update Plugin Version to 1.0
 **Implementation Details:**
@@ -309,7 +308,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Synchronized with package.json** which already had version "1.0.0"
 - **Version consistency achieved** across all configuration files
 - **Build verified**: Successfully compiles with no errors
-- **Status**: Ready for 1.0 release
 
 ### ✅ COMPLETED: Fix Plugin Name Consistency  
 **Implementation Details:**
@@ -317,7 +315,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Fixed mobile sidebar display** - now shows "Nova" consistently
 - **Brand consistency achieved** across all UI elements
 - **Build verified**: Successfully compiles with no errors
-- **Status**: Plugin name now consistent everywhere
 
 ### ✅ COMPLETED: Fix Double "Nova" Prefix in Command Palette
 **Implementation Details:**
@@ -326,7 +323,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Obsidian adds plugin name automatically**, so they display as "Nova: Improve Writing"
 - **No double prefix issue** - prevents "Nova: Nova: Make Shorter" duplication
 - **All 9 commands verified**: Clean names for improved UI/UX
-- **Status**: Already implemented correctly in main.ts
 
 ---
 
@@ -359,8 +355,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **✅ Visual Polish** - Removed unnecessary separator lines, optimized textarea heights
 - **✅ Version 1.0** - Ready for Obsidian Community Plugin submission
 
-**Status**: Production-ready plugin with core collaborative writing features complete. Ready for market launch and user testing.
-
 ---
 
 ## June 16, 2025 - Architecture Simplification ✅
@@ -390,8 +384,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Faster workflows** - No location selection steps
 - **Consistent behavior** - Same pattern across all Nova features
 - **Mobile-friendly** - Touch cursor placement works perfectly
-
-**Status**: Architectural transformation complete. Nova now provides collaborative writing through simple, predictable cursor-based editing.
 
 ---
 
@@ -434,8 +426,6 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - **Consistency**: All modals now match Obsidian's native design language
 - **Maintainability**: Using Obsidian's built-in components reduces custom code
 - **Mobile compatibility**: Native components handle responsive design automatically
-
-**Status**: All UI components now use native Obsidian patterns. Context menu fully functional with proper error recovery.
 
 ---
 
@@ -480,5 +470,3 @@ this.addSuccessMessage('✓ Switched to ${provider}');
 - `src/ui/chat-renderer.ts` - Added 20-character threshold logic
 
 **Result**: Clean, consistent visual hierarchy throughout the sidebar with smart message type detection
-
-**Status**: Sidebar now has professional, unified message styling that enhances readability and user experience.

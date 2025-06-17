@@ -86,8 +86,7 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Next: Remaining Critical Bug Fixes**
-1. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
-2. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
+1. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
 
 ### **Second: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner

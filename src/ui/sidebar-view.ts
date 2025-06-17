@@ -980,7 +980,7 @@ export class NovaSidebarView extends ItemView {
 		// Show as thin line with mobile-optimized sizing
 		const isMobile = Platform.isMobile;
 		this.contextIndicator.style.cssText = `
-			display: block;
+			display: flex;
 			position: relative;
 			padding: ${isMobile ? '12px 16px' : '8px 12px'};
 			margin-bottom: 4px;
@@ -1000,6 +1000,7 @@ export class NovaSidebarView extends ItemView {
 			align-items: center;
 			justify-content: space-between;
 			width: 100%;
+			height: 100%;
 			cursor: pointer;
 			pointer-events: auto;
 		`;
@@ -1015,8 +1016,15 @@ export class NovaSidebarView extends ItemView {
 		
 		// Create filename part that can truncate
 		const filenamePartEl = summaryTextEl.createSpan();
-		filenamePartEl.style.cssText = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;';
-		filenamePartEl.innerHTML = this.createInlineIcon('book-open') + ` ${docNames.join(', ')}${moreCount}`;
+		filenamePartEl.style.cssText = 'display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;';
+		// Create icon and text as separate elements for proper flex alignment
+		const iconSpan = filenamePartEl.createSpan();
+		iconSpan.innerHTML = this.createInlineIcon('book-open');
+		iconSpan.style.cssText = 'flex-shrink: 0; display: flex; align-items: center;';
+		
+		const textSpan = filenamePartEl.createSpan();
+		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
+		textSpan.style.cssText = 'overflow: hidden; text-overflow: ellipsis; min-width: 0;';
 		
 		// Create token part that always stays visible
 		const tokenPartEl = summaryTextEl.createSpan();
