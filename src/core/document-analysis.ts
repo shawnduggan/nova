@@ -49,15 +49,31 @@ export class DocumentAnalyzer {
 	}
 	
 	private static hasContentAfterHeading(lines: string[], headingIndex: number): boolean {
+		const currentHeading = lines[headingIndex].trim();
+		const currentLevel = currentHeading.match(/^(#{1,6})/)?.[1].length || 0;
+		
 		for (let i = headingIndex + 1; i < lines.length; i++) {
 			const line = lines[i].trim();
 			
-			// Stop if we hit another heading
-			if (line.match(/^#{1,6}\s/)) break;
+			// Check if this is a heading
+			const headingMatch = line.match(/^(#{1,6})\s/);
+			if (headingMatch) {
+				const nextLevel = headingMatch[1].length;
+				
+				// If next heading is same or higher level (lower number), 
+				// and we haven't found content yet, this section is empty
+				if (nextLevel <= currentLevel) {
+					return false;
+				}
+				// If it's a sub-heading (higher number), continue looking for content
+				// This allows for H1 → H2 structure without counting as empty
+			}
 			
-			// If we find non-empty content, heading is not empty
+			// If we find substantial content (not just whitespace), heading is not empty
 			if (line.length > 0) return true;
 		}
+		
+		// If we reach end of document without finding content, it's empty
 		return false;
 	}
 }

@@ -140,7 +140,7 @@ export class ChatRenderer {
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
 				<p style="margin: 0; margin-left: var(--size-2-3); color: var(--text-muted); font-size: var(--font-ui-medium); line-height: 1.4; text-align: left; align-self: flex-start;">
-					I'm your AI writing partner. Ask questions or give commands to edit your document.<br><br>CTRL/CMD-Z once or twice to undo changes.
+					I'm your AI writing partner. Ask questions in chat or give commands to edit at your cursor position.<br><br>CTRL/CMD-Z once or twice to undo changes.
 				</p>
 			</div>
 		`;

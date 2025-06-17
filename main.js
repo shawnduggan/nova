@@ -36,6 +36,57 @@ var import_obsidian12 = require("obsidian");
 // src/ui/sidebar-view.ts
 var import_obsidian11 = require("obsidian");
 
+// src/core/document-analysis.ts
+var DocumentAnalyzer = class {
+  static analyzeStructure(content) {
+    const lines = content.split("\n");
+    const headings = [];
+    const emptyHeadings = [];
+    const incompleteBullets = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = headingMatch[2];
+        const hasContent = this.hasContentAfterHeading(lines, i);
+        const isEmpty = !hasContent;
+        headings.push({ level, text, isEmpty });
+        if (isEmpty) {
+          emptyHeadings.push(text);
+        }
+      }
+      if (line.match(/^[-*+]\s*(.*)\.\.\.?\s*$/) || line.match(/^[-*+]\s*$/) || line.match(/^[-*+]\s*(TODO|TBD)/i)) {
+        incompleteBullets.push(line);
+      }
+    }
+    const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length;
+    return {
+      headings,
+      wordCount,
+      emptyHeadings,
+      incompleteBullets
+    };
+  }
+  static hasContentAfterHeading(lines, headingIndex) {
+    var _a;
+    const currentHeading = lines[headingIndex].trim();
+    const currentLevel = ((_a = currentHeading.match(/^(#{1,6})/)) == null ? void 0 : _a[1].length) || 0;
+    for (let i = headingIndex + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const headingMatch = line.match(/^(#{1,6})\s/);
+      if (headingMatch) {
+        const nextLevel = headingMatch[1].length;
+        if (nextLevel <= currentLevel) {
+          return false;
+        }
+      }
+      if (line.length > 0) return true;
+    }
+    return false;
+  }
+};
+
 // src/core/multi-doc-context.ts
 var import_obsidian = require("obsidian");
 var MultiDocContextHandler = class {
@@ -481,7 +532,7 @@ var _InputHandler = class _InputHandler {
     const textAreaContainer = this.inputRow.createDiv();
     textAreaContainer.style.cssText = "flex: 1; position: relative;";
     this.textArea = new import_obsidian3.TextAreaComponent(textAreaContainer);
-    this.textArea.setPlaceholder("Ask Nova anything... (Shift+Enter for new line)");
+    this.textArea.setPlaceholder("How can I help with your writing?");
     this.textArea.inputEl.style.cssText = `
 			min-height: 80px;
 			max-height: 200px;
@@ -1448,11 +1499,10 @@ var _ChatRenderer = class _ChatRenderer {
 			background: var(--background-primary);
 			border-radius: var(--radius-s);
 			border: 1px solid var(--background-modifier-border);
-			text-align: center;
 		`;
     const content = message || `
-			<div style="display: flex; align-items: center; justify-content: center; gap: var(--size-2-3); margin-bottom: var(--size-4-2);">
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size); color: var(--interactive-accent);">
+			<div style="display: flex; flex-direction: column; align-items: center;">
+				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: var(--interactive-accent); margin-bottom: var(--size-4-2);">
 					<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 					<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 					<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -1463,11 +1513,10 @@ var _ChatRenderer = class _ChatRenderer {
 					<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
-				<span style="font-size: var(--font-ui-large); font-weight: 600; color: var(--text-normal);">Hi, I'm Nova</span>
+				<p style="margin: 0; margin-left: var(--size-2-3); color: var(--text-muted); font-size: var(--font-ui-medium); line-height: 1.4; text-align: left; align-self: flex-start;">
+					I'm your AI writing partner. Ask questions in chat or give commands to edit at your cursor position.<br><br>CTRL/CMD-Z once or twice to undo changes.
+				</p>
 			</div>
-			<p style="margin: 0; color: var(--text-faint); font-size: var(--font-ui-small);">
-				\u{1F4A1} <strong>Tip:</strong> Reference other notes with [[Note Name]]
-			</p>
 		`;
     welcomeEl.innerHTML = content;
     this.scrollToBottom(true);
@@ -2695,14 +2744,19 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     const headerEl = wrapperEl.createDiv({ cls: "nova-header" });
     headerEl.style.cssText = `
 			display: flex;
-			align-items: center;
-			justify-content: space-between;
+			flex-direction: column;
 			padding: var(--size-4-2);
 			border-bottom: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 		`;
-    const titleEl = headerEl.createEl("h4");
-    titleEl.style.cssText = "margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2);";
+    const topRowEl = headerEl.createDiv();
+    topRowEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		`;
+    const titleEl = topRowEl.createEl("h4");
+    titleEl.style.cssText = "margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2); color: var(--interactive-accent);";
     titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -2714,7 +2768,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
 			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 		</svg>Nova`;
-    const rightContainer = headerEl.createDiv();
+    const rightContainer = topRowEl.createDiv();
     rightContainer.style.cssText = "display: flex; align-items: center; gap: var(--size-2-3);";
     const privacyIndicator = rightContainer.createSpan({ cls: "nova-privacy-indicator" });
     privacyIndicator.style.cssText = `
@@ -3968,6 +4022,7 @@ USER REQUEST: ${processedMessage}`;
       to: targetFile.path
     });
     this.currentFile = targetFile;
+    this.updateDocumentStats();
     const activeView = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
     if (activeView && activeView.editor) {
       this.trackCursorPosition(activeView.editor);
@@ -3978,6 +4033,7 @@ USER REQUEST: ${processedMessage}`;
     try {
       console.log("\u{1F4DA} LOADING CONVERSATION HISTORY via ChatRenderer");
       await this.chatRenderer.loadConversationHistory(targetFile);
+      await this.showDocumentInsights(targetFile);
     } catch (error) {
       console.log("\u274C CONVERSATION LOADING ERROR:", error);
       this.addWelcomeMessage();
@@ -3997,6 +4053,84 @@ USER REQUEST: ${processedMessage}`;
       }
     }
     new import_obsidian11.Notice("Chat cleared");
+  }
+  async updateDocumentStats() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) return;
+    try {
+      const content = await this.app.vault.read(activeFile);
+      if (!content) return;
+      const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length;
+      const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
+      const headerEl = this.containerEl.querySelector(".nova-header");
+      if (headerEl) {
+        let statsEl = headerEl.querySelector(".nova-document-stats");
+        if (!statsEl) {
+          statsEl = headerEl.createEl("div", { cls: "nova-document-stats" });
+        }
+        if (statsEl && wordCount > 0) {
+          statsEl.textContent = `${wordCount} words \u2022 ${headingCount} sections`;
+          statsEl.style.cssText = `
+						font-size: 0.75em;
+						color: var(--text-muted);
+						margin-top: var(--size-2-2);
+					`;
+        }
+      }
+    } catch (error) {
+    }
+  }
+  async showDocumentInsights(file) {
+    try {
+      const content = await this.app.vault.read(file);
+      const analysis = DocumentAnalyzer.analyzeStructure(content);
+      if (analysis.emptyHeadings.length > 0 || analysis.incompleteBullets.length > 0) {
+        const insights = [];
+        if (analysis.emptyHeadings.length > 0) {
+          insights.push(`${analysis.emptyHeadings.length} empty heading${analysis.emptyHeadings.length > 1 ? "s" : ""} to fill`);
+        }
+        if (analysis.incompleteBullets.length > 0) {
+          insights.push(`${analysis.incompleteBullets.length} incomplete bullet${analysis.incompleteBullets.length > 1 ? "s" : ""}`);
+        }
+        if (insights.length > 0) {
+          const bulletList = insights.map((insight) => `\u2022 ${insight}`).join("\n");
+          const messageEl = this.chatContainer.createDiv({ cls: "nova-message nova-message-assistant nova-insights" });
+          messageEl.style.cssText = `
+						margin-bottom: var(--size-4-2);
+						padding: var(--size-2-3) var(--size-4-3);
+						border-radius: var(--radius-s);
+						max-width: 85%;
+						background: var(--background-modifier-hover);
+						color: var(--text-muted);
+						font-size: var(--font-ui-small);
+						text-align: left;
+						margin-left: 0;
+						margin-right: auto;
+					`;
+          const roleEl = messageEl.createEl("div", {
+            text: "Nova",
+            cls: "nova-message-role"
+          });
+          roleEl.style.cssText = `
+						font-size: var(--font-ui-smaller);
+						opacity: 0.7;
+						margin-bottom: var(--size-2-1);
+						font-weight: 600;
+					`;
+          const contentEl = messageEl.createEl("div", { cls: "nova-message-content" });
+          contentEl.style.cssText = "white-space: pre-line; text-align: left;";
+          contentEl.textContent = `I noticed:
+
+${bulletList}
+
+Let me help.`;
+          setTimeout(() => {
+            this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+          }, 50);
+        }
+      }
+    } catch (error) {
+    }
   }
   // Public methods for testing
   async sendMessage(message) {

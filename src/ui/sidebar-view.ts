@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
+import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
@@ -1815,6 +1816,9 @@ USER REQUEST: ${processedMessage}`;
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
 			await this.chatRenderer.loadConversationHistory(targetFile);
 			
+			// Show document insights after loading conversation
+			await this.showDocumentInsights(targetFile);
+			
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
 			console.log('❌ CONVERSATION LOADING ERROR:', error);
@@ -1880,6 +1884,66 @@ USER REQUEST: ${processedMessage}`;
 			}
 		} catch (error) {
 			// Silently fail - stats are optional
+		}
+	}
+
+	private async showDocumentInsights(file: TFile): Promise<void> {
+		try {
+			const content = await this.app.vault.read(file);
+			const analysis = DocumentAnalyzer.analyzeStructure(content);
+			
+			if (analysis.emptyHeadings.length > 0 || analysis.incompleteBullets.length > 0) {
+				const insights: string[] = [];
+				
+				if (analysis.emptyHeadings.length > 0) {
+					insights.push(`${analysis.emptyHeadings.length} empty heading${analysis.emptyHeadings.length > 1 ? 's' : ''} to fill`);
+				}
+				
+				if (analysis.incompleteBullets.length > 0) {
+					insights.push(`${analysis.incompleteBullets.length} incomplete bullet${analysis.incompleteBullets.length > 1 ? 's' : ''}`);
+				}
+				
+				if (insights.length > 0) {
+					const bulletList = insights.map(insight => `• ${insight}`).join('\n');
+					
+					// Create a custom left-aligned message for document insights
+					const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-assistant nova-insights' });
+					messageEl.style.cssText = `
+						margin-bottom: var(--size-4-2);
+						padding: var(--size-2-3) var(--size-4-3);
+						border-radius: var(--radius-s);
+						max-width: 85%;
+						background: var(--background-modifier-hover);
+						color: var(--text-muted);
+						font-size: var(--font-ui-small);
+						text-align: left;
+						margin-left: 0;
+						margin-right: auto;
+					`;
+
+					const roleEl = messageEl.createEl('div', { 
+						text: 'Nova',
+						cls: 'nova-message-role'
+					});
+					roleEl.style.cssText = `
+						font-size: var(--font-ui-smaller);
+						opacity: 0.7;
+						margin-bottom: var(--size-2-1);
+						font-weight: 600;
+					`;
+
+					const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+					contentEl.style.cssText = 'white-space: pre-line; text-align: left;';
+					contentEl.textContent = `I noticed:\n\n${bulletList}\n\nLet me help.`;
+
+					// Scroll to show the new message
+					setTimeout(() => {
+						this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+					}, 50);
+				}
+			}
+		} catch (error) {
+			// Silently fail - analysis is optional
 		}
 	}
 

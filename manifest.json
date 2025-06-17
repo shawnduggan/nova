@@ -1,12 +1,12 @@
 {
-	"id": "nova",
-	"name": "Nova",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Nova - your AI Thinking Partner for Obsidian that edits your documents directly through natural conversation. Stop copying from chat, start collaborating with AI.",
-	"author": "Shawn Duggan",
-	"authorUrl": "https://github.com/shawnduggan",
-	"fundingUrl": "https://github.com/sponsors/shawnduggan",
-	"isDesktopOnly": false,
-	"css": "styles.css"
+  "id": "nova",
+  "name": "Nova",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Nova - your AI writing partner for Obsidian. Select any text and transform it directly in place, or get intelligent suggestions based on your document structure. No copy-paste, just seamless collaboration.",
+  "author": "Shawn Duggan",
+  "authorUrl": "https://github.com/shawnduggan",
+  "fundingUrl": "https://github.com/sponsors/shawnduggan",
+  "isDesktopOnly": false,
+  "css": "styles.css"
 }
