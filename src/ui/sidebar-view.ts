@@ -1502,16 +1502,27 @@ export class NovaSidebarView extends ItemView {
 				</div>
 			`;
 			
-			const textEl = loadingEl.createSpan({ text: 'Nova is thinking...' });
-			textEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em;';
-
-			// Message already stored in conversation manager above
-
-			// Use AI to classify the user's intent
+			// Use AI to classify the user's intent first to get contextual phrase
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const selectedText = activeView?.editor?.getSelection();
 			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
 			const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
+			
+			// Get initial contextual thinking phrase
+			let contextualCommand: EditCommand | undefined;
+			if (intent === 'METADATA' || intent === 'CONTENT') {
+				contextualCommand = this.plugin.commandParser.parseCommand(processedMessage);
+			}
+			const initialPhrase = this.getContextualThinkingPhrase(contextualCommand, processedMessage);
+			
+			const loadingTextEl = loadingEl.createSpan({ text: initialPhrase });
+			loadingTextEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em;';
+			
+			// Start phrase rotation animation
+			this.startThinkingPhraseRotation(loadingTextEl, contextualCommand, processedMessage);
+
+			// Message already stored in conversation manager above
+
 			let response: string | null = null;
 			
 			if (intent === 'METADATA' && activeFile) {
@@ -1560,7 +1571,11 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 			
-			// Remove loading indicator
+			// Remove loading indicator with proper cleanup
+			const loadingTextSpan = loadingEl.querySelector('span');
+			if (loadingTextSpan) {
+				this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+			}
 			loadingEl.remove();
 			
 			// Filter thinking content from response
@@ -1586,9 +1601,15 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 		} catch (error) {
-			// Remove loading indicator if it exists
+			// Remove loading indicator if it exists with proper cleanup
 			const loadingEl = this.chatContainer.querySelector('.nova-loading');
-			if (loadingEl) loadingEl.remove();
+			if (loadingEl) {
+				const loadingTextSpan = loadingEl.querySelector('span');
+				if (loadingTextSpan) {
+					this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+				}
+				loadingEl.remove();
+			}
 			
 			this.addErrorMessage(this.createIconMessage('x-circle', `Sorry, I encountered an error: ${(error as Error).message}`));
 		} finally {
@@ -2478,9 +2499,6 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Show thinking notice with 'add' action type
-			this.streamingManager.showThinkingNotice('add');
-
 			// Start streaming at cursor position
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
@@ -2535,9 +2553,6 @@ USER REQUEST: ${processedMessage}`;
 					error: 'Could not determine cursor position'
 				};
 			}
-
-			// Show thinking notice with 'edit' action type
-			this.streamingManager.showThinkingNotice('edit');
 
 			// Start streaming at cursor position
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
@@ -2594,9 +2609,6 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Show thinking notice with 'rewrite' action type
-			this.streamingManager.showThinkingNotice('rewrite');
-
 			// Start streaming at cursor position
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
@@ -2651,9 +2663,6 @@ USER REQUEST: ${processedMessage}`;
 					error: 'Could not determine cursor position'
 				};
 			}
-
-			// Show thinking notice with 'grammar' action type
-			this.streamingManager.showThinkingNotice('grammar');
 
 			// Start streaming at cursor position
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
@@ -2783,6 +2792,79 @@ USER REQUEST: ${processedMessage}`;
 			const combinedMessage = messages.join(', ');
 			const duration = notFoundFiles.length > 0 ? 3000 : 2000; // Longer duration if there are errors
 			new Notice(combinedMessage, duration);
+		}
+	}
+
+	/**
+	 * Get contextual thinking phrase based on command type or message content
+	 */
+	private getContextualThinkingPhrase(command?: EditCommand, messageText?: string): string {
+		// Determine context based on command type or message content
+		if (command) {
+			switch (command.action) {
+				case 'grammar':
+				case 'edit':
+					return this.getRandomPhrase('improve');
+				case 'add':
+					return this.getRandomPhrase('generate');
+				case 'rewrite':
+					return this.getRandomPhrase('improve');
+				case 'delete':
+					return this.getRandomPhrase('process');
+				default:
+					return this.getRandomPhrase('chat');
+			}
+		} else if (messageText) {
+			// Analyze message content for context
+			if (messageText.includes('improve') || messageText.includes('fix') || messageText.includes('grammar')) {
+				return this.getRandomPhrase('improve');
+			} else if (messageText.includes('add') || messageText.includes('create') || messageText.includes('write')) {
+				return this.getRandomPhrase('generate');
+			} else if (messageText.includes('switch') || messageText.includes('/')) {
+				return this.getRandomPhrase('switch');
+			}
+		}
+		
+		return this.getRandomPhrase('chat');
+	}
+
+	/**
+	 * Get random phrase from specified category
+	 */
+	private getRandomPhrase(category: string): string {
+		const phrases: Record<string, string[]> = {
+			'improve': ['refining...', 'polishing...', 'enhancing...', 'crafting...', 'perfecting...', 'smoothing...', 'sharpening...', 'elevating...', 'fine-tuning...', 'sculpting...'],
+			'generate': ['thinking...', 'crafting...', 'developing...', 'composing...', 'writing...', 'creating...', 'formulating...', 'building...', 'constructing...', 'drafting...'],
+			'switch': ['connecting...', 'switching...', 'updating...', 'configuring...', 'setting up...'],
+			'process': ['processing...', 'analyzing...', 'working...', 'computing...', 'calculating...'],
+			'chat': ['thinking...', 'processing...', 'considering...', 'analyzing...', 'understanding...', 'contemplating...', 'exploring...', 'evaluating...', 'working on it...', 'composing...']
+		};
+		
+		const categoryPhrases = phrases[category] || phrases.chat;
+		return categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)];
+	}
+
+	/**
+	 * Start phrase rotation animation for thinking text
+	 */
+	private startThinkingPhraseRotation(textEl: HTMLElement, command?: EditCommand, messageText?: string): void {
+		// Change phrase every 2 seconds during processing
+		const rotationInterval = setInterval(() => {
+			const newPhrase = this.getContextualThinkingPhrase(command, messageText);
+			textEl.textContent = newPhrase;
+		}, 2000);
+		
+		// Store interval ID for cleanup
+		(textEl as any).rotationInterval = rotationInterval;
+	}
+
+	/**
+	 * Stop phrase rotation animation and cleanup
+	 */
+	private stopThinkingPhraseRotation(textEl: HTMLElement): void {
+		if ((textEl as any).rotationInterval) {
+			clearInterval((textEl as any).rotationInterval);
+			(textEl as any).rotationInterval = null;
 		}
 	}
 

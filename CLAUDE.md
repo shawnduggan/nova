@@ -85,10 +85,7 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Remaining Critical Bug Fixes**
-1. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
-
-### **Second: Chat UI Contextualization**
+### **Next: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
 - **Key changes**: Remove chatbot personality, immediate document context understanding
 - **UX shift**: Actionable suggestions based on document structure analysis

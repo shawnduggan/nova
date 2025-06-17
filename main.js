@@ -3767,12 +3767,18 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
 					<div class="nova-ring nova-ring-3"></div>
 				</div>
 			`;
-      const textEl = loadingEl.createSpan({ text: "Nova is thinking..." });
-      textEl.style.cssText = "color: var(--text-muted); font-size: 0.9em;";
       const activeView = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
       const selectedText = (_f = activeView == null ? void 0 : activeView.editor) == null ? void 0 : _f.getSelection();
       const hasSelection = !!(selectedText && selectedText.trim().length > 0);
       const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
+      let contextualCommand;
+      if (intent === "METADATA" || intent === "CONTENT") {
+        contextualCommand = this.plugin.commandParser.parseCommand(processedMessage);
+      }
+      const initialPhrase = this.getContextualThinkingPhrase(contextualCommand, processedMessage);
+      const loadingTextEl = loadingEl.createSpan({ text: initialPhrase });
+      loadingTextEl.style.cssText = "color: var(--text-muted); font-size: 0.9em;";
+      this.startThinkingPhraseRotation(loadingTextEl, contextualCommand, processedMessage);
       let response = null;
       if (intent === "METADATA" && activeFile) {
         const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
@@ -3809,6 +3815,10 @@ USER REQUEST: ${processedMessage}`;
           });
         }
       }
+      const loadingTextSpan = loadingEl.querySelector("span");
+      if (loadingTextSpan) {
+        this.stopThinkingPhraseRotation(loadingTextSpan);
+      }
       loadingEl.remove();
       const filteredResponse = response ? this.filterThinkingContent(response) : response;
       if (activeFile && filteredResponse) {
@@ -3823,7 +3833,13 @@ USER REQUEST: ${processedMessage}`;
       }
     } catch (error) {
       const loadingEl = this.chatContainer.querySelector(".nova-loading");
-      if (loadingEl) loadingEl.remove();
+      if (loadingEl) {
+        const loadingTextSpan = loadingEl.querySelector("span");
+        if (loadingTextSpan) {
+          this.stopThinkingPhraseRotation(loadingTextSpan);
+        }
+        loadingEl.remove();
+      }
       this.addErrorMessage(this.createIconMessage("x-circle", `Sorry, I encountered an error: ${error.message}`));
     } finally {
       const sendButton2 = this.inputHandler.sendButton;
@@ -4500,7 +4516,6 @@ USER REQUEST: ${processedMessage}`;
           error: "Could not determine cursor position"
         };
       }
-      this.streamingManager.showThinkingNotice("add");
       const { updateStream, stopStream } = this.streamingManager.startStreaming(
         editor,
         cursorPosition
@@ -4542,7 +4557,6 @@ USER REQUEST: ${processedMessage}`;
           error: "Could not determine cursor position"
         };
       }
-      this.streamingManager.showThinkingNotice("edit");
       const { updateStream, stopStream } = this.streamingManager.startStreaming(
         editor,
         cursorPosition
@@ -4584,7 +4598,6 @@ USER REQUEST: ${processedMessage}`;
           error: "Could not determine cursor position"
         };
       }
-      this.streamingManager.showThinkingNotice("rewrite");
       const { updateStream, stopStream } = this.streamingManager.startStreaming(
         editor,
         cursorPosition
@@ -4626,7 +4639,6 @@ USER REQUEST: ${processedMessage}`;
           error: "Could not determine cursor position"
         };
       }
-      this.streamingManager.showThinkingNotice("grammar");
       const { updateStream, stopStream } = this.streamingManager.startStreaming(
         editor,
         cursorPosition
@@ -4722,6 +4734,68 @@ USER REQUEST: ${processedMessage}`;
       const combinedMessage = messages.join(", ");
       const duration = notFoundFiles.length > 0 ? 3e3 : 2e3;
       new import_obsidian11.Notice(combinedMessage, duration);
+    }
+  }
+  /**
+   * Get contextual thinking phrase based on command type or message content
+   */
+  getContextualThinkingPhrase(command, messageText) {
+    if (command) {
+      switch (command.action) {
+        case "grammar":
+        case "edit":
+          return this.getRandomPhrase("improve");
+        case "add":
+          return this.getRandomPhrase("generate");
+        case "rewrite":
+          return this.getRandomPhrase("improve");
+        case "delete":
+          return this.getRandomPhrase("process");
+        default:
+          return this.getRandomPhrase("chat");
+      }
+    } else if (messageText) {
+      if (messageText.includes("improve") || messageText.includes("fix") || messageText.includes("grammar")) {
+        return this.getRandomPhrase("improve");
+      } else if (messageText.includes("add") || messageText.includes("create") || messageText.includes("write")) {
+        return this.getRandomPhrase("generate");
+      } else if (messageText.includes("switch") || messageText.includes("/")) {
+        return this.getRandomPhrase("switch");
+      }
+    }
+    return this.getRandomPhrase("chat");
+  }
+  /**
+   * Get random phrase from specified category
+   */
+  getRandomPhrase(category) {
+    const phrases = {
+      "improve": ["refining...", "polishing...", "enhancing...", "crafting...", "perfecting...", "smoothing...", "sharpening...", "elevating...", "fine-tuning...", "sculpting..."],
+      "generate": ["thinking...", "crafting...", "developing...", "composing...", "writing...", "creating...", "formulating...", "building...", "constructing...", "drafting..."],
+      "switch": ["connecting...", "switching...", "updating...", "configuring...", "setting up..."],
+      "process": ["processing...", "analyzing...", "working...", "computing...", "calculating..."],
+      "chat": ["thinking...", "processing...", "considering...", "analyzing...", "understanding...", "contemplating...", "exploring...", "evaluating...", "working on it...", "composing..."]
+    };
+    const categoryPhrases = phrases[category] || phrases.chat;
+    return categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)];
+  }
+  /**
+   * Start phrase rotation animation for thinking text
+   */
+  startThinkingPhraseRotation(textEl, command, messageText) {
+    const rotationInterval = setInterval(() => {
+      const newPhrase = this.getContextualThinkingPhrase(command, messageText);
+      textEl.textContent = newPhrase;
+    }, 2e3);
+    textEl.rotationInterval = rotationInterval;
+  }
+  /**
+   * Stop phrase rotation animation and cleanup
+   */
+  stopThinkingPhraseRotation(textEl) {
+    if (textEl.rotationInterval) {
+      clearInterval(textEl.rotationInterval);
+      textEl.rotationInterval = null;
     }
   }
 };

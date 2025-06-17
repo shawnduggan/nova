@@ -6,6 +6,38 @@ This file contains all completed work items that have been removed from CLAUDE.m
 
 ---
 
+## June 17, 2025 - Animation Unification ✅
+
+### ✅ COMPLETED: Nova Animation Unification - Enhanced In-Chat Animation
+**Problem**: Competing animations during AI processing:
+- Notice popup with thinking phrases ("refining...", "polishing...")  
+- Static chat loading with "Nova is thinking..." 
+- Created redundant, distracting user experience
+
+**Solution**: Unified animation system with contextual in-chat experience:
+- Enhanced in-chat animation with dynamic contextual phrases
+- Removed thinking notice popups for chat commands (kept for selection commands)
+- Added phrase rotation every 2 seconds for engaging feedback
+- Context-aware phrases based on command type and message content
+
+**Implementation**: 
+- Added `getContextualThinkingPhrase()` - Select appropriate phrase category
+- Added `getRandomPhrase()` - Get random phrase from category (improve/generate/switch/process/chat)
+- Added `startThinkingPhraseRotation()` - Animate phrase changes every 2 seconds
+- Added `stopThinkingPhraseRotation()` - Cleanup intervals to prevent memory leaks
+- Removed `showThinkingNotice()` calls from all chat-triggered streaming methods
+- Enhanced loading element cleanup with proper animation stop
+
+**UX Impact**:
+- **Before**: Notice popup + static "Nova is thinking..." (redundant)
+- **After**: Single contextual animation "crafting...", "refining..." etc. (engaging)
+- Selection commands still use notice system (appropriate for document workflow)
+
+**Files Changed**: `src/ui/sidebar-view.ts` 
+**Testing**: All 34 test suites passing, project builds successfully
+
+---
+
 ## June 17, 2025 - UI Bug Fix ✅
 
 ### ✅ COMPLETED: File Drawer Header Row Vertical Centering
