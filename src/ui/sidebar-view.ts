@@ -376,7 +376,7 @@ export class NovaSidebarView extends ItemView {
 			${role === 'user' 
 				? 'margin-left: auto; background: var(--interactive-accent); color: var(--text-on-accent);' 
 				: role === 'system'
-				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: var(--font-ui-small);'
+				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: var(--font-text-size);'
 				: 'background: var(--background-primary); border: 1px solid var(--background-modifier-border);'
 			}
 		`;
@@ -1934,7 +1934,7 @@ USER REQUEST: ${processedMessage}`;
 						max-width: 85%;
 						background: var(--background-modifier-hover);
 						color: var(--text-muted);
-						font-size: var(--font-ui-small);
+						font-size: var(--font-text-size);
 						text-align: left;
 						margin-left: 0;
 						margin-right: auto;
