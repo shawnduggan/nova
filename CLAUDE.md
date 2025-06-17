@@ -93,7 +93,8 @@
 - **Detailed specs**: Will be provided at implementation time
 
 ### **Lower Priority Items**
-- **Auto-prepend message symbols** - Update `addSuccessMessage()` to automatically prepend "✓ " and `addErrorMessage()` to prepend "❌ " so callers only pass the text content. Clean up existing usages.
+- **Normalize streaming typewriter effect across all providers** - Anthropic models dump all text at once, OpenAI streams too fast, Google now has good pacing. Make all providers use consistent 3-character chunks with 20ms delays for smooth typewriter effect.
+- **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)
 - Technical Debt Cleanup (sidebar refactoring, legacy code removal)
