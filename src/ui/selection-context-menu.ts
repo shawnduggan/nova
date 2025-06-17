@@ -559,7 +559,7 @@ export class SelectionContextMenu {
     }
 
     /**
-     * Add success message to chat
+     * Add success message to chat using unified system
      */
     private addSuccessChatMessage(actionId: string, originalText: string, customInstruction?: string): void {
         try {
@@ -567,14 +567,16 @@ export class SelectionContextMenu {
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
                 const sidebarView = leaves[0].view as any;
-                if (sidebarView && sidebarView.chatRenderer) {
+                if (sidebarView?.chatRenderer) {
                     const actionDescription = this.getActionDescription(actionId, customInstruction);
                     const truncatedText = originalText.length > 50 
                         ? originalText.substring(0, 50) + '...' 
                         : originalText;
                     
                     const message = `✓ ${actionDescription} text: "${truncatedText}"`;
-                    sidebarView.chatRenderer.addSuccessMessage(message);
+                    
+                    // Use unified system with persistence
+                    sidebarView.chatRenderer.addSuccessMessage(message, true);
                 }
             }
         } catch (error) {
@@ -583,7 +585,7 @@ export class SelectionContextMenu {
     }
 
     /**
-     * Add failure message to chat
+     * Add failure message to chat using unified system
      */
     private addFailureChatMessage(actionId: string, errorMessage: string): void {
         try {
@@ -591,10 +593,12 @@ export class SelectionContextMenu {
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
                 const sidebarView = leaves[0].view as any;
-                if (sidebarView && sidebarView.chatRenderer) {
+                if (sidebarView?.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
                     const message = `✗ Failed to ${actionName.replace('ed', '')} text: ${errorMessage}`;
-                    sidebarView.chatRenderer.addErrorMessage(message);
+                    
+                    // Use unified system with persistence
+                    sidebarView.chatRenderer.addErrorMessage(message, true);
                 }
             }
         } catch (error) {

@@ -58,7 +58,7 @@
 
 ---
 
-## Current Project State (Updated: June 16, 2025)
+## Current Project State (Updated: June 17, 2025)
 
 ### ✅ STATUS: Ship Ready - Core Features Complete
 - **Cursor-only editing system fully implemented and verified**
@@ -68,8 +68,9 @@
 - **Native Obsidian file picker** for `[[` wikilink autocomplete (indistinguishable from core Obsidian)
 - **Unified streaming system** with notice-based thinking animations
 - **Mobile-optimized UI** with responsive design
-- **Test suite passing** (22/22 test suites, 321 tests total)
+- **Test suite passing** (34/34 test suites, 368 tests total)
 - **Clean architecture** with simplified document editing
+- **✅ UNIFIED MESSAGE SYSTEM** - All success/error messages now use consistent styled pills
 
 ---
 
@@ -79,11 +80,9 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Critical Bug Fixes**
-1. **Conversation history not persisting message styling** - Menu commands and chat write to conversation differently. Dynamic CSS causes styling loss. Need persistent styling saved each time.
-2. **Conversation restore brings back duplicate messages** - Not sure if saving or rendering issue
-3. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
-4. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
+### **Next: Remaining Critical Bug Fixes**
+1. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
+2. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
 
 ### **Second: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
@@ -96,6 +95,28 @@
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)
 - Technical Debt Cleanup (sidebar refactoring, legacy code removal)
+
+---
+
+## ✅ COMPLETED FIXES (June 17, 2025)
+
+### **Unified Message System Implementation**
+**Problem**: Three different message creation paths caused inconsistent UX:
+- Success messages = Styled green pills ("✓ Content added")
+- Command failures = Plain assistant bubbles ("Failed to add content") 
+- System errors = Icon messages with mixed styling
+
+**Solution**: Implemented unified error handling to match success message patterns:
+- Added `addErrorIndicator()` method to sidebar matching `addSuccessIndicator()`
+- Removed all `addAssistantMessage()` calls from command handlers for failures
+- Updated sidebar command execution to use unified error display
+- Both success and error messages now use consistent styled pills
+
+**Result**: 
+- Success = "✓ Content added" (styled green pill)
+- Failure = "❌ Failed to add content" (styled red pill)  
+- Both persist and restore consistently with conversation history
+- All 34 test suites passing (368 tests)
 
 ---
 

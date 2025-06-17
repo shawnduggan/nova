@@ -179,6 +179,14 @@ export interface ConversationMessage {
     
     /** Result of command execution */
     result?: EditResult;
+    
+    /** Message metadata for styling and source tracking */
+    metadata?: {
+        /** CSS class for styling */
+        messageType?: string;
+        /** Source of the message */
+        source?: 'chat' | 'selection' | 'command';
+    };
 }
 
 /**

@@ -63,6 +63,7 @@ export default class NovaPlugin extends Plugin {
 		try {
 			await this.loadSettings();
 
+
 			// Initialize licensing system
 			this.licenseValidator = new LicenseValidator();
 			this.featureManager = new FeatureManager(

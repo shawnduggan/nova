@@ -88,6 +88,7 @@ export class ConversationManager {
         content: string, 
         command?: EditCommand
     ): Promise<ConversationMessage> {
+        
         const conversation = this.getConversation(file);
         
         const message: ConversationMessage = {
@@ -143,14 +144,20 @@ export class ConversationManager {
     /**
      * Add a system message to the conversation
      */
-    async addSystemMessage(file: TFile, content: string): Promise<ConversationMessage> {
+    async addSystemMessage(
+        file: TFile, 
+        content: string, 
+        metadata?: { messageType?: string; source?: 'chat' | 'selection' | 'command' }
+    ): Promise<ConversationMessage> {
+        
         const conversation = this.getConversation(file);
         
         const message: ConversationMessage = {
             id: this.generateMessageId(),
             role: 'system',
             content,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            metadata
         };
 
         conversation.messages.push(message);

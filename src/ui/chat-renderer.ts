@@ -2,6 +2,15 @@ import { TFile } from 'obsidian';
 import NovaPlugin from '../../main';
 
 /**
+ * Message options for unified message creation
+ */
+interface MessageOptions {
+	type: 'pill' | 'bubble';
+	variant: 'success' | 'error' | 'system' | 'user' | 'assistant';
+	persist?: boolean; // Whether to save to conversation manager
+}
+
+/**
  * Handles all chat message rendering and display logic
  */
 export class ChatRenderer {
@@ -18,6 +27,7 @@ export class ChatRenderer {
 	 * Add a chat message with role header
 	 */
 	addMessage(role: 'user' | 'assistant' | 'system', content: string): void {
+		
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 		messageEl.style.cssText = `
 			margin-bottom: var(--size-4-2);
@@ -55,30 +65,55 @@ export class ChatRenderer {
 	}
 
 	/**
-	 * Helper method to create simple messages without role headers
+	 * Unified message creation - determines CSS class at creation time
 	 */
-	private createSimpleMessage(content: string, className: string): void {
-		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${className}` });
+	addStatusMessage(content: string, options: MessageOptions): void {
+		// Determine CSS class based on type and variant
+		const cssClass = this.getMessageCSSClass(content, options);
+		
+		// Create message element with static CSS class
+		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${cssClass}` });
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 		
-		// Support icons in messages
 		if (content.includes('<svg')) {
 			contentEl.innerHTML = content;
 		} else {
 			contentEl.textContent = content;
 		}
 
+		// Save to conversation manager if requested
+		if (options.persist) {
+			const activeFile = this.plugin.app.workspace.getActiveFile();
+			if (activeFile) {
+				this.plugin.conversationManager.addSystemMessage(
+					activeFile, 
+					content,
+					{ messageType: cssClass } // Store CSS class as metadata
+				);
+			}
+		}
+
 		this.scrollToBottom();
 	}
 
-	addErrorMessage(content: string): void {
-		this.createSimpleMessage(content, 'nova-message-error');
+	private getMessageCSSClass(content: string, options: MessageOptions): string {
+		if (options.type === 'pill') {
+			return `nova-pill-${options.variant}`;
+		} else {
+			return `nova-bubble-${options.variant}`;
+		}
 	}
 
-	addSuccessMessage(content: string): void {
-		// Use pill style for short messages (under 20 chars)
-		const className = content.length <= 20 ? 'nova-status-pill' : 'nova-message-success';
-		this.createSimpleMessage(content, className);
+	// Simple wrapper methods for backward compatibility
+	addSuccessMessage(content: string, persist: boolean = false): void {
+		// Use pill for short messages, bubble for longer ones
+		const type = content.length <= 30 ? 'pill' : 'bubble';
+		this.addStatusMessage(content, { type, variant: 'success', persist });
+	}
+
+	addErrorMessage(content: string, persist: boolean = false): void {
+		const type = content.length <= 30 ? 'pill' : 'bubble';
+		this.addStatusMessage(content, { type, variant: 'error', persist });
 	}
 
 	addWelcomeMessage(message?: string): void {
@@ -170,9 +205,32 @@ export class ChatRenderer {
 
 	async loadConversationHistory(file: TFile): Promise<void> {
 		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
-		// Display messages in the UI
-		for (const message of messages) {
-			this.addMessage(message.role as 'user' | 'assistant' | 'system', message.content);
+		
+		if (messages.length === 0) {
+			// No conversation exists - show welcome message
+			this.addWelcomeMessage(`Working on "${file.basename}".`);
+			return;
 		}
+		
+		for (const message of messages) {
+			if (message.role === 'system' && message.metadata?.messageType) {
+				// Restore system message with original styling
+				const messageEl = this.chatContainer.createDiv({ 
+					cls: `nova-message ${message.metadata.messageType}` 
+				});
+				const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+				
+				if (message.content.includes('<svg')) {
+					contentEl.innerHTML = message.content;
+				} else {
+					contentEl.textContent = message.content;
+				}
+			} else {
+				// Regular user/assistant messages
+				this.addMessage(message.role as 'user' | 'assistant' | 'system', message.content);
+			}
+		}
+		
+		this.scrollToBottom();
 	}
 }

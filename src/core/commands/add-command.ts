@@ -64,8 +64,7 @@ export class AddCommand {
 
             // Get AI completion
             try {
-                // Log user request
-                await this.documentEngine.addUserMessage(command.instruction, command);
+                // User message already logged by chat input handler
 
                 let content: string;
                 let result: EditResult;
@@ -85,44 +84,29 @@ export class AddCommand {
                     );
 
                     if (!content || content.trim().length === 0) {
-                        const result = {
+                        return {
                             success: false,
                             error: 'AI provider returned empty content',
                             editType: 'insert' as const
                         };
-                        
-                        // Log failed response
-                        await this.documentEngine.addAssistantMessage('Failed to generate content', result);
-                        return result;
                     }
 
                     // Apply the addition based on target
                     result = await this.applyAddition(command, documentContext, content);
                 }
 
-                // Log result for conversation context
-                if (!result.success) {
-                    await this.documentEngine.addAssistantMessage('Failed to add content', result);
-                } else {
-                    await this.documentEngine.addAssistantMessage('Content added successfully', result);
-                }
+                // Log only failures as assistant messages
+                // Success will be handled by sidebar's success indicator
+                // Failure will also be handled by sidebar's error indicator
 
                 return result;
 
             } catch (error) {
-                const result = {
+                return {
                     success: false,
                     error: error instanceof Error ? error.message : 'AI generation failed',
                     editType: 'insert' as const
                 };
-                
-                // Log error response
-                await this.documentEngine.addAssistantMessage(
-                    `Error: ${result.error}`,
-                    result
-                );
-                
-                return result;
             }
 
         } catch (error) {

@@ -399,32 +399,13 @@ export class NovaSidebarView extends ItemView {
 		}, NovaSidebarView.SCROLL_DELAY_MS);
 	}
 
-	/**
-	 * Helper method to create simple messages without role headers
-	 */
-	private createSimpleMessage(content: string, className: string): void {
-		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${className}` });
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		
-		// Support icons in messages
-		if (content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
-
-		// Auto-scroll to bottom
-		setTimeout(() => {
-			this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-		}, NovaSidebarView.SCROLL_DELAY_MS);
+	// REPLACE with simple delegation to ChatRenderer:
+	private addSuccessMessage(content: string): void {
+		this.chatRenderer.addSuccessMessage(content, true); // Always persist
 	}
 
-	private addErrorMessage(content: string) {
-		this.createSimpleMessage(content, 'nova-message-error');
-	}
-
-	private addSuccessMessage(content: string) {
-		this.createSimpleMessage(content, 'nova-message-success');
+	private addErrorMessage(content: string): void {
+		this.chatRenderer.addErrorMessage(content, true); // Always persist  
 	}
 
 	private addWelcomeMessage(message?: string) {
@@ -496,54 +477,35 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private addSuccessIndicator(action: string) {
-		const indicatorEl = this.chatContainer.createDiv({ cls: 'nova-success-indicator' });
-		indicatorEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin: 8px auto;
-			padding: 6px 12px;
-			background: rgba(76, 175, 80, 0.1);
-			border: 1px solid rgba(76, 175, 80, 0.3);
-			border-radius: 16px;
-			font-size: 0.8em;
-			color: var(--text-muted);
-			max-width: 200px;
-			animation: fadeIn 0.3s ease-in;
-		`;
+		// Use unified system instead of dynamic styling
+		const messages = {
+			'add': '✓ Content added',
+			'edit': '✓ Content edited', 
+			'delete': '✓ Content deleted',
+			'grammar': '✓ Grammar fixed',
+			'rewrite': '✓ Content rewritten'
+		};
 		
-		// Add checkmark and text
-		indicatorEl.innerHTML = `
-			<div style="width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; background: var(--text-success); display: flex; align-items: center; justify-content: center;">
-				<div style="width: 4px; height: 2px; border-left: 1px solid white; border-bottom: 1px solid white; transform: rotate(-45deg) translate(-0.5px, -0.5px);"></div>
-			</div>
-			${this.getCompactSuccessMessage(action)}
-		`;
-
-		// Auto-scroll to bottom
-		setTimeout(() => {
-			this.chatContainer.scrollTo({
-				top: this.chatContainer.scrollHeight,
-				behavior: 'smooth'
-			});
-		}, NovaSidebarView.SCROLL_DELAY_MS);
+		const message = messages[action as keyof typeof messages] || '✓ Command completed';
+		this.addSuccessMessage(message);
 	}
 
-	private getCompactSuccessMessage(action: string): string {
-		switch (action) {
-			case 'add':
-				return 'Content added';
-			case 'edit':
-				return 'Content edited';
-			case 'delete':
-				return 'Content deleted';
-			case 'grammar':
-				return 'Grammar fixed';
-			case 'rewrite':
-				return 'Content rewritten';
-			default:
-				return 'Command completed';
+	private addErrorIndicator(action: string, error?: string) {
+		// Use unified system for error messages matching success messages
+		const messages = {
+			'add': '❌ Failed to add content',
+			'edit': '❌ Failed to edit content', 
+			'delete': '❌ Failed to delete content',
+			'grammar': '❌ Failed to fix grammar',
+			'rewrite': '❌ Failed to rewrite content',
+			'execute': '❌ Command execution error'
+		};
+		
+		let message = messages[action as keyof typeof messages] || '❌ Command failed';
+		if (error) {
+			message += `: ${error}`;
 		}
+		this.addErrorMessage(message);
 	}
 
 	private async handleColonCommand(message: string): Promise<boolean> {
@@ -1543,8 +1505,7 @@ export class NovaSidebarView extends ItemView {
 			}
 		}
 
-		// Add user message (show original with references)
-		this.addMessage('user', messageText);
+		// Clear input and UI state first
 		this.inputHandler.setValue('');
 		
 		// Hide context preview since we're sending the message
@@ -1557,6 +1518,19 @@ export class NovaSidebarView extends ItemView {
 		if (sendButton) sendButton.setDisabled(true);
 
 		try {
+			console.log('🚀 CHAT INPUT HANDLING:', { messageText });
+			
+			// Store user message in conversation (will be restored via loadConversationHistory)
+			const activeFile = this.app.workspace.getActiveFile();
+			if (activeFile) {
+				console.log('💾 About to persist user message:', { file: activeFile.path, messageText });
+				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null as any);
+				
+				console.log('📺 About to display user message in UI');
+				// Add user message to UI immediately after persistence
+				this.addMessage('user', messageText);
+			}
+			
 			// Add loading indicator with animated nova
 			const loadingEl = this.chatContainer.createDiv({ cls: 'nova-loading' });
 			loadingEl.style.cssText = `
@@ -1585,11 +1559,7 @@ export class NovaSidebarView extends ItemView {
 			const textEl = loadingEl.createSpan({ text: 'Nova is thinking...' });
 			textEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em;';
 
-			// Store message in conversation manager
-			const activeFile = this.app.workspace.getActiveFile();
-			if (activeFile) {
-				await this.plugin.documentEngine.addUserMessage(messageText);
-			}
+			// Message already stored in conversation manager above
 
 			// Use AI to classify the user's intent
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1781,24 +1751,32 @@ USER REQUEST: ${processedMessage}`;
 			}
 			
 			if (result.success) {
-				// Use custom success message if provided, otherwise use default indicator
-				if (result.successMessage) {
-					this.addSuccessMessage(this.createIconMessage('check-circle', result.successMessage));
-				} else {
-					this.addSuccessIndicator(command.action);
-				}
+				// Show success indicator for command completion
+				this.addSuccessIndicator(command.action);
+				
 				return null; // Don't return text for regular message
 			} else {
-				return `Failed to ${command.action}: ${result.error}`;
+				// Show error indicator for command failure
+				this.addErrorIndicator(command.action, result.error);
+				
+				return null; // Don't return text for regular message
 			}
 		} catch (error) {
-			return this.createIconMessage('x-circle', `Error executing command: ${(error as Error).message}`);
+			// Show error indicator for execution error
+			this.addErrorIndicator('execute', (error as Error).message);
+			
+			return null; // Don't return text for regular message
 		}
 	}
 
 
 	private async loadConversationForActiveFile() {
 		const activeFile = this.app.workspace.getActiveFile();
+		
+		console.log('🔄 FILE SWITCH EVENT:', { 
+			activeFile: activeFile?.path, 
+			currentFile: this.currentFile?.path 
+		});
 		
 		// If no active file, try to find the currently active leaf's file
 		let targetFile = activeFile;
@@ -1818,6 +1796,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If no file available and we have a current file, clear everything
 		if (!targetFile && this.currentFile) {
+			console.log('🗑️ Clearing chat - no target file');
 			this.currentFile = null;
 			this.chatContainer.empty();
 			this.refreshContext();
@@ -1827,11 +1806,17 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If no file or same file, do nothing
 		if (!targetFile || targetFile === this.currentFile) {
+			console.log('⏭️ Skipping file switch - same file or no file');
 			return;
 		}
 		
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
+		
+		console.log('🔄 SWITCHING TO FILE:', { 
+			from: this.currentFile?.path, 
+			to: targetFile.path 
+		});
 		
 		this.currentFile = targetFile;
 		
@@ -1842,27 +1827,20 @@ USER REQUEST: ${processedMessage}`;
 		}
 		
 		// Clear current chat
+		console.log('🧹 CLEARING CHAT for file switch');
 		this.chatContainer.empty();
 		
 		// Refresh context for new file (this will show persistent documents if any)
 		await this.refreshContext();
 		
 		try {
-			// Load conversation history if it exists
-			const recentMessages = await this.plugin.conversationManager.getRecentMessages(targetFile, 10);
+			console.log('📚 LOADING CONVERSATION HISTORY via ChatRenderer');
+			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
+			await this.chatRenderer.loadConversationHistory(targetFile);
 			
-			if (recentMessages.length > 0) {
-				// Display recent conversation history
-				recentMessages.forEach(msg => {
-					if (msg.role !== 'system') {
-						this.addMessage(msg.role as 'user' | 'assistant', msg.content);
-					}
-				});
-			} else {
-				// Show welcome message for new file
-				this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
-			}
+			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
+			console.log('❌ CONVERSATION LOADING ERROR:', error);
 			// Failed to load conversation history - graceful fallback
 			// Show welcome message on error
 			this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
@@ -1942,10 +1920,7 @@ USER REQUEST: ${processedMessage}`;
 					break;
 			}
 		} else {
-			// Regular conversation
-			if (activeFile) {
-				await this.plugin.conversationManager.addUserMessage(activeFile, message, null as any);
-			}
+			// Regular conversation - message already persisted above
 			
 			// Call AI provider
 			await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt);
@@ -1956,10 +1931,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 	}
 
-	async loadConversationHistory(file: any): Promise<void> {
-		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
-		// In real implementation, this would display messages in the UI
-	}
+	// REMOVED: Now using ChatRenderer's loadConversationHistory method directly
 
 
 
