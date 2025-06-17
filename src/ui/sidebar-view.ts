@@ -2835,8 +2835,8 @@ USER REQUEST: ${processedMessage}`;
 		const phrases: Record<string, string[]> = {
 			'improve': ['refining...', 'polishing...', 'enhancing...', 'crafting...', 'perfecting...', 'smoothing...', 'sharpening...', 'elevating...', 'fine-tuning...', 'sculpting...'],
 			'generate': ['thinking...', 'crafting...', 'developing...', 'composing...', 'writing...', 'creating...', 'formulating...', 'building...', 'constructing...', 'drafting...'],
-			'switch': ['connecting...', 'switching...', 'updating...', 'configuring...', 'setting up...'],
-			'process': ['processing...', 'analyzing...', 'working...', 'computing...', 'calculating...'],
+			'switch': ['connecting...', 'switching...', 'updating...', 'configuring...', 'setting up...', 'syncing...', 'preparing...', 'activating...', 'initializing...', 'establishing...'],
+			'process': ['processing...', 'analyzing...', 'working...', 'computing...', 'calculating...', 'examining...', 'evaluating...', 'interpreting...', 'reviewing...', 'scanning...'],
 			'chat': ['thinking...', 'processing...', 'considering...', 'analyzing...', 'understanding...', 'contemplating...', 'exploring...', 'evaluating...', 'working on it...', 'composing...']
 		};
 		
