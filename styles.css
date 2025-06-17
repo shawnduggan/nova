@@ -854,7 +854,7 @@
 
 /* Unified Static Message Classes */
 .nova-pill-success {
-    margin: 0 auto !important;
+    margin: 8px auto !important;
     background: rgba(76, 175, 80, 0.1) !important;
     color: #4caf50 !important;
     border: 1px solid rgba(76, 175, 80, 0.3) !important;
@@ -862,12 +862,12 @@
     font-size: 0.9em !important;
     border-radius: 20px !important;
     max-width: 200px !important;
-    padding: 6px 12px !important;
+    padding: 8px 12px !important;
     display: block !important;
 }
 
 .nova-pill-system {
-    margin: 0 auto !important;
+    margin: 8px auto !important;
     background: var(--background-modifier-hover) !important;
     color: var(--text-muted) !important;
     border: 1px solid var(--background-modifier-border) !important;
@@ -875,7 +875,7 @@
     font-size: 0.9em !important;
     border-radius: 20px !important;
     max-width: 250px !important;
-    padding: 6px 12px !important;
+    padding: 8px 12px !important;
     display: block !important;
 }
 
