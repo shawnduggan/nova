@@ -99,7 +99,14 @@ export class OllamaProvider implements AIProvider {
 						try {
 							const parsed = JSON.parse(line);
 							if (parsed.response) {
-								yield { content: parsed.response, done: false };
+								// Split text into smaller chunks for consistent typewriter effect
+								const chunkSize = 3; // Characters per chunk
+								for (let i = 0; i < parsed.response.length; i += chunkSize) {
+									const chunk = parsed.response.slice(i, i + chunkSize);
+									yield { content: chunk, done: false };
+									// Small delay between chunks to create smooth typewriter effect
+									await new Promise(resolve => setTimeout(resolve, 20));
+								}
 							}
 							if (parsed.done) {
 								yield { content: '', done: true };
@@ -204,7 +211,14 @@ export class OllamaProvider implements AIProvider {
 						try {
 							const parsed = JSON.parse(line);
 							if (parsed.message?.content) {
-								yield { content: parsed.message.content, done: false };
+								// Split text into smaller chunks for consistent typewriter effect
+								const chunkSize = 3; // Characters per chunk
+								for (let i = 0; i < parsed.message.content.length; i += chunkSize) {
+									const chunk = parsed.message.content.slice(i, i + chunkSize);
+									yield { content: chunk, done: false };
+									// Small delay between chunks to create smooth typewriter effect
+									await new Promise(resolve => setTimeout(resolve, 20));
+								}
 							}
 							if (parsed.done) {
 								yield { content: '', done: true };

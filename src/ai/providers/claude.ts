@@ -106,10 +106,19 @@ export class ClaudeProvider implements AIProvider {
 	}
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
-		// For now, fall back to non-streaming for Claude due to CORS limitations
-		// requestUrl doesn't support streaming, so we'll get the full response at once
+		// Get the full response from Claude, then simulate streaming with consistent chunking
 		const result = await this.chatCompletion(messages, options);
-		yield { content: result, done: true };
+		
+		// Split result into smaller chunks for consistent typewriter effect
+		const chunkSize = 3; // Characters per chunk
+		for (let i = 0; i < result.length; i += chunkSize) {
+			const chunk = result.slice(i, i + chunkSize);
+			yield { content: chunk, done: false };
+			// Small delay between chunks to create smooth typewriter effect
+			await new Promise(resolve => setTimeout(resolve, 20));
+		}
+		
+		yield { content: '', done: true };
 	}
 
 	/**

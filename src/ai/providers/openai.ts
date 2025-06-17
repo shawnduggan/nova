@@ -162,7 +162,14 @@ export class OpenAIProvider implements AIProvider {
 							const parsed = JSON.parse(data);
 							const content = parsed.choices?.[0]?.delta?.content;
 							if (content) {
-								yield { content, done: false };
+								// Split content into smaller chunks for consistent typewriter effect
+								const chunkSize = 3; // Characters per chunk
+								for (let i = 0; i < content.length; i += chunkSize) {
+									const chunk = content.slice(i, i + chunkSize);
+									yield { content: chunk, done: false };
+									// Small delay between chunks to create smooth typewriter effect
+									await new Promise(resolve => setTimeout(resolve, 20));
+								}
 							}
 						} catch (e) {
 							// Skip malformed JSON

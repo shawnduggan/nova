@@ -79,21 +79,9 @@
 
 ---
 
-## 🎯 CURRENT FOCUS: Chat UI Contextualization
-
----
-
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Next: Chat UI Contextualization**
-- **Concept**: Transform from chat-first to document-first collaborative writing partner
-- **Key changes**: Remove chatbot personality, immediate document context understanding
-- **UX shift**: Actionable suggestions based on document structure analysis
-- **Input transformation**: "Ask Nova anything" → "How can I help with your writing?"
-- **Detailed specs**: Will be provided at implementation time
-
 ### **Lower Priority Items**
-- **Normalize streaming typewriter effect across all providers** - Anthropic models dump all text at once, OpenAI streams too fast, Google now has good pacing. Make all providers use consistent 3-character chunks with 20ms delays for smooth typewriter effect.
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)
