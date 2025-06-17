@@ -1,13 +1,19 @@
 # Nova - AI Thinking Partner for Obsidian
 
+## ⚠️ CRITICAL: NEVER COMMIT WITHOUT EXPLICIT APPROVAL
+**ALWAYS ask "Should I commit these changes?" before ANY git operations**
+**NEVER auto-commit or auto-push - wait for explicit confirmation**
+**NO exceptions to this rule - user must explicitly approve all commits**
+
 ## BEHAVIORAL COMMANDS - READ FIRST
 
 ### MANDATORY RULES
-**NEVER start responses with explanations or "I'll help you" - CODE IMMEDIATELY**
+**NEVER start responses with explanations like "You're absolutely right" or "I'll help you" - RESPOND OR CODE IMMEDIATELY**
 **ONE CHANGE PER RESPONSE** - If it involves multiple concerns, refuse and break it down
+**ONE STEP AT A TIME** - If the plan involves multiple steps, pause after each step and ask if you should continue
 **WAIT FOR TEST CONFIRMATION** - After any fix, ask user to test before proceeding to next task
-**NO AUTO-COMMITS** - Never commit unless explicitly commanded
 **NO TODOS/STUBS** - Every function must work when implemented
+**MOVE COMPLETED ITEMS** - When items finish, REMOVE from CLAUDE.md to keep it focused on current work only
 
 ### TDD PROTOCOL - MANDATORY
 **SEQUENCE:**
@@ -70,7 +76,6 @@
 - **Mobile-optimized UI** with responsive design
 - **Test suite passing** (34/34 test suites, 368 tests total)
 - **Clean architecture** with simplified document editing
-- **✅ UNIFIED MESSAGE SYSTEM** - All success/error messages now use consistent styled pills
 
 ---
 
@@ -81,7 +86,7 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Next: Remaining Critical Bug Fixes**
-1. **Welcome message styling broken** - When editing or viewing a document for the first time, shows ugly unstyled message "Working on [filename]" instead of the nicely styled welcome message
+1. **Chat clear message styling** - When chat is cleared, the message shown needs proper styling to match the welcome message format
 2. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
 3. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
 
@@ -97,47 +102,6 @@
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)
 - Technical Debt Cleanup (sidebar refactoring, legacy code removal)
-
----
-
-## ✅ COMPLETED FIXES (June 17, 2025)
-
-### **Unified Message System Implementation**
-**Problem**: Three different message creation paths caused inconsistent UX:
-- Success messages = Styled green pills ("✓ Content added")
-- Command failures = Plain assistant bubbles ("Failed to add content") 
-- System errors = Icon messages with mixed styling
-
-**Solution**: Implemented unified error handling to match success message patterns:
-- Added `addErrorIndicator()` method to sidebar matching `addSuccessIndicator()`
-- Removed all `addAssistantMessage()` calls from command handlers for failures
-- Updated sidebar command execution to use unified error display
-- Both success and error messages now use consistent styled pills
-
-**Result**: 
-- Success = "✓ Content added" (styled green pill)
-- Failure = "❌ Failed to add content" (styled red pill)  
-- Both persist and restore consistently with conversation history
-- All 34 test suites passing (368 tests)
-
-### **Model Switch Message Persistence Fixed** 
-**Problem**: Model/provider switch messages used HTML icon messages that were too long, causing them to display as unstyled bubbles instead of styled pills, and weren't persisting to conversation history.
-
-**Solution**: 
-- Replaced `createIconMessage()` calls with simple text in `switchToModel()` and `switchToProvider()` methods
-- Updated colon command handlers (`:claude`, `:chatgpt`, etc.) to use plain text messages
-- Fixed 6 additional system messages that weren't using unified message system
-- Enforced emoji policy: only checkmark (✓) for success, X (❌) for errors
-
-**Changes Made**:
-- `switchToModel`: `createIconMessage` → `✓ Switched to ${provider} ${model}`
-- `switchToProvider`: `createIconMessage` → `✓ Switched to ${provider}`  
-- Colon commands: `createIconMessage` → `✓ Switched to ${provider}`
-- Feature gates: `createIconMessage` → `❌ Commands are currently in early access...`
-- Multi-doc context: `createIconMessage` → `✓ Included ${count} documents...`
-- Custom templates: `createIconMessage` → `✓ Loaded template: ${name}`
-
-**Result**: All model switch and system messages now appear as properly styled pills, persist to conversation history, and restore correctly when switching files.
 
 ---
 
@@ -178,12 +142,12 @@ interface AIProvider {
 
 ### ⚠️ IMPORTANT: Progress Tracking
 **Track PENDING work only in this CLAUDE.md file.**
-**When work completes: REMOVE from here and APPEND to COMPLETED.md**
+**When work completes: REMOVE from here to keep focus on current tasks**
 
 ### Making Changes
 1. Focus on current phase tasks in order
 2. One atomic change at a time only
-3. **When tasks complete: REMOVE from CLAUDE.md and APPEND to COMPLETED.md**
+3. **When tasks complete: REMOVE from CLAUDE.md to keep focus on current work**
 4. **Always prioritize code simplicity and maintainability**
 
 ### Commit Messages
@@ -198,5 +162,5 @@ interface AIProvider {
 - MVP only - no extra features
 - Working > Perfect  
 - One atomic change at a time
-- **All completed work is archived in COMPLETED.md**
+- **All completed work is tracked in git commit history**
 - Detailed specs provided at implementation time

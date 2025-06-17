@@ -121,16 +121,15 @@ export class ChatRenderer {
 		welcomeEl.style.cssText = `
 			padding: var(--size-4-4);
 			margin-bottom: var(--size-4-3);
-			background: var(--background-modifier-hover);
+			background: var(--background-primary);
 			border-radius: var(--radius-s);
 			border: 1px solid var(--background-modifier-border);
 			text-align: center;
-			position: relative;
 		`;
 
 		const content = message || `
 			<div style="display: flex; align-items: center; justify-content: center; gap: var(--size-2-3); margin-bottom: var(--size-4-2);">
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size-xl); height: var(--icon-size-xl); color: var(--interactive-accent);">
+				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size); color: var(--interactive-accent);">
 					<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 					<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 					<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -141,47 +140,14 @@ export class ChatRenderer {
 					<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
-				<span style="font-size: var(--font-ui-large); font-weight: 600; color: var(--text-normal);">Welcome to Nova</span>
+				<span style="font-size: var(--font-ui-large); font-weight: 600; color: var(--text-normal);">Hi, I'm Nova</span>
 			</div>
-			<p style="margin: 0 0 var(--size-4-3) 0; color: var(--text-muted); font-size: var(--font-ui-medium);">
-				Your AI thinking partner for Obsidian. Start a conversation or use commands to enhance your writing.
-			</p>
 			<p style="margin: 0; color: var(--text-faint); font-size: var(--font-ui-small);">
-				💡 <strong>Tip:</strong> Reference other notes with [[Note Name]] or use the ⚡ button for quick commands
+				💡 <strong>Tip:</strong> Reference other notes with [[Note Name]]
 			</p>
 		`;
 
 		welcomeEl.innerHTML = content;
-
-		// Add dismiss button
-		const dismissBtn = welcomeEl.createEl('button');
-		dismissBtn.textContent = '×';
-		dismissBtn.style.cssText = `
-			position: absolute;
-			top: var(--size-2-2);
-			right: var(--size-2-2);
-			background: none;
-			border: none;
-			font-size: var(--font-ui-large);
-			color: var(--text-faint);
-			cursor: pointer;
-			padding: var(--size-2-1);
-			border-radius: var(--radius-xs);
-		`;
-
-		dismissBtn.addEventListener('click', () => {
-			welcomeEl.remove();
-		});
-
-		dismissBtn.addEventListener('mouseenter', () => {
-			dismissBtn.style.color = 'var(--text-normal)';
-			dismissBtn.style.background = 'var(--background-modifier-hover)';
-		});
-
-		dismissBtn.addEventListener('mouseleave', () => {
-			dismissBtn.style.color = 'var(--text-faint)';
-			dismissBtn.style.background = 'none';
-		});
 
 		this.scrollToBottom(true);
 	}
@@ -208,7 +174,7 @@ export class ChatRenderer {
 		
 		if (messages.length === 0) {
 			// No conversation exists - show welcome message
-			this.addWelcomeMessage(`Working on "${file.basename}".`);
+			this.addWelcomeMessage();
 			return;
 		}
 		

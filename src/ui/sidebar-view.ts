@@ -308,6 +308,9 @@ export class NovaSidebarView extends ItemView {
 			gap: var(--size-2-3);
 		`;
 
+		// Initialize chatRenderer now that chatContainer exists
+		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
+
 		// Welcome message with Nova branding
 		this.addWelcomeMessage();
 	}
@@ -324,9 +327,8 @@ export class NovaSidebarView extends ItemView {
 		// Clear existing input area content
 		this.inputContainer.empty();
 		
-		// Initialize context manager, chat renderer, streaming manager, and selection menu first
+		// Initialize context manager, streaming manager, and selection menu first
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
-		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
 		this.streamingManager = new StreamingManager();
 		this.selectionContextMenu = new SelectionContextMenu(this.app, this.plugin);
 		
@@ -408,72 +410,8 @@ export class NovaSidebarView extends ItemView {
 		this.chatRenderer.addErrorMessage(content, true); // Always persist  
 	}
 
-	private addWelcomeMessage(message?: string) {
-		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
-		welcomeEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: var(--size-4-3);
-			margin: var(--size-4-4) auto;
-			padding: var(--size-4-4) var(--size-4-5);
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-l);
-			max-width: 90%;
-			animation: fadeIn 0.5s ease-in;
-		`;
-		
-		// Nova star icon (static, not animated)
-		const iconContainer = welcomeEl.createDiv({ cls: 'nova-welcome-icon' });
-		iconContainer.style.cssText = `
-			position: relative;
-			width: var(--icon-size-xl);
-			height: var(--icon-size-xl);
-			flex-shrink: 0;
-		`;
-		
-		iconContainer.innerHTML = `
-			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size-xl); height: var(--icon-size-xl); color: var(--interactive-accent);">
-				<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-				<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-				<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-				<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-				<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-				<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-				<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-				<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-				<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			</svg>
-		`;
-		
-		// Welcome text
-		const textContainer = welcomeEl.createDiv();
-		textContainer.style.cssText = `
-			flex: 1;
-			line-height: 1.4;
-		`;
-		
-		const titleEl = textContainer.createDiv({ text: 'Hi! I\'m Nova.' });
-		titleEl.style.cssText = `
-			font-weight: 600;
-			color: var(--text-normal);
-			margin-bottom: 4px;
-			font-size: var(--font-text-size);
-		`;
-		
-		const subtitleEl = textContainer.createDiv({ text: message || '' });
-		subtitleEl.style.cssText = `
-			color: var(--text-muted);
-			font-size: 0.9em;
-		`;
-
-		// Auto-scroll to bottom
-		setTimeout(() => {
-			this.chatContainer.scrollTo({
-				top: this.chatContainer.scrollHeight,
-				behavior: 'smooth'
-			});
-		}, NovaSidebarView.SCROLL_DELAY_MS);
+	private addWelcomeMessage(message?: string): void {
+		this.chatRenderer.addWelcomeMessage(message);
 	}
 
 	private addSuccessIndicator(action: string) {
@@ -1843,7 +1781,7 @@ USER REQUEST: ${processedMessage}`;
 			console.log('❌ CONVERSATION LOADING ERROR:', error);
 			// Failed to load conversation history - graceful fallback
 			// Show welcome message on error
-			this.addWelcomeMessage(`Working on "${targetFile.basename}".`);
+			this.addWelcomeMessage();
 		}
 	}
 
