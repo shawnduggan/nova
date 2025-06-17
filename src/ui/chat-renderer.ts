@@ -110,9 +110,8 @@ export class ChatRenderer {
 		if (!content.startsWith('✓ ') && !content.includes('<svg')) {
 			content = '✓ ' + content;
 		}
-		// Use pill for short messages, bubble for longer ones
-		const type = content.length <= 30 ? 'pill' : 'bubble';
-		this.addStatusMessage(content, { type, variant: 'success', persist });
+		// Always use pills for success messages to maintain consistency
+		this.addStatusMessage(content, { type: 'pill', variant: 'success', persist });
 	}
 
 	addErrorMessage(content: string, persist: boolean = false): void {
