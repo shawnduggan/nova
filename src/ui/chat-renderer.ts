@@ -124,12 +124,11 @@ export class ChatRenderer {
 			background: var(--background-primary);
 			border-radius: var(--radius-s);
 			border: 1px solid var(--background-modifier-border);
-			text-align: center;
 		`;
 
 		const content = message || `
-			<div style="display: flex; align-items: center; justify-content: center; gap: var(--size-2-3); margin-bottom: var(--size-4-2);">
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size); color: var(--interactive-accent);">
+			<div style="display: flex; flex-direction: column; align-items: center;">
+				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: var(--interactive-accent); margin-bottom: var(--size-4-2);">
 					<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 					<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 					<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -140,17 +139,17 @@ export class ChatRenderer {
 					<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
-				<span style="font-size: var(--font-ui-large); font-weight: 600; color: var(--text-normal);">Hi, I'm Nova</span>
+				<p style="margin: 0; margin-left: var(--size-2-3); color: var(--text-muted); font-size: var(--font-ui-medium); line-height: 1.4; text-align: left; align-self: flex-start;">
+					I'm your AI writing partner. Ask questions or give commands to edit your document.<br><br>CTRL/CMD-Z once or twice to undo changes.
+				</p>
 			</div>
-			<p style="margin: 0; color: var(--text-faint); font-size: var(--font-ui-small);">
-				💡 <strong>Tip:</strong> Reference other notes with [[Note Name]]
-			</p>
 		`;
 
 		welcomeEl.innerHTML = content;
 
 		this.scrollToBottom(true);
 	}
+
 
 	clearChat(): void {
 		this.chatContainer.empty();

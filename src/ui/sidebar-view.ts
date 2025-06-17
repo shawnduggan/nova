@@ -134,7 +134,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Left side: Title with Nova icon
 		const titleEl = topRowEl.createEl('h4');
-		titleEl.style.cssText = 'margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2);';
+		titleEl.style.cssText = 'margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2); color: var(--interactive-accent);';
 		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>

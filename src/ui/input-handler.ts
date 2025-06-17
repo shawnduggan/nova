@@ -87,7 +87,7 @@ export class InputHandler {
 
 		// Create textarea
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('Ask Nova anything... (Shift+Enter for new line)');
+		this.textArea.setPlaceholder('How can I help with your writing?');
 		this.textArea.inputEl.style.cssText = `
 			min-height: 80px;
 			max-height: 200px;
