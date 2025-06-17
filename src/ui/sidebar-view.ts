@@ -118,15 +118,22 @@ export class NovaSidebarView extends ItemView {
 		const headerEl = wrapperEl.createDiv({ cls: 'nova-header' });
 		headerEl.style.cssText = `
 			display: flex;
-			align-items: center;
-			justify-content: space-between;
+			flex-direction: column;
 			padding: var(--size-4-2);
 			border-bottom: 1px solid var(--background-modifier-border);
 			flex-shrink: 0;
 		`;
 		
+		// Top row container for title and controls
+		const topRowEl = headerEl.createDiv();
+		topRowEl.style.cssText = `
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		`;
+		
 		// Left side: Title with Nova icon
-		const titleEl = headerEl.createEl('h4');
+		const titleEl = topRowEl.createEl('h4');
 		titleEl.style.cssText = 'margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2);';
 		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
@@ -141,7 +148,7 @@ export class NovaSidebarView extends ItemView {
 		</svg>Nova`;
 		
 		// Right side: Provider status and Clear button
-		const rightContainer = headerEl.createDiv();
+		const rightContainer = topRowEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
 		
 		// Privacy indicator icon
@@ -1787,6 +1794,9 @@ USER REQUEST: ${processedMessage}`;
 		
 		this.currentFile = targetFile;
 		
+		// Update document statistics in header
+		this.updateDocumentStats();
+		
 		// Immediately track cursor position for the newly active file
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (activeView && activeView.editor) {
@@ -1835,6 +1845,42 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Show notice to user
 		new Notice('Chat cleared');
+	}
+
+	private async updateDocumentStats(): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) return;
+		
+		try {
+			// Get document content
+			const content = await this.app.vault.read(activeFile);
+			if (!content) return;
+			
+			// Calculate basic stats
+			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+			const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
+			
+			// Update stats display in header
+			const headerEl = this.containerEl.querySelector('.nova-header');
+			if (headerEl) {
+				// Find or create stats element
+				let statsEl = headerEl.querySelector('.nova-document-stats');
+				if (!statsEl) {
+					statsEl = headerEl.createEl('div', { cls: 'nova-document-stats' });
+				}
+				
+				if (statsEl && wordCount > 0) {
+					statsEl.textContent = `${wordCount} words • ${headingCount} sections`;
+					(statsEl as HTMLElement).style.cssText = `
+						font-size: 0.75em;
+						color: var(--text-muted);
+						margin-top: var(--size-2-2);
+					`;
+				}
+			}
+		} catch (error) {
+			// Silently fail - stats are optional
+		}
 	}
 
 	// Public methods for testing
