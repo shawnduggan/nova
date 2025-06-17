@@ -457,7 +457,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addErrorMessage('❌ Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
+			this.addErrorMessage('Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
 			return true;
 		}
 
@@ -706,7 +706,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addErrorMessage('❌ Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
+			this.addErrorMessage('Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
 			return;
 		}
 
@@ -1398,7 +1398,7 @@ export class NovaSidebarView extends ItemView {
 			// Check for early access
 			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
 				if (messageText.includes('[[')) {
-					this.addErrorMessage('❌ Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.');
+					this.addErrorMessage('Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.');
 					return;
 				}
 			} else {
@@ -1619,7 +1619,26 @@ USER REQUEST: ${processedMessage}`;
 				loadingEl.remove();
 			}
 			
-			this.addErrorMessage(this.createIconMessage('x-circle', `Sorry, I encountered an error: ${(error as Error).message}`));
+			// Format error message based on error type
+			const errorMessage = (error as Error).message;
+			let displayMessage: string;
+			
+			// Check if it's a provider-specific error
+			if (errorMessage.includes('Google API error')) {
+				// Google API errors already have helpful context from our improved error handling
+				displayMessage = errorMessage;
+			} else if (errorMessage.includes('OpenAI API error')) {
+				displayMessage = errorMessage;
+			} else if (errorMessage.includes('API key')) {
+				displayMessage = `${errorMessage}. Please check your settings.`;
+			} else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+				displayMessage = 'Network error. Please check your internet connection and try again.';
+			} else {
+				// Generic error
+				displayMessage = `Sorry, I encountered an error: ${errorMessage}`;
+			}
+			
+			this.addErrorMessage(displayMessage);
 		} finally {
 			// Re-enable send button
 			const sendButton = (this.inputHandler as any).sendButton;

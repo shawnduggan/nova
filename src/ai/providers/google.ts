@@ -27,15 +27,8 @@ export class GoogleProvider implements AIProvider {
 		yield* this.chatCompletionStream(messages, options);
 	}
 
-	private formatMessagesForGemini(messages: AIMessage[], systemPrompt?: string): any {
+	private formatMessagesForGemini(messages: AIMessage[]): any {
 		const contents = [];
-		
-		if (systemPrompt && systemPrompt.trim()) {
-			contents.push({
-				role: 'user',
-				parts: [{ text: `System: ${systemPrompt}` }]
-			});
-		}
 
 		for (const message of messages) {
 			const role = message.role === 'assistant' ? 'model' : 'user';
@@ -61,14 +54,22 @@ export class GoogleProvider implements AIProvider {
 		// Use a newer model by default if no model is specified
 		const model = options?.model || this.config.model || 'gemini-2.0-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
+		
 
-		const requestBody = {
-			contents: this.formatMessagesForGemini(messages, options?.systemPrompt),
+		const requestBody: any = {
+			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
 				temperature: options?.temperature || this.config.temperature || 0.7,
 				maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
 			}
 		};
+
+		// Add system instruction if provided (Google's proper format)
+		if (options?.systemPrompt && options.systemPrompt.trim()) {
+			requestBody.systemInstruction = {
+				parts: [{ text: options.systemPrompt }]
+			};
+		}
 
 		const response = await fetch(url, {
 			method: 'POST',
@@ -80,10 +81,48 @@ export class GoogleProvider implements AIProvider {
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			throw new Error(`Google API error: ${response.statusText} - ${errorText}`);
+			let errorMessage = '';
+			
+			try {
+				const errorData = JSON.parse(errorText);
+				if (errorData.error) {
+					// Format as [CODE]: message
+					const code = errorData.error.code || response.status;
+					const message = errorData.error.message || errorData.error.status || response.statusText;
+					errorMessage = `[${code}]: ${message}`;
+					
+					// Add specific guidance for common errors
+					if (response.status === 400) {
+						errorMessage += ' (Check request format or model name)';
+					} else if (response.status === 401) {
+						errorMessage += ' (Check API key in settings)';
+					} else if (response.status === 404) {
+						errorMessage += ' (Model may not be available)';
+					} else if (response.status === 429) {
+						errorMessage += ' (Rate limit exceeded)';
+					}
+				} else {
+					errorMessage = `[${response.status}]: ${errorText}`;
+				}
+			} catch (e) {
+				errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
+			}
+			
+			// Log detailed error for debugging
+			console.error('Google API Error Details:', {
+				status: response.status,
+				statusText: response.statusText,
+				errorText: errorText,
+				requestBody: requestBody,
+				model: model,
+				url: url
+			});
+			
+			throw new Error(`Google API error ${errorMessage}`);
 		}
 
 		const data = await response.json();
+		
 		
 		// Check if response has valid structure
 		if (!data.candidates || data.candidates.length === 0) {
@@ -109,12 +148,19 @@ export class GoogleProvider implements AIProvider {
 		if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
 			const text = data.candidates[0].content.parts[0].text;
 			
+			
 			// If response was truncated, throw error instead of returning partial content
 			if (data.candidates[0].finishReason === 'MAX_TOKENS') {
 				throw new Error('Response was truncated due to token limit. Please increase "Default Max Tokens" in settings.');
 			}
 			
-			return text || '';
+			// Make sure we have actual text content
+			if (!text || text.trim().length === 0) {
+				console.error('Google API returned empty text content');
+				throw new Error('Google API returned empty text content');
+			}
+			
+			return text;
 		}
 		
 		throw new Error('Google API returned empty response');
@@ -141,16 +187,37 @@ export class GoogleProvider implements AIProvider {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				contents: this.formatMessagesForGemini(messages, options?.systemPrompt),
+				contents: this.formatMessagesForGemini(messages),
 				generationConfig: {
 					temperature: options?.temperature || this.config.temperature || 0.7,
 					maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
-				}
+				},
+				...(options?.systemPrompt && options.systemPrompt.trim() ? {
+					systemInstruction: {
+						parts: [{ text: options.systemPrompt }]
+					}
+				} : {})
 			})
 		});
 
 		if (!response.ok) {
-			throw new Error(`Google API error: ${response.statusText}`);
+			const errorText = await response.text();
+			let errorMessage = '';
+			
+			try {
+				const errorData = JSON.parse(errorText);
+				if (errorData.error) {
+					const code = errorData.error.code || response.status;
+					const message = errorData.error.message || errorData.error.status || response.statusText;
+					errorMessage = `[${code}]: ${message}`;
+				} else {
+					errorMessage = `[${response.status}]: ${errorText}`;
+				}
+			} catch (e) {
+				errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
+			}
+			
+			throw new Error(`Google API error ${errorMessage}`);
 		}
 
 		const reader = response.body?.getReader();
@@ -160,6 +227,9 @@ export class GoogleProvider implements AIProvider {
 
 		const decoder = new TextDecoder();
 		let buffer = '';
+		let jsonBuffer = '';
+		let braceCount = 0;
+		let inJson = false;
 
 		try {
 			while (true) {
@@ -167,22 +237,51 @@ export class GoogleProvider implements AIProvider {
 				if (done) break;
 
 				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split('\n');
-				buffer = lines.pop() || '';
-
-				for (const line of lines) {
-					if (line.trim()) {
-						try {
-							const parsed = JSON.parse(line);
-							const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-							if (text) {
-								yield { content: text, done: false };
-							}
-						} catch (e) {
-							// Skip malformed JSON
+				
+				// Process character by character to properly parse the streaming JSON
+				for (let i = 0; i < buffer.length; i++) {
+					const char = buffer[i];
+					
+					if (char === '{') {
+						if (!inJson) {
+							inJson = true;
+							jsonBuffer = '';
 						}
+						braceCount++;
+						jsonBuffer += char;
+					} else if (char === '}') {
+						jsonBuffer += char;
+						braceCount--;
+						
+						if (braceCount === 0 && inJson) {
+							// We have a complete JSON object
+							try {
+								const parsed = JSON.parse(jsonBuffer);
+								const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+								if (text) {
+									// Split text into smaller chunks for typewriter effect
+									const chunkSize = 3; // Characters per chunk
+									for (let i = 0; i < text.length; i += chunkSize) {
+										const chunk = text.slice(i, i + chunkSize);
+										yield { content: chunk, done: false };
+										// Small delay between chunks to create smooth typewriter effect
+										await new Promise(resolve => setTimeout(resolve, 20));
+									}
+								}
+							} catch (e) {
+								// Skip malformed JSON
+							}
+							
+							inJson = false;
+							jsonBuffer = '';
+						}
+					} else if (inJson) {
+						jsonBuffer += char;
 					}
 				}
+				
+				// Clear the processed buffer
+				buffer = '';
 			}
 		} finally {
 			reader.releaseLock();

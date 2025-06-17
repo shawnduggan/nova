@@ -106,12 +106,20 @@ export class ChatRenderer {
 
 	// Simple wrapper methods for backward compatibility
 	addSuccessMessage(content: string, persist: boolean = false): void {
+		// Auto-prepend checkmark if not already present
+		if (!content.startsWith('✓ ') && !content.includes('<svg')) {
+			content = '✓ ' + content;
+		}
 		// Use pill for short messages, bubble for longer ones
 		const type = content.length <= 30 ? 'pill' : 'bubble';
 		this.addStatusMessage(content, { type, variant: 'success', persist });
 	}
 
 	addErrorMessage(content: string, persist: boolean = false): void {
+		// Auto-prepend X if not already present
+		if (!content.startsWith('❌ ') && !content.includes('<svg')) {
+			content = '❌ ' + content;
+		}
 		const type = content.length <= 30 ? 'pill' : 'bubble';
 		this.addStatusMessage(content, { type, variant: 'error', persist });
 	}

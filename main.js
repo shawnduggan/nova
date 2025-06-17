@@ -1484,10 +1484,16 @@ var _ChatRenderer = class _ChatRenderer {
   }
   // Simple wrapper methods for backward compatibility
   addSuccessMessage(content, persist = false) {
+    if (!content.startsWith("\u2713 ") && !content.includes("<svg")) {
+      content = "\u2713 " + content;
+    }
     const type = content.length <= 30 ? "pill" : "bubble";
     this.addStatusMessage(content, { type, variant: "success", persist });
   }
   addErrorMessage(content, persist = false) {
+    if (!content.startsWith("\u274C ") && !content.includes("<svg")) {
+      content = "\u274C " + content;
+    }
     const type = content.length <= 30 ? "pill" : "bubble";
     this.addStatusMessage(content, { type, variant: "error", persist });
   }
@@ -2987,7 +2993,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
   async handleColonCommand(message) {
     var _a;
     if (!this.plugin.featureManager.isFeatureEnabled("commands")) {
-      this.addErrorMessage("\u274C Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.");
+      this.addErrorMessage("Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.");
       return true;
     }
     const command = message.slice(1).toLowerCase();
@@ -3179,7 +3185,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
   }
   toggleCommandMenu() {
     if (!this.plugin.featureManager.isFeatureEnabled("commands")) {
-      this.addErrorMessage("\u274C Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.");
+      this.addErrorMessage("Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.");
       return;
     }
     if (this.isCommandMenuVisible) {
@@ -3736,7 +3742,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     if (this.currentFile) {
       if (!this.plugin.featureManager.isFeatureEnabled("multi-doc-context")) {
         if (messageText.includes("[[")) {
-          this.addErrorMessage("\u274C Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.");
+          this.addErrorMessage("Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.");
           return;
         }
       } else {
@@ -3894,7 +3900,20 @@ USER REQUEST: ${processedMessage}`;
         }
         loadingEl.remove();
       }
-      this.addErrorMessage(this.createIconMessage("x-circle", `Sorry, I encountered an error: ${error.message}`));
+      const errorMessage = error.message;
+      let displayMessage;
+      if (errorMessage.includes("Google API error")) {
+        displayMessage = errorMessage;
+      } else if (errorMessage.includes("OpenAI API error")) {
+        displayMessage = errorMessage;
+      } else if (errorMessage.includes("API key")) {
+        displayMessage = `${errorMessage}. Please check your settings.`;
+      } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        displayMessage = "Network error. Please check your internet connection and try again.";
+      } else {
+        displayMessage = `Sorry, I encountered an error: ${errorMessage}`;
+      }
+      this.addErrorMessage(displayMessage);
     } finally {
       const sendButton2 = this.inputHandler.sendButton;
       if (sendButton2) sendButton2.setDisabled(false);
@@ -5993,14 +6012,8 @@ var GoogleProvider = class {
     const messages = [{ role: "user", content: prompt2 }];
     yield* this.chatCompletionStream(messages, options);
   }
-  formatMessagesForGemini(messages, systemPrompt) {
+  formatMessagesForGemini(messages) {
     const contents = [];
-    if (systemPrompt && systemPrompt.trim()) {
-      contents.push({
-        role: "user",
-        parts: [{ text: `System: ${systemPrompt}` }]
-      });
-    }
     for (const message of messages) {
       const role = message.role === "assistant" ? "model" : "user";
       contents.push({
@@ -6020,12 +6033,17 @@ var GoogleProvider = class {
     const model = (options == null ? void 0 : options.model) || this.config.model || "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
     const requestBody = {
-      contents: this.formatMessagesForGemini(messages, options == null ? void 0 : options.systemPrompt),
+      contents: this.formatMessagesForGemini(messages),
       generationConfig: {
         temperature: (options == null ? void 0 : options.temperature) || this.config.temperature || 0.7,
         maxOutputTokens: (options == null ? void 0 : options.maxTokens) || this.config.maxTokens || 1e3
       }
     };
+    if ((options == null ? void 0 : options.systemPrompt) && options.systemPrompt.trim()) {
+      requestBody.systemInstruction = {
+        parts: [{ text: options.systemPrompt }]
+      };
+    }
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -6035,7 +6053,37 @@ var GoogleProvider = class {
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Google API error: ${response.statusText} - ${errorText}`);
+      let errorMessage = "";
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error) {
+          const code = errorData.error.code || response.status;
+          const message = errorData.error.message || errorData.error.status || response.statusText;
+          errorMessage = `[${code}]: ${message}`;
+          if (response.status === 400) {
+            errorMessage += " (Check request format or model name)";
+          } else if (response.status === 401) {
+            errorMessage += " (Check API key in settings)";
+          } else if (response.status === 404) {
+            errorMessage += " (Model may not be available)";
+          } else if (response.status === 429) {
+            errorMessage += " (Rate limit exceeded)";
+          }
+        } else {
+          errorMessage = `[${response.status}]: ${errorText}`;
+        }
+      } catch (e) {
+        errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
+      }
+      console.error("Google API Error Details:", {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        requestBody,
+        model,
+        url
+      });
+      throw new Error(`Google API error ${errorMessage}`);
     }
     const data = await response.json();
     if (!data.candidates || data.candidates.length === 0) {
@@ -6055,7 +6103,11 @@ var GoogleProvider = class {
       if (data.candidates[0].finishReason === "MAX_TOKENS") {
         throw new Error('Response was truncated due to token limit. Please increase "Default Max Tokens" in settings.');
       }
-      return text || "";
+      if (!text || text.trim().length === 0) {
+        console.error("Google API returned empty text content");
+        throw new Error("Google API returned empty text content");
+      }
+      return text;
     }
     throw new Error("Google API returned empty response");
   }
@@ -6077,15 +6129,34 @@ var GoogleProvider = class {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        contents: this.formatMessagesForGemini(messages, options == null ? void 0 : options.systemPrompt),
+        contents: this.formatMessagesForGemini(messages),
         generationConfig: {
           temperature: (options == null ? void 0 : options.temperature) || this.config.temperature || 0.7,
           maxOutputTokens: (options == null ? void 0 : options.maxTokens) || this.config.maxTokens || 1e3
-        }
+        },
+        ...(options == null ? void 0 : options.systemPrompt) && options.systemPrompt.trim() ? {
+          systemInstruction: {
+            parts: [{ text: options.systemPrompt }]
+          }
+        } : {}
       })
     });
     if (!response.ok) {
-      throw new Error(`Google API error: ${response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = "";
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error) {
+          const code = errorData.error.code || response.status;
+          const message = errorData.error.message || errorData.error.status || response.statusText;
+          errorMessage = `[${code}]: ${message}`;
+        } else {
+          errorMessage = `[${response.status}]: ${errorText}`;
+        }
+      } catch (e) {
+        errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
+      }
+      throw new Error(`Google API error ${errorMessage}`);
     }
     const reader = (_a = response.body) == null ? void 0 : _a.getReader();
     if (!reader) {
@@ -6093,25 +6164,48 @@ var GoogleProvider = class {
     }
     const decoder = new TextDecoder();
     let buffer = "";
+    let jsonBuffer = "";
+    let braceCount = 0;
+    let inJson = false;
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const parsed = JSON.parse(line);
-              const text = (_f = (_e = (_d = (_c = (_b = parsed.candidates) == null ? void 0 : _b[0]) == null ? void 0 : _c.content) == null ? void 0 : _d.parts) == null ? void 0 : _e[0]) == null ? void 0 : _f.text;
-              if (text) {
-                yield { content: text, done: false };
-              }
-            } catch (e) {
+        for (let i = 0; i < buffer.length; i++) {
+          const char = buffer[i];
+          if (char === "{") {
+            if (!inJson) {
+              inJson = true;
+              jsonBuffer = "";
             }
+            braceCount++;
+            jsonBuffer += char;
+          } else if (char === "}") {
+            jsonBuffer += char;
+            braceCount--;
+            if (braceCount === 0 && inJson) {
+              try {
+                const parsed = JSON.parse(jsonBuffer);
+                const text = (_f = (_e = (_d = (_c = (_b = parsed.candidates) == null ? void 0 : _b[0]) == null ? void 0 : _c.content) == null ? void 0 : _d.parts) == null ? void 0 : _e[0]) == null ? void 0 : _f.text;
+                if (text) {
+                  const chunkSize = 3;
+                  for (let i2 = 0; i2 < text.length; i2 += chunkSize) {
+                    const chunk = text.slice(i2, i2 + chunkSize);
+                    yield { content: chunk, done: false };
+                    await new Promise((resolve) => setTimeout(resolve, 20));
+                  }
+                }
+              } catch (e) {
+              }
+              inJson = false;
+              jsonBuffer = "";
+            }
+          } else if (inJson) {
+            jsonBuffer += char;
           }
         }
+        buffer = "";
       }
     } finally {
       reader.releaseLock();
@@ -6391,7 +6485,8 @@ var AIProviderManager = class {
     for (const providerType of orderedProviders) {
       if (providerType === "none") continue;
       const provider = this.providers.get(providerType);
-      if (provider && await provider.isAvailable()) {
+      const isAvailable = provider ? await provider.isAvailable() : false;
+      if (provider && isAvailable) {
         return provider;
       }
     }

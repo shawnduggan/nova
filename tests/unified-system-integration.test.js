@@ -159,12 +159,12 @@ describe('Unified Message System Integration', () => {
         const messageEl = chatContainer.querySelector('.nova-message');
         expect(messageEl).toBeTruthy();
         expect(messageEl.classList.contains('nova-bubble-error')).toBe(true);
-        expect(messageEl.textContent).toBe(longError);
+        expect(messageEl.textContent).toBe('❌ ' + longError);
         
         // Verify persistence with correct metadata
         expect(mockConversationManager.addSystemMessage).toHaveBeenCalledWith(
             { path: 'test.md', name: 'test.md' },
-            longError,
+            '❌ ' + longError,
             { messageType: 'nova-bubble-error' }
         );
         
@@ -173,7 +173,7 @@ describe('Unified Message System Integration', () => {
             {
                 id: 'msg1',
                 role: 'system',
-                content: longError,
+                content: '❌ ' + longError,
                 timestamp: Date.now(),
                 metadata: {
                     messageType: 'nova-bubble-error',
@@ -189,7 +189,7 @@ describe('Unified Message System Integration', () => {
         const restoredEl = chatContainer.querySelector('.nova-message');
         expect(restoredEl).toBeTruthy();
         expect(restoredEl.classList.contains('nova-bubble-error')).toBe(true);
-        expect(restoredEl.textContent).toBe(longError);
+        expect(restoredEl.textContent).toBe('❌ ' + longError);
     });
 
     test('mixed conversation: regular messages and status messages', async () => {

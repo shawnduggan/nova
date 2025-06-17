@@ -54,7 +54,9 @@ export class AIProviderManager {
 		for (const providerType of orderedProviders) {
 			if (providerType === 'none') continue;
 			const provider = this.providers.get(providerType);
-			if (provider && await provider.isAvailable()) {
+			const isAvailable = provider ? await provider.isAvailable() : false;
+			
+			if (provider && isAvailable) {
 				return provider;
 			}
 		}
@@ -67,6 +69,7 @@ export class AIProviderManager {
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
+		
 		return provider.generateText(prompt, options);
 	}
 
@@ -75,6 +78,7 @@ export class AIProviderManager {
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
+		
 		yield* provider.generateTextStream(prompt, options);
 	}
 
