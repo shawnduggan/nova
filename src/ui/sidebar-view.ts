@@ -1804,15 +1804,8 @@ USER REQUEST: ${processedMessage}`;
 			}
 		}
 		
-		// Show fresh welcome message
-		if (this.currentFile) {
-			this.addWelcomeMessage(`Chat cleared.`);
-		} else {
-			this.addWelcomeMessage("Chat cleared.");
-		}
-		
 		// Show notice to user
-		new Notice('Chat history cleared');
+		new Notice('Chat cleared');
 	}
 
 	// Public methods for testing
