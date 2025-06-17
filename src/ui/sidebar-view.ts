@@ -511,7 +511,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.'));
+			this.addErrorMessage('❌ Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
 			return true;
 		}
 
@@ -531,7 +531,7 @@ export class NovaSidebarView extends ItemView {
 			const providerId = providerCommands[command];
 			await this.plugin.settingTab.setCurrentProvider(providerId);
 			await this.plugin.saveSettings();
-			this.addSuccessMessage(this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerId)}`));
+			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
 			return true;
 		}
 
@@ -543,13 +543,13 @@ export class NovaSidebarView extends ItemView {
 				this.inputHandler.getTextArea().setValue(customCommand.template);
 				// Trigger auto-grow after setting template
 					setTimeout(() => this.autoGrowTextarea(), 0);
-				this.addMessage('system', this.createIconMessage('edit', `Loaded template: ${customCommand.name}`));
+				this.addSuccessMessage(`✓ Loaded template: ${customCommand.name}`);
 				return true;
 			}
 		}
 
 		// Unknown command
-		this.addErrorMessage(this.createIconMessage('help-circle', `Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`));
+		this.addErrorMessage(`❌ Unknown command ':${command}'. Try :claude, :chatgpt, :gemini, or :ollama`);
 		return true;
 	}
 
@@ -760,7 +760,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addMessage('system', this.createIconMessage('zap', 'Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.'));
+			this.addErrorMessage('❌ Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
 			return;
 		}
 
@@ -1444,7 +1444,7 @@ export class NovaSidebarView extends ItemView {
 			// Check for early access
 			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
 				if (messageText.includes('[[')) {
-					this.addMessage('system', this.createIconMessage('book-open', 'Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.'));
+					this.addErrorMessage('❌ Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.');
 					return;
 				}
 			} else {
@@ -1494,7 +1494,7 @@ export class NovaSidebarView extends ItemView {
 					if (docNames && allDocs.length > 0) {
 						const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
 						const currentFile = this.currentFile?.basename || 'current file';
-						this.addMessage('system', this.createIconMessage('book-open', `Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`));
+						this.addSuccessMessage(`✓ Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`);
 					}
 				}
 				
@@ -2152,8 +2152,7 @@ USER REQUEST: ${processedMessage}`;
 			// Just switching models on current provider - show model switch message
 			const modelName = this.getModelDisplayName(providerType, modelValue);
 			const providerName = this.getProviderDisplayName(providerType);
-			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${providerName} ${modelName}`);
-			this.addMessage('system', switchMessage);
+			this.addSuccessMessage(`✓ Switched to ${providerName} ${modelName}`);
 		} else {
 			// Switching to different provider - this will show the provider+model message
 			await this.switchToProvider(providerType);
@@ -2461,8 +2460,7 @@ USER REQUEST: ${processedMessage}`;
 	private async switchToProvider(providerType: string): Promise<void> {
 		try {
 			// Add a system message about provider switching
-			const switchMessage = this.createIconMessage('refresh-cw', `Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
-			this.addMessage('system', switchMessage);
+			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
 			
 			// Update the platform settings to use the new provider
 			const platform = Platform.isMobile ? 'mobile' : 'desktop';
@@ -2477,7 +2475,7 @@ USER REQUEST: ${processedMessage}`;
 			
 		} catch (error) {
 			// Error switching provider - handled by UI feedback
-			this.addErrorMessage(this.createIconMessage('x-circle', `Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`));
+			this.addErrorMessage(`❌ Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`);
 		}
 	}
 

@@ -4,6 +4,43 @@ This file contains all completed work items that have been removed from CLAUDE.m
 
 ---
 
+## June 17, 2025 - Model Switch Message Persistence Fix ✅
+
+### ✅ COMPLETED: Model Switch Message Persistence & System Message Cleanup
+**Problem**: Model/provider switch messages weren't persisting to conversation history and appeared as unstyled bubbles instead of styled pills.
+
+**Root Cause**: Messages used `createIconMessage()` which generated HTML with SVG icons, making them >30 characters and triggering 'bubble' display instead of 'pill' styling. Also used `this.addMessage('system')` instead of unified message system.
+
+**Implementation Details:**
+- **Fixed model switching methods**: Replaced `createIconMessage` calls with simple text in `switchToModel()` and `switchToProvider()` 
+- **Fixed colon commands**: Updated `:claude`, `:chatgpt`, `:gemini`, `:ollama` to use unified system
+- **Cleaned up 6 broken system messages**: Feature gates, custom templates, multi-doc context, unknown commands
+- **Enforced emoji policy**: Only checkmark (✓) for success, X (❌) for errors - removed ⚡, ❓, 📚
+- **Unified message system**: All messages now use `addSuccessMessage()` or `addErrorMessage()`
+
+**Files Modified:**
+- `src/ui/sidebar-view.ts`: Fixed all system message calls (8 locations)
+
+**Technical Changes:**
+```typescript
+// Before (broken):
+this.addMessage('system', this.createIconMessage('refresh-cw', 'Switched to...'));
+
+// After (working):
+this.addSuccessMessage('✓ Switched to ${provider}');
+```
+
+**Result**: 
+- All model switch messages appear as styled green pills immediately
+- Messages persist to conversation history correctly  
+- Messages restore with proper styling when switching files
+- Consistent UX across all system notifications
+- All 34 test suites passing (368 tests)
+
+**Status**: Fully implemented and tested
+
+---
+
 ## June 16, 2025 - UI Polish Tasks ✅
 
 ### ✅ COMPLETED: Desktop Textarea Height Increase

@@ -81,10 +81,9 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Next: Remaining Critical Bug Fixes**
-1. **Model switch messages not persisted** - When switching AI models (e.g., `:claude`, `:chatgpt`), the success message is not persisted to conversation history and disappears when switching files
-2. **Welcome message styling broken** - When editing or viewing a document for the first time, shows ugly unstyled message "Working on [filename]" instead of the nicely styled welcome message
-3. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
-4. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
+1. **Welcome message styling broken** - When editing or viewing a document for the first time, shows ugly unstyled message "Working on [filename]" instead of the nicely styled welcome message
+2. **File drawer header row vertical centering** - Header row that shows when closed needs vertical centering
+3. **Remove thinking notice from chat** - When adding via chat, don't use thinking notice. Keep thinking notice for menu commands only.
 
 ### **Second: Chat UI Contextualization**
 - **Concept**: Transform from chat-first to document-first collaborative writing partner
@@ -119,6 +118,25 @@
 - Failure = "❌ Failed to add content" (styled red pill)  
 - Both persist and restore consistently with conversation history
 - All 34 test suites passing (368 tests)
+
+### **Model Switch Message Persistence Fixed** 
+**Problem**: Model/provider switch messages used HTML icon messages that were too long, causing them to display as unstyled bubbles instead of styled pills, and weren't persisting to conversation history.
+
+**Solution**: 
+- Replaced `createIconMessage()` calls with simple text in `switchToModel()` and `switchToProvider()` methods
+- Updated colon command handlers (`:claude`, `:chatgpt`, etc.) to use plain text messages
+- Fixed 6 additional system messages that weren't using unified message system
+- Enforced emoji policy: only checkmark (✓) for success, X (❌) for errors
+
+**Changes Made**:
+- `switchToModel`: `createIconMessage` → `✓ Switched to ${provider} ${model}`
+- `switchToProvider`: `createIconMessage` → `✓ Switched to ${provider}`  
+- Colon commands: `createIconMessage` → `✓ Switched to ${provider}`
+- Feature gates: `createIconMessage` → `❌ Commands are currently in early access...`
+- Multi-doc context: `createIconMessage` → `✓ Included ${count} documents...`
+- Custom templates: `createIconMessage` → `✓ Loaded template: ${name}`
+
+**Result**: All model switch and system messages now appear as properly styled pills, persist to conversation history, and restore correctly when switching files.
 
 ---
 
