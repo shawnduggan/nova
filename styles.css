@@ -857,6 +857,12 @@
     flex-shrink: 0;
 }
 
+/* Mobile send button optimization */
+.is-mobile .nova-input-row button {
+    width: 44px;
+    height: 44px;
+}
+
 .nova-input-row button:hover {
     background: var(--interactive-hover);
 }
@@ -1702,7 +1708,7 @@
 }
 
 .is-mobile .nova-input-container {
-    padding: var(--size-2-2) !important; /* Reduced from var(--size-4-2) */
+    padding: var(--size-4-3) !important; /* Enhanced padding for better mobile touch interaction */
 }
 
 .is-mobile .nova-header {
