@@ -83,7 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Mobile Enhancement Tasks (Priority)**
-- **Task 5: Status Pill Styling** - Add CSS for .nova-status-pill with green/amber backgrounds
 - **Task 6: Welcome Message Padding** - Update welcome message padding to 20px all around in chat-renderer.ts
 - **Task 7: Chat Bubble Spacing** - Update .nova-message margin-bottom to 16px between messages
 - **Task 8: Simplified Welcome Text** - Update welcome message to simplified text about editing and chat

@@ -1574,6 +1574,35 @@
     border-bottom-right-radius: var(--radius-s);
 }
 
+/* Privacy Status Pill Styles */
+.nova-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.nova-status-pill.local {
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--text-success);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.nova-status-pill.cloud {
+    background: rgba(255, 152, 0, 0.15);
+    color: var(--text-warning);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.nova-status-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
 /* System Message Styles */
 .nova-message-system {
     margin: 0 auto !important;
