@@ -83,7 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Mobile Enhancement Tasks (Priority)**
-- **Task 7: Chat Bubble Spacing** - Update .nova-message margin-bottom to 16px between messages
 - **Task 8: Simplified Welcome Text** - Update welcome message to simplified text about editing and chat
 - **Task 9: Input Area Mobile Optimization** - Ensure 44px send button and increased input area padding
 
