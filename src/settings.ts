@@ -216,8 +216,13 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createGettingStartedTabContent(container: HTMLElement): void {
 		this.createWelcomeSection(container);
-		this.createCompactSupernovaSection(container);
 		this.createQuickStartGuide(container);
+		this.createSupernovaCTA(container, {
+			buttonAction: 'tab',
+			showLearnMore: true,
+			marginTop: '32px',
+			marginBottom: '32px'
+		});
 		this.createNavigationHelp(container);
 	}
 
@@ -328,11 +333,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			</div>
 			<div class="nova-info-card">
 				<h4>📱 Mobile Support</h4>
-				<p>Mobile support is <strong>disabled by default</strong> to protect your privacy. 
-				When enabled, Nova works seamlessly across desktop and mobile with cloud-based AI providers.</p>
+				<p>Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers.</p>
 				<ul class="nova-privacy-features">
 					<li><strong>Local-first</strong> - Ollama and desktop-only providers keep everything on your device</li>
 					<li><strong>Your choice</strong> - Enable mobile only when you need cross-device access</li>
+					<li><strong>Cross-platform editing</strong> - Selection-based editing works identically on mobile via Command Palette (Cmd+P)</li>
 					<li><strong>Same experience</strong> - Mobile provides the same editing capabilities as desktop</li>
 				</ul>
 			</div>
@@ -1758,15 +1763,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 	}
 
-	private createCompactSupernovaSection(container: HTMLElement): void {
-		// Use the reusable CTA component
-		this.createSupernovaCTA(container, {
-			buttonAction: 'tab',
-			showLearnMore: true,
-			marginTop: '32px',
-			marginBottom: '32px'
-		});
-	}
 
 	private createSupernovaLicenseInput(container: HTMLElement): void {
 		// Current Supernova status
