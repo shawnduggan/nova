@@ -191,11 +191,25 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createGeneralTabContent(container: HTMLElement): void {
+		// Show supporter CTA only if not already a supporter
+		this.createSupernovaCTA(container, { 
+			showOnlyIfNotSupporter: true,
+			buttonAction: 'tab',
+			showLearnMore: false
+		});
+		
 		this.createGeneralSettings(container);
 		this.createPrivacySettings(container);
 	}
 
 	private createProvidersTabContent(container: HTMLElement): void {
+		// Show supporter CTA only if not already a supporter
+		this.createSupernovaCTA(container, { 
+			showOnlyIfNotSupporter: true,
+			buttonAction: 'tab',
+			showLearnMore: false
+		});
+		
 		this.createProviderSettings(container);
 	}
 
@@ -208,31 +222,12 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createSupernovaTabContent(container: HTMLElement): void {
-		// Prominent Supernova header section matching Getting Started tab
-		const prominentSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
-		
-		// Current Supernova status
-		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
-		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
-		const statusIcon = isSupernova ? '⭐' : '🌟';
-		
-		// Create prominent call-to-action matching Getting Started tab
-		prominentSection.innerHTML = `
-			<div class="nova-supernova-cta">
-				<div class="nova-supernova-header">
-					<span class="nova-supernova-icon">${statusIcon}</span>
-					<div class="nova-supernova-info">
-						<h3>Supernova Support</h3>
-						<p>Status: <strong>${statusText}</strong></p>
-					</div>
-				</div>
-				<div class="nova-supernova-actions">
-					<button class="nova-supernova-btn primary">
-						${isSupernova ? 'Thank You for Supporting!' : 'Become a Supporter'}
-					</button>
-				</div>
-			</div>
-		`;
+		// Use the reusable CTA component
+		this.createSupernovaCTA(container, {
+			buttonAction: 'direct',
+			showLearnMore: false,
+			marginBottom: '32px'
+		});
 		
 		// Benefits section with normal styling
 		const benefitsSection = container.createDiv({ cls: 'nova-benefits-section' });
@@ -1764,40 +1759,12 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createCompactSupernovaSection(container: HTMLElement): void {
-		const supernovaSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
-		supernovaSection.style.marginTop = '32px';
-		supernovaSection.style.marginBottom = '32px';
-		
-		// Current Supernova status
-		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
-		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
-		const statusIcon = isSupernova ? '⭐' : '🌟';
-		
-		// Create prominent call-to-action
-		supernovaSection.innerHTML = `
-			<div class="nova-supernova-cta">
-				<div class="nova-supernova-header">
-					<span class="nova-supernova-icon">${statusIcon}</span>
-					<div class="nova-supernova-info">
-						<h3>Supernova Support</h3>
-						<p>Status: <strong>${statusText}</strong></p>
-					</div>
-				</div>
-				<div class="nova-supernova-actions">
-					<button class="nova-supernova-btn primary" data-tab="supernova">
-						${isSupernova ? 'Manage License' : 'Become a Supporter'}
-					</button>
-					<button class="nova-supernova-btn secondary" data-tab="supernova">Learn More</button>
-				</div>
-			</div>
-		`;
-
-		// Add click handlers for buttons
-		supernovaSection.querySelectorAll('.nova-supernova-btn').forEach(button => {
-			button.addEventListener('click', (e) => {
-				e.preventDefault();
-				this.switchTab('supernova');
-			});
+		// Use the reusable CTA component
+		this.createSupernovaCTA(container, {
+			buttonAction: 'tab',
+			showLearnMore: true,
+			marginTop: '32px',
+			marginBottom: '32px'
 		});
 	}
 
@@ -1853,6 +1820,67 @@ export class NovaSettingTab extends PluginSettingTab {
 		const validationEl = container.createDiv({ cls: 'nova-validation-status' });
 		validationEl.style.marginTop = '8px';
 		validationEl.style.fontSize = '0.9em';
+	}
+
+	private createSupernovaCTA(container: HTMLElement, options: {
+		showOnlyIfNotSupporter?: boolean;
+		buttonAction?: 'tab' | 'direct';
+		showLearnMore?: boolean;
+		marginTop?: string;
+		marginBottom?: string;
+	} = {}): void {
+		// Default options
+		const {
+			showOnlyIfNotSupporter = false,
+			buttonAction = 'tab',
+			showLearnMore = true,
+			marginTop = '0',
+			marginBottom = '32px'
+		} = options;
+		
+		// Check supporter status
+		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		
+		// Don't render if user is already a supporter and we only want to show for non-supporters
+		if (showOnlyIfNotSupporter && isSupernova) {
+			return;
+		}
+		
+		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
+		const statusIcon = isSupernova ? '⭐' : '🌟';
+		
+		// Create the CTA section
+		const ctaSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
+		ctaSection.style.marginTop = marginTop;
+		ctaSection.style.marginBottom = marginBottom;
+		
+		ctaSection.innerHTML = `
+			<div class="nova-supernova-cta">
+				<div class="nova-supernova-header">
+					<span class="nova-supernova-icon">${statusIcon}</span>
+					<div class="nova-supernova-info">
+						<h3>Supernova Support</h3>
+						<p>Status: <strong>${statusText}</strong></p>
+					</div>
+				</div>
+				<div class="nova-supernova-actions">
+					<button class="nova-supernova-btn primary" ${buttonAction === 'tab' ? 'data-tab="supernova"' : ''}>
+						${isSupernova ? (buttonAction === 'tab' ? 'Manage License' : 'Thank You for Supporting!') : 'Become a Supporter'}
+					</button>
+					${showLearnMore ? '<button class="nova-supernova-btn secondary" data-tab="supernova">Learn More</button>' : ''}
+				</div>
+			</div>
+		`;
+		
+		// Add click handlers if using tab navigation
+		if (buttonAction === 'tab') {
+			ctaSection.querySelectorAll('[data-tab="supernova"]').forEach(button => {
+				button.addEventListener('click', (e) => {
+					e.preventDefault();
+					this.switchTab('supernova');
+				});
+			});
+		}
 	}
 
 	private createNavigationHelp(container: HTMLElement): void {
