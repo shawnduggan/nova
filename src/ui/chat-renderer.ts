@@ -126,7 +126,7 @@ export class ChatRenderer {
 	addWelcomeMessage(message?: string): void {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 		welcomeEl.style.cssText = `
-			padding: var(--size-4-4);
+			padding: 20px;
 			margin-bottom: var(--size-4-3);
 			background: var(--background-primary);
 			border-radius: var(--radius-s);
