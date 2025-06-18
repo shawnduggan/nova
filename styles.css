@@ -1,5 +1,149 @@
 /* Nova Plugin Styles */
 
+/* Settings Tab Navigation */
+.nova-tab-container {
+    display: flex;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 24px;
+}
+
+.nova-tab {
+    padding: 12px 24px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.nova-tab:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+}
+
+.nova-tab.active {
+    color: var(--interactive-accent);
+    border-bottom-color: var(--interactive-accent);
+    background: var(--background-modifier-form-field);
+}
+
+.nova-tab-content {
+    padding: 0;
+}
+
+/* API Key Security */
+.nova-api-key-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.nova-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nova-toggle-btn:hover {
+    color: var(--text-normal);
+}
+
+.nova-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Standardized Input Field Sizing */
+.nova-tab-content input[type="text"],
+.nova-tab-content input[type="password"],
+.nova-tab-content select {
+    height: 40px !important;
+    min-height: 40px !important;
+}
+
+.nova-tab-content input[type="text"]:not(.nova-api-key),
+.nova-tab-content input[type="password"]:not(.nova-api-key) {
+    width: 300px;
+}
+
+/* API key specific styling */
+.nova-tab-content .nova-provider-section input[type="text"],
+.nova-tab-content .nova-provider-section input[type="password"] {
+    width: 400px !important;
+    font-family: var(--font-monospace) !important;
+}
+
+/* Model dropdowns */
+.nova-tab-content .nova-provider-section select {
+    width: 200px !important;
+    height: 40px !important;
+}
+
+/* URL/Endpoint fields */
+.nova-tab-content input[placeholder*="localhost"],
+.nova-tab-content input[placeholder*="http"] {
+    width: 350px !important;
+}
+
+/* General settings inputs */
+.nova-tab-content input[type="number"] {
+    width: 150px !important;
+    height: 40px !important;
+}
+
+/* Test Connection Buttons - Fixed width to prevent jumping */
+.nova-tab-content button {
+    min-width: 120px !important;
+}
+
+/* Connection Testing */
+.nova-connection-status-container {
+    width: 150px;
+    margin-right: 8px;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: top;
+    height: 32px;
+}
+
+.nova-status-indicator {
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+    height: 32px;
+    line-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    justify-content: center;
+}
+
+.nova-status-indicator.success {
+    background: var(--color-green);
+    color: var(--color-base-00);
+}
+
+.nova-status-indicator.error {
+    background: var(--color-red);
+    color: var(--color-base-00);
+}
+
+.nova-status-indicator.testing {
+    background: var(--color-orange);
+    color: var(--color-base-00);
+}
+
 
 /* Base Picker Container Styles - Shared by command picker */
 .nova-command-picker {

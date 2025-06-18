@@ -4,6 +4,10 @@ import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings } from './licensing/types';
 import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
 import { getAvailableModels } from './ai/models';
+import { ClaudeProvider } from './ai/providers/claude';
+import { OpenAIProvider } from './ai/providers/openai';
+import { GoogleProvider } from './ai/providers/google';
+import { OllamaProvider } from './ai/providers/ollama';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -108,6 +112,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
+	private activeTab: 'general' | 'providers' | 'advanced' = 'general';
 
 	constructor(app: App, plugin: NovaPlugin) {
 		super(app, plugin);
@@ -119,15 +124,314 @@ export class NovaSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.createEl('h2', { text: 'Nova AI Settings' });
 
-		this.createLicenseSettings();
-		this.createGeneralSettings();
-		this.createPlatformSettings();
-		this.createProviderSettings();
-		this.createCommandSettings();
+		this.createTabNavigation();
+		this.createTabContent();
 	}
 
-	private createLicenseSettings() {
-		const { containerEl } = this;
+	private createTabNavigation(): void {
+		const tabContainer = this.containerEl.createDiv({ cls: 'nova-tab-container' });
+		
+		const tabs = [
+			{ id: 'general', label: 'General' },
+			{ id: 'providers', label: 'AI Providers' },
+			{ id: 'advanced', label: 'Advanced' }
+		];
+
+		tabs.forEach(tab => {
+			const tabEl = tabContainer.createDiv({ 
+				cls: `nova-tab ${this.activeTab === tab.id ? 'active' : ''}`,
+				text: tab.label
+			});
+			
+			tabEl.addEventListener('click', () => {
+				this.switchTab(tab.id as 'general' | 'providers' | 'advanced');
+			});
+		});
+	}
+
+	private switchTab(tabId: 'general' | 'providers' | 'advanced'): void {
+		this.activeTab = tabId;
+		this.display(); // Re-render with new active tab
+	}
+
+	private createTabContent(): void {
+		const contentContainer = this.containerEl.createDiv({ cls: 'nova-tab-content' });
+		
+		switch (this.activeTab) {
+			case 'general':
+				this.createGeneralTabContent(contentContainer);
+				break;
+			case 'providers':
+				this.createProvidersTabContent(contentContainer);
+				break;
+			case 'advanced':
+				this.createAdvancedTabContent(contentContainer);
+				break;
+		}
+	}
+
+	private createGeneralTabContent(container: HTMLElement): void {
+		this.createLicenseSettings(container);
+		this.createGeneralSettings(container);
+	}
+
+	private createProvidersTabContent(container: HTMLElement): void {
+		this.createProviderSettings(container);
+	}
+
+	private createAdvancedTabContent(container: HTMLElement): void {
+		this.createPlatformSettings(container);
+		this.createCommandSettings(container);
+	}
+
+	private createSecureApiKeyInput(container: HTMLElement, options: {
+		name: string;
+		desc: string;
+		placeholder: string;
+		value: string;
+		onChange: (value: string) => Promise<void>;
+	}): void {
+		const setting = new Setting(container)
+			.setName(options.name)
+			.setDesc(options.desc);
+
+		let actualValue = options.value;
+		let isVisible = false;
+
+		setting.addText(text => {
+			text.inputEl.type = 'password';
+			text.inputEl.style.fontFamily = 'var(--font-monospace)';
+			text.inputEl.style.width = '400px';
+			text.inputEl.style.height = '40px';
+			text.inputEl.style.position = 'relative';
+			text.setPlaceholder(options.placeholder);
+
+			// Set initial display value
+			if (actualValue && actualValue.length > 12) {
+				const masked = actualValue.slice(0, 8) + '••••••••••••••••••••••••' + actualValue.slice(-4);
+				text.setValue(masked);
+			} else {
+				text.setValue(actualValue);
+			}
+
+			// Create toggle button
+			const inputContainer = text.inputEl.parentElement;
+			if (inputContainer) {
+				inputContainer.style.position = 'relative';
+				
+				const toggleBtn = inputContainer.createEl('button', { cls: 'nova-toggle-btn' });
+				toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+					<circle cx="12" cy="12" r="3"/>
+				</svg>`;
+
+				toggleBtn.addEventListener('click', (e) => {
+					e.preventDefault();
+					isVisible = !isVisible;
+					
+					if (isVisible) {
+						text.inputEl.type = 'text';
+						text.setValue(actualValue);
+						toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="m9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+							<path d="m10.73 5.08a10.43 10.43 0 0 1 1.27-.08c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68"/>
+							<path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61"/>
+							<line x1="2" y1="2" x2="22" y2="22"/>
+						</svg>`;
+					} else {
+						text.inputEl.type = 'password';
+						if (actualValue && actualValue.length > 12) {
+							const masked = actualValue.slice(0, 8) + '••••••••••••••••••••••••' + actualValue.slice(-4);
+							text.setValue(masked);
+						} else {
+							text.setValue(actualValue);
+						}
+						toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+							<circle cx="12" cy="12" r="3"/>
+						</svg>`;
+					}
+				});
+			}
+
+			// Handle value changes
+			text.onChange(async (value) => {
+				actualValue = value;
+				await options.onChange(value);
+			});
+
+			return text;
+		});
+	}
+
+	private createTestConnectionButton(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): void {
+		const setting = new Setting(container)
+			.setName('Connection Status')
+			.setDesc('Test your API connection');
+
+		// Create status indicator first (to the left)
+		const statusContainer = setting.controlEl.createDiv({ cls: 'nova-connection-status-container' });
+		
+		setting.addButton(button => {
+			button.setButtonText('Test Connection')
+				.onClick(async () => {
+					await this.testProviderConnection(provider, button.buttonEl, statusContainer);
+				});
+			return button;
+		});
+		
+		// Show initial status if we have it
+		this.updateConnectionStatus(statusContainer, provider);
+	}
+
+	private async testProviderConnection(provider: 'claude' | 'openai' | 'google' | 'ollama', buttonEl: HTMLElement, statusContainer: HTMLElement): Promise<void> {
+		const originalText = buttonEl.textContent || 'Test Connection';
+		const button = buttonEl as HTMLButtonElement;
+		
+		console.log(`Starting connection test for ${provider}, button disabled: ${button.disabled}`);
+		
+		// Force enable and set initial state
+		button.disabled = false;
+		button.textContent = 'Testing...';
+		button.style.opacity = '0.6';
+		
+		// Show testing status
+		this.setConnectionStatus(statusContainer, 'testing', 'Testing...');
+		
+		// Use a backup timer to ensure button gets restored
+		const restoreButton = () => {
+			button.disabled = false;
+			button.textContent = originalText;
+			button.style.opacity = '1';
+			console.log(`Button force-restored for ${provider}`);
+		};
+		
+		const backupTimer = setTimeout(restoreButton, 12000); // 12 second backup
+		
+		try {
+			// Check basic configuration first
+			const hasConfig = this.hasProviderConfig(provider);
+			if (!hasConfig) {
+				throw new Error('Provider not configured - missing API key or settings');
+			}
+
+			// Set timeout for 10 seconds
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				setTimeout(() => reject(new Error('Connection timeout')), 10000);
+			});
+
+			// Test the connection using the plugin's provider system
+			const testPromise = this.performRealConnectionTest(provider);
+			
+			await Promise.race([testPromise, timeoutPromise]);
+			this.setConnectionStatus(statusContainer, 'success', '● Connected');
+			console.log(`Connection test successful for ${provider}`);
+			
+		} catch (error: any) {
+			console.log(`Connection test failed for ${provider}:`, error);
+			let errorMessage = 'Connection failed';
+			
+			if (error.message === 'Connection timeout') {
+				errorMessage = 'Timeout';
+			} else if (provider === 'ollama') {
+				// Check if URL is actually configured
+				const ollamaUrl = this.plugin.settings.aiProviders.ollama.baseUrl;
+				if (!ollamaUrl || ollamaUrl.trim() === '') {
+					errorMessage = 'No URL configured';
+				} else {
+					errorMessage = 'Connection failed';
+				}
+			} else if (error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('API key')) {
+				errorMessage = 'Invalid API key';
+			} else if (error.message?.includes('429')) {
+				errorMessage = 'Rate limited';
+			} else if (error.message?.includes('quota')) {
+				errorMessage = 'Quota exceeded';
+			} else if (error.message?.includes('not configured') || error.message?.includes('missing')) {
+				errorMessage = 'Not configured';
+			} else {
+				errorMessage = 'Connection failed';
+			}
+			
+			this.setConnectionStatus(statusContainer, 'error', `● ${errorMessage}`);
+		} finally {
+			// Clear backup timer and restore button
+			clearTimeout(backupTimer);
+			restoreButton();
+		}
+	}
+
+	private async performRealConnectionTest(provider: 'claude' | 'openai' | 'google' | 'ollama'): Promise<void> {
+		console.log(`Starting real connection test for ${provider}`);
+		
+		// Test the provider classes directly
+		switch (provider) {
+			case 'claude': {
+				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude);
+				// For Claude, just test a minimal completion instead of getAvailableModels
+				await claudeProvider.complete('You are a helpful assistant.', 'Hi', { maxTokens: 1 });
+				break;
+			}
+			case 'openai': {
+				const openaiProvider = new OpenAIProvider(this.plugin.settings.aiProviders.openai);
+				await openaiProvider.getAvailableModels();
+				break;
+			}
+			case 'google': {
+				const googleProvider = new GoogleProvider(this.plugin.settings.aiProviders.google);
+				await googleProvider.getAvailableModels();
+				break;
+			}
+			case 'ollama': {
+				const ollamaProvider = new OllamaProvider(this.plugin.settings.aiProviders.ollama);
+				// Ollama doesn't have getAvailableModels, check connection with isAvailable
+				const isAvailable = await ollamaProvider.isAvailable();
+				if (!isAvailable) {
+					throw new Error('Ollama connection failed');
+				}
+				break;
+			}
+		}
+		console.log(`Connection test successful for ${provider}`);
+	}
+
+	private setConnectionStatus(container: HTMLElement, type: 'success' | 'error' | 'testing' | 'none', message: string): void {
+		container.empty();
+		
+		if (type === 'none') return;
+		
+		const statusEl = container.createDiv({ cls: `nova-status-indicator ${type}` });
+		statusEl.textContent = message;
+	}
+
+	private updateConnectionStatus(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): void {
+		// Check if provider has required configuration
+		const hasConfig = this.hasProviderConfig(provider);
+		
+		if (!hasConfig) {
+			this.setConnectionStatus(container, 'none', '');
+		} else {
+			// Don't show anything initially - let user test when ready
+			this.setConnectionStatus(container, 'none', '');
+		}
+	}
+
+	private hasProviderConfig(provider: 'claude' | 'openai' | 'google' | 'ollama'): boolean {
+		switch (provider) {
+			case 'claude': 
+				return !!this.plugin.settings.aiProviders.claude.apiKey;
+			case 'openai': 
+				return !!this.plugin.settings.aiProviders.openai.apiKey;
+			case 'google': 
+				return !!this.plugin.settings.aiProviders.google.apiKey;
+			case 'ollama': 
+				return !!this.plugin.settings.aiProviders.ollama.baseUrl;
+			default: 
+				return false;
+		}
+	}
+
+	private createLicenseSettings(containerEl = this.containerEl) {
 		const licenseContainer = containerEl.createDiv({ cls: 'nova-license-section' });
 		licenseContainer.createEl('h3', { text: 'Supernova Supporter Status' });
 
@@ -468,8 +772,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		}, 4000);
 	}
 
-	private createGeneralSettings() {
-		const { containerEl } = this;
+	private createGeneralSettings(containerEl = this.containerEl) {
 		containerEl.createEl('h3', { text: 'General Settings' });
 
 		new Setting(containerEl)
@@ -487,16 +790,21 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Default Max Tokens')
 			.setDesc('Maximum length of AI responses')
-			.addText(text => text
-				.setPlaceholder('1000')
-				.setValue(this.plugin.settings.general.defaultMaxTokens.toString())
-				.onChange(async (value) => {
-					const numValue = parseInt(value);
-					if (!isNaN(numValue) && numValue > 0) {
-						this.plugin.settings.general.defaultMaxTokens = numValue;
-						await this.plugin.saveSettings();
-					}
-				}));
+			.addText(text => {
+				text.inputEl.type = 'number';
+				text.inputEl.style.width = '150px';
+				text.inputEl.style.height = '40px';
+				return text
+					.setPlaceholder('1000')
+					.setValue(this.plugin.settings.general.defaultMaxTokens.toString())
+					.onChange(async (value) => {
+						const numValue = parseInt(value);
+						if (!isNaN(numValue) && numValue > 0) {
+							this.plugin.settings.general.defaultMaxTokens = numValue;
+							await this.plugin.saveSettings();
+						}
+					});
+			});
 
 		new Setting(containerEl)
 			.setName('Auto-save settings')
@@ -510,44 +818,11 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	}
 
-	private createProviderSettings() {
-		const { containerEl } = this;
-		
-		// Create collapsible header
-		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
-		headerEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			cursor: pointer;
-			padding: 8px 0;
-			border-bottom: 1px solid var(--background-modifier-border);
-			margin-bottom: 16px;
-		`;
-		
-		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
-		arrowEl.innerHTML = '▶';
-		arrowEl.style.cssText = `
-			margin-right: 8px;
-			transition: transform 0.2s ease;
-			font-size: 12px;
-			color: var(--text-muted);
-		`;
-		
-		const titleEl = headerEl.createEl('h3', { text: 'AI Provider Settings' });
-		titleEl.style.cssText = 'margin: 0; flex: 1;';
-
-		const providerContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		providerContainer.style.cssText = 'display: none;'; // Start collapsed
-		
-		// Toggle functionality
-		headerEl.addEventListener('click', () => {
-			const isVisible = providerContainer.style.display !== 'none';
-			providerContainer.style.display = isVisible ? 'none' : 'block';
-			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
-		});
+	private createProviderSettings(containerEl = this.containerEl) {
+		containerEl.createEl('h3', { text: 'AI Provider Settings' });
 
 		// Info about API keys and model recommendations
-		const infoEl = providerContainer.createDiv({ cls: 'nova-provider-info' });
+		const infoEl = containerEl.createDiv({ cls: 'nova-provider-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
 				<h4>Configure Your API Keys</h4>
@@ -566,10 +841,10 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 
 		// Show all providers - no restrictions
-		this.createOllamaSettings(providerContainer);
-		this.createClaudeSettings(providerContainer);
-		this.createGoogleSettings(providerContainer);
-		this.createOpenAISettings(providerContainer);
+		this.createOllamaSettings(containerEl);
+		this.createClaudeSettings(containerEl);
+		this.createGoogleSettings(containerEl);
+		this.createOpenAISettings(containerEl);
 	}
 
 	private createClaudeSettings(containerEl = this.containerEl) {
@@ -577,16 +852,19 @@ export class NovaSettingTab extends PluginSettingTab {
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
 
-		new Setting(claudeContainer)
-			.setName('API Key')
-			.setDesc('Your Anthropic API key')
-			.addText(text => text
-				.setPlaceholder('sk-ant-...')
-				.setValue(this.plugin.settings.aiProviders.claude.apiKey || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.claude.apiKey = value;
-					await this.plugin.saveSettings();
-				}));
+		this.createSecureApiKeyInput(claudeContainer, {
+			name: 'API Key',
+			desc: 'Your Anthropic API key',
+			placeholder: 'sk-ant-...',
+			value: this.plugin.settings.aiProviders.claude.apiKey || '',
+			onChange: async (value) => {
+				this.plugin.settings.aiProviders.claude.apiKey = value;
+				await this.plugin.saveSettings();
+			}
+		});
+
+		// Test Connection button
+		this.createTestConnectionButton(claudeContainer, 'claude');
 
 		// Model setting with refresh button
 		const modelSetting = new Setting(claudeContainer)
@@ -597,6 +875,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		modelSetting.addDropdown(dropdown => {
 			modelDropdown = dropdown;
+			dropdown.selectEl.style.width = '200px';
+			dropdown.selectEl.style.height = '40px';
 			this.populateClaudeModels(dropdown);
 			return dropdown
 				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-sonnet-4-20250514')
@@ -628,16 +908,19 @@ export class NovaSettingTab extends PluginSettingTab {
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		openaiContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
 
-		new Setting(openaiContainer)
-			.setName('API Key')
-			.setDesc('Your OpenAI API key')
-			.addText(text => text
-				.setPlaceholder('sk-...')
-				.setValue(this.plugin.settings.aiProviders.openai.apiKey || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.openai.apiKey = value;
-					await this.plugin.saveSettings();
-				}));
+		this.createSecureApiKeyInput(openaiContainer, {
+			name: 'API Key',
+			desc: 'Your OpenAI API key',
+			placeholder: 'sk-...',
+			value: this.plugin.settings.aiProviders.openai.apiKey || '',
+			onChange: async (value) => {
+				this.plugin.settings.aiProviders.openai.apiKey = value;
+				await this.plugin.saveSettings();
+			}
+		});
+
+		// Test Connection button
+		this.createTestConnectionButton(openaiContainer, 'openai');
 
 		// Model setting with refresh button
 		const modelSetting = new Setting(openaiContainer)
@@ -648,6 +931,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		modelSetting.addDropdown(dropdown => {
 			modelDropdown = dropdown;
+			dropdown.selectEl.style.width = '200px';
+			dropdown.selectEl.style.height = '40px';
 			this.populateOpenAIModels(dropdown);
 			return dropdown
 				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4.1-mini-2025-04-14')
@@ -677,16 +962,19 @@ export class NovaSettingTab extends PluginSettingTab {
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
 		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
 
-		new Setting(googleContainer)
-			.setName('API Key')
-			.setDesc('Your Google AI API key')
-			.addText(text => text
-				.setPlaceholder('AI...')
-				.setValue(this.plugin.settings.aiProviders.google.apiKey || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.google.apiKey = value;
-					await this.plugin.saveSettings();
-				}));
+		this.createSecureApiKeyInput(googleContainer, {
+			name: 'API Key',
+			desc: 'Your Google AI API key',
+			placeholder: 'AI...',
+			value: this.plugin.settings.aiProviders.google.apiKey || '',
+			onChange: async (value) => {
+				this.plugin.settings.aiProviders.google.apiKey = value;
+				await this.plugin.saveSettings();
+			}
+		});
+
+		// Test Connection button
+		this.createTestConnectionButton(googleContainer, 'google');
 
 		// Model setting with refresh button
 		const modelSetting = new Setting(googleContainer)
@@ -697,6 +985,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		modelSetting.addDropdown(dropdown => {
 			modelDropdown = dropdown;
+			dropdown.selectEl.style.width = '200px';
+			dropdown.selectEl.style.height = '40px';
 			this.populateGoogleModels(dropdown);
 			return dropdown
 				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash-preview-04-17')
@@ -728,64 +1018,42 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(ollamaContainer)
 			.setName('Base URL')
 			.setDesc('Ollama server URL')
-			.addText(text => text
-				.setPlaceholder('http://localhost:11434')
-				.setValue(this.plugin.settings.aiProviders.ollama.baseUrl || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.ollama.baseUrl = value;
-					await this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				text.inputEl.style.width = '350px';
+				text.inputEl.style.height = '40px';
+				return text
+					.setPlaceholder('http://localhost:11434')
+					.setValue(this.plugin.settings.aiProviders.ollama.baseUrl || '')
+					.onChange(async (value) => {
+						this.plugin.settings.aiProviders.ollama.baseUrl = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		// Test Connection button
+		this.createTestConnectionButton(ollamaContainer, 'ollama');
 
 		new Setting(ollamaContainer)
 			.setName('Model')
 			.setDesc('Ollama model to use')
-			.addText(text => text
-				.setPlaceholder('llama2')
-				.setValue(this.plugin.settings.aiProviders.ollama.model || '')
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.ollama.model = value;
-					await this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				text.inputEl.style.width = '200px';
+				text.inputEl.style.height = '40px';
+				return text
+					.setPlaceholder('llama2')
+					.setValue(this.plugin.settings.aiProviders.ollama.model || '')
+					.onChange(async (value) => {
+						this.plugin.settings.aiProviders.ollama.model = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 
-	private createPlatformSettings() {
-		const { containerEl } = this;
-		
-		// Create collapsible header
-		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
-		headerEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			cursor: pointer;
-			padding: 8px 0;
-			border-bottom: 1px solid var(--background-modifier-border);
-			margin-bottom: 16px;
-		`;
-		
-		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
-		arrowEl.innerHTML = '▶';
-		arrowEl.style.cssText = `
-			margin-right: 8px;
-			transition: transform 0.2s ease;
-			font-size: 12px;
-			color: var(--text-muted);
-		`;
-		
-		const titleEl = headerEl.createEl('h3', { text: 'Platform Settings' });
-		titleEl.style.cssText = 'margin: 0; flex: 1;';
-
-		const platformContainer = containerEl.createDiv({ cls: 'nova-platform-section' });
-		platformContainer.style.cssText = 'display: none;'; // Start collapsed
-		
-		// Toggle functionality
-		headerEl.addEventListener('click', () => {
-			const isVisible = platformContainer.style.display !== 'none';
-			platformContainer.style.display = isVisible ? 'none' : 'block';
-			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
-		});
+	private createPlatformSettings(containerEl = this.containerEl) {
+		containerEl.createEl('h3', { text: 'Platform Settings' });
 		
 		// Info about platform settings
-		const infoEl = platformContainer.createDiv({ cls: 'nova-platform-info' });
+		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
 				<h4>🖥️ Platform Configuration</h4>
@@ -794,8 +1062,8 @@ export class NovaSettingTab extends PluginSettingTab {
 			</div>
 		`;
 		
-		platformContainer.createEl('h4', { text: 'Desktop' });
-		const desktopDropdown = new Setting(platformContainer)
+		containerEl.createEl('h4', { text: 'Desktop' });
+		const desktopDropdown = new Setting(containerEl)
 			.setName('Primary Provider')
 			.setDesc('Primary AI provider for desktop')
 			.addDropdown(dropdown => {
@@ -817,8 +1085,8 @@ export class NovaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		platformContainer.createEl('h4', { text: 'Mobile' });
-		const mobileSetting = new Setting(platformContainer)
+		containerEl.createEl('h4', { text: 'Mobile' });
+		const mobileSetting = new Setting(containerEl)
 			.setName('Primary Provider')
 			.setDesc('Primary AI provider for mobile devices');
 			
@@ -865,45 +1133,12 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private createCommandSettings() {
-		const { containerEl } = this;
-		
-		// Create collapsible header
-		const headerEl = containerEl.createDiv({ cls: 'nova-collapsible-header' });
-		headerEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			cursor: pointer;
-			padding: 8px 0;
-			border-bottom: 1px solid var(--background-modifier-border);
-			margin-bottom: 16px;
-		`;
-		
-		const arrowEl = headerEl.createSpan({ cls: 'nova-collapsible-arrow' });
-		arrowEl.innerHTML = '▶';
-		arrowEl.style.cssText = `
-			margin-right: 8px;
-			transition: transform 0.2s ease;
-			font-size: 12px;
-			color: var(--text-muted);
-		`;
-		
-		const titleEl = headerEl.createEl('h3', { text: 'Custom Commands' });
-		titleEl.style.cssText = 'margin: 0; flex: 1;';
-
-		const commandContainer = containerEl.createDiv({ cls: 'nova-command-section' });
-		commandContainer.style.cssText = 'display: none;'; // Start collapsed
-		
-		// Toggle functionality
-		headerEl.addEventListener('click', () => {
-			const isVisible = commandContainer.style.display !== 'none';
-			commandContainer.style.display = isVisible ? 'none' : 'block';
-			arrowEl.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
-		});
+	private createCommandSettings(containerEl = this.containerEl) {
+		containerEl.createEl('h3', { text: 'Custom Commands' });
 
 		// Feature availability check
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			const noticeEl = commandContainer.createDiv({ cls: 'nova-feature-notice' });
+			const noticeEl = containerEl.createDiv({ cls: 'nova-feature-notice' });
 			noticeEl.innerHTML = `
 				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
 					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Supernova Supporter Feature</h4>
@@ -917,7 +1152,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 
 		// Description
-		const descEl = commandContainer.createDiv({ cls: 'nova-command-description' });
+		const descEl = containerEl.createDiv({ cls: 'nova-command-description' });
 		descEl.innerHTML = `
 			<p style="color: var(--text-muted); margin-bottom: 16px;">
 				Create custom command shortcuts that insert predefined text templates when triggered with <code>:trigger</code>.
@@ -925,7 +1160,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 
 		// Show Command Button setting (Supernova-only, Mobile-only)
-		new Setting(commandContainer)
+		new Setting(containerEl)
 			.setName('Show Command Button in Chat (Mobile)')
 			.setDesc('Show the Commands button beside the Send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
@@ -943,7 +1178,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 
 		// Add new command button at the top
-		const buttonEl = commandContainer.createDiv({ cls: 'nova-add-command' });
+		const buttonEl = containerEl.createDiv({ cls: 'nova-add-command' });
 		buttonEl.style.cssText = 'margin-bottom: 16px;';
 		
 		new Setting(buttonEl)
@@ -955,7 +1190,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			);
 
 		// Commands list
-		this.renderCustomCommandsList(commandContainer);
+		this.renderCustomCommandsList(containerEl);
 	}
 
 	private renderCustomCommandsList(container: HTMLElement) {

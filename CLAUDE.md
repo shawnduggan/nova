@@ -81,6 +81,27 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
+### **Settings UX Improvements (Critical/Important Priority)**
+
+#### Phase 1: Core Tab Structure (Critical)
+1. **Create tab navigation system in settings.ts** - Replace single display() method with tab-based layout implementing horizontal tab system: General | AI Providers | Advanced with tab switching logic and visual states
+2. **Add API key security (password toggle functionality)** - Add password/text toggle for all API key fields, implement masking (show first 8, last 4 characters when hidden), add eye icon toggle buttons with proper states
+3. **Standardize input field sizing** - Update CSS: API key fields to 400px width, 40px height, apply monospace font for API keys, standardize all form field heights to 40px
+
+#### Phase 2: Provider Testing & Status (Important)
+4. **Implement Test Connection functionality** - Add "Test Connection" buttons for each provider (Claude, OpenAI, Google, Ollama), create provider validation with specific error messages, add timeout handling (10 seconds) and loading states
+5. **Add provider status indicators** - Green dot: Connected and working, Red dot: Connection failed with error details, Amber dot: Configured but untested, Gray dot: Not configured
+
+#### Phase 3: Content Organization (Important)
+6. **Organize General tab content** - Move Supernova Supporter Status to top, group Basic Settings (temperature, tokens, auto-save), clean up layout and spacing
+7. **Reorganize AI Providers tab content** - Group provider sections with status indicators, add connection testing interface, include recommended defaults guidance, improve model selection interface
+8. **Structure Advanced tab content** - Move Custom Commands to Advanced tab, group Development Settings (debug mode), relocate Platform Settings to Advanced tab
+
+#### Phase 4: Visual Polish (Polish)
+9. **Improve spacing and typography** - Apply consistent 24px tab content padding, add 32px spacing between provider sections, standardize 16px spacing between form fields, enhance visual hierarchy
+10. **Add mobile responsiveness** - Implement horizontal scrolling tabs on narrow screens, make form fields full-width on mobile, ensure touch targets are 44px minimum
+11. **Enhance accessibility** - Add proper keyboard navigation, implement screen reader support, add high contrast focus indicators
+
 ### **Lower Priority Items**
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - Command System Polish (Custom Commands feature alignment)
