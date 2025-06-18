@@ -82,7 +82,17 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Remaining Tasks**
+### **Mobile Enhancement Tasks (Priority)**
+- **Task 2: Title Bar Vertical Padding** - Add 16px top/bottom padding to .nova-header on mobile in styles.css
+- **Task 3: Provider Dropdown Touch Targets** - Update .nova-provider-button to minimum 44px height for mobile
+- **Task 4: Privacy Status Pills** - Replace lock emoji with styled pill components using lucide icons in updatePrivacyIndicator
+- **Task 5: Status Pill Styling** - Add CSS for .nova-status-pill with green/amber backgrounds
+- **Task 6: Welcome Message Padding** - Update welcome message padding to 20px all around in chat-renderer.ts
+- **Task 7: Chat Bubble Spacing** - Update .nova-message margin-bottom to 16px between messages
+- **Task 8: Simplified Welcome Text** - Update welcome message to simplified text about editing and chat
+- **Task 9: Input Area Mobile Optimization** - Ensure 44px send button and increased input area padding
+
+### **Other Remaining Tasks**
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)

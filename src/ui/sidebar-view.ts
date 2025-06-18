@@ -1895,7 +1895,7 @@ USER REQUEST: ${processedMessage}`;
 				if (statsEl && wordCount > 0) {
 					statsEl.textContent = `${wordCount} words • ${headingCount} sections`;
 					(statsEl as HTMLElement).style.cssText = `
-						font-size: 0.75em;
+						font-size: 14px;
 						color: var(--text-muted);
 						margin-top: var(--size-2-2);
 					`;
