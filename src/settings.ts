@@ -120,7 +120,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
-	private activeTab: 'general' | 'providers' | 'advanced' = 'general';
+	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
 
 	constructor(app: App, plugin: NovaPlugin) {
 		super(app, plugin);
@@ -130,7 +130,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'Nova AI Settings' });
+		containerEl.createEl('h2', { text: 'Nova Settings' });
 
 		this.createTabNavigation();
 		this.createTabContent();
@@ -140,10 +140,16 @@ export class NovaSettingTab extends PluginSettingTab {
 		const tabContainer = this.containerEl.createDiv({ cls: 'nova-tab-container' });
 		
 		const tabs = [
+			{ id: 'getting-started', label: 'Getting Started' },
 			{ id: 'general', label: 'General' },
 			{ id: 'providers', label: 'AI Providers' },
-			{ id: 'advanced', label: 'Advanced' }
+			{ id: 'supernova', label: 'Supernova' }
 		];
+
+		// Add Debug tab only for debug builds
+		if (process.env.NODE_ENV === 'development' || this.plugin.settings.licensing.debugSettings.enabled) {
+			tabs.push({ id: 'debug', label: 'Debug' });
+		}
 
 		tabs.forEach(tab => {
 			const tabEl = tabContainer.createDiv({ 
@@ -152,12 +158,12 @@ export class NovaSettingTab extends PluginSettingTab {
 			});
 			
 			tabEl.addEventListener('click', () => {
-				this.switchTab(tab.id as 'general' | 'providers' | 'advanced');
+				this.switchTab(tab.id as 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug');
 			});
 		});
 	}
 
-	private switchTab(tabId: 'general' | 'providers' | 'advanced'): void {
+	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug'): void {
 		this.activeTab = tabId;
 		this.display(); // Re-render with new active tab
 	}
@@ -166,30 +172,141 @@ export class NovaSettingTab extends PluginSettingTab {
 		const contentContainer = this.containerEl.createDiv({ cls: 'nova-tab-content' });
 		
 		switch (this.activeTab) {
+			case 'getting-started':
+				this.createGettingStartedTabContent(contentContainer);
+				break;
 			case 'general':
 				this.createGeneralTabContent(contentContainer);
 				break;
 			case 'providers':
 				this.createProvidersTabContent(contentContainer);
 				break;
-			case 'advanced':
-				this.createAdvancedTabContent(contentContainer);
+			case 'supernova':
+				this.createSupernovaTabContent(contentContainer);
+				break;
+			case 'debug':
+				this.createDebugTabContent(contentContainer);
 				break;
 		}
 	}
 
 	private createGeneralTabContent(container: HTMLElement): void {
-		this.createLicenseSettings(container);
 		this.createGeneralSettings(container);
+		this.createPrivacySettings(container);
 	}
 
 	private createProvidersTabContent(container: HTMLElement): void {
 		this.createProviderSettings(container);
 	}
 
-	private createAdvancedTabContent(container: HTMLElement): void {
-		this.createPlatformSettings(container);
-		this.createCommandSettings(container);
+
+	private createGettingStartedTabContent(container: HTMLElement): void {
+		this.createWelcomeSection(container);
+		this.createCompactSupernovaSection(container);
+		this.createQuickStartGuide(container);
+		this.createNavigationHelp(container);
+	}
+
+	private createSupernovaTabContent(container: HTMLElement): void {
+		// Supernova Support Section
+		const supernovaSection = container.createDiv({ cls: 'nova-api-keys-section' });
+		supernovaSection.createEl('h3', { text: 'Supernova Support' });
+		supernovaSection.createEl('hr', { cls: 'nova-section-divider' });
+		
+		const infoEl = supernovaSection.createDiv({ cls: 'nova-provider-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
+			</div>
+			<div class="nova-info-card">
+				<h4>Supernova Benefits</h4>
+				<ul class="nova-model-recommendations">
+					<li><strong>Early Access</strong> - Get new features 3-6 months before general release</li>
+					<li><strong>Priority Support</strong> - Direct access to developers for feature requests and bug reports</li>
+					<li><strong>Supporter Badge</strong> - Recognition in the Nova community</li>
+					<li><strong>Open Source Support</strong> - Directly fund continued development of Nova</li>
+				</ul>
+				<p class="nova-guidance-note">Your support keeps Nova free and open source for everyone.</p>
+			</div>
+		`;
+		
+		this.createLicenseSettings(supernovaSection);
+	}
+
+	private createDebugTabContent(container: HTMLElement): void {
+		// Debug Settings Section
+		const debugSection = container.createDiv({ cls: 'nova-debug-section' });
+		debugSection.createEl('h3', { text: 'Debug Settings' });
+		debugSection.createEl('hr', { cls: 'nova-section-divider' });
+		
+		const infoEl = debugSection.createDiv({ cls: 'nova-debug-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<p>Debug settings for development and testing. These options help developers troubleshoot issues and test new features.</p>
+			</div>
+			<div class="nova-info-card">
+				<h4>⚠️ Developer Settings</h4>
+				<ul class="nova-debug-features">
+					<li><strong>Debug Mode</strong> - Enable detailed logging and development features</li>
+					<li><strong>Override Date</strong> - Test time-sensitive features with custom dates</li>
+					<li><strong>Force Supernova</strong> - Test Supernova-only features without a license</li>
+				</ul>
+				<p class="nova-debug-note">Only modify these settings if you understand their purpose.</p>
+			</div>
+		`;
+		
+		this.createDebugSettings(debugSection);
+	}
+
+	private createPrivacySettings(container: HTMLElement): void {
+		// Privacy & Platform Section
+		const privacySection = container.createDiv({ cls: 'nova-privacy-section' });
+		privacySection.createEl('h3', { text: 'Privacy & Platform Settings' });
+		privacySection.createEl('hr', { cls: 'nova-section-divider' });
+		
+		const infoEl = privacySection.createDiv({ cls: 'nova-privacy-info' });
+		infoEl.innerHTML = `
+			<div class="nova-info-card">
+				<h4>🔒 Your Privacy Matters</h4>
+				<p>Nova respects your privacy and gives you full control over how your data is handled. 
+				All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.</p>
+			</div>
+			<div class="nova-info-card">
+				<h4>📱 Mobile Support</h4>
+				<p>Mobile support is <strong>disabled by default</strong> to protect your privacy. 
+				When enabled, Nova works seamlessly across desktop and mobile with cloud-based AI providers.</p>
+				<ul class="nova-privacy-features">
+					<li><strong>Local-first</strong> - Ollama and desktop-only providers keep everything on your device</li>
+					<li><strong>Your choice</strong> - Enable mobile only when you need cross-device access</li>
+					<li><strong>Same experience</strong> - Mobile provides the same editing capabilities as desktop</li>
+				</ul>
+			</div>
+		`;
+		
+		// Mobile Support Toggle
+		new Setting(privacySection)
+			.setName('Enable Mobile Support')
+			.setDesc('Allow Nova to work on mobile devices using cloud-based AI providers')
+			.addToggle(toggle => {
+				const currentMobileProvider = this.plugin.settings.platformSettings.mobile.primaryProvider;
+				const isMobileEnabled = currentMobileProvider !== 'none';
+				
+				toggle
+					.setValue(isMobileEnabled)
+					.onChange(async (value) => {
+						if (value) {
+							// Enable mobile with Claude as default (most reliable)
+							this.plugin.settings.platformSettings.mobile.primaryProvider = 'claude';
+						} else {
+							// Disable mobile
+							this.plugin.settings.platformSettings.mobile.primaryProvider = 'none';
+						}
+						await this.plugin.saveSettings();
+						if (this.plugin.aiProviderManager) {
+							this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+						}
+					});
+			});
 	}
 
 	private createSecureApiKeyInput(container: HTMLElement, options: {
@@ -644,6 +761,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setDesc('Enter your Supernova supporter license key for early access to new features')
 			.addText(text => {
 				text.inputEl.type = 'password';
+				text.inputEl.style.fontFamily = 'var(--font-monospace)';
+				text.inputEl.style.width = '400px';
+				text.inputEl.style.height = '40px';
 				text.setPlaceholder('Enter Supernova license key...')
 					.setValue(this.plugin.settings.licensing.supernovaLicenseKey || '')
 					.onChange(async (value) => {
@@ -717,11 +837,6 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Supernova supporter information only
 		this.createSupernovaInfo(licenseContainer);
-
-		// Debug settings (development only)
-		if (process.env.NODE_ENV === 'development' || this.plugin.settings.licensing.debugSettings.enabled) {
-			this.createDebugSettings(licenseContainer);
-		}
 	}
 
 	private createSupernovaInfo(container: HTMLElement) {
@@ -927,11 +1042,16 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createGeneralSettings(containerEl = this.containerEl) {
-		containerEl.createEl('h3', { text: 'General Settings' });
+		// Core Settings section with clean header
+		const coreSection = containerEl.createDiv({ cls: 'nova-core-settings-section' });
+		coreSection.createEl('h3', { text: 'Core Settings' });
+		
+		// Add section spacing per specification
+		coreSection.style.marginBottom = '32px';
 
-		new Setting(containerEl)
+		new Setting(coreSection)
 			.setName('Default Temperature')
-			.setDesc('Controls randomness in AI responses (0.0 - 1.0)')
+			.setDesc('Controls randomness in AI responses (0.0 = focused, 1.0 = creative)')
 			.addSlider(slider => slider
 				.setLimits(0, 1, 0.1)
 				.setValue(this.plugin.settings.general.defaultTemperature)
@@ -941,9 +1061,9 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		new Setting(coreSection)
 			.setName('Default Max Tokens')
-			.setDesc('Maximum length of AI responses')
+			.setDesc('Maximum length of AI responses (higher = longer responses)')
 			.addText(text => {
 				text.inputEl.type = 'number';
 				text.inputEl.style.width = '150px';
@@ -960,9 +1080,9 @@ export class NovaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		new Setting(containerEl)
+		new Setting(coreSection)
 			.setName('Auto-save settings')
-			.setDesc('Automatically save settings when changed')
+			.setDesc('Automatically save configuration changes')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.general.autoSave)
 				.onChange(async (value) => {
@@ -1510,5 +1630,159 @@ export class NovaSettingTab extends PluginSettingTab {
 			this.plugin.saveSettings();
 			this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
 		}
+	}
+
+	private createWelcomeSection(container: HTMLElement): void {
+		const welcomeSection = container.createDiv({ cls: 'nova-welcome-section' });
+		
+		// Nova logo and title
+		const headerDiv = welcomeSection.createDiv({ cls: 'nova-welcome-header' });
+		headerDiv.innerHTML = `
+			<div class="nova-welcome-logo">
+				${NOVA_ICON_SVG}
+			</div>
+			<div class="nova-welcome-content">
+				<h2>Welcome to Nova</h2>
+				<p class="nova-tagline">Your AI writing partner to make the writing process smoother</p>
+				<p class="nova-story">Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing</p>
+			</div>
+		`;
+	}
+
+	private createQuickStartGuide(container: HTMLElement): void {
+		const guideSection = container.createDiv({ cls: 'nova-quick-start-section' });
+		guideSection.style.marginTop = '32px';
+		
+		// Selection-Based Editing
+		const selectionCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
+		selectionCard.innerHTML = `
+			<div class="nova-card-header">
+				<span class="nova-card-icon">🎯</span>
+				<h4>Selection-Based Editing</h4>
+			</div>
+			<div class="nova-card-content">
+				<ol>
+					<li>Select any text in your document</li>
+					<li>Right-click to open context menu</li>
+					<li>Choose Nova action (Improve Writing, Make Longer)</li>
+					<li>Watch AI transform text exactly in place</li>
+				</ol>
+				<div class="nova-tip">💡 Tip: Select any text in your document and right-click to see Nova actions</div>
+			</div>
+		`;
+
+		// Chat Commands
+		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
+		chatCard.style.marginTop = '24px';
+		chatCard.innerHTML = `
+			<div class="nova-card-header">
+				<span class="nova-card-icon">💬</span>
+				<h4>Chat-Based Targeting</h4>
+			</div>
+			<div class="nova-card-content">
+				<ol>
+					<li>Place cursor where you want content</li>
+					<li>Type command: "Add conclusion section"</li>
+					<li>Nova edits precisely at cursor location</li>
+				</ol>
+				<div class="nova-tip">📱 Works identically on desktop and mobile</div>
+			</div>
+		`;
+
+		// AI Provider Selection
+		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
+		providerCard.style.marginTop = '24px';
+		providerCard.innerHTML = `
+			<div class="nova-card-header">
+				<span class="nova-card-icon">🤖</span>
+				<h4>AI Provider Selection</h4>
+			</div>
+			<div class="nova-card-content">
+				<p>Choose the right AI for your task:</p>
+				<ul>
+					<li><strong>Claude</strong> - For complex reasoning and analysis</li>
+					<li><strong>OpenAI</strong> - For balanced performance and creativity</li>
+					<li><strong>Gemini</strong> - For fast responses and research</li>
+					<li><strong>Ollama</strong> - For local privacy and offline use 🔒</li>
+				</ul>
+				<div class="nova-tip">Configure providers in the AI Providers tab</div>
+			</div>
+		`;
+	}
+
+	private createCompactSupernovaSection(container: HTMLElement): void {
+		const supernovaSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
+		supernovaSection.style.marginTop = '32px';
+		supernovaSection.style.marginBottom = '32px';
+		
+		// Current Supernova status
+		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
+		const statusIcon = isSupernova ? '⭐' : '🌟';
+		
+		// Create prominent call-to-action
+		supernovaSection.innerHTML = `
+			<div class="nova-supernova-cta">
+				<div class="nova-supernova-header">
+					<span class="nova-supernova-icon">${statusIcon}</span>
+					<div class="nova-supernova-info">
+						<h3>Supernova Support</h3>
+						<p>Status: <strong>${statusText}</strong></p>
+					</div>
+				</div>
+				<div class="nova-supernova-actions">
+					<button class="nova-supernova-btn primary" data-tab="supernova">
+						${isSupernova ? 'Manage License' : 'Become a Supporter'}
+					</button>
+					<button class="nova-supernova-btn secondary" data-tab="supernova">Learn More</button>
+				</div>
+			</div>
+		`;
+
+		// Add click handlers for buttons
+		supernovaSection.querySelectorAll('.nova-supernova-btn').forEach(button => {
+			button.addEventListener('click', (e) => {
+				e.preventDefault();
+				this.switchTab('supernova');
+			});
+		});
+	}
+
+	private createNavigationHelp(container: HTMLElement): void {
+		const navSection = container.createDiv({ cls: 'nova-navigation-section' });
+		navSection.style.marginTop = '32px';
+		
+		const navCard = navSection.createDiv({ cls: 'nova-navigation-card' });
+		navCard.innerHTML = `
+			<div class="nova-card-header">
+				<span class="nova-card-icon">📚</span>
+				<h4>Next Steps</h4>
+			</div>
+			<div class="nova-card-content">
+				<div class="nova-next-steps">
+					<div class="nova-next-step">
+						<span>1. Configure AI providers</span>
+						<a href="#" class="nova-step-link" data-tab="providers">→ Go to AI Providers tab</a>
+					</div>
+					<div class="nova-next-step">
+						<span>2. Explore Privacy and General Settings</span>
+						<a href="#" class="nova-step-link" data-tab="general">→ Go to General tab</a>
+					</div>
+					<div class="nova-next-step">
+						<span>3. Manage Supernova License</span>
+						<a href="#" class="nova-step-link" data-tab="supernova">→ Go to Supernova tab</a>
+					</div>
+				</div>
+			</div>
+		`;
+
+		// Add click handlers for navigation links
+		navCard.querySelectorAll('.nova-step-link').forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const tabId = (e.target as HTMLElement).getAttribute('data-tab') as 'general' | 'providers' | 'supernova';
+				this.switchTab(tabId);
+			});
+		});
 	}
 }

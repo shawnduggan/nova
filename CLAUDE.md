@@ -82,17 +82,10 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Settings UX Improvements (Important/Polish Priority)**
+### **Settings UX Polish (Final Polish Priority)**
 
-#### Phase 3: Content Organization (Important)
-6. **Organize General tab content** - Move Supernova Supporter Status to top, group Basic Settings (temperature, tokens, auto-save), clean up layout and spacing
-7. **Reorganize AI Providers tab content** - Group provider sections with status indicators, add connection testing interface, include recommended defaults guidance, improve model selection interface
-8. **Structure Advanced tab content** - Move Custom Commands to Advanced tab, group Development Settings (debug mode), relocate Platform Settings to Advanced tab
-
-#### Phase 4: Visual Polish (Polish)
-9. **Improve spacing and typography** - Apply consistent 24px tab content padding, add 32px spacing between provider sections, standardize 16px spacing between form fields, enhance visual hierarchy
-10. **Add mobile responsiveness** - Implement horizontal scrolling tabs on narrow screens, make form fields full-width on mobile, ensure touch targets are 44px minimum
-11. **Enhance accessibility** - Add proper keyboard navigation, implement screen reader support, add high contrast focus indicators
+#### Phase 5: Final Styling Polish (Polish)
+12. **Polish Supernova tab styling** - The Supernova tab layout still needs refinement to match the clean AI Provider tab styling. Remove any remaining gray backgrounds, ensure proper spacing, and organize content in a minimal, classy way that's consistent with the rest of the settings interface.
 
 ### **Lower Priority Items**
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.

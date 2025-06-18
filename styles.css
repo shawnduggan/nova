@@ -4,7 +4,7 @@
 .nova-tab-container {
     display: flex;
     border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     overflow-x: auto;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
@@ -38,7 +38,7 @@
 }
 
 .nova-tab-content {
-    padding: 0;
+    padding: 8px 24px 24px 24px;
 }
 
 /* API Key Security */
@@ -996,6 +996,377 @@
     flex-direction: column;
     overflow: hidden;
 }
+
+/* Getting Started Tab Styles */
+.nova-welcome-section {
+    margin-bottom: 32px;
+}
+
+.nova-welcome-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.nova-welcome-logo {
+    width: 48px;
+    height: 48px;
+    color: var(--interactive-accent);
+    flex-shrink: 0;
+}
+
+.nova-welcome-logo svg {
+    width: 100%;
+    height: 100%;
+}
+
+.nova-welcome-content h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.nova-tagline {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.nova-story {
+    margin: 0;
+    font-size: 0.9em;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.nova-quick-start-section {
+    margin: 32px 0;
+}
+
+.nova-quick-start-card {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.nova-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.nova-card-icon {
+    font-size: 1.2em;
+}
+
+.nova-card-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.nova-card-content ol,
+.nova-card-content ul {
+    margin: 0 0 12px 0;
+    padding-left: 1.2em;
+}
+
+.nova-card-content li {
+    margin-bottom: 4px;
+    color: var(--text-normal);
+}
+
+.nova-card-content code {
+    background: var(--code-background);
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+.nova-tip {
+    background: var(--background-modifier-hover);
+    padding: 8px 12px;
+    border-radius: var(--radius-xs);
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* Prominent Supernova Section */
+.nova-prominent-supernova-section {
+    margin: 32px 0;
+    background: linear-gradient(135deg, var(--interactive-accent) 0%, var(--interactive-accent-hover) 100%);
+    color: var(--text-on-accent);
+    border-radius: var(--radius-s);
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.nova-supernova-cta {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.nova-supernova-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.nova-supernova-icon {
+    font-size: 2em;
+    line-height: 1;
+}
+
+.nova-supernova-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text-on-accent);
+}
+
+.nova-supernova-info p {
+    margin: 0;
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.nova-supernova-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.nova-supernova-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9em;
+}
+
+.nova-supernova-btn.primary {
+    background: var(--text-on-accent);
+    color: var(--interactive-accent);
+}
+
+.nova-supernova-btn.primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+}
+
+.nova-supernova-btn.secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-on-accent);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.nova-supernova-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Navigation Section */
+.nova-navigation-section {
+    margin: 32px 0;
+}
+
+.nova-navigation-card {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 16px;
+}
+
+.nova-next-steps {
+    margin-top: 12px;
+}
+
+.nova-next-step {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nova-next-step:last-child {
+    border-bottom: none;
+}
+
+.nova-step-link {
+    color: var(--text-accent);
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
+    transition: background 0.2s ease;
+}
+
+.nova-step-link:hover {
+    color: var(--text-accent-hover);
+    background: var(--background-modifier-hover);
+}
+
+/* Mobile Responsiveness for Getting Started Tab */
+@media (max-width: 768px) {
+    .nova-welcome-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .nova-welcome-logo {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .nova-supernova-cta {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .nova-supernova-header {
+        justify-content: center;
+    }
+    
+    .nova-supernova-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .nova-next-step {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        text-align: center;
+    }
+}
+
+/* Enhanced Mobile Responsiveness for All Tabs */
+@media (max-width: 768px) {
+    .nova-tab-container {
+        padding: 0 8px;
+    }
+    
+    .nova-tab {
+        padding: 10px 16px;
+        font-size: 0.9em;
+        min-width: 44px; /* Touch-friendly minimum */
+    }
+    
+    .nova-tab-content {
+        padding: 16px !important; /* Override inline styles on mobile */
+    }
+    
+    /* License input mobile sizing */
+    .nova-tab-content input[type="text"],
+    .nova-tab-content input[type="password"],
+    .nova-tab-content select {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+    
+    /* API key fields on mobile */
+    .nova-tab-content .nova-provider-section input[type="text"],
+    .nova-tab-content .nova-provider-section input[type="password"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Provider sections on mobile */
+    .nova-provider-section {
+        margin-top: 24px;
+    }
+    
+    /* Buttons on mobile */
+    .nova-tab-content button {
+        min-width: 44px !important;
+        padding: 8px 16px;
+    }
+    
+    /* License section mobile fixes */
+    .nova-license-section {
+        padding: 12px;
+        margin-bottom: 1.5em;
+    }
+    
+    .license-info {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .license-email,
+    .license-expiry {
+        text-align: center;
+    }
+}
+
+/* Privacy Tab Styles */
+.nova-privacy-section {
+    margin-bottom: 2em;
+}
+
+.nova-privacy-info .nova-info-card {
+    margin-bottom: 1em;
+}
+
+.nova-privacy-features {
+    margin: 0.5em 0;
+    padding-left: 1.2em;
+}
+
+.nova-privacy-features li {
+    margin-bottom: 0.3em;
+    color: var(--text-normal);
+}
+
+
+/* Debug Tab Styles */
+.nova-debug-section {
+    margin-bottom: 2em;
+}
+
+.nova-debug-info .nova-info-card {
+    margin-bottom: 1em;
+}
+
+.nova-debug-features {
+    margin: 0.5em 0;
+    padding-left: 1.2em;
+}
+
+.nova-debug-features li {
+    margin-bottom: 0.3em;
+    color: var(--text-normal);
+}
+
+
+.nova-debug-note {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: 0.5em;
+}
+
 
 .nova-mobile-upgrade-content {
     flex: 1;
