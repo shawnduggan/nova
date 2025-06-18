@@ -208,29 +208,89 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createSupernovaTabContent(container: HTMLElement): void {
-		// Supernova Support Section
-		const supernovaSection = container.createDiv({ cls: 'nova-api-keys-section' });
-		supernovaSection.createEl('h3', { text: 'Supernova Support' });
-		supernovaSection.createEl('hr', { cls: 'nova-section-divider' });
+		// Prominent Supernova header section matching Getting Started tab
+		const prominentSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
 		
-		const infoEl = supernovaSection.createDiv({ cls: 'nova-provider-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
-			</div>
-			<div class="nova-info-card">
-				<h4>Supernova Benefits</h4>
-				<ul class="nova-model-recommendations">
-					<li><strong>Early Access</strong> - Get new features 3-6 months before general release</li>
-					<li><strong>Priority Support</strong> - Direct access to developers for feature requests and bug reports</li>
-					<li><strong>Supporter Badge</strong> - Recognition in the Nova community</li>
-					<li><strong>Open Source Support</strong> - Directly fund continued development of Nova</li>
-				</ul>
-				<p class="nova-guidance-note">Your support keeps Nova free and open source for everyone.</p>
+		// Current Supernova status
+		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
+		const statusIcon = isSupernova ? '⭐' : '🌟';
+		
+		// Create prominent call-to-action matching Getting Started tab
+		prominentSection.innerHTML = `
+			<div class="nova-supernova-cta">
+				<div class="nova-supernova-header">
+					<span class="nova-supernova-icon">${statusIcon}</span>
+					<div class="nova-supernova-info">
+						<h3>Supernova Support</h3>
+						<p>Status: <strong>${statusText}</strong></p>
+					</div>
+				</div>
+				<div class="nova-supernova-actions">
+					<button class="nova-supernova-btn primary">
+						${isSupernova ? 'Thank You for Supporting!' : 'Become a Supporter'}
+					</button>
+				</div>
 			</div>
 		`;
 		
-		this.createLicenseSettings(supernovaSection);
+		// Benefits section with normal styling
+		const benefitsSection = container.createDiv({ cls: 'nova-benefits-section' });
+		benefitsSection.style.marginTop = '32px';
+		benefitsSection.createEl('h3', { text: 'Supernova Benefits' });
+		benefitsSection.createEl('hr', { cls: 'nova-section-divider' });
+		
+		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
+		benefitsContent.innerHTML = `
+			<p style="margin-bottom: 20px;">Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
+			
+			<div class="nova-benefits-list">
+				<div class="nova-benefit-item">
+					<span class="nova-benefit-icon">⚡</span>
+					<div class="nova-benefit-content">
+						<strong>Early Access</strong>
+						<span>Get new features 2-4 months before general release</span>
+					</div>
+				</div>
+				<div class="nova-benefit-item">
+					<span class="nova-benefit-icon">💬</span>
+					<div class="nova-benefit-content">
+						<strong>Priority Support</strong>
+						<span>Direct access to developers for feature requests and bug reports</span>
+					</div>
+				</div>
+				<div class="nova-benefit-item">
+					<span class="nova-benefit-icon">🗳️</span>
+					<div class="nova-benefit-content">
+						<strong>Vote on Features</strong>
+						<span>Help shape Nova's development and future direction</span>
+					</div>
+				</div>
+				<div class="nova-benefit-item">
+					<span class="nova-benefit-icon">🏆</span>
+					<div class="nova-benefit-content">
+						<strong>Supporter Badge</strong>
+						<span>Recognition in the Nova community (coming soon)</span>
+					</div>
+				</div>
+				<div class="nova-benefit-item">
+					<span class="nova-benefit-icon">❤️</span>
+					<div class="nova-benefit-content">
+						<strong>Open Source Support</strong>
+						<span>Directly fund continued development of Nova</span>
+					</div>
+				</div>
+			</div>
+			
+			<p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">Your support keeps Nova free and open source for everyone.</p>
+		`;
+		
+		// License settings section - styled like API keys
+		const licenseSection = container.createDiv({ cls: 'nova-provider-section' });
+		licenseSection.style.marginTop = '32px';
+		licenseSection.createEl('h3', { text: 'License Management' });
+		
+		this.createSupernovaLicenseInput(licenseSection);
 	}
 
 	private createDebugTabContent(container: HTMLElement): void {
@@ -755,53 +815,47 @@ export class NovaSettingTab extends PluginSettingTab {
 			`;
 		}
 
-		// Supernova license key input
-		new Setting(licenseContainer)
-			.setName('Supernova License Key (Optional)')
-			.setDesc('Enter your Supernova supporter license key for early access to new features')
-			.addText(text => {
-				text.inputEl.type = 'password';
-				text.inputEl.style.fontFamily = 'var(--font-monospace)';
-				text.inputEl.style.width = '400px';
-				text.inputEl.style.height = '40px';
-				text.setPlaceholder('Enter Supernova license key...')
-					.setValue(this.plugin.settings.licensing.supernovaLicenseKey || '')
-					.onChange(async (value) => {
-						this.plugin.settings.licensing.supernovaLicenseKey = value;
-						await this.plugin.saveSettings();
-						
-						// Update Supernova license in feature manager
-						if (this.plugin.featureManager) {
-							await this.plugin.featureManager.updateSupernovaLicense(value || null);
-							
-							// Refresh sidebar to update feature availability
-							const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-							if (leaves.length > 0) {
-								const sidebarView = leaves[0].view as NovaSidebarView;
-								sidebarView.refreshSupernovaUI();
-							}
-							
-							// Refresh the display to show updated status
-							this.display();
-						}
-					});
-
-				// Add validation button
-				const validateButton = text.inputEl.parentElement?.createEl('button', {
-					text: 'Validate',
-					cls: 'nova-validate-btn'
-				});
+		// Supernova license key input using secure input pattern
+		this.createSecureApiKeyInput(licenseContainer, {
+			name: 'Supernova License Key (Optional)',
+			desc: 'Enter your Supernova supporter license key for early access to new features',
+			placeholder: 'Enter Supernova license key...',
+			value: this.plugin.settings.licensing.supernovaLicenseKey || '',
+			onChange: async (value) => {
+				this.plugin.settings.licensing.supernovaLicenseKey = value;
+				await this.plugin.saveSettings();
 				
-				if (validateButton) {
-					validateButton.addEventListener('click', async () => {
-						const licenseKey = text.inputEl.value;
+				// Update Supernova license in feature manager
+				if (this.plugin.featureManager) {
+					await this.plugin.featureManager.updateSupernovaLicense(value || null);
+					
+					// Refresh sidebar to update feature availability
+					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+					if (leaves.length > 0) {
+						const sidebarView = leaves[0].view as NovaSidebarView;
+						sidebarView.refreshSupernovaUI();
+					}
+					
+					// Refresh the display to show updated status
+					this.display();
+				}
+			}
+		});
+
+		// Add validation button separately
+		const validateSetting = new Setting(licenseContainer)
+			.setDesc('Validate your Supernova license key')
+			.addButton(button => {
+				button.setButtonText('Validate License')
+					.onClick(async () => {
+						const licenseKey = this.plugin.settings.licensing.supernovaLicenseKey;
 						if (!licenseKey) {
 							this.showLicenseMessage('Please enter a Supernova license key first.', 'error');
 							return;
 						}
 
-						validateButton.textContent = 'Validating...';
-						validateButton.disabled = true;
+						button.setButtonText('Validating...');
+						button.disabled = true;
 
 						try {
 							if (this.plugin.featureManager) {
@@ -828,11 +882,10 @@ export class NovaSettingTab extends PluginSettingTab {
 						} catch (error) {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
-							validateButton.textContent = 'Validate';
-							validateButton.disabled = false;
+							button.setButtonText('Validate License');
+							button.disabled = false;
 						}
 					});
-				}
 			});
 
 		// Supernova supporter information only
@@ -1746,6 +1799,60 @@ export class NovaSettingTab extends PluginSettingTab {
 				this.switchTab('supernova');
 			});
 		});
+	}
+
+	private createSupernovaLicenseInput(container: HTMLElement): void {
+		// Current Supernova status
+		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		const supernovaLicense = this.plugin.featureManager?.getSupernovaLicense();
+		
+		// Status display
+		if (supernovaLicense) {
+			const statusEl = container.createDiv({ cls: 'nova-license-status' });
+			const expiryText = supernovaLicense.expiresAt 
+				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
+				: 'Lifetime Support';
+			statusEl.innerHTML = `
+				<div class="license-info" style="margin-bottom: 16px; padding: 12px; background: var(--background-modifier-form-field); border-radius: var(--radius-s);">
+					<div style="display: flex; justify-content: space-between; align-items: center;">
+						<span style="color: var(--text-normal);">${supernovaLicense.email}</span>
+						<span style="color: var(--text-muted); font-size: 0.9em;">${expiryText}</span>
+					</div>
+				</div>
+			`;
+		}
+
+		// License key input - styled like API keys
+		this.createSecureApiKeyInput(container, {
+			name: 'License Key',
+			desc: 'Enter your Supernova supporter license key',
+			placeholder: 'NOVA-XXXX-XXXX-XXXX',
+			value: this.plugin.settings.licensing.supernovaLicenseKey || '',
+			onChange: async (value) => {
+				this.plugin.settings.licensing.supernovaLicenseKey = value;
+				await this.plugin.saveSettings();
+				
+				// Update Supernova license in feature manager
+				if (this.plugin.featureManager) {
+					await this.plugin.featureManager.updateSupernovaLicense(value || null);
+					
+					// Refresh sidebar to update feature availability
+					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+					if (leaves.length > 0) {
+						const sidebarView = leaves[0].view as NovaSidebarView;
+						sidebarView.refreshSupernovaUI();
+					}
+					
+					// Refresh the display to show updated status
+					this.display();
+				}
+			}
+		});
+
+		// Add validation status message if needed
+		const validationEl = container.createDiv({ cls: 'nova-validation-status' });
+		validationEl.style.marginTop = '8px';
+		validationEl.style.fontSize = '0.9em';
 	}
 
 	private createNavigationHelp(container: HTMLElement): void {

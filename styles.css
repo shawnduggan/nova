@@ -1367,6 +1367,45 @@
     margin-top: 0.5em;
 }
 
+/* Supernova Benefits Styles */
+.nova-benefits-section {
+    margin-bottom: 2em;
+}
+
+.nova-benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.nova-benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.nova-benefit-icon {
+    font-size: 1.5em;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.nova-benefit-content {
+    flex: 1;
+}
+
+.nova-benefit-content strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-normal);
+}
+
+.nova-benefit-content span {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
 
 .nova-mobile-upgrade-content {
     flex: 1;
