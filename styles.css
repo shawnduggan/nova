@@ -1670,7 +1670,7 @@
 }
 
 .is-mobile .nova-header {
-    padding: var(--size-2-2) !important; /* Reduced from var(--size-4-2) */
+    padding: 16px var(--size-2-2) !important; /* Enhanced mobile padding: 16px top/bottom */
 }
 
 .is-mobile .nova-message {

@@ -83,7 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Mobile Enhancement Tasks (Priority)**
-- **Task 2: Title Bar Vertical Padding** - Add 16px top/bottom padding to .nova-header on mobile in styles.css
 - **Task 3: Provider Dropdown Touch Targets** - Update .nova-provider-button to minimum 44px height for mobile
 - **Task 4: Privacy Status Pills** - Replace lock emoji with styled pill components using lucide icons in updatePrivacyIndicator
 - **Task 5: Status Pill Styling** - Add CSS for .nova-status-pill with green/amber backgrounds
