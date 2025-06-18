@@ -14,6 +14,7 @@
 **WAIT FOR TEST CONFIRMATION** - After any fix, ask user to test before proceeding to next task
 **NO TODOS/STUBS** - Every function must work when implemented
 **MOVE COMPLETED ITEMS** - When items finish, REMOVE from CLAUDE.md to keep it focused on current work only
+**HIGH VALUE TESTS ONLY** - Write unit tests for business logic only. Skip complex UI interaction tests - they're high-maintenance, low-value.
 
 ### TDD PROTOCOL - MANDATORY
 **SEQUENCE:**
@@ -82,9 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Settings UX Improvements (Important/Polish Priority)**
-
-#### Phase 2: Provider Testing & Status (Important)
-5. **Add provider status indicators** - Green dot: Connected and working, Red dot: Connection failed with error details, Amber dot: Configured but untested, Gray dot: Not configured
 
 #### Phase 3: Content Organization (Important)
 6. **Organize General tab content** - Move Supernova Supporter Status to top, group Basic Settings (temperature, tokens, auto-save), clean up layout and spacing

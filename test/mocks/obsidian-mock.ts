@@ -360,9 +360,20 @@ export class PluginSettingTab {
 
 export class Setting {
     settingEl: HTMLElement;
+    controlEl: HTMLElement;
     
     constructor(containerEl: HTMLElement) {
         this.settingEl = document.createElement('div');
+        this.controlEl = document.createElement('div') as any;
+        this.controlEl.createDiv = function(options?: any) {
+            const div = document.createElement('div') as any;
+            if (options?.cls) div.className = options.cls;
+            if (options?.text) div.textContent = options.text;
+            this.appendChild(div);
+            div.createDiv = this.createDiv;
+            return div;
+        };
+        this.settingEl.appendChild(this.controlEl);
         containerEl.appendChild(this.settingEl);
     }
     
@@ -375,27 +386,103 @@ export class Setting {
     }
     
     addText(callback: (text: any) => void): this {
+        const inputEl = document.createElement('input');
         callback({
-            setPlaceholder: () => {},
-            setValue: () => {},
-            onChange: () => {}
+            inputEl: inputEl,
+            setPlaceholder: function(placeholder: string) { 
+                inputEl.placeholder = placeholder;
+                return this;
+            },
+            setValue: function(value: string) { 
+                inputEl.value = value;
+                return this;
+            },
+            onChange: function(handler: (value: string) => void) { 
+                inputEl.addEventListener('change', (e) => handler((e.target as HTMLInputElement).value));
+                return this;
+            }
         });
         return this;
     }
     
     addToggle(callback: (toggle: any) => void): this {
+        const toggleEl = document.createElement('input');
+        toggleEl.type = 'checkbox';
         callback({
-            setValue: () => {},
-            onChange: () => {}
+            toggleEl: toggleEl,
+            setValue: function(value: boolean) {
+                toggleEl.checked = value;
+                return this;
+            },
+            onChange: function(handler: (value: boolean) => void) {
+                toggleEl.addEventListener('change', (e) => handler((e.target as HTMLInputElement).checked));
+                return this;
+            }
         });
         return this;
     }
     
     addDropdown(callback: (dropdown: any) => void): this {
+        const selectEl = document.createElement('select');
         callback({
-            addOption: () => {},
-            setValue: () => {},
-            onChange: () => {}
+            selectEl: selectEl,
+            addOption: function(value: string, display: string) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = display;
+                selectEl.appendChild(option);
+                return this;
+            },
+            setValue: function(value: string) {
+                selectEl.value = value;
+                return this;
+            },
+            onChange: function(handler: (value: string) => void) {
+                selectEl.addEventListener('change', (e) => handler((e.target as HTMLSelectElement).value));
+                return this;
+            }
+        });
+        return this;
+    }
+    
+    addSlider(callback: (slider: any) => void): this {
+        const sliderEl = document.createElement('input');
+        sliderEl.type = 'range';
+        callback({
+            sliderEl: sliderEl,
+            setLimits: function(min: number, max: number, step: number) {
+                sliderEl.min = min.toString();
+                sliderEl.max = max.toString();
+                sliderEl.step = step.toString();
+                return this;
+            },
+            setValue: function(value: number) {
+                sliderEl.value = value.toString();
+                return this;
+            },
+            setDynamicTooltip: function() {
+                return this;
+            },
+            onChange: function(handler: (value: number) => void) {
+                sliderEl.addEventListener('change', (e) => handler(parseFloat((e.target as HTMLInputElement).value)));
+                return this;
+            }
+        });
+        return this;
+    }
+    
+    addButton(callback: (button: any) => void): this {
+        const buttonEl = document.createElement('button');
+        callback({
+            buttonEl: buttonEl,
+            setButtonText: function(text: string) {
+                buttonEl.textContent = text;
+                return this;
+            },
+            onClick: function(handler: () => void) {
+                buttonEl.addEventListener('click', handler);
+                return this;
+            }
         });
         return this;
     }

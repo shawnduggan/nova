@@ -51,6 +51,13 @@ export interface NovaSettings {
 		isSupernova?: boolean;
 		debugSettings: DebugSettings;
 	};
+	providerStatus?: {
+		[key: string]: {
+			status: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing';
+			message?: string;
+			lastChecked?: Date | string | null;
+		};
+	};
 }
 
 export const DEFAULT_SETTINGS: NovaSettings = {
@@ -107,7 +114,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			overrideDate: undefined,
 			forceSupernova: false
 		}
-	}
+	},
+	providerStatus: {}
 };
 
 export class NovaSettingTab extends PluginSettingTab {
@@ -264,6 +272,80 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 	}
 
+	private createProviderStatusIndicator(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): HTMLElement {
+		const statusContainer = container.createDiv({ cls: 'nova-provider-status-container' });
+		
+		try {
+			const status = this.getProviderStatus(provider);
+			const statusEl = statusContainer.createDiv({ cls: `nova-provider-status ${status.status}` });
+			
+			// Status dot
+			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
+			
+			// Status text
+			const text = statusEl.createSpan({ cls: 'nova-status-text' });
+			text.textContent = this.getStatusDisplayText(status);
+			
+			// Tooltip with details
+			if (status.lastChecked || status.message) {
+				const tooltip = statusEl.createDiv({ cls: 'nova-status-tooltip' });
+				if (status.lastChecked) {
+					const timeEl = tooltip.createDiv({ cls: 'nova-status-time' });
+					const date = status.lastChecked instanceof Date ? status.lastChecked : new Date(status.lastChecked);
+					timeEl.textContent = `Last checked: ${date.toLocaleDateString()}`;
+				}
+				if (status.message) {
+					const messageEl = tooltip.createDiv({ cls: 'nova-status-message' });
+					messageEl.textContent = status.message;
+				}
+			}
+		} catch (error) {
+			console.error('Error creating provider status indicator:', error);
+			// Fallback: create a simple status indicator
+			const statusEl = statusContainer.createDiv({ cls: 'nova-provider-status untested' });
+			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
+			const text = statusEl.createSpan({ cls: 'nova-status-text' });
+			text.textContent = 'Status unknown';
+		}
+		
+		return statusContainer;
+	}
+
+	private getProviderStatus(provider: 'claude' | 'openai' | 'google' | 'ollama'): { status: string, message?: string, lastChecked?: Date | string | null } {
+		try {
+			const savedStatus = this.plugin.settings.providerStatus?.[provider];
+			if (savedStatus) {
+				return savedStatus;
+			}
+			
+			// Determine initial status based on configuration
+			const hasConfig = this.hasProviderConfig(provider);
+			return {
+				status: hasConfig ? 'untested' : 'not-configured',
+				message: hasConfig ? 'Configuration not tested' : 'No API key configured',
+				lastChecked: null
+			};
+		} catch (error) {
+			console.error(`Error getting provider status for ${provider}:`, error);
+			return {
+				status: 'not-configured',
+				message: 'Status unavailable',
+				lastChecked: null
+			};
+		}
+	}
+
+	private getStatusDisplayText(status: { status: string, message?: string }): string {
+		switch (status.status) {
+			case 'connected': return 'Connected';
+			case 'error': return 'Connection failed';
+			case 'not-configured': return 'Not configured';
+			case 'untested': return 'Untested';
+			case 'testing': return 'Testing...';
+			default: return 'Unknown';
+		}
+	}
+
 	private createTestConnectionButton(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): void {
 		const setting = new Setting(container)
 			.setName('Connection Status')
@@ -274,9 +356,11 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		setting.addButton(button => {
 			button.setButtonText('Test Connection')
+				.setTooltip(`Test ${provider} connection`)
 				.onClick(async () => {
 					await this.testProviderConnection(provider, button.buttonEl, statusContainer);
 				});
+			button.buttonEl.setAttribute('aria-label', `Test ${this.getProviderDisplayName(provider)} connection`);
 			return button;
 		});
 		
@@ -294,6 +378,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		button.disabled = false;
 		button.textContent = 'Testing...';
 		button.style.opacity = '0.6';
+		
+		// Update provider status to testing
+		await this.updateProviderStatus(provider, 'testing', 'Testing connection...');
 		
 		// Show testing status
 		this.setConnectionStatus(statusContainer, 'testing', 'Testing...');
@@ -324,6 +411,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			const testPromise = this.performRealConnectionTest(provider);
 			
 			await Promise.race([testPromise, timeoutPromise]);
+			
+			// Update provider status to connected
+			await this.updateProviderStatus(provider, 'connected', 'Connected successfully');
 			this.setConnectionStatus(statusContainer, 'success', '● Connected');
 			console.log(`Connection test successful for ${provider}`);
 			
@@ -353,11 +443,75 @@ export class NovaSettingTab extends PluginSettingTab {
 				errorMessage = 'Connection failed';
 			}
 			
+			// Update provider status to error
+			await this.updateProviderStatus(provider, 'error', errorMessage);
 			this.setConnectionStatus(statusContainer, 'error', `● ${errorMessage}`);
 		} finally {
 			// Clear backup timer and restore button
 			clearTimeout(backupTimer);
 			restoreButton();
+		}
+	}
+
+	private async updateProviderStatus(provider: 'claude' | 'openai' | 'google' | 'ollama', status: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing', message?: string): Promise<void> {
+		if (!this.plugin.settings.providerStatus) {
+			this.plugin.settings.providerStatus = {};
+		}
+		
+		this.plugin.settings.providerStatus[provider] = {
+			status,
+			message,
+			lastChecked: status === 'testing' ? null : new Date()
+		};
+		
+		await this.plugin.saveSettings();
+		
+		// Refresh the status indicators if needed
+		this.refreshProviderStatusIndicators();
+	}
+
+	private refreshProviderStatusIndicators(): void {
+		// Find all provider status containers and update them
+		const containers = this.containerEl.querySelectorAll('.nova-provider-status-container');
+		containers.forEach(container => {
+			const provider = container.getAttribute('data-provider') as 'claude' | 'openai' | 'google' | 'ollama';
+			if (provider) {
+				this.updateProviderStatusDisplay(container as HTMLElement, provider);
+			}
+		});
+	}
+
+	private updateProviderStatusDisplay(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): void {
+		const status = this.getProviderStatus(provider);
+		const statusEl = container.querySelector('.nova-provider-status');
+		
+		if (statusEl) {
+			statusEl.className = `nova-provider-status ${status.status}`;
+			const textEl = statusEl.querySelector('.nova-status-text');
+			if (textEl) {
+				textEl.textContent = this.getStatusDisplayText(status);
+			}
+			
+			// Update tooltip
+			let tooltip = statusEl.querySelector('.nova-status-tooltip');
+			if (status.lastChecked || status.message) {
+				if (!tooltip) {
+					tooltip = statusEl.createDiv({ cls: 'nova-status-tooltip' });
+				}
+				tooltip.empty();
+				
+				if (status.lastChecked) {
+					const timeEl = tooltip.createDiv({ cls: 'nova-status-time' });
+					const date = status.lastChecked instanceof Date ? status.lastChecked : new Date(status.lastChecked);
+					timeEl.textContent = `Last checked: ${date.toLocaleDateString()}`;
+				}
+				if (status.message) {
+					const messageEl = tooltip.createDiv({ cls: 'nova-status-message' });
+					messageEl.textContent = status.message;
+				}
+			} else if (tooltip) {
+				tooltip.remove();
+			}
 		}
 	}
 
@@ -819,13 +973,14 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createProviderSettings(containerEl = this.containerEl) {
-		containerEl.createEl('h3', { text: 'AI Provider Settings' });
-
-		// Info about API keys and model recommendations
-		const infoEl = containerEl.createDiv({ cls: 'nova-provider-info' });
+		// Configure Your API Keys Section
+		const apiKeysSection = containerEl.createDiv({ cls: 'nova-api-keys-section' });
+		apiKeysSection.createEl('h3', { text: 'Configure Your API Keys' });
+		apiKeysSection.createEl('hr', { cls: 'nova-section-divider' });
+		
+		const infoEl = apiKeysSection.createDiv({ cls: 'nova-provider-info' });
 		infoEl.innerHTML = `
 			<div class="nova-info-card">
-				<h4>Configure Your API Keys</h4>
 				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
 				just add your API keys below to get started.</p>
 			</div>
@@ -840,17 +995,29 @@ export class NovaSettingTab extends PluginSettingTab {
 			</div>
 		`;
 
+		// Configuration Subsection (within API Keys section)
+		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
+		configSection.createEl('h4', { text: 'Configuration' });
+		configSection.createEl('hr', { cls: 'nova-section-divider' });
+
 		// Show all providers - no restrictions
-		this.createOllamaSettings(containerEl);
-		this.createClaudeSettings(containerEl);
-		this.createGoogleSettings(containerEl);
-		this.createOpenAISettings(containerEl);
+		this.createOllamaSettings(configSection);
+		this.createClaudeSettings(configSection);
+		this.createGoogleSettings(configSection);
+		this.createOpenAISettings(configSection);
 	}
 
 	private createClaudeSettings(containerEl = this.containerEl) {
 		
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		claudeContainer.createEl('h4', { text: 'Claude (Anthropic)' });
+		
+		// Provider header with status indicator
+		const headerContainer = claudeContainer.createDiv({ cls: 'nova-provider-header' });
+		const titleEl = headerContainer.createEl('h4', { text: 'Claude (Anthropic)' });
+		
+		// Add status indicator to the same h4 element
+		const statusContainer = this.createProviderStatusIndicator(titleEl, 'claude');
+		statusContainer.setAttribute('data-provider', 'claude');
 
 		this.createSecureApiKeyInput(claudeContainer, {
 			name: 'API Key',
@@ -906,7 +1073,14 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createOpenAISettings(containerEl = this.containerEl) {
 		
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		openaiContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
+		
+		// Provider header with status indicator
+		const headerContainer = openaiContainer.createDiv({ cls: 'nova-provider-header' });
+		const titleEl = headerContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
+		
+		// Add status indicator to the same h4 element
+		const statusContainer = this.createProviderStatusIndicator(titleEl, 'openai');
+		statusContainer.setAttribute('data-provider', 'openai');
 
 		this.createSecureApiKeyInput(openaiContainer, {
 			name: 'API Key',
@@ -960,7 +1134,14 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createGoogleSettings(containerEl = this.containerEl) {
 		
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		googleContainer.createEl('h4', { text: 'Google (Gemini)' });
+		
+		// Provider header with status indicator
+		const headerContainer = googleContainer.createDiv({ cls: 'nova-provider-header' });
+		const titleEl = headerContainer.createEl('h4', { text: 'Google (Gemini)' });
+		
+		// Add status indicator to the same h4 element
+		const statusContainer = this.createProviderStatusIndicator(titleEl, 'google');
+		statusContainer.setAttribute('data-provider', 'google');
 
 		this.createSecureApiKeyInput(googleContainer, {
 			name: 'API Key',
@@ -1013,7 +1194,14 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createOllamaSettings(containerEl = this.containerEl) {
 		const ollamaContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		ollamaContainer.createEl('h4', { text: 'Ollama (Local)' });
+		
+		// Provider header with status indicator
+		const headerContainer = ollamaContainer.createDiv({ cls: 'nova-provider-header' });
+		const titleEl = headerContainer.createEl('h4', { text: 'Ollama (Local)' });
+		
+		// Add status indicator to the same h4 element
+		const statusContainer = this.createProviderStatusIndicator(titleEl, 'ollama');
+		statusContainer.setAttribute('data-provider', 'ollama');
 
 		new Setting(ollamaContainer)
 			.setName('Base URL')
