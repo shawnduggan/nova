@@ -152,15 +152,8 @@ export class NovaSidebarView extends ItemView {
 		const rightContainer = topRowEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
 		
-		// Privacy indicator icon
-		const privacyIndicator = rightContainer.createSpan({ cls: 'nova-privacy-indicator' });
-		privacyIndicator.style.cssText = `
-			display: flex;
-			align-items: center;
-			padding: 4px;
-			color: var(--icon-color);
-			font-weight: var(--font-weight-medium);
-		`;
+		// Privacy indicator pill
+		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
 		this.updatePrivacyIndicator(privacyIndicator);
 		
 		// Store reference for updates
@@ -2039,20 +2032,65 @@ USER REQUEST: ${processedMessage}`;
 	private async updatePrivacyIndicator(privacyIndicator: HTMLElement): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 		
+		// Clear previous content
+		privacyIndicator.empty();
+		privacyIndicator.removeClass('nova-status-pill', 'local', 'cloud');
+		
+		// Apply inline styles for consistent sizing
+		privacyIndicator.style.cssText = `
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding: 2px 8px;
+			border-radius: 12px;
+			font-size: 0.75em;
+			font-weight: 500;
+			height: auto;
+			line-height: 1.5;
+		`;
+		
 		if (currentProviderType) {
 			const isLocalProvider = currentProviderType === 'ollama';
-			const iconName = isLocalProvider ? 'lock' : 'unlock';
-			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
 			
-			// Use Obsidian's setIcon function (same as ButtonComponent uses internally)
-			setIcon(privacyIndicator, iconName);
+			// Add pill styling classes
+			privacyIndicator.addClass('nova-status-pill');
+			privacyIndicator.addClass(isLocalProvider ? 'local' : 'cloud');
+			
+			// Create icon element
+			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
+			iconEl.style.cssText = `
+				display: inline-flex;
+				align-items: center;
+				width: 14px;
+				height: 14px;
+			`;
+			const iconName = isLocalProvider ? 'shield-check' : 'cloud';
+			setIcon(iconEl, iconName);
+			
+			// Add text label
+			const labelEl = privacyIndicator.createSpan({ text: isLocalProvider ? 'Local' : 'Cloud' });
+			labelEl.style.cssText = `line-height: 1;`;
 			
 			// Set tooltip
+			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
 			privacyIndicator.setAttribute('aria-label', tooltip);
 			privacyIndicator.setAttribute('title', tooltip);
 		} else {
-			// No provider available - show generic privacy icon
-			setIcon(privacyIndicator, 'help-circle');
+			// No provider available - show generic status
+			privacyIndicator.addClass('nova-status-pill');
+			
+			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
+			iconEl.style.cssText = `
+				display: inline-flex;
+				align-items: center;
+				width: 14px;
+				height: 14px;
+			`;
+			setIcon(iconEl, 'help-circle');
+			
+			const labelEl = privacyIndicator.createSpan({ text: 'No provider' });
+			labelEl.style.cssText = `line-height: 1;`;
+			
 			privacyIndicator.setAttribute('aria-label', 'No provider selected');
 			privacyIndicator.setAttribute('title', 'No provider selected');
 		}

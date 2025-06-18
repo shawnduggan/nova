@@ -83,7 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Mobile Enhancement Tasks (Priority)**
-- **Task 4: Privacy Status Pills** - Replace lock emoji with styled pill components using lucide icons in updatePrivacyIndicator
 - **Task 5: Status Pill Styling** - Add CSS for .nova-status-pill with green/amber backgrounds
 - **Task 6: Welcome Message Padding** - Update welcome message padding to 20px all around in chat-renderer.ts
 - **Task 7: Chat Bubble Spacing** - Update .nova-message margin-bottom to 16px between messages
