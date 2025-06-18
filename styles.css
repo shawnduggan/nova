@@ -1530,6 +1530,13 @@
     background: var(--background-modifier-border-hover);
 }
 
+/* Mobile-specific provider button sizing */
+.is-mobile .nova-provider-button {
+    min-height: 44px;
+    padding: var(--size-2-3) var(--size-4-2);
+    font-size: 0.85em;
+}
+
 .nova-provider-dropdown-menu {
     position: absolute;
     top: 100%;
