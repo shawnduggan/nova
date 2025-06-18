@@ -15,7 +15,7 @@ export class ProviderManager {
 		this.plugin = plugin;
 	}
 
-	createProviderDropdown(container: HTMLElement): void {
+	async createProviderDropdown(container: HTMLElement): Promise<void> {
 		this.statusContainer = container.createDiv();
 		this.statusContainer.style.cssText = `
 			display: flex;
@@ -31,7 +31,7 @@ export class ProviderManager {
 			width: 8px;
 			height: 8px;
 			border-radius: 50%;
-			background: ${this.getProviderColor(this.getCurrentProviderType())};
+			background: var(--text-muted);
 		`;
 
 		// Provider name
@@ -49,19 +49,19 @@ export class ProviderManager {
 			margin-left: var(--size-2-1);
 		`;
 
-		this.updateProviderOptions();
-		this.updateProviderStatus();
+		await this.updateProviderOptions();
+		await this.updateProviderStatus();
 
 		this.dropdown.onChange(async (value) => {
 			await this.switchProvider(value);
 		});
 	}
 
-	private updateProviderOptions(): void {
+	private async updateProviderOptions(): Promise<void> {
 		if (!this.dropdown) return;
 
-		const currentProvider = this.getCurrentProviderType();
-		const currentModel = this.getCurrentModel();
+		const currentProvider = await this.getCurrentProviderType();
+		const currentModel = await this.getCurrentModel();
 		
 		// Clear existing options
 		this.dropdown.selectEl.empty();
@@ -121,10 +121,10 @@ export class ProviderManager {
 		}
 	}
 
-	private updateProviderStatus(): void {
+	private async updateProviderStatus(): Promise<void> {
 		if (!this.statusDot || !this.statusContainer) return;
 
-		const currentProviderType = this.getCurrentProviderType();
+		const currentProviderType = await this.getCurrentProviderType();
 		
 		if (currentProviderType) {
 			// Provider is available - show green status
@@ -144,27 +144,13 @@ export class ProviderManager {
 		}
 	}
 
-	private getCurrentProviderType(): string | null {
-		const settings = this.plugin.settings;
-		
-		if (Platform.isDesktopApp) {
-			// Desktop: Check all providers in order of preference
-			if (settings.aiProviders?.claude?.apiKey) return 'claude';
-			if (settings.aiProviders?.openai?.apiKey) return 'openai';
-			if (settings.aiProviders?.google?.apiKey) return 'google';
-			if (settings.aiProviders?.ollama?.baseUrl) return 'ollama';
-		} else {
-			// Mobile: Only API-based providers
-			if (settings.aiProviders?.claude?.apiKey) return 'claude';
-			if (settings.aiProviders?.openai?.apiKey) return 'openai';
-			if (settings.aiProviders?.google?.apiKey) return 'google';
-		}
-		
-		return null;
+	private async getCurrentProviderType(): Promise<string | null> {
+		// Use the AI Provider Manager's logic for consistency
+		return await this.plugin.aiProviderManager.getCurrentProviderType();
 	}
 
-	private getCurrentModel(): string | null {
-		const provider = this.getCurrentProviderType();
+	private async getCurrentModel(): Promise<string | null> {
+		const provider = await this.getCurrentProviderType();
 		if (!provider) return null;
 		
 		const settings = this.plugin.settings;
@@ -265,9 +251,9 @@ export class ProviderManager {
 		}
 	}
 
-	refreshDisplay(): void {
-		this.updateProviderOptions();
-		this.updateProviderStatus();
+	async refreshDisplay(): Promise<void> {
+		await this.updateProviderOptions();
+		await this.updateProviderStatus();
 	}
 
 	cleanup(): void {

@@ -87,9 +87,8 @@ export class InputHandler {
 
 		// Create textarea
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('How can I help with your writing?');
+		this.textArea.setPlaceholder('How can I help?');
 		this.textArea.inputEl.style.cssText = `
-			min-height: 80px;
 			max-height: 200px;
 			resize: none;
 			overflow-y: auto;
@@ -99,7 +98,6 @@ export class InputHandler {
 			background: var(--background-primary);
 			color: var(--text-normal);
 			font-family: var(--font-interface);
-			font-size: var(--font-ui-medium);
 			line-height: 1.4;
 			width: 100%;
 			box-sizing: border-box;

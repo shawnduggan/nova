@@ -160,7 +160,7 @@ export class NovaSidebarView extends ItemView {
 		(this as any).privacyIndicator = privacyIndicator;
 		
 		// All users can switch providers freely
-		this.createProviderDropdown(rightContainer);
+		await this.createProviderDropdown(rightContainer);
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
@@ -189,7 +189,7 @@ export class NovaSidebarView extends ItemView {
 		this.loadConversationForActiveFile();
 		
 		// Initial status refresh to ensure all indicators are up to date
-		setTimeout(() => this.refreshProviderStatus(), 100);
+		await this.refreshProviderStatus();
 		
 		// Note: Auto-focus removed to prevent stealing cursor from editor
 	}
@@ -1927,7 +1927,7 @@ USER REQUEST: ${processedMessage}`;
 						max-width: 85%;
 						background: var(--background-modifier-hover);
 						color: var(--text-muted);
-						font-size: var(--font-text-size);
+						font-size: var(--font-ui-medium);
 						text-align: left;
 						margin-left: 0;
 						margin-right: auto;
@@ -2598,7 +2598,7 @@ USER REQUEST: ${processedMessage}`;
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
 			
 			// Refresh status indicators
-			setTimeout(() => this.refreshProviderStatus(), 100);
+			await this.refreshProviderStatus();
 			
 		} catch (error) {
 			// Error switching provider - handled by UI feedback
