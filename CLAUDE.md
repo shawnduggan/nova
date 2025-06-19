@@ -84,6 +84,7 @@
 
 ### **Backlog Tasks**
 - **BUG: Context not file-scoped** - Adding files to Document A's context, then switching to File B shows the same context files when it shouldn't. Context should be file-scoped like conversation history. Also triggers spurious "provider switched" messages during file switches.
+  - NOTE: Context storage IS already file-scoped (uses file paths as Map keys), but UI state management has race conditions during file switches. Need to prevent context bleeding by immediately clearing currentContext and using operation tracking to prevent stale updates.
 - Task: change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
 - **BUG: Word counts from doc stats do not match Obsidian** - "00-Inbox/Large File 1" has 1476 words according to Obsidian, and 1494 words according to Nova. Word counting algorithm needs to match Obsidian's.
 - **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
