@@ -8,6 +8,7 @@ import NovaPlugin from '../../main';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
+import { StreamingManager, ActionType } from './streaming-manager';
 
 export interface SelectionAction {
     id: string;
@@ -51,12 +52,31 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
 
 export class SelectionContextMenu {
     private selectionEditCommand: SelectionEditCommand;
+    private completionCallback?: () => void;
+    private streamingManager: StreamingManager;
 
     constructor(
         private app: App,
         private plugin: NovaPlugin
     ) {
         this.selectionEditCommand = new SelectionEditCommand(plugin);
+        this.streamingManager = new StreamingManager();
+    }
+
+    /**
+     * Set callback to be called when streaming completes
+     */
+    setCompletionCallback(callback: () => void): void {
+        this.completionCallback = callback;
+    }
+
+    /**
+     * Called when streaming completes
+     */
+    private onStreamingComplete(): void {
+        if (this.completionCallback) {
+            this.completionCallback();
+        }
     }
 
     /**
@@ -175,8 +195,19 @@ export class SelectionContextMenu {
         };
         
         try {
-            // Show Nova thinking animation while waiting for stream
-            await this.showThinkingAnimation(editor, originalRange.from, originalRange.to, actionId);
+            // Start the unified streaming system with notice animations
+            const { updateStream, stopStream } = this.streamingManager.startStreaming(
+                editor,
+                originalRange.from,
+                originalRange.to,
+                {
+                    animationMode: 'notice',
+                    onComplete: () => this.onStreamingComplete()
+                }
+            );
+
+            // Show notice thinking animation
+            this.streamingManager.showThinkingNotice(actionId as ActionType, 'notice');
             
             // Use streaming to progressively replace text
             const result = await this.selectionEditCommand.executeStreaming(
@@ -184,11 +215,14 @@ export class SelectionContextMenu {
                 editor, 
                 selectedText,
                 (chunk: string, isComplete: boolean) => {
-                    // Progressive text replacement with typewriter effect
-                    this.updateStreamingText(editor, chunk, originalRange.from, isComplete);
+                    // Use unified streaming system
+                    updateStream(chunk, isComplete);
                 },
                 customInstruction
             );
+
+            // Stop streaming when done
+            stopStream();
             
             if (result.success) {
                 const actionName = this.getActionDisplayName(actionId);
@@ -213,87 +247,7 @@ export class SelectionContextMenu {
         } finally {
             // Always stop animations and clean up
             this.stopSelectionAnimation();
-            this.stopDotsAnimation();
-        }
-    }
-
-    /**
-     * Update text with streaming effect
-     */
-    private currentStreamingEndPos: any = null;
-    private streamingTextContainer: HTMLSpanElement | null = null;
-
-    private streamingStartPos: any = null;
-
-    private updateStreamingText(
-        editor: Editor, 
-        newText: string, 
-        startPos: any, 
-        isComplete: boolean
-    ): void {
-        try {
-            if (this.currentStreamingEndPos) {
-                // Stop the notice animation since streaming is starting (only on first chunk)
-                if (this.thinkingNotice) {
-                    this.stopDotsAnimation();
-                }
-                
-                // On first chunk, set the start position to current streaming position
-                if (!this.streamingStartPos) {
-                    this.streamingStartPos = { ...this.currentStreamingEndPos };
-                }
-                
-                // Only update if we have actual content
-                if (newText.trim().length > 0) {
-                    // Calculate new end position based on the complete new text from start position
-                    const lines = newText.split('\n');
-                    const newEndPos = {
-                        line: this.streamingStartPos.line + lines.length - 1,
-                        ch: lines.length > 1 ? lines[lines.length - 1].length : this.streamingStartPos.ch + newText.length
-                    };
-
-                    // Replace content from start position to current end position with new text
-                    editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
-                    
-                    // Update the end position for next chunk
-                    this.currentStreamingEndPos = newEndPos;
-                }
-            }
-            
-            // Set cursor at the end of the new text only when complete
-            if (isComplete) {
-                if (this.currentStreamingEndPos) {
-                    editor.setCursor(this.currentStreamingEndPos);
-                }
-                // Reset for next use
-                this.currentStreamingEndPos = null;
-                this.streamingStartPos = null;
-                this.originalSelectionRange = null;
-            }
-        } catch (error) {
-            console.warn('Error updating streaming text:', error);
-            // On error, try to restore original text if we have it
-            if (this.originalSelectionRange && this.originalSelectionRange.text) {
-                try {
-                    // Restore the original text at the start position
-                    const restorePos = this.streamingStartPos || this.currentStreamingEndPos;
-                    if (restorePos) {
-                        editor.replaceRange(this.originalSelectionRange.text, restorePos, this.currentStreamingEndPos || restorePos);
-                        // Position cursor after restored text
-                        const lines = this.originalSelectionRange.text.split('\n');
-                        const endPos = {
-                            line: restorePos.line + lines.length - 1,
-                            ch: lines.length > 1 ? lines[lines.length - 1].length : restorePos.ch + this.originalSelectionRange.text.length
-                        };
-                        editor.setCursor(endPos);
-                    }
-                } catch (restoreError) {
-                    console.warn('Could not restore original text:', restoreError);
-                }
-            }
-            this.currentStreamingEndPos = null;
-            this.streamingStartPos = null;
-            this.originalSelectionRange = null;
+            this.streamingManager.stopAnimation();
         }
     }
 
@@ -301,33 +255,8 @@ export class SelectionContextMenu {
      * Restore original text if streaming fails completely
      */
     private restoreOriginalText(editor: Editor): void {
-        if (this.originalSelectionRange && this.originalSelectionRange.text) {
-            try {
-                // Find the position to restore to - either where streaming started or current position
-                const restorePos = this.streamingStartPos || this.currentStreamingEndPos || this.originalSelectionRange.from;
-                
-                if (restorePos) {
-                    // Replace any content at current position with original text
-                    const currentEndPos = this.currentStreamingEndPos || restorePos;
-                    editor.replaceRange(this.originalSelectionRange.text, restorePos, currentEndPos);
-                    
-                    // Position cursor after restored text
-                    const lines = this.originalSelectionRange.text.split('\n');
-                    const endPos = {
-                        line: restorePos.line + lines.length - 1,
-                        ch: lines.length > 1 ? lines[lines.length - 1].length : restorePos.ch + this.originalSelectionRange.text.length
-                    };
-                    editor.setCursor(endPos);
-                }
-            } catch (restoreError) {
-                console.warn('Could not restore original text after failure:', restoreError);
-            }
-        }
-        
-        // Clean up state
-        this.currentStreamingEndPos = null;
-        this.streamingStartPos = null;
-        this.originalSelectionRange = null;
+        // The StreamingManager now handles text restoration
+        // This is kept for compatibility but most restoration is handled by the unified system
     }
 
     /**
@@ -374,174 +303,8 @@ export class SelectionContextMenu {
 
     private animatedSelection: { from: any; to: any } | null = null;
 
-    // Dynamic thinking phrases for each action type
-    private static readonly THINKING_PHRASES = {
-        'improve': [
-            'refining...',
-            'polishing...',
-            'enhancing...',
-            'crafting...',
-            'perfecting...',
-            'smoothing...',
-            'sharpening...',
-            'elevating...',
-            'fine-tuning...',
-            'sculpting...'
-        ],
-        'longer': [
-            'expanding...',
-            'developing...',
-            'elaborating...',
-            'building...',
-            'enriching...',
-            'deepening...',
-            'growing...',
-            'extending...',
-            'amplifying...',
-            'unfolding...'
-        ],
-        'shorter': [
-            'condensing...',
-            'distilling...',
-            'tightening...',
-            'focusing...',
-            'streamlining...',
-            'compressing...',
-            'trimming...',
-            'clarifying...',
-            'simplifying...',
-            'concentrating...'
-        ],
-        'tone': [
-            'adjusting tone...',
-            'reshaping...',
-            'reframing...',
-            'adapting...',
-            'transforming...',
-            'modulating...',
-            'recasting...',
-            'shifting...',
-            'reforming...',
-            'reimagining...'
-        ],
-        'custom': [
-            'working on it...',
-            'considering...',
-            'thinking...',
-            'processing...',
-            'analyzing...',
-            'contemplating...',
-            'understanding...',
-            'interpreting...',
-            'exploring...',
-            'evaluating...'
-        ]
-    };
 
-    /**
-     * Show Nova thinking animation with notice + document placeholder
-     */
-    private async showThinkingAnimation(editor: Editor, startPos: any, endPos: any, actionId: string): Promise<void> {
-        try {
-            // Select random phrase based on action type
-            const phrases = SelectionContextMenu.THINKING_PHRASES[actionId as keyof typeof SelectionContextMenu.THINKING_PHRASES] || SelectionContextMenu.THINKING_PHRASES['custom'];
-            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-            
-            // Show thinking notice for user feedback
-            this.showThinkingNotice(randomPhrase);
-            
-            // Store original text before clearing it (for error recovery)
-            const originalText = editor.getRange(startPos, endPos);
-            
-            // Clear the selection in document to create clean streaming position
-            editor.replaceRange('', startPos, endPos);
-            
-            // Set streaming position to where selection was cleared
-            this.currentStreamingEndPos = startPos;
-            this.originalSelectionRange = { 
-                from: startPos, 
-                to: endPos, 
-                text: originalText  // Store original text for restoration
-            };
-            
-        } catch (error) {
-            console.warn('Failed to show thinking animation:', error);
-        }
-    }
 
-    private dotsAnimationInterval: NodeJS.Timeout | null = null;
-    private thinkingNotice: Notice | null = null;
-    private originalSelectionRange: { from: any; to: any; text?: string } | null = null;
-
-    /**
-     * Show thinking notice with animated dots
-     */
-    private showThinkingNotice(basePhrase: string): void {
-        try {
-            // Create persistent notice (0 timeout = manual dismissal)
-            this.thinkingNotice = new Notice(`Nova: ${basePhrase}.`, 0);
-            
-            // Show initial state with 1 dot immediately
-            const initialNoticeText = `Nova: ${basePhrase}.`;
-            const noticeEl = (this.thinkingNotice as any).noticeEl;
-            if (noticeEl) {
-                noticeEl.textContent = initialNoticeText;
-            }
-            
-            // Start dots animation in notice
-            this.startNoticeDotsAnimation(basePhrase);
-            
-        } catch (error) {
-            console.warn('Failed to create thinking notice:', error);
-        }
-    }
-
-    /**
-     * Animate dots in notice text
-     */
-    private startNoticeDotsAnimation(basePhrase: string): void {
-        let dotCount = 1;
-        
-        this.dotsAnimationInterval = setInterval(() => {
-            try {
-                if (!this.thinkingNotice) return;
-                
-                dotCount++;
-                if (dotCount > 5) {
-                    dotCount = 1;
-                }
-                
-                const dots = '.'.repeat(dotCount);
-                const noticeText = `Nova: ${basePhrase}${dots}`;
-                
-                // Update notice text directly
-                const noticeEl = (this.thinkingNotice as any).noticeEl;
-                if (noticeEl) {
-                    noticeEl.textContent = noticeText;
-                }
-                
-            } catch (error) {
-                console.warn('Error in notice dots animation:', error);
-                this.stopDotsAnimation();
-            }
-        }, 400);
-    }
-
-    /**
-     * Stop the dots animation and dismiss notice
-     */
-    private stopDotsAnimation(): void {
-        if (this.dotsAnimationInterval) {
-            clearInterval(this.dotsAnimationInterval);
-            this.dotsAnimationInterval = null;
-        }
-        
-        // Dismiss thinking notice
-        if (this.thinkingNotice) {
-            this.thinkingNotice.hide();
-            this.thinkingNotice = null;
-        }
-    }
 
 
     /**

@@ -92,6 +92,19 @@ export class NovaSidebarView extends ItemView {
 		return 'nova-star';
 	}
 
+	/**
+	 * Centralized callback for when any streaming operation completes
+	 * Updates all UI elements that depend on document content
+	 */
+	private onStreamingComplete(): void {
+		// Update document stats (word count, headings)
+		this.updateDocumentStats();
+		// Update token display (tokens used/remaining)
+		this.updateTokenDisplay();
+		// Refresh context indicators
+		this.refreshContext();
+	}
+
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
@@ -188,6 +201,11 @@ export class NovaSidebarView extends ItemView {
 		
 		// Load conversation for current file
 		this.loadConversationForActiveFile();
+		
+		// Set completion callback on plugin's selection context menu
+		if (this.plugin.selectionContextMenu) {
+			this.plugin.selectionContextMenu.setCompletionCallback(() => this.onStreamingComplete());
+		}
 		
 		// Initial status refresh to ensure all indicators are up to date
 		await this.refreshProviderStatus();
@@ -329,10 +347,12 @@ export class NovaSidebarView extends ItemView {
 		// Clear existing input area content
 		this.inputContainer.empty();
 		
-		// Initialize context manager, streaming manager, and selection menu first
+		// Initialize context manager and streaming manager
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
 		this.streamingManager = new StreamingManager();
-		this.selectionContextMenu = new SelectionContextMenu(this.app, this.plugin);
+		
+		// Get reference to plugin's selection context menu (will set callback later)
+		this.selectionContextMenu = this.plugin.selectionContextMenu;
 		
 		// Create InputHandler which will handle all input UI creation
 		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
@@ -2856,10 +2876,15 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Start streaming at cursor position
+			// Start streaming at cursor position with completion callbacks
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
-				cursorPosition
+				cursorPosition,
+				undefined,
+				{
+					animationMode: 'inline',
+					onComplete: () => this.onStreamingComplete()
+				}
 			);
 
 			try {
@@ -2911,10 +2936,15 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Start streaming at cursor position
+			// Start streaming at cursor position with completion callbacks
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
-				cursorPosition
+				cursorPosition,
+				undefined,
+				{
+					animationMode: 'inline',
+					onComplete: () => this.onStreamingComplete()
+				}
 			);
 
 			try {
@@ -2966,10 +2996,15 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Start streaming at cursor position
+			// Start streaming at cursor position with completion callbacks
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
-				cursorPosition
+				cursorPosition,
+				undefined,
+				{
+					animationMode: 'inline',
+					onComplete: () => this.onStreamingComplete()
+				}
 			);
 
 			try {
@@ -3021,10 +3056,15 @@ USER REQUEST: ${processedMessage}`;
 				};
 			}
 
-			// Start streaming at cursor position
+			// Start streaming at cursor position with completion callbacks
 			const { updateStream, stopStream } = this.streamingManager.startStreaming(
 				editor,
-				cursorPosition
+				cursorPosition,
+				undefined,
+				{
+					animationMode: 'inline',
+					onComplete: () => this.onStreamingComplete()
+				}
 			);
 
 			try {

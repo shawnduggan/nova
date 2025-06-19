@@ -83,9 +83,6 @@ export class SelectionEditCommand {
             // Generate prompt based on action
             const prompt = this.buildPrompt(action, selectedText, customInstruction);
             
-            // Add 1-second minimum delay to guarantee thinking animation visibility
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
             let fullResponse = '';
             
             // Stream AI response
@@ -109,9 +106,6 @@ export class SelectionEditCommand {
                 if (chunk.done) {
                     break;
                 }
-                
-                // Add small delay to slow down streaming for better visual effect
-                await new Promise(resolve => setTimeout(resolve, 50));
             }
 
             // Check if we actually got a response

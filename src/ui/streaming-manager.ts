@@ -9,6 +9,7 @@ export interface StreamingOptions {
     onChunk?: (chunk: string, isComplete: boolean) => void;
     onComplete?: () => void;
     onError?: (error: Error) => void;
+    animationMode?: 'notice' | 'inline'; // Controls whether to use Notice animations or inline
 }
 
 export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
@@ -158,8 +159,14 @@ export class StreamingManager {
 
     /**
      * Show thinking notice with context-aware phrase and animated dots
+     * Only shows notice if animation mode is 'notice' or not specified (default)
      */
-    showThinkingNotice(actionType: ActionType): void {
+    showThinkingNotice(actionType: ActionType, animationMode: 'notice' | 'inline' = 'notice'): void {
+        // Only show notice for 'notice' mode (menu/selection actions)
+        if (animationMode !== 'notice') {
+            return;
+        }
+
         try {
             // Select random phrase based on action type
             const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
@@ -234,10 +241,8 @@ export class StreamingManager {
     ): void {
         try {
             if (this.currentStreamingEndPos) {
-                // Stop the notice animation since streaming is starting (only on first chunk)
-                if (this.thinkingNotice) {
-                    this.stopDotsAnimation();
-                }
+                // Keep notice animation running during streaming for notice mode
+                // It will be stopped when streaming completes (isComplete = true)
                 
                 // If we don't have a start position yet, set it
                 if (!this.streamingStartPos) {
@@ -340,6 +345,9 @@ export class StreamingManager {
      * Clean up all internal state
      */
     private cleanup(): void {
+        // Stop notice animation if it's running
+        this.stopDotsAnimation();
+        
         this.currentStreamingEndPos = null;
         this.streamingStartPos = null;
         this.originalPosition = null;
@@ -357,5 +365,45 @@ export class StreamingManager {
      */
     isStreaming(): boolean {
         return this.currentStreamingEndPos !== null;
+    }
+
+    /**
+     * Unified streaming method for selection-based operations
+     * Handles both notice animations and document updates
+     */
+    async startSelectionStreaming(
+        editor: Editor,
+        originalRange: { from: any; to: any; text: string },
+        actionType: ActionType,
+        streamingCallback: (chunk: string, isComplete: boolean) => void,
+        options: StreamingOptions = {}
+    ): Promise<void> {
+        // Set animation mode to 'notice' for selection operations
+        const selectionOptions = { ...options, animationMode: 'notice' as const };
+        
+        // Show thinking notice for selection operations
+        this.showThinkingNotice(actionType, 'notice');
+        
+        // Clear the selection and prepare for streaming
+        editor.replaceRange('', originalRange.from, originalRange.to);
+        this.currentStreamingEndPos = originalRange.from;
+        this.streamingStartPos = null;
+
+        // Create the streaming interface
+        const { updateStream, stopStream } = this.startStreaming(
+            editor,
+            originalRange.from,
+            undefined,
+            selectionOptions
+        );
+
+        // Set up the callback to forward chunks
+        const wrappedCallback = (chunk: string, isComplete: boolean) => {
+            updateStream(chunk, isComplete);
+            streamingCallback(chunk, isComplete);
+        };
+
+        // Return the wrapped callback for external use
+        return wrappedCallback as any;
     }
 }
