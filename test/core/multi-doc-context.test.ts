@@ -1,8 +1,8 @@
 /**
- * Tests for MultiDocContextHandler - multi-document context functionality
+ * Tests for ContextManager - multi-document context functionality
  */
 
-import { MultiDocContextHandler } from '../../src/core/multi-doc-context';
+import { ContextManager } from '../../src/ui/context-manager';
 import { TFile } from '../mocks/obsidian-mock';
 import { App } from 'obsidian';
 
@@ -56,21 +56,36 @@ const createMockApp = (): App => {
 	} as any;
 };
 
-describe('MultiDocContextHandler', () => {
-	let multiDocContext: MultiDocContextHandler;
+describe('ContextManager', () => {
+	let contextManager: ContextManager;
 	let mockApp: App;
 	let testFile: TFile;
 
 	beforeEach(() => {
 		mockApp = createMockApp();
-		multiDocContext = new MultiDocContextHandler(mockApp);
+		// Create a minimal mock plugin and container for ContextManager
+		const mockPlugin = { 
+			featureManager: { isFeatureEnabled: () => true }, 
+			settings: { general: { defaultMaxTokens: 8000 } } 
+		};
+		const mockContainer = { 
+			createDiv: jest.fn(() => ({ 
+				style: { cssText: '' },
+				createStan: jest.fn(() => ({ style: { cssText: '' } })),
+				querySelector: jest.fn()
+			})) 
+		};
+		contextManager = new ContextManager(mockPlugin as any, mockApp, mockContainer as any);
 		testFile = new TFile('test.md');
+		
+		// Initialize context manager for this file
+		contextManager.setCurrentFile(testFile);
 	});
 
 	describe('Message Parsing', () => {
 		it('should parse [[document]] references', () => {
 			const text = 'Please analyze [[document1]] and compare with [[document2]].';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(2);
 			expect(result.references[0].file.basename).toBe('document1');
@@ -80,7 +95,7 @@ describe('MultiDocContextHandler', () => {
 
 		it('should handle documents with paths', () => {
 			const text = 'Check [[sub/document3]] for details.';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(1);
 			expect(result.references[0].file.path).toBe('sub/document3.md');
@@ -89,7 +104,7 @@ describe('MultiDocContextHandler', () => {
 
 		it('should handle property references', () => {
 			const text = 'Get the [[document1#title]] property.';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(1);
 			expect(result.references[0].file.basename).toBe('document1');
@@ -99,7 +114,7 @@ describe('MultiDocContextHandler', () => {
 
 		it('should ignore malformed references', () => {
 			const text = 'This has [[unclosed and ]]closed but empty] references.';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(0);
 			expect(result.cleanedMessage).toBe('This has [[unclosed and ]]closed but empty] references.');
@@ -107,7 +122,7 @@ describe('MultiDocContextHandler', () => {
 
 		it('should handle non-existent files', () => {
 			const text = 'Check [[nonexistent]] file.';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(0);
 			expect(result.cleanedMessage).toBe('Check [[nonexistent]] file.');
@@ -117,31 +132,35 @@ describe('MultiDocContextHandler', () => {
 	describe('Context Building', () => {
 		it('should build context from message with references', async () => {
 			const message = 'Analyze [[document1]] and [[document2]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
+			const parsed = contextManager.parseMessage(message, testFile.path);
 			
-			expect(result.cleanedMessage).toBe('Analyze and .');
-			expect(result.context.persistentDocs).toHaveLength(2);
-			expect(result.context.contextString).toContain('Document 1');
-			expect(result.context.contextString).toContain('Document 2');
-			expect(result.context.tokenCount).toBeGreaterThan(0);
+			expect(context).not.toBeNull();
+			expect(parsed.cleanedMessage).toBe('Analyze and .');
+			expect(context!.persistentDocs).toHaveLength(2);
+			expect(context!.contextString).toContain('Document 1');
+			expect(context!.contextString).toContain('Document 2');
+			expect(context!.tokenCount).toBeGreaterThan(0);
 		});
 
 		it('should handle empty message but include current file', async () => {
 			const message = '';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			expect(result.cleanedMessage).toBe('');
-			expect(result.context.persistentDocs).toHaveLength(0);
+			expect(context).not.toBeNull();
+			expect(contextManager.parseMessage(message, testFile.path).cleanedMessage).toBe('');
+			expect(context!.persistentDocs).toHaveLength(0);
 			// Current file is always included in context
-			expect(result.context.contextString).toContain('Document: test');
-			expect(result.context.tokenCount).toBeGreaterThan(0);
+			expect(context!.contextString).toContain('Document: test');
+			expect(context!.tokenCount).toBeGreaterThan(0);
 		});
 
 		it('should estimate token count', async () => {
 			const message = 'Analyze [[document1]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			expect(result.context.tokenCount).toBeGreaterThan(10);
+			expect(context).not.toBeNull();
+			expect(context!.tokenCount).toBeGreaterThan(10);
 		});
 
 		it('should detect when approaching token limit', async () => {
@@ -150,58 +169,61 @@ describe('MultiDocContextHandler', () => {
 			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce(longContent);
 			
 			const message = 'Analyze [[document1]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			expect(result.context.isNearLimit).toBe(true);
+			expect(context).not.toBeNull();
+			expect(context!.isNearLimit).toBe(true);
 		});
 	});
 
 	describe('Persistent Context Management', () => {
 		it('should maintain persistent context', async () => {
 			const message1 = 'First message with [[document1]].';
-			await multiDocContext.buildContext(message1, testFile);
+			await contextManager.buildContext(message1, testFile);
 			
 			const message2 = 'Second message with [[document2]].';
-			const result = await multiDocContext.buildContext(message2, testFile);
+			const context = await contextManager.buildContext(message2, testFile);
 			
+			expect(context).not.toBeNull();
 			// Should have both documents in persistent context
-			expect(result.context.persistentDocs).toHaveLength(2);
-			expect(result.context.persistentDocs.map(d => d.file.basename)).toContain('document1');
-			expect(result.context.persistentDocs.map(d => d.file.basename)).toContain('document2');
+			expect(context!.persistentDocs).toHaveLength(2);
+			expect(context!.persistentDocs.map((d: any) => d.file.basename)).toContain('document1');
+			expect(context!.persistentDocs.map((d: any) => d.file.basename)).toContain('document2');
 		});
 
 		it('should not duplicate documents in persistent context', async () => {
 			const message1 = 'First message with [[document1]].';
-			await multiDocContext.buildContext(message1, testFile);
+			await contextManager.buildContext(message1, testFile);
 			
 			const message2 = 'Second message also with [[document1]].';
-			const result = await multiDocContext.buildContext(message2, testFile);
+			const context = await contextManager.buildContext(message2, testFile);
 			
+			expect(context).not.toBeNull();
 			// Should only have one instance of document1
-			expect(result.context.persistentDocs).toHaveLength(1);
-			expect(result.context.persistentDocs[0].file.basename).toBe('document1');
+			expect(context!.persistentDocs).toHaveLength(1);
+			expect(context!.persistentDocs[0].file.basename).toBe('document1');
 		});
 
 		it('should get persistent context for file', () => {
-			multiDocContext.parseMessage('[[document1]]', 'test.md');
-			const persistent = multiDocContext.getPersistentContext('test.md');
+			contextManager.parseMessage('[[document1]]', 'test.md');
+			const persistent = contextManager.getPersistentContext('test.md');
 			
 			expect(persistent).toHaveLength(1);
 			expect(persistent[0].file.basename).toBe('document1');
 		});
 
 		it('should clear persistent context for file', () => {
-			multiDocContext.parseMessage('[[document1]]', 'test.md');
-			multiDocContext.clearPersistentContext('test.md');
-			const persistent = multiDocContext.getPersistentContext('test.md');
+			contextManager.parseMessage('[[document1]]', 'test.md');
+			contextManager.clearPersistentContext('test.md');
+			const persistent = contextManager.getPersistentContext('test.md');
 			
 			expect(persistent).toHaveLength(0);
 		});
 
 		it('should remove specific document from persistent context', () => {
-			multiDocContext.parseMessage('[[document1]] and [[document2]]', 'test.md');
-			multiDocContext.removePersistentDoc('test.md', 'document1.md');
-			const persistent = multiDocContext.getPersistentContext('test.md');
+			contextManager.parseMessage('[[document1]] and [[document2]]', 'test.md');
+			contextManager.removePersistentDoc('test.md', 'document1.md');
+			const persistent = contextManager.getPersistentContext('test.md');
 			
 			expect(persistent).toHaveLength(1);
 			expect(persistent[0].file.basename).toBe('document2');
@@ -211,9 +233,9 @@ describe('MultiDocContextHandler', () => {
 	describe('Context Indicators', () => {
 		it('should generate context indicators', async () => {
 			const message = 'Analyze [[document1]] and [[document2]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			const indicators = multiDocContext.getContextIndicators(result.context);
+			const indicators = contextManager.getContextIndicators(context!);
 			
 			expect(indicators.text).toContain('2 docs');
 			expect(indicators.text).toContain('%');
@@ -227,9 +249,9 @@ describe('MultiDocContextHandler', () => {
 			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce(longContent);
 			
 			const message = 'Analyze [[document1]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			const indicators = multiDocContext.getContextIndicators(result.context);
+			const indicators = contextManager.getContextIndicators(context!);
 			
 			expect(indicators.className).toContain('nova-context-warning');
 			expect(indicators.tooltip).toContain('approaching limit');
@@ -239,9 +261,9 @@ describe('MultiDocContextHandler', () => {
 	describe('Context Display Formatting', () => {
 		it('should format context for display', async () => {
 			const message = 'Analyze [[document1]] and [[document2#title]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
-			const formatted = multiDocContext.formatContextForDisplay(result.context);
+			const formatted = contextManager.formatContextForDisplay(context!);
 			
 			expect(formatted).toContain('document1');
 			expect(formatted).toContain('document2#title');
@@ -255,7 +277,7 @@ describe('MultiDocContextHandler', () => {
 				isNearLimit: false
 			};
 			
-			const formatted = multiDocContext.formatContextForDisplay(emptyContext);
+			const formatted = contextManager.formatContextForDisplay(emptyContext);
 			
 			expect(formatted).toHaveLength(0);
 		});
@@ -269,17 +291,18 @@ describe('MultiDocContextHandler', () => {
 				.mockResolvedValueOnce('# Document 1\nThis is the first document content.');
 			
 			const message = 'Analyze [[document1]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
+			expect(context).not.toBeNull();
 			// Should still parse the reference and include the document that could be read
-			expect(result.cleanedMessage).toBe('Analyze .');
-			expect(result.context.contextString).toContain('Document: document1');
-			expect(result.context.persistentDocs).toHaveLength(1);
+			expect(contextManager.parseMessage(message, testFile.path).cleanedMessage).toBe('Analyze .');
+			expect(context!.contextString).toContain('Document: document1');
+			expect(context!.persistentDocs).toHaveLength(1);
 		});
 
 		it('should handle missing files gracefully', () => {
 			const text = 'Check [[nonexistent-file]].';
-			const result = multiDocContext.parseMessage(text, 'test.md');
+			const result = contextManager.parseMessage(text, 'test.md');
 			
 			expect(result.references).toHaveLength(0);
 			expect(result.cleanedMessage).toBe('Check [[nonexistent-file]].');
@@ -289,16 +312,17 @@ describe('MultiDocContextHandler', () => {
 	describe('Metadata/Properties Handling', () => {
 		it('should include metadata for all documents including current file', async () => {
 			const message = 'Analyze [[document1]].';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
+			expect(context).not.toBeNull();
 			// Check that metadata is included for document1
-			expect(result.context.contextString).toContain('Properties/Metadata:');
-			expect(result.context.contextString).toContain('title: Test Document 1');
-			expect(result.context.contextString).toContain('tags: ["test","sample"]');
-			expect(result.context.contextString).toContain('date: 2025-01-01');
+			expect(context!.contextString).toContain('Properties/Metadata:');
+			expect(context!.contextString).toContain('title: Test Document 1');
+			expect(context!.contextString).toContain('tags: ["test","sample"]');
+			expect(context!.contextString).toContain('date: 2025-01-01');
 			
 			// Current file should also be in context
-			expect(result.context.contextString).toContain('Document: test');
+			expect(context!.contextString).toContain('Document: test');
 		});
 
 		it('should include document content without frontmatter duplication', async () => {
@@ -306,12 +330,13 @@ describe('MultiDocContextHandler', () => {
 			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce('---\ntitle: Test\n---\n# Main Content\nThis is the content.');
 			
 			const message = '';
-			const result = await multiDocContext.buildContext(message, testFile);
+			const context = await contextManager.buildContext(message, testFile);
 			
+			expect(context).not.toBeNull();
 			// Should not duplicate frontmatter in content section
-			expect(result.context.contextString).toContain('### Content:');
-			expect(result.context.contextString).toContain('# Main Content');
-			expect(result.context.contextString).not.toMatch(/### Content:[\s\S]*---[\s\S]*title:/);
+			expect(context!.contextString).toContain('### Content:');
+			expect(context!.contextString).toContain('# Main Content');
+			expect(context!.contextString).not.toMatch(/### Content:[\s\S]*---[\s\S]*title:/);
 		});
 	});
 });

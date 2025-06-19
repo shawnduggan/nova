@@ -83,11 +83,6 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Backlog Tasks**
-- **ARCHITECTURE: Eliminate MultiDocContextHandler - Merge into ContextManager** 
-  - **Problem**: Two classes doing context management (MultiDocContextHandler 377 lines + ContextManager), unnecessary delegation, split responsibilities
-  - **Solution**: Move all logic from MultiDocContextHandler into ContextManager: parseMessage(), buildContext(), getPersistentContext(), resolveFile()
-  - **Result**: Single context management class, no delegation layers, cleaner architecture
-  - **Files**: Modify context-manager.ts, sidebar-view.ts, types.ts. Delete multi-doc-context.ts
 - **Task** - change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
 - **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
 - **BUG: Current file can be added to context** - Drag and drop and typing [[ add files manually allows adding the current active file which is already in context

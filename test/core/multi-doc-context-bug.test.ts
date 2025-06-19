@@ -5,11 +5,11 @@
 
 import { expect } from '@jest/globals';
 import { App, TFile } from '../mocks/obsidian-mock';
-import { MultiDocContextHandler } from '../../src/core/multi-doc-context';
+import { ContextManager } from '../../src/ui/context-manager';
 
-describe('MultiDocContextHandler - Context-Only Bug', () => {
+describe('ContextManager - Context-Only Bug', () => {
     let app: App;
-    let handler: MultiDocContextHandler;
+    let handler: ContextManager;
     let testFile: TFile;
     let contextFile: TFile;
 
@@ -54,25 +54,44 @@ describe('MultiDocContextHandler - Context-Only Bug', () => {
             metadataCache: mockMetadataCache
         } as any;
         
-        handler = new MultiDocContextHandler(app as any);
+        // Create a minimal mock plugin and container for ContextManager
+        const mockPlugin = { 
+            featureManager: { isFeatureEnabled: () => true }, 
+            settings: { general: { defaultMaxTokens: 8000 } } 
+        };
+        const mockContainer = { 
+            createDiv: jest.fn(() => ({ 
+                style: { cssText: '' },
+                createSpan: jest.fn(() => ({ style: { cssText: '' } })),
+                querySelector: jest.fn()
+            })) 
+        };
+        handler = new ContextManager(mockPlugin as any, app as any, mockContainer as any);
+        
+        // Initialize context manager for test file
+        handler.setCurrentFile(testFile);
     });
 
     test('should build context without outputting document content directly', async () => {
         // Simulate adding a document as context-only
         const message = '[[context]]';
         
-        const result = await handler.buildContext(message, testFile);
+        const context = await handler.buildContext(message, testFile);
+        const parsed = handler.parseMessage(message, testFile.path);
+        
+        // Verify context is not null
+        expect(context).not.toBeNull();
         
         // The cleaned message should be empty (just context reference removed)
-        expect(result.cleanedMessage.trim()).toBe('');
+        expect(parsed.cleanedMessage.trim()).toBe('');
         
         // Context should include the document
-        expect(result.context.persistentDocs).toHaveLength(1);
-        expect(result.context.persistentDocs[0].file.basename).toBe('context');
+        expect(context!.persistentDocs).toHaveLength(1);
+        expect(context!.persistentDocs[0].file.basename).toBe('context');
         
         // Context string should include document structure but be marked as context-only
-        expect(result.context.contextString).toContain('## Document: context');
-        expect(result.context.contextString).toContain('Last Section');
+        expect(context!.contextString).toContain('## Document: context');
+        expect(context!.contextString).toContain('Last Section');
         
         // The key issue: when AI receives this context, it should understand
         // these are reference documents, not content to output
@@ -85,16 +104,17 @@ describe('MultiDocContextHandler - Context-Only Bug', () => {
         
         // Then send a regular message
         const queryMessage = 'What is this document about?';
-        const result = await handler.buildContext(queryMessage, testFile);
+        const context = await handler.buildContext(queryMessage, testFile);
+        const parsed = handler.parseMessage(queryMessage, testFile.path);
         
         // Context should still include the persistent document
-        expect(result.context.persistentDocs).toHaveLength(1);
-        expect(result.cleanedMessage).toBe(queryMessage);
+        expect(context!.persistentDocs).toHaveLength(1);
+        expect(parsed.cleanedMessage).toBe(queryMessage);
         
         // The context string should clearly identify which is the working document
         // vs context documents
-        expect(result.context.contextString).toContain('## Document: test'); // working document
-        expect(result.context.contextString).toContain('## Document: context'); // context document
+        expect(context!.contextString).toContain('## Document: test'); // working document
+        expect(context!.contextString).toContain('## Document: context'); // context document
     });
 
     test('should handle multiple context documents', async () => {
@@ -122,14 +142,15 @@ describe('MultiDocContextHandler - Context-Only Bug', () => {
         (app.vault as any).getMarkdownFiles = jest.fn(() => [testFile, contextFile, contextFile2]);
         
         const message = '[[context]] [[context2]]';
-        const result = await handler.buildContext(message, testFile);
+        const context = await handler.buildContext(message, testFile);
+        const parsed = handler.parseMessage(message, testFile.path);
         
-        expect(result.context.persistentDocs).toHaveLength(2);
-        expect(result.cleanedMessage.trim()).toBe('');
+        expect(context!.persistentDocs).toHaveLength(2);
+        expect(parsed.cleanedMessage.trim()).toBe('');
         
         // Both context documents should be included
-        expect(result.context.contextString).toContain('## Document: context');
-        expect(result.context.contextString).toContain('## Document: context2');
+        expect(context!.contextString).toContain('## Document: context');
+        expect(context!.contextString).toContain('## Document: context2');
     });
 
     test('should remove stale references gracefully', async () => {
@@ -144,10 +165,10 @@ describe('MultiDocContextHandler - Context-Only Bug', () => {
         });
         
         // Try to build context again - should handle stale reference
-        const result = await handler.buildContext('What about now?', testFile);
+        const context = await handler.buildContext('What about now?', testFile);
         
         // Stale reference should be filtered out
-        expect(result.context.persistentDocs).toHaveLength(0);
-        expect(result.context.contextString).not.toContain('## Document: context');
+        expect(context!.persistentDocs).toHaveLength(0);
+        expect(context!.contextString).not.toContain('## Document: context');
     });
 });

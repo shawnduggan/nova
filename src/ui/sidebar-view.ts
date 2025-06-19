@@ -3,7 +3,7 @@ import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
-import { MultiDocContextHandler, MultiDocContext } from '../core/multi-doc-context';
+import { MultiDocContext } from './context-manager';
 import { getAvailableModels } from '../ai/models';
 import { InputHandler } from './input-handler';
 import { CommandSystem } from './command-system';
@@ -19,7 +19,6 @@ export class NovaSidebarView extends ItemView {
 	private chatContainer!: HTMLElement;
 	private inputContainer!: HTMLElement;
 	private currentFile: TFile | null = null;
-	private multiDocHandler!: MultiDocContextHandler;
 	private currentContext: MultiDocContext | null = null;
 	private lastTokenWarnings: { [key: string]: number } = {};
 	
@@ -65,7 +64,8 @@ export class NovaSidebarView extends ItemView {
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
 	
-	// Document drawer state
+	// Document drawer state (transient - always starts closed on file switch)
+	private isDrawerOpen: boolean = false;
 	private contextDrawerCloseHandler: EventListener | null = null;
 	
 	
@@ -84,7 +84,6 @@ export class NovaSidebarView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
 		this.plugin = plugin;
-		this.multiDocHandler = new MultiDocContextHandler(this.app);
 	}
 
 	getViewType() {
@@ -934,7 +933,7 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Add existing persistent context for current file
-		const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile?.path || '');
+		const persistentDocs = this.contextManager.getPersistentContext(this.currentFile?.path || '');
 		persistentDocs.forEach(doc => {
 			// Only add if not already in foundRefs to avoid duplicates
 			const exists = foundRefs.some(ref => ref.name === doc.file.basename);
@@ -993,8 +992,13 @@ export class NovaSidebarView extends ItemView {
 		// Check if we actually need to recreate the indicator
 		const newDocCount = this.currentContext?.persistentDocs?.length || 0;
 		const currentDocCount = this.contextIndicator.getAttribute('data-doc-count');
+		const currentFilePath = this.contextIndicator.getAttribute('data-file-path');
+		const newFilePath = this.currentFile?.path || '';
 		
-		if (currentDocCount === newDocCount.toString() && newDocCount > 0) {
+		// Only skip recreation if same file AND same doc count
+		if (currentDocCount === newDocCount.toString() && 
+			currentFilePath === newFilePath && 
+			newDocCount > 0) {
 			return;
 		}
 
@@ -1009,6 +1013,7 @@ export class NovaSidebarView extends ItemView {
 		if (!this.currentContext || !this.currentContext.persistentDocs) {
 			this.contextIndicator.style.display = 'none';
 			this.contextIndicator.removeAttribute('data-doc-count');
+			this.contextIndicator.removeAttribute('data-file-path');
 			// Update input container state for mobile spacing
 			if (this.inputHandler) {
 				this.inputHandler.updateContextState(false);
@@ -1021,6 +1026,7 @@ export class NovaSidebarView extends ItemView {
 		if (!allDocs || allDocs.length === 0) {
 			this.contextIndicator.style.display = 'none';
 			this.contextIndicator.removeAttribute('data-doc-count');
+			this.contextIndicator.removeAttribute('data-file-path');
 			// Update input container state for mobile spacing
 			if (this.inputHandler) {
 				this.inputHandler.updateContextState(false);
@@ -1028,8 +1034,9 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
-		// Store doc count to prevent unnecessary recreation
+		// Store doc count and file path to prevent unnecessary recreation
 		this.contextIndicator.setAttribute('data-doc-count', allDocs.length.toString());
+		this.contextIndicator.setAttribute('data-file-path', this.currentFile?.path || '');
 
 		// Update input container state for mobile spacing
 		if (this.inputHandler) {
@@ -1162,7 +1169,7 @@ export class NovaSidebarView extends ItemView {
 			.setTooltip('Clear all documents from context')
 			.onClick(async () => {
 				if (this.currentFile) {
-					this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+					this.contextManager.clearPersistentContext(this.currentFile.path);
 					await this.refreshContext();
 				}
 			});
@@ -1297,7 +1304,7 @@ export class NovaSidebarView extends ItemView {
 			removeBtn.addEventListener('click', async (e: Event) => {
 				e.stopPropagation();
 				if (this.currentFile) {
-					this.multiDocHandler.removePersistentDoc(this.currentFile.path, doc.file.path);
+					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path);
 					await this.refreshContext();
 				}
 			});
@@ -1347,21 +1354,18 @@ export class NovaSidebarView extends ItemView {
 			}
 		});
 
-		// Restore expanded state if it was previously expanded for this file
-		if (this.contextManager.getDrawerState()) {
-			expandedEl.style.display = 'block';
-			this.contextIndicator.style.zIndex = '1001';
-		}
+		// Drawer always starts closed on file switch (transient state)
+		this.isDrawerOpen = false;
+		expandedEl.style.display = 'none';
 
 		// Click to expand management overlay
 		// Using class property to persist state across updates
 		
 		const toggleExpanded = (e: MouseEvent) => {
 			e.stopPropagation();
-			const newState = !this.contextManager.getDrawerState();
-			this.contextManager.setDrawerState(newState);
+			this.isDrawerOpen = !this.isDrawerOpen;
 			
-			if (newState) {
+			if (this.isDrawerOpen) {
 				expandedEl.style.display = 'block';
 				this.contextIndicator.style.zIndex = '1001';
 			} else {
@@ -1375,8 +1379,8 @@ export class NovaSidebarView extends ItemView {
 		
 		// Close when clicking outside
 		this.contextDrawerCloseHandler = (e: Event) => {
-			if (this.contextManager.getDrawerState() && !this.contextIndicator.contains(e.target as Node)) {
-				this.contextManager.setDrawerState(false);
+			if (this.isDrawerOpen && !this.contextIndicator.contains(e.target as Node)) {
+				this.isDrawerOpen = false;
 				expandedEl.style.display = 'none';
 				this.contextIndicator.style.zIndex = 'auto';
 			}
@@ -1399,7 +1403,7 @@ export class NovaSidebarView extends ItemView {
 			try {
 				// Don't call buildContext with empty message as it can interfere with persistent context
 				// Instead, just get persistent context and build a minimal context object for UI display
-				const persistentDocs = this.multiDocHandler.getPersistentContext(contextFilePath) || [];
+				const persistentDocs = this.contextManager.getPersistentContext(contextFilePath) || [];
 				
 				// Calculate token count including current file (always in context) + persistent docs
 				let totalTokens = 0;
@@ -1500,9 +1504,10 @@ export class NovaSidebarView extends ItemView {
 				}
 			} else {
 				// Parse and build context
-				const contextResult = await this.multiDocHandler.buildContext(messageText, this.currentFile);
-				processedMessage = contextResult.cleanedMessage;
-				multiDocContext = contextResult.context;
+				const context = await this.contextManager.buildContext(messageText, this.currentFile);
+				const contextResult = context ? { cleanedMessage: '', context } : null;
+				processedMessage = contextResult?.cleanedMessage || messageText;
+				multiDocContext = contextResult?.context || null;
 				this.currentContext = multiDocContext;
 				
 				// Update UI indicator
@@ -1539,7 +1544,7 @@ export class NovaSidebarView extends ItemView {
 				}
 				
 				// Show context confirmation if documents were included in a regular message
-				if (multiDocContext?.persistentDocs?.length > 0) {
+				if (multiDocContext?.persistentDocs?.length) {
 					const allDocs = multiDocContext.persistentDocs;
 					const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
 					if (docNames && allDocs.length > 0) {
@@ -3229,7 +3234,7 @@ USER REQUEST: ${processedMessage}`;
 		const notFoundFiles: string[] = [];
 		
 		// Get existing persistent context directly (without clearing it)
-		const existingPersistent = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+		const existingPersistent = this.contextManager.getPersistentContext(this.currentFile.path) || [];
 		const updatedPersistent = [...existingPersistent];
 		
 		
@@ -3270,9 +3275,11 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Update persistent context if we made any changes
 		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0) {
-			// Use reflection to access private property (since TypeScript doesn't expose it)
-			const handler = this.multiDocHandler as any;
-			handler.persistentContext.set(this.currentFile.path, updatedPersistent);
+			// Use ContextManager to update persistent context
+			this.contextManager.clearPersistentContext(this.currentFile.path);
+			for (const doc of updatedPersistent) {
+				await this.contextManager.addDocument(doc.file);
+			}
 		}
 		
 		// Refresh context UI
