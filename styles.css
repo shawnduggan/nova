@@ -2015,6 +2015,53 @@
     background: var(--background-modifier-hover);
 }
 
+/* Desktop Message Spacing Standardization */
+.is-desktop .nova-message {
+    margin-bottom: 12px !important; /* Standardized 12px spacing between all messages */
+}
+
+.is-desktop .nova-input-container {
+    padding-top: 16px !important; /* 16px before input area for clear separation */
+}
+
+.is-desktop .nova-context-preview {
+    margin-bottom: 12px !important; /* Match message spacing */
+}
+
+.is-desktop .nova-context-indicator {
+    margin-bottom: 12px !important; /* Match message spacing */
+}
+
+/* Unified message bubble styling for desktop */
+.is-desktop .nova-message-user,
+.is-desktop .nova-message-assistant {
+    border-radius: var(--radius-m) !important; /* Consistent corner radius */
+    margin-left: 16px !important; /* Consistent horizontal margins */
+    margin-right: 16px !important;
+    max-width: calc(100% - 32px) !important; /* Account for horizontal margins */
+}
+
+.is-desktop .nova-message-user {
+    margin-left: auto !important;
+    margin-right: 16px !important;
+}
+
+.is-desktop .nova-message-assistant {
+    margin-left: 16px !important;
+    margin-right: auto !important;
+}
+
+/* System message spacing for desktop */
+.is-desktop .nova-pill-success,
+.is-desktop .nova-pill-system {
+    margin: 0 auto 12px auto !important; /* Remove top margin, keep center alignment, standardize bottom spacing */
+}
+
+.is-desktop .nova-bubble-success,
+.is-desktop .nova-bubble-error {
+    margin-bottom: 12px !important;
+}
+
 /* Context Preview Styles */
 .nova-context-preview {
     background: rgba(var(--interactive-accent-rgb), 0.1);
