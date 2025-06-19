@@ -97,10 +97,8 @@ export class NovaSidebarView extends ItemView {
 	 * Updates all UI elements that depend on document content
 	 */
 	private onStreamingComplete(): void {
-		// Update document stats (word count, headings)
-		this.updateDocumentStats();
-		// Update token display (tokens used/remaining)
-		this.updateTokenDisplay();
+		// Update document stats and context remaining
+		this.refreshAllStats();
 		// Refresh context indicators
 		this.refreshContext();
 	}
@@ -199,6 +197,9 @@ export class NovaSidebarView extends ItemView {
 			})
 		);
 		
+		// Register blur listener for stats updates when editor loses focus
+		this.setupEditorBlurListener();
+		
 		// Load conversation for current file
 		this.loadConversationForActiveFile();
 		
@@ -242,6 +243,28 @@ export class NovaSidebarView extends ItemView {
 				editor.setCursor(this.currentFileCursorPosition);
 			}
 		}
+	}
+
+	/**
+	 * Setup focus-based stats updates using Nova input focus as trigger
+	 */
+	private setupEditorBlurListener(): void {
+		// Instead of trying to capture editor blur (which is unreliable), 
+		// listen for Nova input focus - this means user moved from editor to chat
+		const inputElement = this.inputHandler?.getTextArea()?.inputEl;
+		if (inputElement) {
+			this.registerDomEvent(inputElement, 'focus', () => {
+				this.refreshAllStats();
+			});
+		}
+		
+		// Also update stats when Nova sidebar gains focus (click anywhere in sidebar)
+		this.registerDomEvent(this.containerEl, 'mousedown', () => {
+			// Small delay to ensure click is processed
+			setTimeout(() => {
+				this.refreshAllStats();
+			}, 50);
+		});
 	}
 
 	async onClose() {
@@ -1844,7 +1867,7 @@ USER REQUEST: ${processedMessage}`;
 		this.currentFile = targetFile;
 		
 		// Update document statistics in header
-		this.updateDocumentStats();
+		this.refreshAllStats();
 		
 		// Immediately track cursor position for the newly active file
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1903,6 +1926,22 @@ USER REQUEST: ${processedMessage}`;
 		new Notice('Chat cleared');
 	}
 
+	// Coordinator method that updates both document stats and context remaining
+	private async refreshAllStats(): Promise<void> {
+		// Skip updates during streaming to avoid conflicts
+		if (this.streamingManager.isStreaming()) {
+			return;
+		}
+		
+		await this.updateDocumentStats();
+		
+		// Refresh context to recalculate token counts with updated document content
+		await this.refreshContext();
+		
+		this.updateContextRemaining();
+	}
+
+	// Update only document statistics (word count, sections)
 	private async updateDocumentStats(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) return;
@@ -1931,22 +1970,18 @@ USER REQUEST: ${processedMessage}`;
 					statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 				}
 				
-				// Find or create token usage element
-				let tokenEl = statsContainer.querySelector('.nova-token-usage');
-				if (!tokenEl) {
-					tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
-				}
-				
 				if (statsEl && wordCount > 0) {
 					statsEl.textContent = `${wordCount} words • ${headingCount} sections`;
 				}
-				
-				// Update token display
-				this.updateTokenDisplay();
 			}
 		} catch (error) {
 			// Silently fail - stats are optional
 		}
+	}
+
+	// Update only context remaining display (token percentage)
+	private updateContextRemaining(): void {
+		this.updateTokenDisplay();
 	}
 
 	private updateTokenDisplay(): void {

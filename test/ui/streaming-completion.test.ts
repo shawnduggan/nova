@@ -152,17 +152,15 @@ describe('Streaming Completion Updates', () => {
     });
 
     it('should use centralized onStreamingComplete method', async () => {
-        // Setup spies on the individual methods
-        const updateDocumentStatsSpy = jest.spyOn(sidebar as any, 'updateDocumentStats').mockResolvedValue(undefined);
+        // Setup spies on the refactored methods
+        const refreshAllStatsSpy = jest.spyOn(sidebar as any, 'refreshAllStats').mockResolvedValue(undefined);
         const refreshContextSpy = jest.spyOn(sidebar as any, 'refreshContext').mockResolvedValue(undefined);
-        const updateTokenDisplaySpy = jest.spyOn(sidebar as any, 'updateTokenDisplay').mockImplementation(() => {});
 
         // Call the centralized method directly
         (sidebar as any).onStreamingComplete();
 
-        // Verify all three methods are called from the centralized method
-        expect(updateDocumentStatsSpy).toHaveBeenCalled();
-        expect(updateTokenDisplaySpy).toHaveBeenCalled();
+        // Verify the centralized stats method and context refresh are called
+        expect(refreshAllStatsSpy).toHaveBeenCalled();
         expect(refreshContextSpy).toHaveBeenCalled();
     });
 });

@@ -83,6 +83,7 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Backlog Tasks**
+- **BUG: Word counts from doc stats do not match Obsidian** - "00-Inbox/Large File 1" has 1476 words according to Obsidian, and 1494 words according to Nova. Word counting algorithm needs to match Obsidian's.
 - **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
 - **BUG: Clear conversation should show welcome** - Using clear conversation history in sidebar header should clear everything and show the welcome message again
 - **BUG: Current file can be added to context** - Drag and drop and typing [[ add files manually allows adding the current active file which is already in context

@@ -2570,8 +2570,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
    * Updates all UI elements that depend on document content
    */
   onStreamingComplete() {
-    this.updateDocumentStats();
-    this.updateTokenDisplay();
+    this.refreshAllStats();
     this.refreshContext();
   }
   async onOpen() {
@@ -2638,6 +2637,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
         this.trackCursorPosition(editor);
       })
     );
+    this.setupEditorBlurListener();
     this.loadConversationForActiveFile();
     if (this.plugin.selectionContextMenu) {
       this.plugin.selectionContextMenu.setCompletionCallback(() => this.onStreamingComplete());
@@ -2669,6 +2669,23 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
         editor.setCursor(this.currentFileCursorPosition);
       }
     }
+  }
+  /**
+   * Setup focus-based stats updates using Nova input focus as trigger
+   */
+  setupEditorBlurListener() {
+    var _a, _b;
+    const inputElement = (_b = (_a = this.inputHandler) == null ? void 0 : _a.getTextArea()) == null ? void 0 : _b.inputEl;
+    if (inputElement) {
+      this.registerDomEvent(inputElement, "focus", () => {
+        this.refreshAllStats();
+      });
+    }
+    this.registerDomEvent(this.containerEl, "mousedown", () => {
+      setTimeout(() => {
+        this.refreshAllStats();
+      }, 50);
+    });
   }
   async onClose() {
     var _a;
@@ -3888,7 +3905,7 @@ USER REQUEST: ${processedMessage}`;
       to: targetFile.path
     });
     this.currentFile = targetFile;
-    this.updateDocumentStats();
+    this.refreshAllStats();
     const activeView = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
     if (activeView && activeView.editor) {
       this.trackCursorPosition(activeView.editor);
@@ -3920,6 +3937,16 @@ USER REQUEST: ${processedMessage}`;
     }
     new import_obsidian11.Notice("Chat cleared");
   }
+  // Coordinator method that updates both document stats and context remaining
+  async refreshAllStats() {
+    if (this.streamingManager.isStreaming()) {
+      return;
+    }
+    await this.updateDocumentStats();
+    await this.refreshContext();
+    this.updateContextRemaining();
+  }
+  // Update only document statistics (word count, sections)
   async updateDocumentStats() {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) return;
@@ -3938,17 +3965,16 @@ USER REQUEST: ${processedMessage}`;
         if (!statsEl) {
           statsEl = statsContainer.createEl("div", { cls: "nova-document-stats" });
         }
-        let tokenEl = statsContainer.querySelector(".nova-token-usage");
-        if (!tokenEl) {
-          tokenEl = statsContainer.createEl("div", { cls: "nova-token-usage" });
-        }
         if (statsEl && wordCount > 0) {
           statsEl.textContent = `${wordCount} words \u2022 ${headingCount} sections`;
         }
-        this.updateTokenDisplay();
       }
     } catch (error) {
     }
+  }
+  // Update only context remaining display (token percentage)
+  updateContextRemaining() {
+    this.updateTokenDisplay();
   }
   updateTokenDisplay() {
     var _a;
