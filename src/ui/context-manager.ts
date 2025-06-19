@@ -13,7 +13,10 @@ export class ContextManager {
 	public contextIndicator!: HTMLElement;
 	public contextPreview!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
+	private currentFilePath: string | null = null; // Track current file for validation
+	private currentOperationId: string | null = null; // Track current async operation
 	private sidebarView: any; // Reference to NovaSidebarView for adding files
+	private drawerStates: Map<string, boolean> = new Map(); // File-scoped drawer state
 	private static readonly NOTICE_DURATION_MS = 5000;
 
 	constructor(plugin: NovaPlugin, app: App, container: HTMLElement) {
@@ -72,6 +75,12 @@ export class ContextManager {
 			return;
 		}
 
+		// Validate we have a current file set
+		if (!this.currentFilePath) {
+			this.contextPreview.style.display = 'none';
+			return;
+		}
+
 		if (!message) {
 			this.contextPreview.style.display = 'none';
 			return;
@@ -110,8 +119,33 @@ export class ContextManager {
 			return null;
 		}
 
+		// Validate we have a current file set for validation
+		if (!this.currentFilePath) {
+			return null;
+		}
+
+		// Generate operation ID to prevent race conditions
+		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+		this.currentOperationId = operationId;
+		
+		// Track current file path for validation
+		const targetFilePath = currentFile.path;
+		
+		// Validate the requested file matches our current tracked file
+		if (this.currentFilePath !== targetFilePath) {
+			return null;
+		}
+
 		try {
 			const result = await this.multiDocHandler.buildContext(message, currentFile);
+			
+			// Validate operation is still current and file hasn't changed
+			if (this.currentOperationId !== operationId || 
+				!this.currentFilePath || 
+				this.currentFilePath !== targetFilePath) {
+				return null;
+			}
+
 			this.currentContext = result.context;
 
 			if (result.context?.persistentDocs.length) {
@@ -251,14 +285,193 @@ export class ContextManager {
 
 	clearCurrentContext(): void {
 		this.currentContext = null;
+		this.currentFilePath = null;
+		this.currentOperationId = null;
 		this.hideContextIndicator();
 		this.hideContextPreview();
+	}
+
+	/**
+	 * Set current file and immediately clear context to prevent bleeding
+	 * This should be called synchronously when file switches occur
+	 */
+	setCurrentFile(file: TFile | null): void {
+		const newFilePath = file?.path || null;
+		
+		if (this.currentFilePath !== newFilePath) {
+			// Immediately clear context state to prevent bleeding
+			this.currentContext = null;
+			this.currentOperationId = null; // Cancel any pending operations
+			this.hideContextIndicator();
+			this.hideContextPreview();
+		}
+		
+		this.currentFilePath = newFilePath;
 	}
 
 	getCurrentContext(): MultiDocContext | null {
 		return this.currentContext;
 	}
 
+	getCurrentFilePath(): string | null {
+		return this.currentFilePath;
+	}
+
+	/**
+	 * Initialize context for a new file (drawer always starts closed)
+	 */
+	async initializeForFile(file: TFile | null): Promise<void> {
+		const newFilePath = file?.path || null;
+		
+		// Set current file and clear any stale context
+		if (this.currentFilePath !== newFilePath) {
+			this.currentContext = null;
+			this.currentOperationId = null;
+			this.hideContextIndicator();
+			this.hideContextPreview();
+		}
+		
+		this.currentFilePath = newFilePath;
+		
+		// Always start with drawer closed for new files
+		if (newFilePath) {
+			this.drawerStates.set(newFilePath, false);
+		}
+		
+		// Load context data and update indicator
+		await this.refreshContextFromStorage();
+	}
+
+	/**
+	 * Get drawer state for current file
+	 */
+	getDrawerState(): boolean {
+		if (!this.currentFilePath) return false;
+		return this.drawerStates.get(this.currentFilePath) || false;
+	}
+
+	/**
+	 * Set drawer state for current file
+	 */
+	setDrawerState(expanded: boolean): void {
+		if (!this.currentFilePath) return;
+		this.drawerStates.set(this.currentFilePath, expanded);
+	}
+
+	/**
+	 * Add document to context for current file
+	 */
+	async addDocument(file: TFile): Promise<void> {
+		if (!this.currentFilePath) return;
+		
+		// Get current persistent context
+		const current = this.multiDocHandler.getPersistentContext(this.currentFilePath) || [];
+		
+		// Check if document is already in context
+		const exists = current.some(doc => doc.file.path === file.path);
+		if (exists) return;
+		
+		// Add the document
+		const newRef = { file, property: undefined };
+		const updated = [...current, newRef];
+		
+		// Update persistent context directly (following existing pattern)
+		(this.multiDocHandler as any).persistentContext.set(this.currentFilePath, updated);
+		
+		// Refresh context and indicator
+		await this.refreshContextFromStorage();
+	}
+
+	/**
+	 * Remove document from context for current file
+	 */
+	async removeDocument(file: TFile): Promise<void> {
+		if (!this.currentFilePath) return;
+		
+		// Use the existing method
+		this.multiDocHandler.removePersistentDoc(this.currentFilePath, file.path);
+		
+		// Refresh context and indicator
+		await this.refreshContextFromStorage();
+	}
+
+	/**
+	 * Update indicator based on current context state
+	 * Note: SidebarView handles actual UI updates to preserve complex drawer functionality
+	 */
+	updateIndicator(): void {
+		// State is managed here, but UI updates are handled by SidebarView
+		// This method exists for API completeness but doesn't update UI directly
+	}
+
+	/**
+	 * Private method to refresh context from storage and update indicator
+	 */
+	private async refreshContextFromStorage(): Promise<void> {
+		if (!this.currentFilePath) {
+			this.currentContext = null;
+			this.hideContextIndicator();
+			return;
+		}
+
+		try {
+			// Get persistent context for current file
+			const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFilePath) || [];
+			
+			if (persistentDocs.length === 0) {
+				this.currentContext = null;
+				this.hideContextIndicator();
+				return;
+			}
+
+			// Calculate token count
+			let totalTokens = 0;
+			
+			// Add current file tokens
+			try {
+				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+				if (currentFile instanceof TFile) {
+					const currentContent = await this.app.vault.read(currentFile);
+					totalTokens += Math.ceil(currentContent.length / 4);
+				}
+			} catch (error) {
+				// Skip if can't read current file
+			}
+			
+			// Add persistent docs tokens
+			for (const doc of persistentDocs) {
+				try {
+					const content = await this.app.vault.read(doc.file);
+					totalTokens += Math.ceil(content.length / 4);
+				} catch (error) {
+					// Skip files that can't be read
+				}
+			}
+
+			// Get token limit from settings
+			const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
+
+			// Build context object
+			this.currentContext = {
+				persistentDocs: persistentDocs,
+				contextString: '', // Not needed for UI
+				tokenCount: totalTokens,
+				isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
+			};
+
+			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
+
+			// Check token limit
+			if (this.currentContext.isNearLimit) {
+				new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', ContextManager.NOTICE_DURATION_MS);
+			}
+
+		} catch (error) {
+			// Handle context build failures gracefully
+			this.currentContext = null;
+			this.hideContextIndicator();
+		}
+	}
 
 	cleanup(): void {
 		this.clearCurrentContext();

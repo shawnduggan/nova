@@ -8,7 +8,7 @@
 ## BEHAVIORAL COMMANDS - READ FIRST
 
 ### MANDATORY RULES
-**NEVER start responses with explanations like "You're absolutely right" or "I'll help you" - RESPOND OR CODE IMMEDIATELY**
+**NEVER start responses with superlatives like "You're absolutely right" - RESPOND OR CODE IMMEDIATELY**
 **ONE CHANGE PER RESPONSE** - If it involves multiple concerns, refuse and break it down
 **ONE STEP AT A TIME** - If the plan involves multiple steps, pause after each step and ask if you should continue
 **WAIT FOR TEST CONFIRMATION** - After any fix, ask user to test before proceeding to next task
@@ -83,10 +83,12 @@
 ## 🎯 IMPLEMENTATION QUEUE
 
 ### **Backlog Tasks**
-- **BUG: Context not file-scoped** - Adding files to Document A's context, then switching to File B shows the same context files when it shouldn't. Context should be file-scoped like conversation history. Also triggers spurious "provider switched" messages during file switches.
-  - NOTE: Context storage IS already file-scoped (uses file paths as Map keys), but UI state management has race conditions during file switches. Need to prevent context bleeding by immediately clearing currentContext and using operation tracking to prevent stale updates.
-- Task: change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
-- **BUG: Word counts from doc stats do not match Obsidian** - "00-Inbox/Large File 1" has 1476 words according to Obsidian, and 1494 words according to Nova. Word counting algorithm needs to match Obsidian's.
+- **ARCHITECTURE: Eliminate MultiDocContextHandler - Merge into ContextManager** 
+  - **Problem**: Two classes doing context management (MultiDocContextHandler 377 lines + ContextManager), unnecessary delegation, split responsibilities
+  - **Solution**: Move all logic from MultiDocContextHandler into ContextManager: parseMessage(), buildContext(), getPersistentContext(), resolveFile()
+  - **Result**: Single context management class, no delegation layers, cleaner architecture
+  - **Files**: Modify context-manager.ts, sidebar-view.ts, types.ts. Delete multi-doc-context.ts
+- **Task** - change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
 - **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
 - **BUG: Current file can be added to context** - Drag and drop and typing [[ add files manually allows adding the current active file which is already in context
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.

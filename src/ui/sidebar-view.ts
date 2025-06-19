@@ -26,6 +26,9 @@ export class NovaSidebarView extends ItemView {
 	// PHASE 3 FIX: Race condition prevention
 	private currentFileLoadOperation: string | null = null;
 	
+	// Track user-initiated provider changes to prevent spurious messages
+	private isUserInitiatedProviderChange: boolean = false;
+	
 	// New architecture components
 	private inputHandler!: InputHandler;
 	private commandSystem!: CommandSystem;
@@ -52,9 +55,7 @@ export class NovaSidebarView extends ItemView {
 	
 	// Context system delegation
 	private get contextPreview() { return this.contextManager?.contextPreview; }
-	private _contextIndicator: any;
-	private get contextIndicator() { return this._contextIndicator || this.contextManager?.contextIndicator; }
-	private set contextIndicator(value: any) { this._contextIndicator = value; }
+	private get contextIndicator() { return this.contextManager?.contextIndicator; }
 	
 	// Component references
 	private commandPicker!: HTMLElement;
@@ -65,7 +66,6 @@ export class NovaSidebarView extends ItemView {
 	private currentFileCursorPosition: EditorPosition | null = null;
 	
 	// Document drawer state
-	private contextDrawerExpanded: boolean = false;
 	private contextDrawerCloseHandler: EventListener | null = null;
 	
 	
@@ -215,7 +215,8 @@ export class NovaSidebarView extends ItemView {
 			this.plugin.selectionContextMenu.setCompletionCallback(() => this.onStreamingComplete());
 		}
 		
-		// Initial status refresh to ensure all indicators are up to date
+		// Initial status refresh to ensure all indicators are up to date (not user-initiated)
+		this.isUserInitiatedProviderChange = false;
 		await this.refreshProviderStatus();
 		
 		// Note: Auto-focus removed to prevent stealing cursor from editor
@@ -853,25 +854,6 @@ export class NovaSidebarView extends ItemView {
 		this.handleSend();
 	}
 
-	private createContextIndicator(): void {
-		// Check if multi-doc context feature is enabled
-		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-			return;
-		}
-
-		this.contextIndicator = this.inputContainer.createDiv({ cls: 'nova-context-indicator' });
-		this.contextIndicator.style.cssText = `
-			display: none;
-			padding: 8px 12px;
-			margin-bottom: 8px;
-			background: var(--background-modifier-hover);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 8px;
-			font-size: 0.85em;
-			color: var(--text-muted);
-			transition: all 0.2s ease;
-		`;
-	}
 
 	private createContextPreview(): HTMLElement {
 		// Check if multi-doc context feature is enabled
@@ -1365,8 +1347,8 @@ export class NovaSidebarView extends ItemView {
 			}
 		});
 
-		// Restore expanded state if it was previously expanded
-		if (this.contextDrawerExpanded) {
+		// Restore expanded state if it was previously expanded for this file
+		if (this.contextManager.getDrawerState()) {
 			expandedEl.style.display = 'block';
 			this.contextIndicator.style.zIndex = '1001';
 		}
@@ -1376,9 +1358,10 @@ export class NovaSidebarView extends ItemView {
 		
 		const toggleExpanded = (e: MouseEvent) => {
 			e.stopPropagation();
-			this.contextDrawerExpanded = !this.contextDrawerExpanded;
+			const newState = !this.contextManager.getDrawerState();
+			this.contextManager.setDrawerState(newState);
 			
-			if (this.contextDrawerExpanded) {
+			if (newState) {
 				expandedEl.style.display = 'block';
 				this.contextIndicator.style.zIndex = '1001';
 			} else {
@@ -1392,8 +1375,8 @@ export class NovaSidebarView extends ItemView {
 		
 		// Close when clicking outside
 		this.contextDrawerCloseHandler = (e: Event) => {
-			if (this.contextDrawerExpanded && !this.contextIndicator.contains(e.target as Node)) {
-				this.contextDrawerExpanded = false;
+			if (this.contextManager.getDrawerState() && !this.contextIndicator.contains(e.target as Node)) {
+				this.contextManager.setDrawerState(false);
 				expandedEl.style.display = 'none';
 				this.contextIndicator.style.zIndex = 'auto';
 			}
@@ -1405,6 +1388,11 @@ export class NovaSidebarView extends ItemView {
 
 	private async refreshContext(): Promise<void> {
 		if (this.currentFile) {
+			// Ensure ContextManager is tracking the current file (only if not already tracking)
+			if (this.contextManager.getCurrentFilePath() !== this.currentFile.path) {
+				this.contextManager.setCurrentFile(this.currentFile);
+			}
+			
 			// PHASE 1 FIX: Store file path to validate against changes during async operations
 			const contextFilePath = this.currentFile.path;
 			
@@ -1439,8 +1427,10 @@ export class NovaSidebarView extends ItemView {
 				// Get token limit from settings
 				const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
 				
-				// PHASE 1 FIX: Validate we're still working with the same file before updating context
-				if (this.currentFile && this.currentFile.path === contextFilePath) {
+				// PHASE 1 FIX: Validate we're still working with the same file and ContextManager agrees
+				if (this.currentFile && 
+					this.currentFile.path === contextFilePath &&
+					this.contextManager.getCurrentFilePath() === contextFilePath) {
 					// Build context object for UI display
 					this.currentContext = {
 						persistentDocs: persistentDocs,
@@ -1450,6 +1440,13 @@ export class NovaSidebarView extends ItemView {
 					};
 					
 					this.updateContextIndicator();
+					
+					// Also update ContextManager's current context so its indicator can show
+					if (this.currentContext.persistentDocs.length > 0) {
+						// Set the context in ContextManager without clearing (use direct assignment)
+						(this.contextManager as any).currentContext = this.currentContext;
+					}
+					
 					this.updateTokenDisplay();
 				} else {
 					console.log('⚠️ Context refresh skipped - file changed during operation');
@@ -1463,6 +1460,7 @@ export class NovaSidebarView extends ItemView {
 		} else {
 			// No current file - clear context
 			this.currentContext = null;
+			this.contextManager.setCurrentFile(null);
 			this.updateContextIndicator();
 			this.updateTokenDisplay();
 		}
@@ -1871,6 +1869,9 @@ USER REQUEST: ${processedMessage}`;
 			currentFile: this.currentFile?.path 
 		});
 		
+		// Ensure file switches don't trigger provider switch messages
+		this.isUserInitiatedProviderChange = false;
+		
 		// PHASE 3 FIX: Generate operation ID to prevent race conditions
 		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
 		this.currentFileLoadOperation = operationId;
@@ -1898,8 +1899,7 @@ USER REQUEST: ${processedMessage}`;
 			this.chatContainer.empty();
 			// Immediately clear context state to prevent bleeding
 			this.currentContext = null;
-			this.contextManager.hideContextIndicator();
-			this.contextManager.hideContextPreview();
+			this.contextManager.setCurrentFile(null);
 			this.refreshContext();
 			this.addWelcomeMessage('Open a document to get started.');
 			return;
@@ -1911,11 +1911,9 @@ USER REQUEST: ${processedMessage}`;
 			return;
 		}
 		
-		// PHASE 1 FIX: Immediately clear context state to prevent bleeding
-		console.log('🧹 CLEARING CONTEXT STATE for file switch');
-		this.currentContext = null;
-		this.contextManager.hideContextIndicator();
-		this.contextManager.hideContextPreview();
+		// Initialize ContextManager for new file (drawer starts closed)
+		console.log('🧹 INITIALIZING CONTEXT for file switch');
+		await this.contextManager.initializeForFile(targetFile);
 		
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
@@ -1926,6 +1924,10 @@ USER REQUEST: ${processedMessage}`;
 		});
 		
 		this.currentFile = targetFile;
+		this.currentContext = this.contextManager.getCurrentContext();
+		
+		// Update UI after ContextManager has loaded data
+		this.updateContextIndicator();
 		
 		// Update document statistics in header
 		this.refreshAllStats();
@@ -1939,9 +1941,6 @@ USER REQUEST: ${processedMessage}`;
 		// Clear current chat
 		console.log('🧹 CLEARING CHAT for file switch');
 		this.chatContainer.empty();
-		
-		// Refresh context for new file (this will show persistent documents if any)
-		await this.refreshContext();
 		
 		// PHASE 3 FIX: Check if this operation is still current before proceeding
 		if (this.currentFileLoadOperation !== operationId) {
@@ -2607,7 +2606,9 @@ USER REQUEST: ${processedMessage}`;
 			this.addSuccessMessage(`✓ Switched to ${providerName} ${modelName}`);
 		} else {
 			// Switching to different provider - this will show the provider+model message
+			this.isUserInitiatedProviderChange = true;
 			await this.switchToProvider(providerType);
+			this.isUserInitiatedProviderChange = false;
 		}
 		
 		// Update the dropdown display
@@ -2759,7 +2760,9 @@ USER REQUEST: ${processedMessage}`;
 				} else {
 					// Switch provider directly (for Ollama or providers without models)
 					if (!isCurrent) {
+						this.isUserInitiatedProviderChange = true;
 						await this.switchToProvider(providerType);
+						this.isUserInitiatedProviderChange = false;
 						dropdownMenu.style.display = 'none';
 						if ((this as any).currentProviderDropdown) {
 							(this as any).currentProviderDropdown.updateCurrentProvider();
@@ -2911,8 +2914,10 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async switchToProvider(providerType: string): Promise<void> {
 		try {
-			// Add a system message about provider switching
-			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
+			// Only add a system message for user-initiated provider switching
+			if (this.isUserInitiatedProviderChange) {
+				this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
+			}
 			
 			// Update the platform settings to use the new provider
 			const platform = Platform.isMobile ? 'mobile' : 'desktop';
@@ -2927,7 +2932,9 @@ USER REQUEST: ${processedMessage}`;
 			
 		} catch (error) {
 			// Error switching provider - handled by UI feedback
-			this.addErrorMessage(`❌ Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`);
+			if (this.isUserInitiatedProviderChange) {
+				this.addErrorMessage(`❌ Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`);
+			}
 		}
 	}
 
