@@ -2505,6 +2505,9 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     this._isCommandMenuVisible = false;
     // Cursor position tracking - file-scoped like conversation history
     this.currentFileCursorPosition = null;
+    // Document drawer state
+    this.contextDrawerExpanded = false;
+    this.contextDrawerCloseHandler = null;
     // Performance optimization - debouncing and timing constants
     this.contextPreviewDebounceTimeout = null;
     // Event listener cleanup tracking
@@ -2729,6 +2732,10 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
       element.removeEventListener(event, handler);
     });
     this.documentEventListeners = [];
+    if (this.contextDrawerCloseHandler) {
+      document.removeEventListener("click", this.contextDrawerCloseHandler);
+      this.contextDrawerCloseHandler = null;
+    }
   }
   /**
    * Clear all tracked timeouts
@@ -3230,12 +3237,23 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     return file instanceof import_obsidian11.TFile ? file : null;
   }
   updateContextIndicator() {
+    var _a, _b;
     if (!this.contextIndicator) {
       return;
+    }
+    const newDocCount = ((_b = (_a = this.currentContext) == null ? void 0 : _a.persistentDocs) == null ? void 0 : _b.length) || 0;
+    const currentDocCount = this.contextIndicator.getAttribute("data-doc-count");
+    if (currentDocCount === newDocCount.toString() && newDocCount > 0) {
+      return;
+    }
+    if (this.contextDrawerCloseHandler) {
+      document.removeEventListener("click", this.contextDrawerCloseHandler);
+      this.contextDrawerCloseHandler = null;
     }
     this.contextIndicator.empty();
     if (!this.currentContext || !this.currentContext.persistentDocs) {
       this.contextIndicator.style.display = "none";
+      this.contextIndicator.removeAttribute("data-doc-count");
       if (this.inputHandler) {
         this.inputHandler.updateContextState(false);
       }
@@ -3244,11 +3262,13 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     const allDocs = this.currentContext.persistentDocs;
     if (!allDocs || allDocs.length === 0) {
       this.contextIndicator.style.display = "none";
+      this.contextIndicator.removeAttribute("data-doc-count");
       if (this.inputHandler) {
         this.inputHandler.updateContextState(false);
       }
       return;
     }
+    this.contextIndicator.setAttribute("data-doc-count", allDocs.length.toString());
     if (this.inputHandler) {
       this.inputHandler.updateContextState(true);
     }
@@ -3279,8 +3299,8 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
 		`;
     const summaryTextEl = summaryEl.createSpan({ cls: "nova-context-summary-text" });
     const docNames = allDocs.filter((doc) => {
-      var _a;
-      return (_a = doc == null ? void 0 : doc.file) == null ? void 0 : _a.basename;
+      var _a2;
+      return (_a2 = doc == null ? void 0 : doc.file) == null ? void 0 : _a2.basename;
     }).map((doc) => doc.file.basename).slice(0, isMobile ? 1 : 2);
     const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : "";
     summaryTextEl.style.cssText = "font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px; min-width: 0;";
@@ -3406,8 +3426,8 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     }
     const docListEl = expandedEl.createDiv({ cls: "nova-context-doc-list" });
     allDocs.filter((doc) => {
-      var _a;
-      return (_a = doc == null ? void 0 : doc.file) == null ? void 0 : _a.basename;
+      var _a2;
+      return (_a2 = doc == null ? void 0 : doc.file) == null ? void 0 : _a2.basename;
     }).forEach((doc, index) => {
       const docItemEl = docListEl.createDiv({ cls: "nova-context-doc-item" });
       docItemEl.style.cssText = `
@@ -3522,11 +3542,14 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
         });
       }
     });
-    let isExpanded = false;
+    if (this.contextDrawerExpanded) {
+      expandedEl.style.display = "block";
+      this.contextIndicator.style.zIndex = "1001";
+    }
     const toggleExpanded = (e) => {
       e.stopPropagation();
-      isExpanded = !isExpanded;
-      if (isExpanded) {
+      this.contextDrawerExpanded = !this.contextDrawerExpanded;
+      if (this.contextDrawerExpanded) {
         expandedEl.style.display = "block";
         this.contextIndicator.style.zIndex = "1001";
       } else {
@@ -3535,14 +3558,14 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
       }
     };
     summaryEl.addEventListener("click", toggleExpanded);
-    const closeHandler = (e) => {
-      if (isExpanded && !this.contextIndicator.contains(e.target)) {
-        isExpanded = false;
+    this.contextDrawerCloseHandler = (e) => {
+      if (this.contextDrawerExpanded && !this.contextIndicator.contains(e.target)) {
+        this.contextDrawerExpanded = false;
         expandedEl.style.display = "none";
         this.contextIndicator.style.zIndex = "auto";
       }
     };
-    this.addTrackedEventListener(document, "click", closeHandler);
+    document.addEventListener("click", this.contextDrawerCloseHandler);
   }
   async refreshContext() {
     if (this.currentFile) {

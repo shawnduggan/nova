@@ -61,6 +61,10 @@ export class NovaSidebarView extends ItemView {
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
 	
+	// Document drawer state
+	private contextDrawerExpanded: boolean = false;
+	private contextDrawerCloseHandler: EventListener | null = null;
+	
 	
 	// Performance optimization - debouncing and timing constants
 	private contextPreviewDebounceTimeout: NodeJS.Timeout | null = null;
@@ -322,6 +326,12 @@ export class NovaSidebarView extends ItemView {
 			element.removeEventListener(event, handler);
 		});
 		this.documentEventListeners = [];
+		
+		// Clean up context drawer close handler
+		if (this.contextDrawerCloseHandler) {
+			document.removeEventListener('click', this.contextDrawerCloseHandler);
+			this.contextDrawerCloseHandler = null;
+		}
 	}
 	
 	/**
@@ -995,10 +1005,25 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
+		// Check if we actually need to recreate the indicator
+		const newDocCount = this.currentContext?.persistentDocs?.length || 0;
+		const currentDocCount = this.contextIndicator.getAttribute('data-doc-count');
+		
+		if (currentDocCount === newDocCount.toString() && newDocCount > 0) {
+			return;
+		}
+
+		// Clean up the previous close handler to prevent accumulation
+		if (this.contextDrawerCloseHandler) {
+			document.removeEventListener('click', this.contextDrawerCloseHandler);
+			this.contextDrawerCloseHandler = null;
+		}
+
 		this.contextIndicator.empty();
 		
 		if (!this.currentContext || !this.currentContext.persistentDocs) {
 			this.contextIndicator.style.display = 'none';
+			this.contextIndicator.removeAttribute('data-doc-count');
 			// Update input container state for mobile spacing
 			if (this.inputHandler) {
 				this.inputHandler.updateContextState(false);
@@ -1010,12 +1035,16 @@ export class NovaSidebarView extends ItemView {
 		
 		if (!allDocs || allDocs.length === 0) {
 			this.contextIndicator.style.display = 'none';
+			this.contextIndicator.removeAttribute('data-doc-count');
 			// Update input container state for mobile spacing
 			if (this.inputHandler) {
 				this.inputHandler.updateContextState(false);
 			}
 			return;
 		}
+
+		// Store doc count to prevent unnecessary recreation
+		this.contextIndicator.setAttribute('data-doc-count', allDocs.length.toString());
 
 		// Update input container state for mobile spacing
 		if (this.inputHandler) {
@@ -1333,14 +1362,20 @@ export class NovaSidebarView extends ItemView {
 			}
 		});
 
+		// Restore expanded state if it was previously expanded
+		if (this.contextDrawerExpanded) {
+			expandedEl.style.display = 'block';
+			this.contextIndicator.style.zIndex = '1001';
+		}
+
 		// Click to expand management overlay
-		let isExpanded = false;
+		// Using class property to persist state across updates
 		
 		const toggleExpanded = (e: MouseEvent) => {
 			e.stopPropagation();
-			isExpanded = !isExpanded;
+			this.contextDrawerExpanded = !this.contextDrawerExpanded;
 			
-			if (isExpanded) {
+			if (this.contextDrawerExpanded) {
 				expandedEl.style.display = 'block';
 				this.contextIndicator.style.zIndex = '1001';
 			} else {
@@ -1353,15 +1388,16 @@ export class NovaSidebarView extends ItemView {
 		summaryEl.addEventListener('click', toggleExpanded);
 		
 		// Close when clicking outside
-		const closeHandler: EventListener = (e: Event) => {
-			if (isExpanded && !this.contextIndicator.contains(e.target as Node)) {
-				isExpanded = false;
+		this.contextDrawerCloseHandler = (e: Event) => {
+			if (this.contextDrawerExpanded && !this.contextIndicator.contains(e.target as Node)) {
+				this.contextDrawerExpanded = false;
 				expandedEl.style.display = 'none';
 				this.contextIndicator.style.zIndex = 'auto';
 			}
 		};
 		
-		this.addTrackedEventListener(document, 'click', closeHandler);
+		// Use direct addEventListener instead of addTrackedEventListener to avoid conflicts
+		document.addEventListener('click', this.contextDrawerCloseHandler);
 	}
 
 	private async refreshContext(): Promise<void> {
