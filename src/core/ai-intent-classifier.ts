@@ -4,13 +4,18 @@
  */
 
 import { AIProviderManager } from '../ai/provider-manager';
+import { IntentDetector, IntentClassification } from './intent-detector';
 
 export type UserIntent = 'CHAT' | 'METADATA' | 'CONTENT';
 
 export class AIIntentClassifier {
+    private intentDetector: IntentDetector;
+
     constructor(
         private providerManager: AIProviderManager
-    ) {}
+    ) {
+        this.intentDetector = new IntentDetector();
+    }
 
     /**
      * Classify user input into one of three intents
@@ -61,12 +66,12 @@ Answer with one word only:`;
     }
 
     /**
-     * Simple heuristic fallback for when AI classification fails
+     * Enhanced fallback classification using IntentDetector
      */
     private fallbackClassification(userInput: string): UserIntent {
         const lowerInput = userInput.toLowerCase().trim();
 
-        // Check for question indicators FIRST
+        // Check for questions FIRST (highest priority)
         if (lowerInput.includes('?') || 
             lowerInput.startsWith('what') ||
             lowerInput.startsWith('why') ||
@@ -81,8 +86,36 @@ Answer with one word only:`;
             return 'CHAT';
         }
 
-        // Check for metadata keywords - be more specific
-        if (
+        // Use our new IntentDetector for consultation vs editing patterns
+        const intentClassification = this.intentDetector.classifyInput(userInput);
+        
+        // Map IntentDetector results to our system
+        if (intentClassification.type === 'consultation') {
+            return 'CHAT';
+        }
+        
+        if (intentClassification.type === 'editing') {
+            // Check if it's metadata-related editing
+            if (this.isMetadataRelated(lowerInput)) {
+                return 'METADATA';
+            }
+            return 'CONTENT';
+        }
+
+        // For ambiguous cases, check metadata patterns
+        if (this.isMetadataRelated(lowerInput)) {
+            return 'METADATA';
+        }
+
+        // Default to content editing for other commands
+        return 'CONTENT';
+    }
+
+    /**
+     * Helper method to check if input is metadata-related
+     */
+    private isMetadataRelated(lowerInput: string): boolean {
+        return (
             // Tag-specific patterns
             /\btags?\b/i.test(lowerInput) ||
             /\btagging\b/i.test(lowerInput) ||
@@ -92,21 +125,6 @@ Answer with one word only:`;
             /\b(metadata|frontmatter|properties|property)\b/i.test(lowerInput) ||
             // Common metadata actions
             /^(add|update|set|remove|clean|optimize)\s+(tags?|title|author|metadata)/i.test(lowerInput)
-        ) {
-            return 'METADATA';
-        }
-
-        // Common content editing patterns
-        if (
-            /^(add|write|create|insert)\s+(a\s+)?(section|paragraph|conclusion|introduction|summary)/i.test(lowerInput) ||
-            /^(fix|correct|improve)\s+(grammar|spelling|writing)/i.test(lowerInput) ||
-            /^(make|rewrite|edit|modify|change)/i.test(lowerInput) ||
-            /^(delete|remove)\s+(the\s+)?(section|paragraph|sentence)/i.test(lowerInput)
-        ) {
-            return 'CONTENT';
-        }
-
-        // Default to content editing for other commands
-        return 'CONTENT';
+        );
     }
 }

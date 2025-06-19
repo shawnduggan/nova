@@ -1959,6 +1959,93 @@ USER REQUEST: ${processedMessage}`;
 		}
 	}
 
+	/**
+	 * Handle consultation requests - chat only, no document modification
+	 */
+	async handleConsultationRequest(input: string): Promise<void> {
+		const activeFile = this.plugin.documentEngine.getActiveFile();
+		
+		// Get AI response using PromptBuilder but do NOT modify document
+		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
+		const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
+		
+		// Display response in chat only
+		this.displayChatResponse(response);
+		
+		// Show subtle mode indicator
+		this.showModeIndicator('consultation');
+	}
+
+	/**
+	 * Display AI response in chat without document modification
+	 */
+	displayChatResponse(response: string): void {
+		// Use existing chat renderer to display response
+		this.chatRenderer.addMessage('assistant', response);
+	}
+
+	/**
+	 * Show subtle indicator for consultation vs editing mode
+	 */
+	showModeIndicator(mode: 'consultation' | 'editing'): void {
+		// For now, this is a no-op placeholder
+		// Future enhancement: show subtle UI indicator
+	}
+
+	/**
+	 * Handle editing requests - preserves existing behavior with intent tracking
+	 */
+	async handleEditingRequest(input: string): Promise<string | null> {
+		// Parse command using existing parser
+		const parsedCommand = this.plugin.commandParser.parseCommand(input);
+		
+		// Track intent usage for analytics
+		this.trackIntentUsage('editing', input);
+		
+		// Execute command using existing system
+		return await this.executeCommand(parsedCommand);
+	}
+
+	/**
+	 * Track intent usage for analytics (placeholder for future enhancement)
+	 */
+	trackIntentUsage(intent: 'consultation' | 'editing', input: string): void {
+		// For now, this is a no-op placeholder
+		// Future enhancement: collect analytics data
+	}
+
+	/**
+	 * Handle ambiguous requests by routing to chosen handler
+	 */
+	async handleAmbiguousRequest(input: string, chosenIntent: 'consultation' | 'editing'): Promise<void> {
+		if (chosenIntent === 'consultation') {
+			await this.handleConsultationRequest(input);
+		} else {
+			await this.handleEditingRequest(input);
+		}
+	}
+
+	/**
+	 * Process user input with intent detection integration
+	 */
+	async processUserInputWithIntent(input: string): Promise<void> {
+		const intent = await this.plugin.aiIntentClassifier.classifyIntent(input);
+		
+		switch (intent) {
+			case 'CHAT':
+				await this.handleConsultationRequest(input);
+				break;
+			case 'CONTENT':
+				await this.handleEditingRequest(input);
+				break;
+			case 'METADATA':
+				// Handle metadata commands through existing flow
+				const parsedCommand = this.plugin.commandParser.parseCommand(input);
+				await this.executeCommand(parsedCommand);
+				break;
+		}
+	}
+
 	// Public methods for testing
 	async sendMessage(message: string): Promise<void> {
 		const activeFile = this.plugin.documentEngine.getActiveFile();

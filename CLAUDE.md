@@ -82,12 +82,10 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Mobile Enhancement Tasks (Priority)**
-*No pending mobile tasks - all optimizations completed*
-
-### **Other Remaining Tasks**
+### **Current Tasks**
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - **Settings tab menu mobile optimization** - Fix tab navigation in Settings modal for mobile devices (touch targets, overflow, readability)
+- Streaming speed seems different for menu vs chat content creation
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)
 - Technical Debt Cleanup (sidebar refactoring, legacy code removal)

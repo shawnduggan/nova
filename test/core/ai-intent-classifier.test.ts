@@ -116,4 +116,46 @@ describe('AIIntentClassifier', () => {
             }
         });
     });
+
+    describe('IntentDetector integration', () => {
+        it('should classify consultation patterns as CHAT', async () => {
+            const consultationInputs = [
+                'Now is a busy time for me',
+                'I\'m feeling overwhelmed with work',
+                'This reminds me of something important',
+                'I wonder about this approach'
+            ];
+
+            for (const input of consultationInputs) {
+                const result = await classifier.classifyIntent(input);
+                expect(result).toBe('CHAT');
+            }
+        });
+
+        it('should classify editing patterns as CONTENT', async () => {
+            const editingInputs = [
+                'Make this paragraph clearer',
+                'Fix the grammar here',
+                'This section needs improvement',
+                'Add more detail at the end'
+            ];
+
+            for (const input of editingInputs) {
+                const result = await classifier.classifyIntent(input);
+                expect(result).toBe('CONTENT');
+            }
+        });
+
+        it('should handle mixed patterns as CONTENT (fallback)', async () => {
+            const mixedInputs = [
+                'I feel this section needs work',
+                'I\'m thinking this paragraph is unclear'
+            ];
+
+            for (const input of mixedInputs) {
+                const result = await classifier.classifyIntent(input);
+                expect(result).toBe('CONTENT');
+            }
+        });
+    });
 });
