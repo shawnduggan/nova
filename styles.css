@@ -1757,11 +1757,24 @@
     text-align: left !important;
 }
 
+.nova-bubble-warning {
+    margin-right: auto !important;
+    background: #fffbeb !important;
+    color: #78350f !important;
+    border: 1px solid #fde68a !important;
+    font-size: var(--font-text-size) !important;
+    border-radius: var(--radius-m) !important;
+    max-width: 80% !important;
+    padding: var(--size-4-2) var(--size-4-3) !important;
+    text-align: left !important;
+}
+
 /* Hide role headers for pills and status messages */
 .nova-pill-success .nova-message-role,
 .nova-pill-system .nova-message-role,
 .nova-bubble-success .nova-message-role,
-.nova-bubble-error .nova-message-role {
+.nova-bubble-error .nova-message-role,
+.nova-bubble-warning .nova-message-role {
     display: none;
 }
 
@@ -1846,15 +1859,50 @@
     min-height: 36px; /* Ensure minimal touch targets */
 }
 
+/* Document Stats Container - Flex layout for stats and token display */
+.nova-document-stats-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--size-2-2);
+    color: var(--text-muted);
+    gap: var(--size-2-2);
+    min-width: 0; /* Prevent flex overflow */
+}
+
 /* Document Stats Analytics Text */
 .nova-document-stats {
     font-size: 0.85em; /* Default smaller size */
     color: var(--text-muted);
 }
 
+/* Token Usage Display */
+.nova-token-usage {
+    font-size: 0.85em; /* Same size as document stats */
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Token Usage Color Coding */
+.nova-token-usage.nova-token-safe {
+    color: var(--text-success);
+}
+
+.nova-token-usage.nova-token-warning {
+    color: var(--text-warning);
+}
+
+.nova-token-usage.nova-token-danger {
+    color: var(--text-error);
+}
+
 /* Mobile document stats to match conversation text size exactly */
 .is-mobile .nova-document-stats {
     font-size: 0.9em; /* Smaller to better match conversation bubble appearance */
+}
+
+.is-mobile .nova-token-usage {
+    font-size: 0.9em; /* Match document stats size on mobile */
 }
 
 /* Improved dropdown menu spacing */
@@ -2059,6 +2107,10 @@
 
 .is-desktop .nova-bubble-success,
 .is-desktop .nova-bubble-error {
+    margin-bottom: 12px !important;
+}
+
+.is-desktop .nova-bubble-warning {
     margin-bottom: 12px !important;
 }
 

@@ -21,6 +21,7 @@ export class NovaSidebarView extends ItemView {
 	private currentFile: TFile | null = null;
 	private multiDocHandler!: MultiDocContextHandler;
 	private currentContext: MultiDocContext | null = null;
+	private lastTokenWarnings: { [key: string]: number } = {};
 	
 	// New architecture components
 	private inputHandler!: InputHandler;
@@ -1008,11 +1009,10 @@ export class NovaSidebarView extends ItemView {
 		
 		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
 		
-		const tokenPercent = Math.round((this.currentContext.tokenCount / 8000) * 100);
 		const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
 		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
 		
-		// Split into filename part and token part to ensure tokens are always visible
+		// Simplified single line display showing just document names
 		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px; min-width: 0;';
 		
 		// Create filename part that can truncate
@@ -1026,15 +1026,6 @@ export class NovaSidebarView extends ItemView {
 		const textSpan = filenamePartEl.createSpan();
 		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
 		textSpan.style.cssText = 'overflow: hidden; text-overflow: ellipsis; min-width: 0;';
-		
-		// Create token part that always stays visible
-		const tokenPartEl = summaryTextEl.createSpan();
-		tokenPartEl.style.cssText = 'white-space: nowrap; flex-shrink: 0; margin-left: 8px;';
-		if (isMobile) {
-			tokenPartEl.textContent = `(${tokenPercent}%)`;
-		} else {
-			tokenPartEl.textContent = `(${tokenPercent}% tokens)`;
-		}
 		
 		// Mobile-friendly more menu indicator
 		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
@@ -1337,28 +1328,53 @@ export class NovaSidebarView extends ItemView {
 				// Instead, just get persistent context and build a minimal context object for UI display
 				const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
 				
-				if (persistentDocs.length > 0) {
-					// Build a minimal context object for UI display only
-					this.currentContext = {
-						persistentDocs: persistentDocs,
-						contextString: '', // Not needed for UI
-						tokenCount: 0, // Not needed for UI refresh
-						isNearLimit: false
-					};
-				} else {
-					this.currentContext = null;
+				// Calculate token count including current file (always in context) + persistent docs
+				let totalTokens = 0;
+				
+				// Always include current file in token count
+				if (this.currentFile) {
+					try {
+						const currentContent = await this.app.vault.read(this.currentFile);
+						totalTokens += Math.ceil(currentContent.length / 4);
+					} catch (error) {
+						// Skip if can't read current file
+					}
 				}
 				
+				// Add persistent docs
+				for (const doc of persistentDocs) {
+					try {
+						const content = await this.app.vault.read(doc.file);
+						totalTokens += Math.ceil(content.length / 4);
+					} catch (error) {
+						// Skip files that can't be read
+					}
+				}
+				
+				// Get token limit from settings
+				const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
+				
+				// Build context object for UI display
+				this.currentContext = {
+					persistentDocs: persistentDocs,
+					contextString: '', // Not needed for UI
+					tokenCount: totalTokens,
+					isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
+				};
+				
 				this.updateContextIndicator();
+				this.updateTokenDisplay();
 			} catch (error) {
 				// Handle context build failures gracefully
 				this.currentContext = null;
 				this.updateContextIndicator();
+				this.updateTokenDisplay();
 			}
 		} else {
 			// No current file - clear context
 			this.currentContext = null;
 			this.updateContextIndicator();
+			this.updateTokenDisplay();
 		}
 	}
 
@@ -1851,9 +1867,13 @@ USER REQUEST: ${processedMessage}`;
 				// Also clear multi-doc persistent context
 				this.multiDocHandler.clearPersistentContext(this.currentFile.path);
 				this.currentContext = null;
-				if (this.contextIndicator) {
-					this.contextIndicator.style.display = 'none';
-				}
+				
+				// Clear token warnings
+				this.lastTokenWarnings = {};
+				
+				// Update UI displays
+				this.updateContextIndicator();
+				this.updateTokenDisplay();
 			} catch (error) {
 				// Failed to clear conversation - graceful fallback
 			}
@@ -1879,24 +1899,107 @@ USER REQUEST: ${processedMessage}`;
 			// Update stats display in header
 			const headerEl = this.containerEl.querySelector('.nova-header');
 			if (headerEl) {
-				// Find or create stats element
-				let statsEl = headerEl.querySelector('.nova-document-stats');
+				// Find or create stats container
+				let statsContainer = headerEl.querySelector('.nova-document-stats-container');
+				if (!statsContainer) {
+					statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
+				}
+				
+				// Find or create document stats element
+				let statsEl = statsContainer.querySelector('.nova-document-stats');
 				if (!statsEl) {
-					statsEl = headerEl.createEl('div', { cls: 'nova-document-stats' });
+					statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
+				}
+				
+				// Find or create token usage element
+				let tokenEl = statsContainer.querySelector('.nova-token-usage');
+				if (!tokenEl) {
+					tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
 				}
 				
 				if (statsEl && wordCount > 0) {
 					statsEl.textContent = `${wordCount} words • ${headingCount} sections`;
-					// Remove inline font-size to let CSS handle responsive sizing with exact calculation
-					(statsEl as HTMLElement).style.cssText = `
-						color: var(--text-muted);
-						margin-top: var(--size-2-2);
-					`;
 				}
+				
+				// Update token display
+				this.updateTokenDisplay();
 			}
 		} catch (error) {
 			// Silently fail - stats are optional
 		}
+	}
+
+	private updateTokenDisplay(): void {
+		const headerEl = this.containerEl.querySelector('.nova-header');
+		if (!headerEl) return;
+		
+		// Find or create stats container and both elements if they don't exist
+		let statsContainer = headerEl.querySelector('.nova-document-stats-container');
+		if (!statsContainer) {
+			statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
+		}
+		
+		// Ensure document stats element exists (left side)
+		let statsEl = statsContainer.querySelector('.nova-document-stats');
+		if (!statsEl) {
+			statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
+		}
+		
+		// Ensure token element exists (right side)
+		let tokenEl = statsContainer.querySelector('.nova-token-usage') as HTMLElement;
+		if (!tokenEl) {
+			tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
+		}
+		
+		// Get current token count from context
+		const currentTokens = this.currentContext?.tokenCount || 0;
+		const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
+		const tokenPercent = Math.round((currentTokens / tokenLimit) * 100);
+		const remainingPercent = Math.max(0, 100 - tokenPercent);
+		
+		// Update display text
+		tokenEl.textContent = `${remainingPercent}% left`;
+		
+		// Apply color coding and show warnings
+		tokenEl.className = 'nova-token-usage';
+		if (remainingPercent > 20) {
+			tokenEl.addClass('nova-token-safe');
+		} else if (remainingPercent > 10) {
+			tokenEl.addClass('nova-token-warning');
+			this.showTokenWarning(20);
+		} else if (remainingPercent > 5) {
+			tokenEl.addClass('nova-token-danger');
+			this.showTokenWarning(10);
+		} else {
+			tokenEl.addClass('nova-token-danger');
+			this.showTokenWarning(5);
+		}
+	}
+
+	private showTokenWarning(threshold: number): void {
+		// Prevent duplicate warnings - only show once per threshold per context session
+		const warningKey = `token-warning-${threshold}`;
+		
+		// Check if we've already shown this threshold warning
+		if (this.lastTokenWarnings[warningKey]) return;
+		
+		// Mark this threshold as warned
+		this.lastTokenWarnings[warningKey] = Date.now();
+		
+		let message: string;
+		if (threshold === 20) {
+			message = "⚠️ Context approaching limit (20% remaining). Consider clearing context or increasing Default Max Tokens in Nova Settings > General.";
+		} else if (threshold === 10) {
+			message = "⚠️ Context nearly full (10% remaining). Clear context or increase Default Max Tokens in settings for better results.";
+		} else {
+			message = "⚠️ Context critical (5% remaining). Clear context immediately or increase Default Max Tokens in Nova Settings > General.";
+		}
+		
+		this.addWarningMessage(message);
+	}
+
+	private addWarningMessage(content: string): void {
+		this.chatRenderer.addWarningMessage(content, true);
 	}
 
 	private async showDocumentInsights(file: TFile): Promise<void> {

@@ -6,7 +6,7 @@ import NovaPlugin from '../../main';
  */
 interface MessageOptions {
 	type: 'pill' | 'bubble';
-	variant: 'success' | 'error' | 'system' | 'user' | 'assistant';
+	variant: 'success' | 'error' | 'warning' | 'system' | 'user' | 'assistant';
 	persist?: boolean; // Whether to save to conversation manager
 }
 
@@ -121,6 +121,15 @@ export class ChatRenderer {
 		}
 		const type = content.length <= 30 ? 'pill' : 'bubble';
 		this.addStatusMessage(content, { type, variant: 'error', persist });
+	}
+
+	addWarningMessage(content: string, persist: boolean = false): void {
+		// Auto-prepend warning if not already present
+		if (!content.startsWith('⚠️ ') && !content.includes('<svg')) {
+			content = '⚠️ ' + content;
+		}
+		const type = content.length <= 30 ? 'pill' : 'bubble';
+		this.addStatusMessage(content, { type, variant: 'warning', persist });
 	}
 
 	addWelcomeMessage(message?: string): void {

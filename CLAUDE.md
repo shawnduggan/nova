@@ -82,7 +82,10 @@
 
 ## 🎯 IMPLEMENTATION QUEUE
 
-### **Current Tasks**
+### **Backlog Tasks**
+- **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
+- **BUG: Clear conversation should show welcome** - Using clear conversation history in sidebar header should clear everything and show the welcome message again
+- **BUG: Current file can be added to context** - Drag and drop and typing [[ add files manually allows adding the current active file which is already in context
 - **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - **Settings tab menu mobile optimization** - Fix tab navigation in Settings modal for mobile devices (touch targets, overflow, readability)
 - Streaming speed seems different for menu vs chat content creation
