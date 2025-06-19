@@ -23,6 +23,9 @@ export class NovaSidebarView extends ItemView {
 	private currentContext: MultiDocContext | null = null;
 	private lastTokenWarnings: { [key: string]: number } = {};
 	
+	// PHASE 3 FIX: Race condition prevention
+	private currentFileLoadOperation: string | null = null;
+	
 	// New architecture components
 	private inputHandler!: InputHandler;
 	private commandSystem!: CommandSystem;
@@ -1402,10 +1405,13 @@ export class NovaSidebarView extends ItemView {
 
 	private async refreshContext(): Promise<void> {
 		if (this.currentFile) {
+			// PHASE 1 FIX: Store file path to validate against changes during async operations
+			const contextFilePath = this.currentFile.path;
+			
 			try {
 				// Don't call buildContext with empty message as it can interfere with persistent context
 				// Instead, just get persistent context and build a minimal context object for UI display
-				const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+				const persistentDocs = this.multiDocHandler.getPersistentContext(contextFilePath) || [];
 				
 				// Calculate token count including current file (always in context) + persistent docs
 				let totalTokens = 0;
@@ -1433,16 +1439,21 @@ export class NovaSidebarView extends ItemView {
 				// Get token limit from settings
 				const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
 				
-				// Build context object for UI display
-				this.currentContext = {
-					persistentDocs: persistentDocs,
-					contextString: '', // Not needed for UI
-					tokenCount: totalTokens,
-					isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
-				};
-				
-				this.updateContextIndicator();
-				this.updateTokenDisplay();
+				// PHASE 1 FIX: Validate we're still working with the same file before updating context
+				if (this.currentFile && this.currentFile.path === contextFilePath) {
+					// Build context object for UI display
+					this.currentContext = {
+						persistentDocs: persistentDocs,
+						contextString: '', // Not needed for UI
+						tokenCount: totalTokens,
+						isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
+					};
+					
+					this.updateContextIndicator();
+					this.updateTokenDisplay();
+				} else {
+					console.log('⚠️ Context refresh skipped - file changed during operation');
+				}
 			} catch (error) {
 				// Handle context build failures gracefully
 				this.currentContext = null;
@@ -1860,6 +1871,10 @@ USER REQUEST: ${processedMessage}`;
 			currentFile: this.currentFile?.path 
 		});
 		
+		// PHASE 3 FIX: Generate operation ID to prevent race conditions
+		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+		this.currentFileLoadOperation = operationId;
+		
 		// If no active file, try to find the currently active leaf's file
 		let targetFile = activeFile;
 		if (!targetFile) {
@@ -1881,6 +1896,10 @@ USER REQUEST: ${processedMessage}`;
 			console.log('🗑️ Clearing chat - no target file');
 			this.currentFile = null;
 			this.chatContainer.empty();
+			// Immediately clear context state to prevent bleeding
+			this.currentContext = null;
+			this.contextManager.hideContextIndicator();
+			this.contextManager.hideContextPreview();
 			this.refreshContext();
 			this.addWelcomeMessage('Open a document to get started.');
 			return;
@@ -1891,6 +1910,12 @@ USER REQUEST: ${processedMessage}`;
 			console.log('⏭️ Skipping file switch - same file or no file');
 			return;
 		}
+		
+		// PHASE 1 FIX: Immediately clear context state to prevent bleeding
+		console.log('🧹 CLEARING CONTEXT STATE for file switch');
+		this.currentContext = null;
+		this.contextManager.hideContextIndicator();
+		this.contextManager.hideContextPreview();
 		
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
@@ -1918,13 +1943,31 @@ USER REQUEST: ${processedMessage}`;
 		// Refresh context for new file (this will show persistent documents if any)
 		await this.refreshContext();
 		
+		// PHASE 3 FIX: Check if this operation is still current before proceeding
+		if (this.currentFileLoadOperation !== operationId) {
+			console.log('⚠️ File load operation cancelled - newer operation in progress');
+			return;
+		}
+		
 		try {
 			console.log('📚 LOADING CONVERSATION HISTORY via ChatRenderer');
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
 			await this.chatRenderer.loadConversationHistory(targetFile);
 			
+			// PHASE 3 FIX: Check again after async operation
+			if (this.currentFileLoadOperation !== operationId) {
+				console.log('⚠️ File load operation cancelled during conversation loading');
+				return;
+			}
+			
 			// Show document insights after loading conversation
 			await this.showDocumentInsights(targetFile);
+			
+			// PHASE 3 FIX: Final check after all async operations
+			if (this.currentFileLoadOperation !== operationId) {
+				console.log('⚠️ File load operation cancelled during insights loading');
+				return;
+			}
 			
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
@@ -1943,8 +1986,7 @@ USER REQUEST: ${processedMessage}`;
 		if (this.currentFile) {
 			try {
 				await this.plugin.conversationManager.clearConversation(this.currentFile);
-				// Also clear multi-doc persistent context
-				this.multiDocHandler.clearPersistentContext(this.currentFile.path);
+				// Clear current context state (but leave persistent context documents intact)
 				this.currentContext = null;
 				
 				// Clear token warnings
@@ -1960,6 +2002,9 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Show notice to user
 		new Notice('Chat cleared');
+		
+		// PHASE 2 FIX: Show welcome message after clearing chat
+		this.addWelcomeMessage();
 	}
 
 	// Coordinator method that updates both document stats and context remaining

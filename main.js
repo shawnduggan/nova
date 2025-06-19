@@ -2499,6 +2499,8 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
     this.currentFile = null;
     this.currentContext = null;
     this.lastTokenWarnings = {};
+    // PHASE 3 FIX: Race condition prevention
+    this.currentFileLoadOperation = null;
     // Command system delegation
     this._commandPickerItems = [];
     this._selectedCommandIndex = -1;
@@ -3569,8 +3571,9 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
   }
   async refreshContext() {
     if (this.currentFile) {
+      const contextFilePath = this.currentFile.path;
       try {
-        const persistentDocs = this.multiDocHandler.getPersistentContext(this.currentFile.path) || [];
+        const persistentDocs = this.multiDocHandler.getPersistentContext(contextFilePath) || [];
         let totalTokens = 0;
         if (this.currentFile) {
           try {
@@ -3587,16 +3590,20 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian11.ItemView
           }
         }
         const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8e3;
-        this.currentContext = {
-          persistentDocs,
-          contextString: "",
-          // Not needed for UI
-          tokenCount: totalTokens,
-          isNearLimit: totalTokens > tokenLimit * 0.8
-          // 80% threshold
-        };
-        this.updateContextIndicator();
-        this.updateTokenDisplay();
+        if (this.currentFile && this.currentFile.path === contextFilePath) {
+          this.currentContext = {
+            persistentDocs,
+            contextString: "",
+            // Not needed for UI
+            tokenCount: totalTokens,
+            isNearLimit: totalTokens > tokenLimit * 0.8
+            // 80% threshold
+          };
+          this.updateContextIndicator();
+          this.updateTokenDisplay();
+        } else {
+          console.log("\u26A0\uFE0F Context refresh skipped - file changed during operation");
+        }
       } catch (error) {
         this.currentContext = null;
         this.updateContextIndicator();
@@ -3897,6 +3904,8 @@ USER REQUEST: ${processedMessage}`;
       activeFile: activeFile == null ? void 0 : activeFile.path,
       currentFile: (_a = this.currentFile) == null ? void 0 : _a.path
     });
+    const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    this.currentFileLoadOperation = operationId;
     let targetFile = activeFile;
     if (!targetFile) {
       const activeLeaf = this.app.workspace.activeLeaf;
@@ -3914,6 +3923,9 @@ USER REQUEST: ${processedMessage}`;
       console.log("\u{1F5D1}\uFE0F Clearing chat - no target file");
       this.currentFile = null;
       this.chatContainer.empty();
+      this.currentContext = null;
+      this.contextManager.hideContextIndicator();
+      this.contextManager.hideContextPreview();
       this.refreshContext();
       this.addWelcomeMessage("Open a document to get started.");
       return;
@@ -3922,6 +3934,10 @@ USER REQUEST: ${processedMessage}`;
       console.log("\u23ED\uFE0F Skipping file switch - same file or no file");
       return;
     }
+    console.log("\u{1F9F9} CLEARING CONTEXT STATE for file switch");
+    this.currentContext = null;
+    this.contextManager.hideContextIndicator();
+    this.contextManager.hideContextPreview();
     this.currentFileCursorPosition = null;
     console.log("\u{1F504} SWITCHING TO FILE:", {
       from: (_b = this.currentFile) == null ? void 0 : _b.path,
@@ -3936,10 +3952,22 @@ USER REQUEST: ${processedMessage}`;
     console.log("\u{1F9F9} CLEARING CHAT for file switch");
     this.chatContainer.empty();
     await this.refreshContext();
+    if (this.currentFileLoadOperation !== operationId) {
+      console.log("\u26A0\uFE0F File load operation cancelled - newer operation in progress");
+      return;
+    }
     try {
       console.log("\u{1F4DA} LOADING CONVERSATION HISTORY via ChatRenderer");
       await this.chatRenderer.loadConversationHistory(targetFile);
+      if (this.currentFileLoadOperation !== operationId) {
+        console.log("\u26A0\uFE0F File load operation cancelled during conversation loading");
+        return;
+      }
       await this.showDocumentInsights(targetFile);
+      if (this.currentFileLoadOperation !== operationId) {
+        console.log("\u26A0\uFE0F File load operation cancelled during insights loading");
+        return;
+      }
     } catch (error) {
       console.log("\u274C CONVERSATION LOADING ERROR:", error);
       this.addWelcomeMessage();
@@ -3950,7 +3978,6 @@ USER REQUEST: ${processedMessage}`;
     if (this.currentFile) {
       try {
         await this.plugin.conversationManager.clearConversation(this.currentFile);
-        this.multiDocHandler.clearPersistentContext(this.currentFile.path);
         this.currentContext = null;
         this.lastTokenWarnings = {};
         this.updateContextIndicator();
@@ -3959,6 +3986,7 @@ USER REQUEST: ${processedMessage}`;
       }
     }
     new import_obsidian11.Notice("Chat cleared");
+    this.addWelcomeMessage();
   }
   // Coordinator method that updates both document stats and context remaining
   async refreshAllStats() {
