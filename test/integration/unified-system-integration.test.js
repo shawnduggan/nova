@@ -94,7 +94,7 @@ describe('Unified Message System Integration', () => {
         document.head.appendChild(style);
 
         // Create ChatRenderer instance
-        const ChatRenderer = require('../src/ui/chat-renderer').ChatRenderer;
+        const ChatRenderer = require('../../src/ui/chat-renderer').ChatRenderer;
         chatRenderer = new ChatRenderer(mockPlugin, chatContainer);
         
         jest.clearAllMocks();
