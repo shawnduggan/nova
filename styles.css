@@ -343,12 +343,21 @@
 /* Multi-Document Context Indicator */
 .nova-context-indicator {
     transition: all 0.2s ease;
+    padding: 4px 8px; /* Compact padding for file drawer */
+    font-size: 0.8em; /* Smaller text to match bubble consistency */
 }
 
 .nova-context-indicator .nova-context-main {
     display: flex;
     align-items: center;
-    gap: var(--size-2-3);
+    gap: 4px; /* Reduced gap for compactness */
+}
+
+/* Mobile-specific context indicator compression */
+.is-mobile .nova-context-indicator {
+    padding: 3px 6px; /* Even more compact on mobile */
+    font-size: 0.75em; /* Smaller on mobile */
+    min-height: 28px; /* Minimal height */
 }
 
 .nova-context-indicator .nova-context-warning {
@@ -361,6 +370,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: inherit; /* Match parent size for consistency */
 }
 
 .nova-context-indicator .nova-context-clear:hover {
@@ -639,6 +649,7 @@
     background: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
     flex-shrink: 0;
+    padding: 6px var(--size-4-2); /* Dramatically reduced for maximum space */
 }
 
 .nova-header-provider {
@@ -678,7 +689,7 @@
     animation: fadeIn 0.3s ease-in;
     word-wrap: break-word;
     line-height: var(--line-height-normal);
-    margin-bottom: 16px;
+    margin-bottom: 10px; /* Reduced from 16px for better density */
     font-size: var(--font-text-size);
 }
 
@@ -689,13 +700,16 @@
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
     max-width: 80%;
+    font-size: 0.9em; /* Smaller/secondary styling */
+    font-weight: 400; /* Less prominent weight */
 }
 
 /* Mobile chat content optimizations */
 .is-mobile .nova-message-user {
     max-width: 90%; /* More screen real estate on mobile */
-    padding: 12px 16px; /* Better mobile padding */
-    line-height: 1.5; /* Improved reading comfort */
+    padding: 8px 12px; /* Further reduced padding for density */
+    line-height: 1.4; /* Compact line height for secondary text */
+    font-size: 0.85em; /* Even smaller on mobile for secondary styling */
 }
 
 .nova-message-assistant {
@@ -705,21 +719,31 @@
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
     max-width: 80%;
+    font-size: 1.05em; /* Larger/more prominent */
+    font-weight: 500; /* More prominent weight */
 }
 
 .is-mobile .nova-message-assistant {
     max-width: 90%; /* More screen real estate on mobile */
-    padding: 12px 16px; /* Better mobile padding */
-    line-height: 1.5; /* Improved reading comfort */
+    padding: 10px 14px; /* Reduced padding for better density */
+    line-height: 1.5; /* Comfortable reading for primary content */
+    font-size: 1.1em; /* Larger on mobile for prominence */
 }
 
 .nova-message-role {
-    font-size: 0.75em;
-    opacity: 0.7;
-    margin-bottom: 4px;
-    font-weight: 600;
+    font-size: 0.65em; /* Much smaller for subtlety */
+    opacity: 0.5; /* More subtle */
+    margin-bottom: 2px; /* Reduced margin */
+    font-weight: 400; /* Less prominent weight */
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px; /* Tighter spacing */
+}
+
+/* Mobile-specific role styling - even more subtle */
+.is-mobile .nova-message-role {
+    font-size: 0.6em; /* Extra small on mobile */
+    opacity: 0.4; /* Very subtle */
+    margin-bottom: 1px; /* Minimal margin */
 }
 
 .nova-message-content {
@@ -822,7 +846,7 @@
 /* Input Container */
 .nova-input-container {
     background: var(--background-primary);
-    padding: var(--size-4-2);
+    padding: 6px var(--size-4-2) 0px var(--size-4-2); /* Zero bottom padding */
     flex-shrink: 0;
 }
 
@@ -974,8 +998,15 @@
 
 /* Header Button Styling */
 .nova-header button {
-    font-size: 0.85em;
-    padding: 4px 8px;
+    font-size: 0.75em; /* Much smaller for space efficiency */
+    padding: 2px 4px; /* Minimal padding */
+}
+
+/* Mobile header button optimization */
+.is-mobile .nova-header button {
+    font-size: 0.8em; /* Compact but readable */
+    min-height: 32px; /* Reduced touch target but still usable */
+    padding: 4px 8px; /* Minimal padding */
 }
 
 /* Remove any extra padding/margin that could cause bottom space */
@@ -1557,9 +1588,9 @@
 .nova-provider-button {
     display: flex;
     align-items: center;
-    gap: var(--size-2-1);
-    padding: var(--size-2-1) var(--size-2-3);
-    font-size: 0.75em;
+    gap: 2px; /* Reduced gap */
+    padding: 2px 6px; /* Much smaller padding */
+    font-size: 0.65em; /* Much smaller text */
     color: var(--text-muted);
     background: var(--background-modifier-hover);
     border: 1px solid var(--background-modifier-border);
@@ -1574,9 +1605,9 @@
 
 /* Mobile-specific provider button sizing */
 .is-mobile .nova-provider-button {
-    min-height: 44px;
-    padding: var(--size-2-3) var(--size-4-2);
-    font-size: 0.9em; /* Improved from 0.85em */
+    min-height: 32px; /* Reduced from 44px */
+    padding: 4px 8px; /* Much smaller padding */
+    font-size: 0.7em; /* Smaller text */
 }
 
 .nova-provider-dropdown-menu {
@@ -1627,18 +1658,18 @@
 .nova-status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75em;
-    font-weight: 500;
+    gap: 3px; /* Reduced gap */
+    padding: 1px 6px; /* Much smaller padding */
+    border-radius: 8px; /* Smaller radius */
+    font-size: 0.65em; /* Much smaller text */
+    font-weight: 400; /* Less prominent */
     transition: background-color 0.2s ease;
 }
 
 /* Mobile typography improvements */
 .is-mobile .nova-status-pill {
-    font-size: 0.85em; /* Improved readability */
-    padding: 4px 10px; /* Better touch area */
+    font-size: 0.7em; /* Smaller on mobile */
+    padding: 2px 6px; /* Minimal padding */
 }
 
 .nova-status-pill.local {
@@ -1737,11 +1768,18 @@
 
 /* Mobile-specific textarea and spacing optimizations */
 .is-mobile .nova-input-row textarea {
-    min-height: 85px !important; /* ~4 lines of text for better visibility */
-    max-height: 120px !important; /* Allow expansion but limit it */
+    min-height: 44px !important; /* Dramatically reduced from 60px for space */
+    max-height: 88px !important; /* Reduced max height */
     font-size: 16px !important; /* Prevent iOS zoom, ensure visibility */
-    border: 2px solid var(--interactive-accent-hover) !important; /* Stronger border for visibility */
+    border: 1px solid var(--interactive-accent-hover) !important; /* Thinner border */
     background: var(--background-secondary) !important; /* Subtle background for contrast */
+    transition: min-height 0.2s ease; /* Smooth transition */
+    padding: 8px 12px !important; /* Minimal padding */
+}
+
+/* Expand textarea when focused for better typing experience */
+.is-mobile .nova-input-row textarea:focus {
+    min-height: 66px !important; /* Reasonable expansion when typing */
 }
 
 /* Enhanced mobile focus states */
@@ -1758,7 +1796,7 @@
 
 /* Mobile-first layout optimizations */
 .is-mobile .nova-input-container:not(.has-context) {
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 10px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important; /* Eliminate all extra bottom space */
 }
 
 /* Portrait orientation optimizations */
@@ -1788,23 +1826,35 @@
 
 /* Mobile-specific padding reduction */
 .is-mobile .nova-chat-container {
-    padding: 16px !important; /* Generous breathing room, increased from 8px */
+    padding: 12px !important; /* Further reduced to maximize conversation space */
 }
 
 .is-mobile .nova-input-container {
-    padding: 20px !important; /* Generous padding for thumb-friendly interaction */
-    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important; /* Safe area for gesture bars */
+    padding: 8px !important; /* Dramatically reduced from 14px to 8px */
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important; /* Only safe area, no extra space */
 }
 
 /* Enhanced input row spacing for mobile */
 .is-mobile .nova-input-row {
-    gap: 16px; /* Generous gap between input and send button */
+    gap: 8px; /* Minimal gap for maximum space efficiency */
 }
 
 /* Enhanced spacing between interactive elements */
 .is-mobile .nova-header {
-    padding: 20px var(--size-4-2) !important; /* More generous header padding */
-    gap: 12px; /* Space between header elements */
+    padding: 6px var(--size-4-2) !important; /* Dramatically reduced from 14px */
+    gap: 4px; /* Minimal gap for maximum compactness */
+    min-height: 36px; /* Ensure minimal touch targets */
+}
+
+/* Document Stats Analytics Text */
+.nova-document-stats {
+    font-size: 0.85em; /* Default smaller size */
+    color: var(--text-muted);
+}
+
+/* Mobile document stats to match conversation text size exactly */
+.is-mobile .nova-document-stats {
+    font-size: 0.9em; /* Smaller to better match conversation bubble appearance */
 }
 
 /* Improved dropdown menu spacing */
@@ -1819,7 +1869,7 @@
 
 
 .is-mobile .nova-message {
-    margin-bottom: 16px !important; /* Enhanced spacing between messages */
+    margin-bottom: 8px !important; /* Dramatically reduced from 16px */
 }
 
 /* Mobile Tab Navigation with proper touch targets */
@@ -1869,13 +1919,13 @@
         padding: 0.8em;
     }
     
-    /* Additional mobile spacing for status bar */
+    /* Additional mobile spacing for status bar - ELIMINATED */
     .nova-wrapper {
-        padding-bottom: 8px !important; /* Reduced from 20px */
+        padding-bottom: 0px !important; /* Eliminated all wrapper bottom space */
     }
     
     .nova-input-container {
-        padding-bottom: 4px !important; /* Reduced from 10px */
+        padding-bottom: 0px !important; /* Eliminated all container bottom space */
     }
 }
 
@@ -1970,10 +2020,17 @@
     background: rgba(var(--interactive-accent-rgb), 0.1);
     border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
     border-radius: var(--radius-s);
-    font-size: 0.8em;
+    font-size: var(--font-text-size); /* Match conversation text size */
     color: var(--text-muted);
     transition: all 0.2s ease;
     animation: slideIn 0.2s ease-out;
+    padding: 6px 10px; /* Reduced padding */
+}
+
+/* Mobile context preview optimization */
+.is-mobile .nova-context-preview {
+    font-size: 0.9em; /* Slightly smaller on mobile but consistent */
+    padding: 4px 8px; /* Minimal padding */
 }
 
 .nova-context-preview-text {

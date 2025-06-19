@@ -4080,7 +4080,6 @@ USER REQUEST: ${processedMessage}`;
         if (statsEl && wordCount > 0) {
           statsEl.textContent = `${wordCount} words \u2022 ${headingCount} sections`;
           statsEl.style.cssText = `
-						font-size: 14px;
 						color: var(--text-muted);
 						margin-top: var(--size-2-2);
 					`;
