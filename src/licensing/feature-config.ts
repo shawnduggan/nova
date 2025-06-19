@@ -4,6 +4,10 @@ export interface TimeGatedFeature {
     description: string;
 }
 
+export interface CoreFeature {
+    description: string;
+}
+
 /**
  * Feature release configuration for Supernova early access model
  * Supernova supporters get features on supernovaDate
@@ -38,14 +42,32 @@ export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
  * Core features that are always available to all users
  * These are NOT time-gated
  */
-export const CORE_FEATURES = [
-    'basic_editing',          // Add, edit, delete, grammar, rewrite commands
-    'all_ai_providers',       // Claude, OpenAI, Google, Ollama
-    'file_conversations',     // File-scoped conversation history
-    'provider_switching',     // Switch providers in chat
-    'mobile_access',          // Full mobile support
-    'api_key_config',         // Configure own API keys
-    'sidebar_chat',           // Chat interface in sidebar
-    'document_context',       // Current document context
-    'multi-doc-context'       // Reference other documents with [[doc]] syntax
-];
+export const CORE_FEATURES: Record<string, CoreFeature> = {
+    'basic_editing': {
+        description: 'Basic document editing commands (add, edit, delete, grammar, rewrite)'
+    },
+    'all_ai_providers': {
+        description: 'Access to all AI providers (Claude, OpenAI, Google, Ollama)'
+    },
+    'file_conversations': {
+        description: 'File-scoped conversation history'
+    },
+    'provider_switching': {
+        description: 'Switch AI providers directly in chat interface'
+    },
+    'mobile_access': {
+        description: 'Full mobile device support'
+    },
+    'api_key_config': {
+        description: 'Configure your own API keys'
+    },
+    'sidebar_chat': {
+        description: 'Chat interface in sidebar'
+    },
+    'document_context': {
+        description: 'Current document context in conversations'
+    },
+    'multi-doc-context': {
+        description: 'Reference other documents with [[doc]] syntax'
+    }
+};

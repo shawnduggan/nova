@@ -1,6 +1,6 @@
 import { LicenseValidator } from './license-validator';
 import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings, SupernovaValidationResult } from './types';
-import { SUPERNOVA_FEATURES, CORE_FEATURES, TimeGatedFeature } from './feature-config';
+import { SUPERNOVA_FEATURES, CORE_FEATURES, TimeGatedFeature, CoreFeature } from './feature-config';
 
 export class FeatureManager {
 	private features: Map<string, FeatureFlag> = new Map();
@@ -25,11 +25,11 @@ export class FeatureManager {
 	 */
 	private initializeFeatureFlags(): void {
 		// Core features - always available to all users
-		CORE_FEATURES.forEach(featureKey => {
+		Object.entries(CORE_FEATURES).forEach(([key, config]) => {
 			this.registerFeature({
-				key: featureKey,
+				key,
 				enabled: true,
-				description: this.getCoreFeatureDescription(featureKey)
+				description: config.description
 			});
 		});
 
@@ -44,23 +44,6 @@ export class FeatureManager {
 				earlyAccessOnly: !this.isGenerallyAvailable(config)
 			});
 		});
-	}
-
-	/**
-	 * Get description for core features
-	 */
-	private getCoreFeatureDescription(key: string): string {
-		const descriptions: Record<string, string> = {
-			'basic_editing': 'Basic document editing commands (add, edit, delete, grammar, rewrite)',
-			'all_ai_providers': 'Access to all AI providers (Claude, OpenAI, Google, Ollama)',
-			'file_conversations': 'File-scoped conversation history',
-			'provider_switching': 'Switch AI providers directly in chat interface',
-			'mobile_access': 'Full mobile device support',
-			'api_key_config': 'Configure your own API keys',
-			'sidebar_chat': 'Chat interface in sidebar',
-			'document_context': 'Current document context in conversations'
-		};
-		return descriptions[key] || key;
 	}
 
 	/**
