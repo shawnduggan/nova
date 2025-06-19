@@ -1986,15 +1986,9 @@ USER REQUEST: ${processedMessage}`;
 		if (this.currentFile) {
 			try {
 				await this.plugin.conversationManager.clearConversation(this.currentFile);
-				// Clear current context state (but leave persistent context documents intact)
-				this.currentContext = null;
 				
 				// Clear token warnings
 				this.lastTokenWarnings = {};
-				
-				// Update UI displays
-				this.updateContextIndicator();
-				this.updateTokenDisplay();
 			} catch (error) {
 				// Failed to clear conversation - graceful fallback
 			}
@@ -2003,8 +1997,13 @@ USER REQUEST: ${processedMessage}`;
 		// Show notice to user
 		new Notice('Chat cleared');
 		
-		// PHASE 2 FIX: Show welcome message after clearing chat
+		// Show welcome message first, before context refresh triggers warnings
 		this.addWelcomeMessage();
+		
+		// Then refresh context to rebuild currentContext from persistent storage and update UI
+		if (this.currentFile) {
+			await this.refreshContext();
+		}
 	}
 
 	// Coordinator method that updates both document stats and context remaining

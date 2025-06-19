@@ -3978,15 +3978,15 @@ USER REQUEST: ${processedMessage}`;
     if (this.currentFile) {
       try {
         await this.plugin.conversationManager.clearConversation(this.currentFile);
-        this.currentContext = null;
         this.lastTokenWarnings = {};
-        this.updateContextIndicator();
-        this.updateTokenDisplay();
       } catch (error) {
       }
     }
     new import_obsidian11.Notice("Chat cleared");
     this.addWelcomeMessage();
+    if (this.currentFile) {
+      await this.refreshContext();
+    }
   }
   // Coordinator method that updates both document stats and context remaining
   async refreshAllStats() {
