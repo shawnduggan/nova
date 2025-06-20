@@ -8,7 +8,9 @@ export class IntentDetector {
     private consultationPatterns = [
         { pattern: /^(Now is|Today|This week|Lately|Currently|These days)/i, name: 'temporal' },
         { pattern: /\b(I'm (feeling|thinking|working|trying)|I've been|I was|I feel)\b/i, name: 'personal_state' },
-        { pattern: /\b(reminds me|makes me think|I wonder|I'm wondering)\b/i, name: 'reflective' }
+        { pattern: /\b(reminds me|makes me think|I wonder|I'm wondering)\b/i, name: 'reflective' },
+        { pattern: /\b(I think|I believe|I suspect|I notice|seems like|appears|looks like)\b/i, name: 'opinion_observation' },
+        { pattern: /\b(might be|could be|may be|probably|perhaps|maybe)\b/i, name: 'speculation' }
     ];
 
     private editingPatterns = [
@@ -50,6 +52,19 @@ export class IntentDetector {
                 confidence: 0.9,
                 matchedPatterns: editingMatches
             };
+        }
+
+        // If both patterns match, favor consultation when speculation or opinion patterns are present
+        if (consultationMatches.length > 0 && editingMatches.length > 0) {
+            const hasSpeculation = consultationMatches.includes('speculation') || consultationMatches.includes('opinion_observation');
+            if (hasSpeculation) {
+                return {
+                    type: 'consultation',
+                    confidence: 0.8,
+                    matchedPatterns: consultationMatches
+                };
+            }
+            // Otherwise treat as ambiguous
         }
 
         return {

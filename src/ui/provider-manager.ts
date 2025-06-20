@@ -17,12 +17,14 @@ export class ProviderManager {
 
 	async createProviderDropdown(container: HTMLElement): Promise<void> {
 		this.statusContainer = container.createDiv();
+		const isMobile = Platform.isMobile;
 		this.statusContainer.style.cssText = `
 			display: flex;
 			align-items: center;
 			gap: var(--size-2-2);
 			font-size: var(--font-ui-small);
 			color: var(--text-muted);
+			min-width: ${isMobile ? '120px' : '180px'};
 		`;
 
 		// Status indicator dot
@@ -47,6 +49,7 @@ export class ProviderManager {
 			cursor: pointer;
 			padding: 0;
 			margin-left: var(--size-2-1);
+			min-width: ${isMobile ? '100px' : '150px'};
 		`;
 
 		await this.updateProviderOptions();

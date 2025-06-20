@@ -19,6 +19,4 @@
 
 ## 🎯 PENDING TASKS
 
-* **BUG: Issue with intent detection** typing "I think this document might be too long" caused an error "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
-* **BUG: Model dropdown width on desktop** - Set min-width for model dropdown on desktop to prevent jarring expansion/contraction when switching between models
-* **BUG: Clear conversation button size** - Clear conversation button in header is squished/wrong size, should match the size of "delete all files" button in drawer
+* No pending tasks at this time

@@ -186,6 +186,24 @@ export class NovaSidebarView extends ItemView {
 		clearButton.setIcon('eraser')
 			.setTooltip('Clear conversation history')
 			.onClick(() => this.clearChat());
+		
+		// Apply consistent styling to match delete all files button
+		const isMobile = Platform.isMobile;
+		clearButton.buttonEl.style.cssText = `
+			background: none;
+			border: 1px solid var(--text-faint);
+			color: var(--text-faint);
+			cursor: pointer;
+			padding: ${isMobile ? '8px 12px' : '4px 8px'};
+			border-radius: 4px;
+			font-size: 1em;
+			transition: all 0.2s;
+			min-width: ${isMobile ? '44px' : 'auto'};
+			min-height: ${isMobile ? '44px' : 'auto'};
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		`;
 
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
