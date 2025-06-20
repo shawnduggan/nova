@@ -1,154 +1,32 @@
-# Nova - AI Thinking Partner for Obsidian
 
-## ⚠️ CRITICAL: NEVER COMMIT WITHOUT EXPLICIT APPROVAL
-**ALWAYS ask "Should I commit these changes?" before ANY git operations**
-**NEVER auto-commit or auto-push - wait for explicit confirmation**
-**NO exceptions to this rule - user must explicitly approve all commits**
 
-## BEHAVIORAL COMMANDS - READ FIRST
+# Nova Plugin Development Notes
 
-### MANDATORY RULES
-**NEVER start responses with superlatives like "You're absolutely right" - RESPOND OR CODE IMMEDIATELY**
-**ONE CHANGE PER RESPONSE** - If it involves multiple concerns, refuse and break it down
-**ONE STEP AT A TIME** - If the plan involves multiple steps, pause after each step and ask if you should continue
-**WAIT FOR TEST CONFIRMATION** - After any fix, ask user to test before proceeding to next task
-**NO TODOS/STUBS** - Every function must work when implemented
-**MOVE COMPLETED ITEMS** - When items finish, REMOVE from CLAUDE.md to keep it focused on current work only
-**HIGH VALUE TESTS ONLY** - Write unit tests for business logic only. Skip complex UI interaction tests - they're high-maintenance, low-value.
+## 🎯 PENDING TASKS
 
-### TDD PROTOCOL - MANDATORY
-**SEQUENCE:**
-1. Write failing test FIRST
-2. Write minimal code to pass test
-3. Use subagent to run test: `npm test -- filename.test.js`
-4. State: "Test result: PASS/FAIL"
-5. If FAIL: use subagent to investigate (lint, compile)
-6. State: "Test this change. Type PASS or FAIL:"
-7. STOP - wait for user response
-8. If user says FAIL: debug, don't proceed
-9. If user says PASS: ask "Next change?"
+### **BUG: Provider Dropdown Shows "II" on Reload**
+Provider dropdown displays "II" instead of selected provider name on Obsidian restart/reload. Issue is in `sidebar-view.ts:2488-2528` where `updateCurrentProvider()` async function is called synchronously during dropdown initialization, causing display corruption before provider info loads.
 
-### SUBAGENT USAGE
-**USE subagents for repetitive verification tasks:**
-- Test execution: `npm test -- filename.test.js`
-- TypeScript compilation: `tsc --noEmit`
-- Linting: `eslint src/filename.ts`
-- Build verification: `npm run build`
-- File operations: reading/writing test files
+**Root cause:** Timing issue where dropdown UI is rendered before async provider data is available.
+**Location:** `src/ui/sidebar-view.ts` lines 2488-2528 (updateCurrentProvider function and initialization)
+**Fix needed:** Proper async initialization with fallback display text during loading.
 
-**ALWAYS ask before using subagents for:**
-- Git operations (already forbidden to auto-commit)
-- Installing packages
-- Modifying config files
-- Any system-level changes
-
-### ATOMIC CHANGE DEFINITION
-- ONE logical concern per response
-- ONE function/component/test per response
-- MUST fit in single git commit message
-- User can understand the change in 30 seconds
-
-**SIZE GUIDELINES:**
-- Simple bug fix: 5-20 lines
-- New function: 20-50 lines  
-- New component: 30-80 lines
-- Integration change: 40-100 lines
-- **ABSOLUTE MAX: 100 lines per response**
-
-### DESIGN GUIDELINES
-- **ALWAYS use Obsidian's native design language and iconography**
-- NO emojis - use clean SVG outline icons that match Obsidian's style
-- Use ButtonComponent.setIcon() for all buttons and UI elements
-- Maintain consistent spacing, colors, and typography with Obsidian
-- Icons should use currentColor for theme compatibility
-- Follow Obsidian's responsive design patterns for mobile/desktop
+### **Task: Document Reading Time Display**
+Change document stats/analytics to show reading time instead of word count and sections. Should display like "~ 4 min read". Use existing word count function in `updateDocumentStats()` in `sidebar-view.ts:2034-2069`, divide words by 225 to get reading time.
 
 ---
 
-## Current Project State (Updated: June 17, 2025)
+## Implementation Guidelines for CC
 
-### ✅ STATUS: Ship Ready - Core Features Complete
-- **Cursor-only editing system fully implemented and verified**
-- **Selection-based AI editing with context menu** (right-click → Nova actions)
-- **Command palette integration** (9 clean commands without confusing modals)
-- **Drag-and-drop file context** from Obsidian file explorer
-- **Native Obsidian file picker** for `[[` wikilink autocomplete (indistinguishable from core Obsidian)
-- **Context persistence across Obsidian restarts** with missing file handling
-- **Unified streaming system** with notice-based thinking animations
-- **Mobile-optimized UI** with responsive design
-- **Test suite passing** (34/34 test suites, 424 tests total)
-- **Clean architecture** with simplified document editing
+### Core Principles
+* **Extend Don't Duplicate:** Build on existing features - never create duplicated functions or workflows
+* **Follow Existing Patterns:** Use established Nova architecture for providers, settings, UI, and error handling
+* **Apply DRY and SOLID:** Use Don't Repeat Yourself and SOLID principles for clean, maintainable code
+* **Test-Driven Development:** Write/update tests before implementing new functionality
+* **Performance First:** Profile changes affecting conversation flow or UI responsiveness
+* **Code Reuse:** Always verify existing functionality before creating new implementations
 
----
-
-## 🎯 IMPLEMENTATION QUEUE
-
-### **Backlog Tasks**
-- **Task** - change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
-- **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
-- **Settings tab menu mobile optimization** - Fix tab navigation in Settings modal for mobile devices (touch targets, overflow, readability)
-- Command System Polish (Custom Commands feature alignment)
-- Market Preparation Tasks (business infrastructure, plugin submission)
-- Technical Debt Cleanup (sidebar refactoring, legacy code removal)
-
----
-
-## File Architecture (Current)
-```
-main.ts                          # Plugin entry (cursor-only)
-src/ui/sidebar-view.ts          # Main sidebar UI (simplified)
-src/ui/input-handler.ts         # Input management (cursor-focused)
-src/ui/command-system.ts        # ":" trigger for Custom Commands (reserved)
-src/ui/context-manager.ts       # Multi-document context UI (simplified)
-src/ui/chat-renderer.ts         # Message rendering
-src/core/document-engine.ts     # Document editing (cursor-only operations)
-src/core/context-builder.ts     # AI prompt generation
-src/core/command-parser.ts      # Natural language processing
-src/core/commands/*.ts          # Command handlers (all cursor-only)
-src/licensing/feature-manager.ts # Freemium logic
-styles.css                      # All UI styles
-```
-
-## Key Technical Patterns
-
-### Core Patterns
-- Use `app.vault.modify()` for all edits (undo support)
-- Messages stored in `.obsidian/plugins/nova/conversations/[file-hash].json`
-- All provider calls are async
-- Platform.isDesktopApp determines provider
-
-### Provider Interface
-```typescript
-interface AIProvider {
-    complete(systemPrompt: string, userPrompt: string, options?: any): Promise<string>;
-}
-```
-
----
-
-## Development Workflow
-
-### ⚠️ IMPORTANT: Progress Tracking
-**Track PENDING work only in this CLAUDE.md file.**
-**When work completes: REMOVE from here to keep focus on current tasks**
-
-### Making Changes
-1. Focus on current phase tasks in order
-2. One atomic change at a time only
-3. **When tasks complete: REMOVE from CLAUDE.md to keep focus on current work**
-4. **Always prioritize code simplicity and maintainability**
-
-### Commit Messages
-- Do NOT add "Generated with Claude Code" text to commits
-- Keep commit messages clean and professional
-- **NEVER commit changes unless explicitly asked by the user**
-- Always wait for user confirmation before committing and pushing
-
----
-
-## Remember
-- MVP only - no extra features
-- Working > Perfect  
-- One atomic change at a time
-- **All completed work is tracked in git commit history**
-- Detailed specs provided at implementation time
+### Quality Gates
+* **Before coding:** Understand existing systems that can be extended
+* **During development:** Ensure no regression in existing features  
+* **Before completion:** Test edge cases and verify no breaking changes

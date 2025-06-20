@@ -58,6 +58,7 @@ export interface NovaSettings {
 			lastChecked?: Date | string | null;
 		};
 	};
+	ollamaDefaultContext?: number;
 }
 
 export const DEFAULT_SETTINGS: NovaSettings = {
@@ -115,7 +116,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			forceSupernova: false
 		}
 	},
-	providerStatus: {}
+	providerStatus: {},
+	ollamaDefaultContext: 32000
 };
 
 export class NovaSettingTab extends PluginSettingTab {
@@ -1406,6 +1408,25 @@ export class NovaSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.aiProviders.ollama.model = value;
 						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(ollamaContainer)
+			.setName('Default Context Limit')
+			.setDesc('Context window size for all Ollama models (Nova defaults to 32K vs Ollama\'s 2K)')
+			.addText(text => {
+				text.inputEl.type = 'number';
+				text.inputEl.style.width = '150px';
+				text.inputEl.style.height = '40px';
+				return text
+					.setPlaceholder('32000')
+					.setValue((this.plugin.settings.ollamaDefaultContext || 32000).toString())
+					.onChange(async (value) => {
+						const numValue = parseInt(value);
+						if (!isNaN(numValue) && numValue > 0) {
+							this.plugin.settings.ollamaDefaultContext = numValue;
+							await this.plugin.saveSettings();
+						}
 					});
 			});
 	}

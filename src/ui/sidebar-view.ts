@@ -11,6 +11,7 @@ import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
+import { formatContextUsage, getRemainingContextPercentage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -1397,66 +1398,16 @@ export class NovaSidebarView extends ItemView {
 				this.contextManager.setCurrentFile(this.currentFile);
 			}
 			
-			// PHASE 1 FIX: Store file path to validate against changes during async operations
-			const contextFilePath = this.currentFile.path;
-			
 			try {
-				// Don't call buildContext with empty message as it can interfere with persistent context
-				// Instead, just get persistent context and build a minimal context object for UI display
-				const persistentDocs = this.contextManager.getPersistentContext(contextFilePath) || [];
+				// Use the ContextManager's buildContext method which includes total context calculation
+				// Pass empty message since we're just refreshing the display
+				this.currentContext = await this.contextManager.buildContext('', this.currentFile);
 				
-				// Calculate token count including current file (always in context) + persistent docs
-				let totalTokens = 0;
-				
-				// Always include current file in token count
-				if (this.currentFile) {
-					try {
-						const currentContent = await this.app.vault.read(this.currentFile);
-						totalTokens += Math.ceil(currentContent.length / 4);
-					} catch (error) {
-						// Skip if can't read current file
-					}
-				}
-				
-				// Add persistent docs
-				for (const doc of persistentDocs) {
-					try {
-						const content = await this.app.vault.read(doc.file);
-						totalTokens += Math.ceil(content.length / 4);
-					} catch (error) {
-						// Skip files that can't be read
-					}
-				}
-				
-				// Get token limit from settings
-				const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
-				
-				// PHASE 1 FIX: Validate we're still working with the same file and ContextManager agrees
-				if (this.currentFile && 
-					this.currentFile.path === contextFilePath &&
-					this.contextManager.getCurrentFilePath() === contextFilePath) {
-					// Build context object for UI display
-					this.currentContext = {
-						persistentDocs: persistentDocs,
-						contextString: '', // Not needed for UI
-						tokenCount: totalTokens,
-						isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
-					};
-					
-					this.updateContextIndicator();
-					
-					// Also update ContextManager's current context so its indicator can show
-					if (this.currentContext.persistentDocs.length > 0) {
-						// Set the context in ContextManager without clearing (use direct assignment)
-						(this.contextManager as any).currentContext = this.currentContext;
-					}
-					
-					this.updateTokenDisplay();
-				} else {
-					console.log('⚠️ Context refresh skipped - file changed during operation');
-				}
+				this.updateContextIndicator();
+				this.updateTokenDisplay();
 			} catch (error) {
 				// Handle context build failures gracefully
+				console.warn('Failed to refresh context:', error);
 				this.currentContext = null;
 				this.updateContextIndicator();
 				this.updateTokenDisplay();
@@ -2095,28 +2046,44 @@ USER REQUEST: ${processedMessage}`;
 			tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
 		}
 		
-		// Get current token count from context
-		const currentTokens = this.currentContext?.tokenCount || 0;
-		const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
-		const tokenPercent = Math.round((currentTokens / tokenLimit) * 100);
-		const remainingPercent = Math.max(0, 100 - tokenPercent);
+		// Get total context usage if available, otherwise fall back to old calculation
+		const totalContextUsage = this.currentContext?.totalContextUsage;
+		let remainingPercent: number;
+		let warningLevel: string;
+		let displayText: string;
+		let tooltipText: string;
+		
+		if (totalContextUsage) {
+			// Use new total context calculation
+			remainingPercent = getRemainingContextPercentage(totalContextUsage);
+			warningLevel = getContextWarningLevel(totalContextUsage);
+			displayText = formatContextUsage(totalContextUsage);
+			tooltipText = getContextTooltip(totalContextUsage);
+		} else {
+			// No total context usage available - show minimal info without warnings
+			const currentTokens = this.currentContext?.tokenCount || 0;
+			remainingPercent = 100; // Don't calculate percentage without proper context limits
+			displayText = currentTokens > 0 ? `${currentTokens} tokens` : '0% left';
+			tooltipText = `File context: ${currentTokens} tokens (total context calculation unavailable)`;
+			warningLevel = 'safe'; // No warnings when calculation unavailable
+		}
 		
 		// Update display text
-		tokenEl.textContent = `${remainingPercent}% left`;
+		tokenEl.textContent = displayText;
+		
+		// Set tooltip
+		tokenEl.title = tooltipText;
 		
 		// Apply color coding and show warnings
 		tokenEl.className = 'nova-token-usage';
-		if (remainingPercent > 20) {
+		if (warningLevel === 'safe') {
 			tokenEl.addClass('nova-token-safe');
-		} else if (remainingPercent > 10) {
+		} else if (warningLevel === 'warning') {
 			tokenEl.addClass('nova-token-warning');
-			this.showTokenWarning(20);
-		} else if (remainingPercent > 5) {
+			this.showTokenWarning(85); // 85% usage = 15% remaining
+		} else if (warningLevel === 'critical') {
 			tokenEl.addClass('nova-token-danger');
-			this.showTokenWarning(10);
-		} else {
-			tokenEl.addClass('nova-token-danger');
-			this.showTokenWarning(5);
+			this.showTokenWarning(95); // 95% usage = 5% remaining
 		}
 	}
 
@@ -2131,12 +2098,15 @@ USER REQUEST: ${processedMessage}`;
 		this.lastTokenWarnings[warningKey] = Date.now();
 		
 		let message: string;
-		if (threshold === 20) {
-			message = "⚠️ Context approaching limit (20% remaining). Consider clearing context or increasing Default Max Tokens in Nova Settings > General.";
-		} else if (threshold === 10) {
-			message = "⚠️ Context nearly full (10% remaining). Clear context or increase Default Max Tokens in settings for better results.";
+		if (threshold === 75) {
+			message = "ℹ️ Context usage is growing. Current conversation and file context are using significant tokens.";
+		} else if (threshold === 85) {
+			message = "⚠️ Context usage high (85%). Consider starting a new conversation or removing file context for better AI performance.";
+		} else if (threshold === 95) {
+			message = "⚠️ Context nearly full (95%). Start a new conversation or clear context immediately for reliable AI responses.";
 		} else {
-			message = "⚠️ Context critical (5% remaining). Clear context immediately or increase Default Max Tokens in Nova Settings > General.";
+			// Legacy fallback
+			message = "⚠️ Context approaching limit. Consider clearing context or starting a new conversation.";
 		}
 		
 		this.addWarningMessage(message);
@@ -2936,6 +2906,9 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Re-initialize the provider manager with new settings
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
+			
+			// Refresh context to recalculate with new provider's context limits
+			await this.refreshContext();
 			
 			// Refresh status indicators
 			await this.refreshProviderStatus();

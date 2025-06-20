@@ -1,6 +1,7 @@
 import { App, Platform, TFile, Notice, CachedMetadata } from 'obsidian';
 import NovaPlugin from '../../main';
 import { ConversationData } from '../core/types';
+import { calculateContextUsage, ContextUsage, estimateTokens as calculateTokens } from '../core/context-calculator';
 
 export interface DocumentReference {
 	/** The file being referenced */
@@ -23,11 +24,14 @@ export interface MultiDocContext {
 	/** Combined context string */
 	contextString: string;
 	
-	/** Estimated token count */
+	/** Estimated token count (for file attachments only) */
 	tokenCount: number;
 	
 	/** Whether we're approaching token limit */
 	isNearLimit: boolean;
+	
+	/** Total context usage calculation including conversation history */
+	totalContextUsage?: ContextUsage;
 }
 
 /**
@@ -38,8 +42,6 @@ export class ContextManager {
 	private app: App;
 	private container: HTMLElement;
 	private persistentContext: Map<string, DocumentReference[]> = new Map();
-	private readonly TOKEN_LIMIT = 8000;
-	private readonly WARNING_THRESHOLD = 0.8;
 	public contextIndicator!: HTMLElement;
 	public contextPreview!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
@@ -225,13 +227,17 @@ export class ContextManager {
 
 			const contextString = contextParts.join('\n\n---\n\n');
 			const tokenCount = this.estimateTokens(contextString);
-			const isNearLimit = tokenCount > (this.TOKEN_LIMIT * this.WARNING_THRESHOLD);
+
+			// Calculate total context usage including conversation history
+			const fileAttachments = contextParts.map(content => ({ content }));
+			const totalContextUsage = await this.calculateTotalContextUsage(fileAttachments);
 
 			const context: MultiDocContext = {
 				persistentDocs: allPersistentDocs,
 				contextString,
 				tokenCount,
-				isNearLimit
+				isNearLimit: false, // Legacy field - warnings now handled in sidebar-view.ts
+				totalContextUsage: totalContextUsage || undefined
 			};
 			
 			// Validate operation is still current and file hasn't changed
@@ -245,11 +251,6 @@ export class ContextManager {
 
 			if (context?.persistentDocs.length) {
 				this.updateContextIndicator(context);
-				
-				// Check token limit
-				if (context.isNearLimit) {
-					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', ContextManager.NOTICE_DURATION_MS);
-				}
 			}
 
 			return context;
@@ -260,111 +261,11 @@ export class ContextManager {
 	}
 
 	private updateContextIndicator(context: MultiDocContext): void {
-		if (!this.contextIndicator) return;
-
-		const docCount = context.persistentDocs.length;
-		if (docCount > 0) {
-			this.contextIndicator.textContent = `${docCount} doc${docCount > 1 ? 's' : ''}`;
-			this.contextIndicator.style.display = 'block';
-
-			// Add expand functionality
-			this.contextIndicator.style.cursor = 'pointer';
-			this.contextIndicator.onclick = () => {
-				this.showContextDetails(context);
-			};
-
-			// Add hover effect
-			this.contextIndicator.addEventListener('mouseenter', () => {
-				this.contextIndicator.style.background = 'var(--interactive-hover)';
-			});
-
-			this.contextIndicator.addEventListener('mouseleave', () => {
-				this.contextIndicator.style.background = 'var(--background-primary)';
-			});
-		} else {
-			this.contextIndicator.style.display = 'none';
-		}
+		// Context indicator UI is now fully managed by sidebar-view.ts
+		// This method is kept for compatibility but does nothing
+		// The sidebar-view.ts updateContextIndicator() method handles all display logic
 	}
 
-	private showContextDetails(context: MultiDocContext): void {
-		// Create modal or expanded view
-		const modal = this.container.createDiv({ cls: 'nova-context-modal' });
-		modal.style.cssText = `
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: rgba(0, 0, 0, 0.5);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			z-index: 10000;
-		`;
-
-		const content = modal.createDiv();
-		content.style.cssText = `
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			padding: var(--size-4-4);
-			max-width: 80%;
-			max-height: 80%;
-			overflow-y: auto;
-			box-shadow: var(--shadow-s);
-		`;
-
-		const header = content.createEl('h3', { text: 'Context Documents' });
-		header.style.cssText = 'margin-top: 0; margin-bottom: var(--size-4-3);';
-
-		context.persistentDocs.forEach(doc => {
-			const docEl = content.createDiv();
-			docEl.style.cssText = `
-				padding: var(--size-2-2);
-				margin-bottom: var(--size-2-2);
-				background: var(--background-modifier-hover);
-				border-radius: var(--radius-xs);
-			`;
-
-			const nameEl = docEl.createEl('div', { text: doc.file.basename });
-			nameEl.style.cssText = 'font-weight: 600; margin-bottom: var(--size-2-1);';
-
-			if (doc.property) {
-				const propEl = docEl.createEl('div', { text: `Property: ${doc.property}` });
-				propEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted);';
-			}
-
-			// Show file path as preview since content isn't directly available
-			const previewEl = docEl.createEl('div', { text: doc.file.path });
-			previewEl.style.cssText = 'font-size: var(--font-ui-smaller); color: var(--text-muted); margin-top: var(--size-2-1);';
-		});
-
-		// Button container
-		const buttonContainer = content.createDiv();
-		buttonContainer.style.cssText = `
-			margin-top: var(--size-4-3);
-			display: flex;
-			gap: var(--size-2-2);
-			justify-content: flex-end;
-		`;
-
-
-		// Close button
-		const closeBtn = buttonContainer.createEl('button', { text: 'Close' });
-		closeBtn.style.cssText = `
-			padding: var(--size-2-2) var(--size-4-3);
-			background: var(--background-secondary);
-			color: var(--text-normal);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			cursor: pointer;
-		`;
-
-		closeBtn.onclick = () => modal.remove();
-		modal.onclick = (e) => {
-			if (e.target === modal) modal.remove();
-		};
-	}
 
 	hideContextPreview(): void {
 		if (this.contextPreview) {
@@ -558,23 +459,16 @@ export class ContextManager {
 				}
 			}
 
-			// Get token limit from settings
-			const tokenLimit = this.plugin.settings.general.defaultMaxTokens || 8000;
 
 			// Build context object
 			this.currentContext = {
 				persistentDocs: persistentDocs,
 				contextString: '', // Not needed for UI
 				tokenCount: totalTokens,
-				isNearLimit: totalTokens > (tokenLimit * 0.8) // 80% threshold
+				isNearLimit: false // Legacy field - warnings now handled in sidebar-view.ts
 			};
 
 			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
-
-			// Check token limit
-			if (this.currentContext.isNearLimit) {
-				new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', ContextManager.NOTICE_DURATION_MS);
-			}
 
 		} catch (error) {
 			// Handle context build failures gracefully
@@ -968,6 +862,62 @@ export class ContextManager {
 	}
 
 	/**
+	 * Calculate total context usage including conversation history
+	 */
+	async calculateTotalContextUsage(
+		fileAttachments: Array<{content: string}> = [],
+		currentInput: string = '',
+		recentResponse: string = ''
+	): Promise<ContextUsage | null> {
+		try {
+			// Get current provider and model
+			const providerType = await this.plugin.aiProviderManager?.getCurrentProviderType();
+			if (!providerType) {
+				return null;
+			}
+			
+			// Get model from settings based on provider type
+			let model: string;
+			const providers = this.plugin.settings.aiProviders as Record<string, any>;
+			model = providers[providerType]?.model || '';
+			
+			if (!model) {
+				return null;
+			}
+			
+			// Get conversation history for current file
+			let conversationHistory: Array<{content: string}> = [];
+			if (this.currentFilePath && this.plugin.conversationManager) {
+				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath) as TFile;
+				if (currentFile) {
+					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
+					// Convert conversation messages to simple content array
+					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
+				}
+			}
+			
+			// Get Ollama default context from settings
+			const ollamaDefaultContext = this.plugin.settings.ollamaDefaultContext || 32000;
+			
+			// Calculate total context usage
+			const usage = calculateContextUsage(
+				providerType,
+				model,
+				conversationHistory,
+				fileAttachments,
+				currentInput,
+				recentResponse,
+				ollamaDefaultContext
+			);
+			
+			return usage;
+		} catch (error) {
+			console.warn('Failed to calculate total context usage:', error);
+			return null;
+		}
+	}
+
+	/**
 	 * Clear persistent context for a conversation
 	 */
 	async clearPersistentContext(filePath: string): Promise<void> {
@@ -1016,17 +966,11 @@ export class ContextManager {
 		tooltip: string;
 	} {
 		const docCount = context.persistentDocs.length;
-		const percentage = Math.round((context.tokenCount / this.TOKEN_LIMIT) * 100);
 		
 		let className = 'nova-context-indicator';
-		let tooltip = `Context: ${docCount} document${docCount !== 1 ? 's' : ''}, ~${context.tokenCount} tokens`;
+		let tooltip = `Context: ${docCount} document${docCount !== 1 ? 's' : ''}, ~${context.tokenCount} tokens (files only)`;
 		
-		if (context.isNearLimit) {
-			className += ' nova-context-warning';
-			tooltip += ' (approaching limit)';
-		}
-		
-		const text = `${docCount} docs ${percentage}%`;
+		const text = `${docCount} docs`;
 		
 		return { text, className, tooltip };
 	}
