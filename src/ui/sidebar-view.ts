@@ -2541,12 +2541,13 @@ USER REQUEST: ${processedMessage}`;
 		// Update provider name initially - properly await the async call
 		// This prevents the "II" display issue on reload
 		// Keep the loading text until the async operation completes
-		updateCurrentProvider().then(() => {
+		try {
+			await updateCurrentProvider();
 			// Provider loaded successfully, text already updated by updateCurrentProvider
-		}).catch(err => {
+		} catch (err) {
 			console.error('Failed to load provider on initialization:', err);
 			providerName.setText('Select Provider');
-		});
+		}
 
 		// Store reference for cleanup
 		(this as any).currentProviderDropdown = {
@@ -2935,6 +2936,12 @@ USER REQUEST: ${processedMessage}`;
 	 * Switch to a different provider and update conversation context
 	 */
 	private async switchToProvider(providerType: string): Promise<void> {
+		console.log('[Nova Debug] switchToProvider called:', {
+			providerType,
+			isUserInitiated: this.isUserInitiatedProviderChange,
+			timestamp: new Date().toISOString()
+		});
+		
 		try {
 			// Only add a system message for user-initiated provider switching
 			if (this.isUserInitiatedProviderChange) {
@@ -2955,7 +2962,20 @@ USER REQUEST: ${processedMessage}`;
 			// Refresh status indicators
 			await this.refreshProviderStatus();
 			
+			console.log('[Nova Debug] switchToProvider completed successfully:', {
+				providerType,
+				isUserInitiated: this.isUserInitiatedProviderChange,
+				timestamp: new Date().toISOString()
+			});
+			
 		} catch (error) {
+			console.error('[Nova Debug] switchToProvider failed:', {
+				providerType,
+				isUserInitiated: this.isUserInitiatedProviderChange,
+				error: error instanceof Error ? error.message : String(error),
+				timestamp: new Date().toISOString()
+			});
+			
 			// Error switching provider - handled by UI feedback
 			if (this.isUserInitiatedProviderChange) {
 				this.addErrorMessage(`❌ Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`);
