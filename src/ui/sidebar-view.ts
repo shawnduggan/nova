@@ -526,7 +526,7 @@ export class NovaSidebarView extends ItemView {
 
 		if (providerCommands[command]) {
 			const providerId = providerCommands[command];
-			await this.plugin.settingTab.setCurrentProvider(providerId);
+			await this.plugin.settingTab.setCurrentModel(providerId);
 			await this.plugin.saveSettings();
 			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
 			return true;
@@ -2486,27 +2486,31 @@ USER REQUEST: ${processedMessage}`;
 
 		let isDropdownOpen = false;
 
-		// Update current provider display
+		// Update current model display
 		const updateCurrentProvider = async () => {
 			try {
-				const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-				if (currentProviderType) {
-					const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+				// Get the currently selected model
+				const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+				
+				if (currentModel) {
+					// Get the display name for the current model
+					const displayText = await this.getModelDisplayNameFromCurrent(currentModel);
+					
 					// Defensive check to prevent "II" or other malformed displays
 					if (displayText && displayText.length > 2 && !displayText.match(/^I+$/)) {
 						providerName.setText(displayText);
 					} else {
-						// Fallback to provider name if display text is invalid
-						const providerDisplayName = this.getProviderDisplayName(currentProviderType);
-						providerName.setText(providerDisplayName);
+						// Fallback to raw model name if display text is invalid
+						console.warn('Invalid model display text, using raw model name:', displayText);
+						providerName.setText(currentModel);
 					}
 				} else {
-					const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-					providerName.setText(currentProviderName || 'Select Provider');
+					// No model selected, show fallback
+					providerName.setText('Select Model');
 				}
 			} catch (error) {
-				console.error('Error updating provider display:', error);
-				providerName.setText('Select Provider');
+				console.error('Error updating model display:', error);
+				providerName.setText('Select Model');
 			}
 		};
 
@@ -2538,15 +2542,15 @@ USER REQUEST: ${processedMessage}`;
 		// Add global click listener
 		this.addTrackedEventListener(document, 'click', closeDropdown);
 
-		// Update provider name initially - properly await the async call
+		// Update model name initially - properly await the async call
 		// This prevents the "II" display issue on reload
 		// Keep the loading text until the async operation completes
 		try {
 			await updateCurrentProvider();
-			// Provider loaded successfully, text already updated by updateCurrentProvider
+			// Model loaded successfully, text already updated by updateCurrentProvider
 		} catch (err) {
-			console.error('Failed to load provider on initialization:', err);
-			providerName.setText('Select Provider');
+			console.error('Failed to load model on initialization:', err);
+			providerName.setText('Select Model');
 		}
 
 		// Store reference for cleanup
@@ -2598,6 +2602,24 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
+	 * Get model display name from just the model name (uses current provider)
+	 */
+	private async getModelDisplayNameFromCurrent(modelName: string): Promise<string> {
+		try {
+			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+			if (!currentProviderType) {
+				console.warn('No current provider available for model display name');
+				return modelName;
+			}
+			return this.getModelDisplayName(currentProviderType, modelName);
+		} catch (error) {
+			console.warn('Failed to get current provider for model display name:', error);
+			// Fallback to the raw model name if we can't get provider info
+			return modelName;
+		}
+	}
+
+	/**
 	 * Switch to a specific model for a provider
 	 */
 	private async switchToModel(providerType: string, modelValue: string): Promise<void> {
@@ -2618,7 +2640,7 @@ USER REQUEST: ${processedMessage}`;
 		} else {
 			// Switching to different provider - this will show the provider+model message
 			this.isUserInitiatedProviderChange = true;
-			await this.switchToProvider(providerType);
+			await this.switchToModelOnCurrentProvider(modelValue);
 			this.isUserInitiatedProviderChange = false;
 		}
 		
@@ -2694,7 +2716,6 @@ USER REQUEST: ${processedMessage}`;
 			// Mark current provider
 			if (isCurrent) {
 				providerItem.style.background = 'var(--background-modifier-hover)';
-				nameSpan.style.fontWeight = 'bold';
 			}
 
 			// Models submenu
@@ -2734,9 +2755,6 @@ USER REQUEST: ${processedMessage}`;
 					`;
 
 					const modelName = modelItem.createSpan({ text: model.label });
-					if (model.value === currentModel) {
-						modelName.style.fontWeight = 'bold';
-					}
 
 					// Model click handler
 					modelItem.addEventListener('click', async (e) => {
@@ -2772,7 +2790,8 @@ USER REQUEST: ${processedMessage}`;
 					// Switch provider directly (for Ollama or providers without models)
 					if (!isCurrent) {
 						this.isUserInitiatedProviderChange = true;
-						await this.switchToProvider(providerType);
+						const modelValue = this.getCurrentModel(providerType);
+						await this.switchToModelOnCurrentProvider(modelValue);
 						this.isUserInitiatedProviderChange = false;
 						dropdownMenu.style.display = 'none';
 						if ((this as any).currentProviderDropdown) {
@@ -2933,25 +2952,68 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Switch to a different provider and update conversation context
+	 * Switch to a different model and update conversation context
 	 */
-	private async switchToProvider(providerType: string): Promise<void> {
-		console.log('[Nova Debug] switchToProvider called:', {
-			providerType,
+	private async switchToModelOnCurrentProvider(modelName: string): Promise<void> {
+		console.log('[Nova Debug] switchToModel called:', {
+			modelName,
 			isUserInitiated: this.isUserInitiatedProviderChange,
 			timestamp: new Date().toISOString()
 		});
 		
 		try {
-			// Only add a system message for user-initiated provider switching
+			// Only add a system message for user-initiated model switching
 			if (this.isUserInitiatedProviderChange) {
-				this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerType)}`);
+				const displayName = await this.getModelDisplayNameFromCurrent(modelName);
+				this.addSuccessMessage(`✓ Switched to ${displayName}`);
 			}
 			
-			// Update the platform settings to use the new provider
+			// 1. Log settings before save
+			console.log('[Nova Debug] Settings BEFORE save:', {
+				currentSettings: JSON.parse(JSON.stringify(this.plugin.settings)),
+				timestamp: new Date().toISOString()
+			});
+			
+			// 2. Detect platform
 			const platform = Platform.isMobile ? 'mobile' : 'desktop';
-			this.plugin.settings.platformSettings[platform].primaryProvider = providerType as any;
+			console.log('[Nova Debug] Platform detected:', {
+				platform,
+				isMobile: Platform.isMobile,
+				timestamp: new Date().toISOString()
+			});
+			
+			// 3. Log what selectedModel is being set to
+			console.log('[Nova Debug] Setting selectedModel to:', {
+				modelName,
+				targetPlatform: platform,
+				oldSelectedModel: this.plugin.settings.platformSettings[platform].selectedModel,
+				newSelectedModel: modelName,
+				timestamp: new Date().toISOString()
+			});
+			
+			// Update the platform settings to use the new model
+			this.plugin.settings.platformSettings[platform].selectedModel = modelName;
+			
+			// 4. Log settings after change but before save
+			console.log('[Nova Debug] Settings AFTER change but BEFORE save:', {
+				modifiedSettings: JSON.parse(JSON.stringify(this.plugin.settings)),
+				specificPlatformSettings: this.plugin.settings.platformSettings[platform],
+				timestamp: new Date().toISOString()
+			});
+			
+			// Save the settings
+			console.log('[Nova Debug] Starting settings save operation...', {
+				timestamp: new Date().toISOString()
+			});
+			
 			await this.plugin.saveSettings();
+			
+			// 5. Confirmation that save completed
+			console.log('[Nova Debug] Settings save operation COMPLETED:', {
+				settingsAfterSave: JSON.parse(JSON.stringify(this.plugin.settings)),
+				savedSelectedModel: this.plugin.settings.platformSettings[platform].selectedModel,
+				timestamp: new Date().toISOString()
+			});
 			
 			// Re-initialize the provider manager with new settings
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
@@ -2962,23 +3024,24 @@ USER REQUEST: ${processedMessage}`;
 			// Refresh status indicators
 			await this.refreshProviderStatus();
 			
-			console.log('[Nova Debug] switchToProvider completed successfully:', {
-				providerType,
+			console.log('[Nova Debug] switchToModel completed successfully:', {
+				modelName,
 				isUserInitiated: this.isUserInitiatedProviderChange,
 				timestamp: new Date().toISOString()
 			});
 			
 		} catch (error) {
-			console.error('[Nova Debug] switchToProvider failed:', {
-				providerType,
+			console.error('[Nova Debug] switchToModel failed:', {
+				modelName,
 				isUserInitiated: this.isUserInitiatedProviderChange,
 				error: error instanceof Error ? error.message : String(error),
 				timestamp: new Date().toISOString()
 			});
 			
-			// Error switching provider - handled by UI feedback
+			// Error switching model - handled by UI feedback
 			if (this.isUserInitiatedProviderChange) {
-				this.addErrorMessage(`❌ Failed to switch to ${this.getProviderWithModelDisplayName(providerType)}`);
+				const displayName = await this.getModelDisplayNameFromCurrent(modelName);
+				this.addErrorMessage(`❌ Failed to switch to ${displayName}`);
 			}
 		}
 	}
@@ -3000,6 +3063,20 @@ USER REQUEST: ${processedMessage}`;
 	refreshSupernovaUI(): void {
 		this.refreshCommandButton();
 		// Future Supernova features can add their refresh logic here
+	}
+
+	/**
+	 * Refresh the provider dropdown display to reflect current settings
+	 */
+	async refreshProviderDropdown(): Promise<void> {
+		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
+			console.log('🔄 Refreshing provider dropdown UI after settings update');
+			try {
+				await (this as any).currentProviderDropdown.updateCurrentProvider();
+			} catch (error) {
+				console.error('❌ Failed to refresh provider dropdown:', error);
+			}
+		}
 	}
 
 	/**

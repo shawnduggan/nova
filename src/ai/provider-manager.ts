@@ -33,32 +33,59 @@ export class AIProviderManager {
 		});
 	}
 
-	private getPlatformProviders(): ProviderType[] {
-		const platform = Platform.isMobile ? 'mobile' : 'desktop';
-		const platformSettings = this.settings.platformSettings[platform];
-		const providers = [platformSettings.primaryProvider, ...platformSettings.fallbackProviders];
+	/**
+	 * Get the provider type that handles a specific model
+	 */
+	private getProviderForModel(modelName: string): ProviderType | null {
+		// Claude models
+		if (modelName.startsWith('claude-')) {
+			return 'claude';
+		}
 		
-		// No restrictions - all users can use all providers with their own API keys
-		return providers;
+		// OpenAI models
+		if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
+			return 'openai';
+		}
+		
+		// Google models
+		if (modelName.startsWith('gemini-')) {
+			return 'google';
+		}
+		
+		// Ollama models (everything else)
+		return 'ollama';
+	}
+
+	/**
+	 * Get the selected model for the current platform
+	 */
+	private getSelectedModel(): string {
+		const platform = Platform.isMobile ? 'mobile' : 'desktop';
+		const selectedModel = this.settings.platformSettings[platform].selectedModel;
+		
+		console.log('🔍 AIProviderManager.getSelectedModel():');
+		console.log('🔍 Platform:', platform);
+		console.log('🔍 Selected model:', selectedModel);
+		
+		return selectedModel;
 	}
 
 
 	private async getAvailableProvider(): Promise<AIProvider | null> {
-		const orderedProviders = this.getPlatformProviders();
+		const selectedModel = this.getSelectedModel();
+		const providerType = this.getProviderForModel(selectedModel);
 		
-		// If primary provider is 'none', Nova is disabled on this platform
-		if (orderedProviders[0] === 'none') {
+		if (!providerType || providerType === 'none') {
 			return null;
 		}
 		
-		for (const providerType of orderedProviders) {
-			if (providerType === 'none') continue;
-			const provider = this.providers.get(providerType);
-			const isAvailable = provider ? await provider.isAvailable() : false;
-			
-			if (provider && isAvailable) {
-				return provider;
-			}
+		const provider = this.providers.get(providerType);
+		const isAvailable = provider ? await provider.isAvailable() : false;
+		
+		console.log('🔍 Provider for model:', { selectedModel, providerType, isAvailable });
+		
+		if (provider && isAvailable) {
+			return provider;
 		}
 		
 		return null;
@@ -108,20 +135,26 @@ export class AIProviderManager {
 	}
 
 	async getCurrentProviderType(): Promise<string | null> {
-		const orderedProviders = this.getPlatformProviders();
-		if (orderedProviders[0] === 'none') {
+		const selectedModel = this.getSelectedModel();
+		const providerType = this.getProviderForModel(selectedModel);
+		
+		if (!providerType || providerType === 'none') {
 			return null;
 		}
 		
-		for (const providerType of orderedProviders) {
-			if (providerType === 'none') continue;
-			const provider = this.providers.get(providerType);
-			if (provider && await provider.isAvailable()) {
-				return providerType;
-			}
+		const provider = this.providers.get(providerType);
+		if (provider && await provider.isAvailable()) {
+			return providerType;
 		}
 		
 		return null;
+	}
+
+	/**
+	 * Get the currently selected model name
+	 */
+	getCurrentModel(): string {
+		return this.getSelectedModel();
 	}
 
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {

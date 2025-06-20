@@ -77,11 +77,13 @@ export default class NovaPlugin extends Plugin {
 			}
 
 			// Refresh Supernova UI after license validation to handle expired licenses
-			this.app.workspace.onLayoutReady(() => {
+			this.app.workspace.onLayoutReady(async () => {
 				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
 				if (leaves.length > 0) {
 					const sidebarView = leaves[0].view as NovaSidebarView;
 					sidebarView.refreshSupernovaUI();
+					// Also refresh provider dropdown to reflect loaded settings
+					await sidebarView.refreshProviderDropdown();
 				}
 			});
 
@@ -194,12 +196,119 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const savedData = await this.loadData();
+		console.log('🔧 Nova: Loading settings...');
+		console.log('🔧 Saved data (full):', savedData);
+		console.log('🔧 Saved data platformSettings:', savedData?.platformSettings);
+		
+		if (savedData?.platformSettings?.desktop) {
+			console.log('🔧 Saved desktop primaryProvider:', savedData.platformSettings.desktop.primaryProvider);
+		}
+		
+		console.log('🔧 Default platformSettings:', DEFAULT_SETTINGS.platformSettings);
+		
+		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		
+		// Manually merge platformSettings to ensure saved model selections are preserved
+		if (savedData?.platformSettings) {
+			console.log('🔧 Before merge - Default desktop selectedModel:', DEFAULT_SETTINGS.platformSettings.desktop.selectedModel);
+			console.log('🔧 Before merge - Saved desktop selectedModel:', savedData.platformSettings.desktop?.selectedModel);
+			
+			this.settings.platformSettings = {
+				desktop: Object.assign({}, DEFAULT_SETTINGS.platformSettings.desktop, savedData.platformSettings.desktop || {}),
+				mobile: Object.assign({}, DEFAULT_SETTINGS.platformSettings.mobile, savedData.platformSettings.mobile || {})
+			};
+			
+			console.log('🔧 After merge - Final desktop selectedModel:', this.settings.platformSettings.desktop.selectedModel);
+		}
+		
+		console.log('🔧 Final merged platformSettings:', this.settings.platformSettings);
+		console.log('🔧 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
+		console.log('🔧 Selected model for current platform:', this.settings.platformSettings[Platform.isMobile ? 'mobile' : 'desktop'].selectedModel);
+	}
+
+
+	/**
+	 * Deep merge two objects, preserving nested structures
+	 */
+	private deepMerge(target: any, source: any): any {
+		if (!source) return target;
+		
+		const result = { ...target };
+		
+		for (const key in source) {
+			if (source.hasOwnProperty(key)) {
+				if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+					result[key] = this.deepMerge(target[key] || {}, source[key]);
+				} else {
+					result[key] = source[key];
+				}
+			}
+		}
+		
+		return result;
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
-		this.aiProviderManager?.updateSettings(this.settings);
+		console.log('💾 Nova: Saving settings...');
+		console.log('💾 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
+		console.log('💾 Platform settings being saved:', this.settings.platformSettings);
+		console.log('💾 Desktop selectedModel being saved:', this.settings.platformSettings.desktop.selectedModel);
+		console.log('💾 Mobile selectedModel being saved:', this.settings.platformSettings.mobile.selectedModel);
+		
+		try {
+			// Force save multiple times to ensure it persists
+			await this.saveData(this.settings);
+			console.log('💾 First saveData() completed');
+			
+			// Add delay and try again
+			await new Promise(resolve => setTimeout(resolve, 200));
+			await this.saveData(this.settings);
+			console.log('💾 Second saveData() completed');
+			
+			// Add another delay and verify
+			await new Promise(resolve => setTimeout(resolve, 200));
+			
+			// Verify the save by reading it back
+			const readBack = await this.loadData();
+			console.log('💾 Verification read - Desktop selectedModel:', readBack?.platformSettings?.desktop?.selectedModel);
+			console.log('💾 Verification read - Mobile selectedModel:', readBack?.platformSettings?.mobile?.selectedModel);
+			
+			// Check if the save actually worked
+			const currentPlatform = Platform.isMobile ? 'mobile' : 'desktop';
+			const expectedModel = this.settings.platformSettings[currentPlatform].selectedModel;
+			const actualModel = readBack?.platformSettings?.[currentPlatform]?.selectedModel;
+			
+			if (expectedModel !== actualModel) {
+				console.error('❌ Save verification STILL failed after retry!', {
+					expected: expectedModel,
+					actual: actualModel,
+					platform: currentPlatform
+				});
+				
+				// Try one more time with manual file write
+				console.log('💾 Attempting forced save...');
+				await this.saveData(JSON.parse(JSON.stringify(this.settings)));
+				await new Promise(resolve => setTimeout(resolve, 300));
+				
+				const finalCheck = await this.loadData();
+				const finalActual = finalCheck?.platformSettings?.[currentPlatform]?.selectedModel;
+				if (expectedModel === finalActual) {
+					console.log('✅ Forced save succeeded');
+				} else {
+					console.error('❌ Forced save also failed!', { finalActual });
+				}
+			} else {
+				console.log('✅ Save verification successful');
+			}
+			
+			this.aiProviderManager?.updateSettings(this.settings);
+			console.log('💾 Settings saved successfully');
+		} catch (error) {
+			console.error('❌ Error during save operation:', error);
+			throw error;
+		}
 	}
 
 	async activateView() {

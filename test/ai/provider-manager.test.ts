@@ -35,12 +35,10 @@ describe('AIProviderManager', () => {
             },
             platformSettings: {
                 desktop: {
-                    primaryProvider: 'claude',
-                    fallbackProviders: ['openai', 'google', 'ollama']
+                    selectedModel: 'claude-3-5-sonnet-20241022'
                 },
                 mobile: {
-                    primaryProvider: 'none',
-                    fallbackProviders: []
+                    selectedModel: 'none'
                 }
             },
             general: {
@@ -229,12 +227,10 @@ describe('AIProviderManager', () => {
                 ...mockSettings,
                 platformSettings: {
                     desktop: {
-                        primaryProvider: 'openai',
-                        fallbackProviders: ['google', 'claude', 'ollama']
+                        selectedModel: 'gpt-4o'
                     },
                     mobile: {
-                        primaryProvider: 'claude',
-                        fallbackProviders: ['openai', 'google']
+                        selectedModel: 'claude-3-5-sonnet-20241022'
                     }
                 }
             };

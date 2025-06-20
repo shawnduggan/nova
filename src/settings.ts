@@ -91,12 +91,10 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	platformSettings: {
 		desktop: {
-			primaryProvider: 'ollama',
-			fallbackProviders: ['openai', 'google', 'ollama']
+			selectedModel: 'llama3.1'  // Default to Ollama model for desktop
 		},
 		mobile: {
-			primaryProvider: 'none',
-			fallbackProviders: ['openai', 'google']
+			selectedModel: 'claude-3-5-sonnet-20241022'  // Default to Claude for mobile
 		}
 	},
 	customCommands: [],
@@ -350,18 +348,18 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Enable Mobile Support')
 			.setDesc('Allow Nova to work on mobile devices using cloud-based AI providers')
 			.addToggle(toggle => {
-				const currentMobileProvider = this.plugin.settings.platformSettings.mobile.primaryProvider;
-				const isMobileEnabled = currentMobileProvider !== 'none';
+				const currentMobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
+				const isMobileEnabled = currentMobileModel !== 'none';
 				
 				toggle
 					.setValue(isMobileEnabled)
 					.onChange(async (value) => {
 						if (value) {
 							// Enable mobile with Claude as default (most reliable)
-							this.plugin.settings.platformSettings.mobile.primaryProvider = 'claude';
+							this.plugin.settings.platformSettings.mobile.selectedModel = 'claude-3-5-sonnet-20241022';
 						} else {
 							// Disable mobile
-							this.plugin.settings.platformSettings.mobile.primaryProvider = 'none';
+							this.plugin.settings.platformSettings.mobile.selectedModel = 'none';
 						}
 						await this.plugin.saveSettings();
 						if (this.plugin.aiProviderManager) {
@@ -1444,47 +1442,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			</div>
 		`;
 		
-		containerEl.createEl('h4', { text: 'Desktop' });
-		const desktopDropdown = new Setting(containerEl)
-			.setName('Primary Provider')
-			.setDesc('Primary AI provider for desktop')
-			.addDropdown(dropdown => {
-				const allowedProviders = this.getAllowedProvidersForPlatform('desktop');
-				
-				allowedProviders.forEach(provider => {
-					const label = this.getProviderDisplayName(provider);
-					dropdown.addOption(provider, label);
-				});
-				
-				return dropdown
-					.setValue(this.plugin.settings.platformSettings.desktop.primaryProvider)
-					.onChange(async (value: string) => {
-						this.plugin.settings.platformSettings.desktop.primaryProvider = value as ProviderType;
-						await this.plugin.saveSettings();
-						if (this.plugin.aiProviderManager) {
-							this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
-						}
-					});
-			});
+		// Platform settings managed via sidebar dropdown now
 
-		containerEl.createEl('h4', { text: 'Mobile' });
-		const mobileSetting = new Setting(containerEl)
-			.setName('Primary Provider')
-			.setDesc('Primary AI provider for mobile devices');
-			
-		mobileSetting.addDropdown(dropdown => dropdown
-			.addOption('none', 'None (Disabled)')
-			.addOption('claude', 'Claude')
-			.addOption('openai', 'OpenAI')
-			.addOption('google', 'Google')
-			.setValue(this.plugin.settings.platformSettings.mobile.primaryProvider)
-			.onChange(async (value: string) => {
-				this.plugin.settings.platformSettings.mobile.primaryProvider = value as ProviderType;
-				await this.plugin.saveSettings();
-				if (this.plugin.aiProviderManager) {
-					this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
-				}
-			}));
+		new Setting(containerEl)
+			.setName('Model Selection')
+			.setDesc('Models are now selected using the dropdown in the Nova sidebar. Each platform (desktop/mobile) remembers its selected model independently.');
 	}
 
 	private getAllowedProvidersForPlatform(platform: 'desktop' | 'mobile'): ProviderType[] {
@@ -1505,9 +1467,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		return names[provider] || provider;
 	}
 
-	async setCurrentProvider(providerId: string): Promise<void> {
+	async setCurrentModel(modelId: string): Promise<void> {
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
-		this.plugin.settings.platformSettings[platform].primaryProvider = providerId as ProviderType;
+		this.plugin.settings.platformSettings[platform].selectedModel = modelId;
 		
 		// Update the provider manager with new settings
 		if (this.plugin.aiProviderManager) {

@@ -48,11 +48,9 @@ export type ProviderType = 'claude' | 'openai' | 'google' | 'ollama' | 'none';
 
 export interface PlatformSettings {
 	desktop: {
-		primaryProvider: ProviderType;
-		fallbackProviders: ProviderType[];
+		selectedModel: string;
 	};
 	mobile: {
-		primaryProvider: ProviderType;
-		fallbackProviders: ProviderType[];
+		selectedModel: string;
 	};
 }
