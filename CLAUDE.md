@@ -2,20 +2,6 @@
 
 # Nova Plugin Development Notes
 
-## 🎯 PENDING TASKS
-
-### **BUG: Provider Dropdown Shows "II" on Reload**
-Provider dropdown displays "II" instead of selected provider name on Obsidian restart/reload. Issue is in `sidebar-view.ts:2488-2528` where `updateCurrentProvider()` async function is called synchronously during dropdown initialization, causing display corruption before provider info loads.
-
-**Root cause:** Timing issue where dropdown UI is rendered before async provider data is available.
-**Location:** `src/ui/sidebar-view.ts` lines 2488-2528 (updateCurrentProvider function and initialization)
-**Fix needed:** Proper async initialization with fallback display text during loading.
-
-### **Task: Document Reading Time Display**
-Change document stats/analytics to show reading time instead of word count and sections. Should display like "~ 4 min read". Use existing word count function in `updateDocumentStats()` in `sidebar-view.ts:2034-2069`, divide words by 225 to get reading time.
-
----
-
 ## Implementation Guidelines for CC
 
 ### Core Principles
@@ -29,4 +15,8 @@ Change document stats/analytics to show reading time instead of word count and s
 ### Quality Gates
 * **Before coding:** Understand existing systems that can be extended
 * **During development:** Ensure no regression in existing features  
-* **Before completion:** Test edge cases and verify no breaking changes
+* **Before completion:** Test edge cases and verify no breaking change
+
+## 🎯 PENDING TASKS
+
+* **BUG: Issue with intent detection** typing "I think this document might be too long" caused an error "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"

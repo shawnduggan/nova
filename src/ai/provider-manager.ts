@@ -11,6 +11,8 @@ export class AIProviderManager {
 	private providers: Map<ProviderType, AIProvider> = new Map();
 	private settings: NovaSettings;
 	private featureManager?: FeatureManager;
+	private availabilityCache: Map<ProviderType, { isAvailable: boolean; timestamp: number }> = new Map();
+	private readonly CACHE_TTL = 30000; // 30 seconds
 
 	constructor(settings: NovaSettings, featureManager?: FeatureManager) {
 		this.settings = settings;
@@ -31,6 +33,33 @@ export class AIProviderManager {
 				provider.updateConfig?.(this.settings.aiProviders[type as keyof AIProviderSettings]);
 			}
 		});
+		// Clear cache when settings change to force re-check
+		this.availabilityCache.clear();
+	}
+
+	/**
+	 * Check provider availability with caching to avoid repeated network calls
+	 */
+	private async checkProviderAvailability(providerType: ProviderType): Promise<boolean> {
+		const now = Date.now();
+		const cached = this.availabilityCache.get(providerType);
+		
+		// Return cached result if still valid
+		if (cached && (now - cached.timestamp) < this.CACHE_TTL) {
+			return cached.isAvailable;
+		}
+		
+		// Get fresh availability status
+		const provider = this.providers.get(providerType);
+		const isAvailable = provider ? await provider.isAvailable() : false;
+		
+		// Cache the result
+		this.availabilityCache.set(providerType, {
+			isAvailable,
+			timestamp: now
+		});
+		
+		return isAvailable;
 	}
 
 	/**
@@ -80,7 +109,7 @@ export class AIProviderManager {
 		}
 		
 		const provider = this.providers.get(providerType);
-		const isAvailable = provider ? await provider.isAvailable() : false;
+		const isAvailable = provider ? await this.checkProviderAvailability(providerType) : false;
 		
 		console.log('🔍 Provider for model:', { selectedModel, providerType, isAvailable });
 		
@@ -143,7 +172,7 @@ export class AIProviderManager {
 		}
 		
 		const provider = this.providers.get(providerType);
-		if (provider && await provider.isAvailable()) {
+		if (provider && await this.checkProviderAvailability(providerType)) {
 			return providerType;
 		}
 		
@@ -171,6 +200,26 @@ export class AIProviderManager {
 			return ['claude', 'openai', 'google'];
 		}
 		return ['claude', 'openai', 'google', 'ollama'];
+	}
+
+	/**
+	 * Get all available providers with their availability status in parallel
+	 */
+	async getAvailableProvidersWithStatus(): Promise<Map<ProviderType, boolean>> {
+		const allowedProviders = this.getAllowedProviders();
+		const availabilityChecks = allowedProviders.map(async (providerType) => {
+			const isAvailable = await this.checkProviderAvailability(providerType);
+			return { providerType, isAvailable };
+		});
+
+		const results = await Promise.all(availabilityChecks);
+		const availabilityMap = new Map<ProviderType, boolean>();
+		
+		results.forEach(({ providerType, isAvailable }) => {
+			availabilityMap.set(providerType, isAvailable);
+		});
+
+		return availabilityMap;
 	}
 
 	isProviderAllowed(providerType: ProviderType): boolean {

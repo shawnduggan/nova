@@ -2474,34 +2474,80 @@ USER REQUEST: ${processedMessage}`;
 			position: absolute;
 			top: 100%;
 			right: 0;
-			min-width: 150px;
+			min-width: 200px;
+			max-width: 280px;
+			max-height: 300px;
 			background: var(--background-primary);
 			border: 1px solid var(--background-modifier-border);
 			border-radius: 6px;
 			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 			z-index: 1000;
 			display: none;
-			overflow: hidden;
+			overflow-y: auto;
+			overflow-x: hidden;
+			
+			/* Mobile responsive adjustments */
+			@media (max-width: 768px) {
+				min-width: 180px;
+				max-width: 250px;
+				max-height: 250px;
+				right: -20px; /* Offset to prevent edge cutoff */
+			}
+			
+			/* Smooth scrolling */
+			scroll-behavior: smooth;
+			
+			/* Custom scrollbar styling */
+			scrollbar-width: thin;
+			scrollbar-color: var(--background-modifier-border) transparent;
 		`;
+		
+		// Add webkit scrollbar styling for better cross-browser support
+		const scrollbarStyle = document.createElement('style');
+		scrollbarStyle.textContent = `
+			.nova-provider-dropdown-menu::-webkit-scrollbar {
+				width: 6px;
+			}
+			.nova-provider-dropdown-menu::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			.nova-provider-dropdown-menu::-webkit-scrollbar-thumb {
+				background: var(--background-modifier-border);
+				border-radius: 3px;
+			}
+			.nova-provider-dropdown-menu::-webkit-scrollbar-thumb:hover {
+				background: var(--background-modifier-border-hover);
+			}
+		`;
+		if (!document.querySelector('.nova-scrollbar-style')) {
+			scrollbarStyle.className = 'nova-scrollbar-style';
+			document.head.appendChild(scrollbarStyle);
+		}
 
 		let isDropdownOpen = false;
 
-		// Update current model display
-		const updateCurrentProvider = async () => {
+		// Update current model display (optimized for speed)
+		const updateCurrentProvider = () => {
 			try {
-				// Get the currently selected model
+				// Get the currently selected model synchronously
 				const currentModel = this.plugin.aiProviderManager.getCurrentModel();
 				
 				if (currentModel) {
-					// Get the display name for the current model
-					const displayText = await this.getModelDisplayNameFromCurrent(currentModel);
-					
-					// Defensive check to prevent "II" or other malformed displays
-					if (displayText && displayText.length > 2 && !displayText.match(/^I+$/)) {
-						providerName.setText(displayText);
+					// Get provider type directly from model name (no async needed)
+					const providerType = this.getProviderTypeFromModel(currentModel);
+					if (providerType) {
+						const displayText = this.getModelDisplayName(providerType, currentModel);
+						
+						// Defensive check to prevent "II" or other malformed displays
+						if (displayText && displayText.length > 2 && !displayText.match(/^I+$/)) {
+							providerName.setText(displayText);
+						} else {
+							// Fallback to raw model name if display text is invalid
+							console.warn('Invalid model display text, using raw model name:', displayText);
+							providerName.setText(currentModel);
+						}
 					} else {
-						// Fallback to raw model name if display text is invalid
-						console.warn('Invalid model display text, using raw model name:', displayText);
+						// Unknown provider, use raw model name
 						providerName.setText(currentModel);
 					}
 				} else {
@@ -2534,6 +2580,13 @@ USER REQUEST: ${processedMessage}`;
 			}
 		};
 
+		// Close dropdown helper function for internal use
+		const closeDropdownInternal = () => {
+			isDropdownOpen = false;
+			dropdownMenu.style.display = 'none';
+			dropdownArrow.style.transform = 'rotate(0deg)';
+		};
+
 		providerButton.addEventListener('click', (e) => {
 			e.stopPropagation();
 			toggleDropdown();
@@ -2542,20 +2595,13 @@ USER REQUEST: ${processedMessage}`;
 		// Add global click listener
 		this.addTrackedEventListener(document, 'click', closeDropdown);
 
-		// Update model name initially - properly await the async call
-		// This prevents the "II" display issue on reload
-		// Keep the loading text until the async operation completes
-		try {
-			await updateCurrentProvider();
-			// Model loaded successfully, text already updated by updateCurrentProvider
-		} catch (err) {
-			console.error('Failed to load model on initialization:', err);
-			providerName.setText('Select Model');
-		}
+		// Update model name immediately (no async needed)
+		updateCurrentProvider();
 
-		// Store reference for cleanup
+		// Store reference for cleanup and internal dropdown control
 		(this as any).currentProviderDropdown = {
 			updateCurrentProvider,
+			closeDropdown: closeDropdownInternal,
 			cleanup: () => document.removeEventListener('click', closeDropdown)
 		};
 	}
@@ -2602,218 +2648,277 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Get model display name from just the model name (uses current provider)
+	 * Get provider type from model name synchronously (pattern matching)
 	 */
-	private async getModelDisplayNameFromCurrent(modelName: string): Promise<string> {
-		try {
-			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-			if (!currentProviderType) {
-				console.warn('No current provider available for model display name');
-				return modelName;
-			}
-			return this.getModelDisplayName(currentProviderType, modelName);
-		} catch (error) {
-			console.warn('Failed to get current provider for model display name:', error);
-			// Fallback to the raw model name if we can't get provider info
-			return modelName;
-		}
+	private getProviderTypeFromModel(modelName: string): string | null {
+		if (modelName.startsWith('claude-')) return 'claude';
+		if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) return 'openai';
+		if (modelName.startsWith('gemini-')) return 'google';
+		// Default to Ollama for unrecognized models
+		return 'ollama';
 	}
 
 	/**
 	 * Switch to a specific model for a provider
 	 */
-	private async switchToModel(providerType: string, modelValue: string): Promise<void> {
-		// Check if we're already on this provider
-		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-		const isCurrentProvider = currentProviderType === providerType;
-		
-		// Update settings
-		const providers = this.plugin.settings.aiProviders as Record<string, any>;
-		providers[providerType].model = modelValue;
-		await this.plugin.saveSettings();
-		
-		if (isCurrentProvider) {
-			// Just switching models on current provider - show model switch message
-			const modelName = this.getModelDisplayName(providerType, modelValue);
-			const providerName = this.getProviderDisplayName(providerType);
-			this.addSuccessMessage(`✓ Switched to ${providerName} ${modelName}`);
-		} else {
-			// Switching to different provider - this will show the provider+model message
-			this.isUserInitiatedProviderChange = true;
-			await this.switchToModelOnCurrentProvider(modelValue);
-			this.isUserInitiatedProviderChange = false;
-		}
-		
-		// Update the dropdown display
-		if ((this as any).currentProviderDropdown) {
-			(this as any).currentProviderDropdown.updateCurrentProvider();
+	private switchToModel(providerType: string, modelValue: string): void {
+		try {
+			// Update platform settings for persistence (this is what actually matters)
+			const platform = Platform.isMobile ? 'mobile' : 'desktop';
+			this.plugin.settings.platformSettings[platform].selectedModel = modelValue;
+			
+			// Also update provider model setting for consistency
+			const providers = this.plugin.settings.aiProviders as Record<string, any>;
+			if (providers[providerType]) {
+				providers[providerType].model = modelValue;
+			}
+			
+			// Show success message immediately (optimistic update)
+			const modelDisplayName = this.getModelDisplayName(providerType, modelValue);
+			const providerDisplayName = this.getProviderDisplayName(providerType);
+			this.addSuccessMessage(`✓ Switched to ${providerDisplayName} ${modelDisplayName}`);
+			
+			// Save settings asynchronously (don't block UI)
+			this.plugin.saveSettings().catch(error => {
+				console.error('Error saving model selection:', error);
+				this.addErrorMessage('Failed to save model selection');
+			});
+			
+		} catch (error) {
+			console.error('Error switching model:', error);
+			this.addErrorMessage('Failed to switch model');
 		}
 	}
 
 	/**
-	 * Populate provider dropdown with available providers
+	 * Populate provider dropdown with grouped models and section headers
 	 */
 	private async populateProviderDropdown(dropdownMenu: HTMLElement): Promise<void> {
 		dropdownMenu.empty();
 
-		const allowedProviders = this.plugin.aiProviderManager.getAllowedProviders();
-		const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+		// Show loading state
+		const loadingItem = dropdownMenu.createDiv({ cls: 'nova-dropdown-loading' });
+		loadingItem.style.cssText = `
+			padding: 12px;
+			text-align: center;
+			color: var(--text-muted);
+			font-size: 0.8em;
+		`;
+		loadingItem.setText('Loading providers...');
 
-		for (const providerType of allowedProviders) {
-			if (providerType === 'none') continue;
+		try {
+			// Get all providers in parallel with availability status
+			const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
+			const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 
-			// Check if provider has API key configured
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			const hasApiKey = providers[providerType]?.apiKey;
-			if (!hasApiKey && providerType !== 'ollama') continue;
+			// Clear loading state
+			dropdownMenu.empty();
 
-			const models = this.getAvailableModels(providerType);
-			const currentModel = this.getCurrentModel(providerType);
-			const displayName = this.getProviderDisplayName(providerType);
-			const isCurrent = displayName === currentProviderName;
-
-			// Create provider container
-			const providerContainer = dropdownMenu.createDiv({ cls: 'nova-provider-container' });
+			// Group models by provider with section headers
+			let hasAnyProviders = false;
 			
-			// Main provider item
-			const providerItem = providerContainer.createDiv({ cls: 'nova-provider-dropdown-item' });
-			providerItem.style.cssText = `
-				padding: 8px 12px;
-				cursor: pointer;
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				font-size: 0.85em;
-				color: var(--text-normal);
-				transition: background-color 0.2s ease;
-				position: relative;
-			`;
+			for (const [providerType, isAvailable] of providerAvailability) {
+				if (providerType === 'none' || !isAvailable) continue;
 
-			// Provider icon/dot
-			const providerDot = providerItem.createSpan();
-			providerDot.style.cssText = `
-				width: 8px;
-				height: 8px;
-				border-radius: 50%;
-				background: ${this.getProviderColor(providerType)};
-			`;
+				// Check if provider has API key configured
+				const providers = this.plugin.settings.aiProviders as Record<string, any>;
+				const hasApiKey = providers[providerType]?.apiKey;
+				if (!hasApiKey && providerType !== 'ollama') continue;
 
-			// Provider name only (models are shown in submenu)
-			const nameSpan = providerItem.createSpan({ text: displayName });
-			nameSpan.style.flex = '1';
+				const models = this.getAvailableModels(providerType);
+				const providerDisplayName = this.getProviderDisplayName(providerType);
+				const providerColor = this.getProviderColor(providerType);
 
-			// Expand arrow for models (only if models available)
-			let expandArrow: HTMLElement | null = null;
-			if (models.length > 0) {
-				expandArrow = providerItem.createSpan({ text: '▶' });
-				expandArrow.style.cssText = `
-					font-size: 0.6em;
-					transition: transform 0.2s ease;
+				// Skip providers with no models
+				if (models.length === 0 && providerType !== 'ollama') continue;
+
+				// Add provider section header
+				if (hasAnyProviders) {
+					// Add separator between provider sections
+					const separator = dropdownMenu.createDiv({ cls: 'nova-provider-separator' });
+					separator.style.cssText = `
+						height: 1px;
+						background: var(--background-modifier-border);
+						margin: 4px 8px;
+					`;
+				}
+
+				const sectionHeader = dropdownMenu.createDiv({ cls: 'nova-provider-section-header' });
+				sectionHeader.style.cssText = `
+					padding: 8px 12px 4px 12px;
+					font-size: 0.75em;
+					font-weight: 600;
 					color: var(--text-muted);
-				`;
-			}
-
-			// Mark current provider
-			if (isCurrent) {
-				providerItem.style.background = 'var(--background-modifier-hover)';
-			}
-
-			// Models submenu
-			let modelsMenu: HTMLElement | null = null;
-			let isExpanded = false;
-
-			if (models.length > 0) {
-				modelsMenu = providerContainer.createDiv({ cls: 'nova-models-submenu' });
-				modelsMenu.style.cssText = `
-					display: none;
-					background: var(--background-primary);
-					border-left: 2px solid ${this.getProviderColor(providerType)};
-					margin-left: 16px;
+					text-transform: uppercase;
+					letter-spacing: 0.5px;
+					display: flex;
+					align-items: center;
+					gap: 6px;
 				`;
 
-				// Populate models
-				for (const model of models) {
-					const modelItem = modelsMenu.createDiv({ cls: 'nova-model-item' });
-					modelItem.style.cssText = `
-						padding: 6px 12px;
-						cursor: pointer;
-						font-size: 0.8em;
-						color: var(--text-normal);
-						transition: background-color 0.2s ease;
-						display: flex;
-						align-items: center;
-						gap: 8px;
-					`;
+				// Provider color dot in header
+				const headerDot = sectionHeader.createSpan();
+				headerDot.style.cssText = `
+					width: 6px;
+					height: 6px;
+					border-radius: 50%;
+					background: ${providerColor};
+					flex-shrink: 0;
+				`;
 
-					// Model indicator
-					const modelDot = modelItem.createSpan();
-					modelDot.style.cssText = `
-						width: 4px;
-						height: 4px;
-						border-radius: 50%;
-						background: ${model.value === currentModel ? this.getProviderColor(providerType) : 'var(--text-muted)'};
-					`;
+				sectionHeader.createSpan({ text: providerDisplayName });
+				hasAnyProviders = true;
 
-					const modelName = modelItem.createSpan({ text: model.label });
-
-					// Model click handler
-					modelItem.addEventListener('click', async (e) => {
-						e.stopPropagation();
-						await this.switchToModel(providerType, model.value);
-						// Close dropdown
-						dropdownMenu.style.display = 'none';
-					});
-
-					// Model hover effect
-					modelItem.addEventListener('mouseenter', () => {
-						modelItem.style.background = 'var(--background-modifier-border-hover)';
-					});
-					modelItem.addEventListener('mouseleave', () => {
-						modelItem.style.background = 'transparent';
-					});
-				}
-			}
-
-			// Provider click handler
-			providerItem.addEventListener('click', async (e) => {
-				if (models.length > 0) {
-					// Toggle submenu
-					e.stopPropagation();
-					isExpanded = !isExpanded;
-					if (modelsMenu) {
-						modelsMenu.style.display = isExpanded ? 'block' : 'none';
-					}
-					if (expandArrow) {
-						expandArrow.style.transform = isExpanded ? 'rotate(90deg)' : 'rotate(0deg)';
-					}
+				if (models.length === 0) {
+					// Provider without specific models (like Ollama)
+					this.createModelDropdownItem(
+						dropdownMenu,
+						providerType,
+						providers[providerType]?.model || providerDisplayName,
+						providerDisplayName,
+						providerColor,
+						currentProviderType === providerType,
+						currentModel
+					);
 				} else {
-					// Switch provider directly (for Ollama or providers without models)
-					if (!isCurrent) {
-						this.isUserInitiatedProviderChange = true;
-						const modelValue = this.getCurrentModel(providerType);
-						await this.switchToModelOnCurrentProvider(modelValue);
-						this.isUserInitiatedProviderChange = false;
-						dropdownMenu.style.display = 'none';
-						if ((this as any).currentProviderDropdown) {
-							(this as any).currentProviderDropdown.updateCurrentProvider();
-						}
+					// Provider with specific models
+					for (const model of models) {
+						const isCurrentSelection = currentProviderType === providerType && model.value === currentModel;
+						
+						this.createModelDropdownItem(
+							dropdownMenu,
+							providerType,
+							model.value,
+							model.label,
+							providerColor,
+							isCurrentSelection,
+							currentModel
+						);
 					}
 				}
-			});
+			}
 
-			// Hover effect
-			providerItem.addEventListener('mouseenter', () => {
-				if (!isCurrent) {
-					providerItem.style.background = 'var(--background-modifier-border-hover)';
-				}
-			});
+			// If no providers available, show message
+			if (!hasAnyProviders) {
+				const noProvidersItem = dropdownMenu.createDiv();
+				noProvidersItem.style.cssText = `
+					padding: 12px;
+					text-align: center;
+					color: var(--text-muted);
+					font-size: 0.8em;
+				`;
+				noProvidersItem.setText('No providers available');
+			}
 
-			providerItem.addEventListener('mouseleave', () => {
-				if (!isCurrent && !isExpanded) {
-					providerItem.style.background = 'transparent';
-				}
-			});
+		} catch (error) {
+			console.error('Error populating provider dropdown:', error);
+			dropdownMenu.empty();
+			const errorItem = dropdownMenu.createDiv();
+			errorItem.style.cssText = `
+				padding: 12px;
+				text-align: center;
+				color: var(--text-error);
+				font-size: 0.8em;
+			`;
+			errorItem.setText('Error loading providers');
 		}
+	}
+
+	/**
+	 * Create a single model dropdown item (just model name, no provider prefix)
+	 */
+	private createModelDropdownItem(
+		container: HTMLElement,
+		providerType: string,
+		modelValue: string,
+		modelDisplayName: string,
+		providerColor: string,
+		isCurrent: boolean,
+		currentModel: string
+	): void {
+		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
+		item.style.cssText = `
+			padding: 8px 12px 8px 20px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 0.85em;
+			color: var(--text-normal);
+			transition: background-color 0.2s ease;
+			border-radius: 3px;
+			margin: 1px 6px;
+			${isCurrent ? 'background: var(--background-modifier-hover);' : ''}
+		`;
+
+		// Provider color indicator (smaller dot)
+		const dot = item.createSpan();
+		dot.style.cssText = `
+			width: 6px;
+			height: 6px;
+			border-radius: 50%;
+			background: ${providerColor};
+			flex-shrink: 0;
+			opacity: 0.7;
+		`;
+
+		// Model name only (no provider prefix)
+		const textSpan = item.createSpan({ text: modelDisplayName });
+		textSpan.style.cssText = `
+			flex: 1;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		`;
+
+		// Current selection indicator
+		if (isCurrent) {
+			const checkmark = item.createSpan({ text: '✓' });
+			checkmark.style.cssText = `
+				color: ${providerColor};
+				font-weight: 600;
+				font-size: 0.9em;
+				flex-shrink: 0;
+			`;
+		}
+
+		// Click handler for single-click selection
+		item.addEventListener('click', (e) => {
+			e.stopPropagation();
+			
+			if (!isCurrent) {
+				try {
+					// Switch model immediately (no await needed)
+					this.switchToModel(providerType, modelValue || this.getCurrentModel(providerType));
+					
+					// Close dropdown immediately
+					if ((this as any).currentProviderDropdown?.closeDropdown) {
+						(this as any).currentProviderDropdown.closeDropdown();
+					}
+					
+					// Update display immediately
+					if ((this as any).currentProviderDropdown) {
+						(this as any).currentProviderDropdown.updateCurrentProvider();
+					}
+				} catch (error) {
+					console.error('Error switching provider/model:', error);
+				}
+			}
+		});
+
+		// Hover effects
+		item.addEventListener('mouseenter', () => {
+			if (!isCurrent) {
+				item.style.background = 'var(--background-modifier-border-hover)';
+			}
+		});
+
+		item.addEventListener('mouseleave', () => {
+			if (!isCurrent) {
+				item.style.background = 'transparent';
+			}
+		});
 	}
 
 	/**
@@ -2954,97 +3059,6 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Switch to a different model and update conversation context
 	 */
-	private async switchToModelOnCurrentProvider(modelName: string): Promise<void> {
-		console.log('[Nova Debug] switchToModel called:', {
-			modelName,
-			isUserInitiated: this.isUserInitiatedProviderChange,
-			timestamp: new Date().toISOString()
-		});
-		
-		try {
-			// Only add a system message for user-initiated model switching
-			if (this.isUserInitiatedProviderChange) {
-				const displayName = await this.getModelDisplayNameFromCurrent(modelName);
-				this.addSuccessMessage(`✓ Switched to ${displayName}`);
-			}
-			
-			// 1. Log settings before save
-			console.log('[Nova Debug] Settings BEFORE save:', {
-				currentSettings: JSON.parse(JSON.stringify(this.plugin.settings)),
-				timestamp: new Date().toISOString()
-			});
-			
-			// 2. Detect platform
-			const platform = Platform.isMobile ? 'mobile' : 'desktop';
-			console.log('[Nova Debug] Platform detected:', {
-				platform,
-				isMobile: Platform.isMobile,
-				timestamp: new Date().toISOString()
-			});
-			
-			// 3. Log what selectedModel is being set to
-			console.log('[Nova Debug] Setting selectedModel to:', {
-				modelName,
-				targetPlatform: platform,
-				oldSelectedModel: this.plugin.settings.platformSettings[platform].selectedModel,
-				newSelectedModel: modelName,
-				timestamp: new Date().toISOString()
-			});
-			
-			// Update the platform settings to use the new model
-			this.plugin.settings.platformSettings[platform].selectedModel = modelName;
-			
-			// 4. Log settings after change but before save
-			console.log('[Nova Debug] Settings AFTER change but BEFORE save:', {
-				modifiedSettings: JSON.parse(JSON.stringify(this.plugin.settings)),
-				specificPlatformSettings: this.plugin.settings.platformSettings[platform],
-				timestamp: new Date().toISOString()
-			});
-			
-			// Save the settings
-			console.log('[Nova Debug] Starting settings save operation...', {
-				timestamp: new Date().toISOString()
-			});
-			
-			await this.plugin.saveSettings();
-			
-			// 5. Confirmation that save completed
-			console.log('[Nova Debug] Settings save operation COMPLETED:', {
-				settingsAfterSave: JSON.parse(JSON.stringify(this.plugin.settings)),
-				savedSelectedModel: this.plugin.settings.platformSettings[platform].selectedModel,
-				timestamp: new Date().toISOString()
-			});
-			
-			// Re-initialize the provider manager with new settings
-			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
-			
-			// Refresh context to recalculate with new provider's context limits
-			await this.refreshContext();
-			
-			// Refresh status indicators
-			await this.refreshProviderStatus();
-			
-			console.log('[Nova Debug] switchToModel completed successfully:', {
-				modelName,
-				isUserInitiated: this.isUserInitiatedProviderChange,
-				timestamp: new Date().toISOString()
-			});
-			
-		} catch (error) {
-			console.error('[Nova Debug] switchToModel failed:', {
-				modelName,
-				isUserInitiated: this.isUserInitiatedProviderChange,
-				error: error instanceof Error ? error.message : String(error),
-				timestamp: new Date().toISOString()
-			});
-			
-			// Error switching model - handled by UI feedback
-			if (this.isUserInitiatedProviderChange) {
-				const displayName = await this.getModelDisplayNameFromCurrent(modelName);
-				this.addErrorMessage(`❌ Failed to switch to ${displayName}`);
-			}
-		}
-	}
 
 	/**
 	 * Check if the command button should be shown based on feature availability and user preference
