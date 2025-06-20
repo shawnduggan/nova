@@ -2011,7 +2011,9 @@ USER REQUEST: ${processedMessage}`;
 				}
 				
 				if (statsEl && wordCount > 0) {
-					statsEl.textContent = `${wordCount} words • ${headingCount} sections`;
+					// Calculate reading time (words / 225 = minutes)
+					const readingTime = Math.ceil(wordCount / 225);
+					statsEl.textContent = `~ ${readingTime} min read`;
 				}
 			}
 		} catch (error) {
@@ -2431,7 +2433,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Create provider dropdown for all users with their own API keys
 	 */
-	private createProviderDropdown(container: HTMLElement): void {
+	private async createProviderDropdown(container: HTMLElement): Promise<void> {
 		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
 		dropdownContainer.style.cssText = `
 			position: relative;
@@ -2455,8 +2457,8 @@ USER REQUEST: ${processedMessage}`;
 			transition: background-color 0.2s ease;
 		`;
 
-		// Provider name
-		const providerName = providerButton.createSpan({ text: 'Loading...' });
+		// Provider name - start with a placeholder to prevent "II" display
+		const providerName = providerButton.createSpan({ text: 'Loading...', cls: 'nova-provider-name' });
 
 		// Dropdown arrow
 		const dropdownArrow = providerButton.createSpan({ text: '▼' });
@@ -2486,13 +2488,25 @@ USER REQUEST: ${processedMessage}`;
 
 		// Update current provider display
 		const updateCurrentProvider = async () => {
-			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-			if (currentProviderType) {
-				const displayText = this.getProviderWithModelDisplayName(currentProviderType);
-				providerName.setText(displayText);
-			} else {
-				const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
-				providerName.setText(currentProviderName);
+			try {
+				const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+				if (currentProviderType) {
+					const displayText = this.getProviderWithModelDisplayName(currentProviderType);
+					// Defensive check to prevent "II" or other malformed displays
+					if (displayText && displayText.length > 2 && !displayText.match(/^I+$/)) {
+						providerName.setText(displayText);
+					} else {
+						// Fallback to provider name if display text is invalid
+						const providerDisplayName = this.getProviderDisplayName(currentProviderType);
+						providerName.setText(providerDisplayName);
+					}
+				} else {
+					const currentProviderName = await this.plugin.aiProviderManager.getCurrentProviderName();
+					providerName.setText(currentProviderName || 'Select Provider');
+				}
+			} catch (error) {
+				console.error('Error updating provider display:', error);
+				providerName.setText('Select Provider');
 			}
 		};
 
@@ -2524,8 +2538,15 @@ USER REQUEST: ${processedMessage}`;
 		// Add global click listener
 		this.addTrackedEventListener(document, 'click', closeDropdown);
 
-		// Update provider name initially
-		updateCurrentProvider();
+		// Update provider name initially - properly await the async call
+		// This prevents the "II" display issue on reload
+		// Keep the loading text until the async operation completes
+		updateCurrentProvider().then(() => {
+			// Provider loaded successfully, text already updated by updateCurrentProvider
+		}).catch(err => {
+			console.error('Failed to load provider on initialization:', err);
+			providerName.setText('Select Provider');
+		});
 
 		// Store reference for cleanup
 		(this as any).currentProviderDropdown = {
@@ -2563,7 +2584,16 @@ USER REQUEST: ${processedMessage}`;
 	private getModelDisplayName(providerType: string, modelValue: string): string {
 		const models = this.getAvailableModels(providerType);
 		const model = models.find(m => m.value === modelValue);
-		return model ? model.label : modelValue;
+		const displayName = model ? model.label : modelValue;
+		
+		// Defensive check to prevent "II" bug
+		if (displayName === "II" || displayName.match(/^I+$/) || displayName.length < 3) {
+			console.warn('Invalid model display name prevented:', displayName, 'for model:', modelValue);
+			// Return a more descriptive fallback
+			return this.getProviderDisplayName(providerType);
+		}
+		
+		return displayName;
 	}
 
 	/**
@@ -2868,7 +2898,19 @@ USER REQUEST: ${processedMessage}`;
 		
 		if (models.length > 0) {
 			const currentModel = this.getCurrentModel(providerType);
-			return this.getModelDisplayName(providerType, currentModel);
+			const modelDisplayName = this.getModelDisplayName(providerType, currentModel);
+			
+			// Debug logging for "II" issue
+			if (modelDisplayName === "II" || modelDisplayName.match(/^I+$/)) {
+				console.warn('Invalid model display name detected:', {
+					providerType,
+					currentModel,
+					modelDisplayName,
+					models
+				});
+			}
+			
+			return modelDisplayName;
 		}
 		
 		return this.getProviderDisplayName(providerType);
