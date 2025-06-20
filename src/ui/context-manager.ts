@@ -413,23 +413,13 @@ export class ContextManager {
 	}
 
 	/**
-	 * Initialize context for a new file (drawer always starts closed)
+	 * Restore context after chat has been loaded (prevents missing file notifications from being cleared)
 	 */
-	async initializeForFile(file: TFile | null): Promise<void> {
-		const newFilePath = file?.path || null;
-		
-		// Set current file and clear any stale context
-		if (this.currentFilePath !== newFilePath) {
-			this.currentContext = null;
-			this.currentOperationId = null;
-			this.hideContextIndicator();
-			this.hideContextPreview();
+	async restoreContextAfterChatLoad(file: TFile | null): Promise<void> {
+		// Restore context from conversation manager if available
+		if (file && this.plugin.conversationManager) {
+			await this.restoreContextFromConversation(file);
 		}
-		
-		this.currentFilePath = newFilePath;
-		
-		// Note: Drawer visibility is determined by context presence
-		// UI will show drawer if file has context documents
 		
 		// Load context data and update indicator
 		await this.refreshContextFromStorage();
@@ -447,14 +437,18 @@ export class ContextManager {
 	 * Add document to context for current file
 	 */
 	async addDocument(file: TFile): Promise<void> {
-		if (!this.currentFilePath) return;
+		if (!this.currentFilePath) {
+			return;
+		}
 		
 		// Get current persistent context
 		const current = this.persistentContext.get(this.currentFilePath) || [];
 		
 		// Check if document is already in context
 		const exists = current.some(doc => doc.file.path === file.path);
-		if (exists) return;
+		if (exists) {
+			return;
+		}
 		
 		// Add the document
 		const newRef: DocumentReference = { 
@@ -467,6 +461,13 @@ export class ContextManager {
 		
 		// Update persistent context directly
 		this.persistentContext.set(this.currentFilePath, updated);
+		
+		// Save to conversation manager for persistence
+		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+		
+		if (currentFile && currentFile.path && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.addContextDocument(currentFile as TFile, file.path);
+		}
 		
 		// Refresh context and indicator
 		await this.refreshContextFromStorage();
@@ -486,6 +487,12 @@ export class ContextManager {
 			this.persistentContext.set(this.currentFilePath, filtered);
 		} else {
 			this.persistentContext.delete(this.currentFilePath);
+		}
+		
+		// Save to conversation manager for persistence
+		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+		if (currentFile && currentFile.path && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.removeContextDocument(currentFile as TFile, file.path);
 		}
 		
 		// Refresh context and indicator
@@ -570,6 +577,195 @@ export class ContextManager {
 		}
 	}
 
+	/**
+	 * Restore context from conversation manager
+	 */
+	private async restoreContextFromConversation(file: TFile): Promise<void> {
+		if (!this.plugin.conversationManager) {
+			return;
+		}
+		
+		try {
+			// Get saved context documents from conversation manager
+			const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+			
+			if (savedContextDocs.length === 0) {
+				// No saved context, ensure clean state
+				this.persistentContext.delete(file.path);
+				return;
+			}
+			
+			// Validate and convert ContextDocumentRefs back to DocumentReferences
+			const validDocumentRefs: DocumentReference[] = [];
+			const invalidPaths: string[] = [];
+			
+			for (const contextDoc of savedContextDocs) {
+				try {
+					// Validate context document structure
+					if (!contextDoc || !contextDoc.path || typeof contextDoc.path !== 'string') {
+						console.warn('Invalid context document structure:', contextDoc);
+						continue;
+					}
+					
+					// Find the actual file in the vault
+					const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+					
+					if (contextFile && contextFile.path && contextFile instanceof TFile) {
+						// File exists - add to valid documents
+						validDocumentRefs.push({
+							file: contextFile,
+							property: contextDoc.property,
+							isPersistent: true,
+							rawReference: contextDoc.property 
+								? `[[${contextFile.basename}#${contextDoc.property}]]`
+								: `[[${contextFile.basename}]]`
+						});
+					} else {
+						// File missing - track for cleanup
+						invalidPaths.push(contextDoc.path);
+					}
+				} catch (docError) {
+					// Skip corrupted individual context documents
+					console.warn('Error processing context document, skipping:', docError);
+				}
+			}
+			
+			// Clean up missing files from conversation storage and show notice
+			if (invalidPaths.length > 0) {
+				await this.cleanupMissingFiles(file, invalidPaths);
+				this.showMissingFilesNotice(invalidPaths);
+			}
+			
+			// Update persistent context with validated documents
+			if (validDocumentRefs.length > 0) {
+				this.persistentContext.set(file.path, validDocumentRefs);
+			} else {
+				// No valid files - clear context
+				this.persistentContext.delete(file.path);
+			}
+			
+		} catch (error) {
+			// Graceful fallback on restoration errors
+			console.warn('Failed to restore context from conversation:', error);
+			// Ensure clean state on error
+			this.persistentContext.delete(file.path);
+		}
+	}
+
+	/**
+	 * Clean up missing files from conversation storage
+	 */
+	private async cleanupMissingFiles(file: TFile, invalidPaths: string[]): Promise<void> {
+		if (!this.plugin.conversationManager) return;
+		
+		try {
+			// Remove each invalid path from conversation storage
+			for (const invalidPath of invalidPaths) {
+				await this.plugin.conversationManager.removeContextDocument(file, invalidPath);
+			}
+		} catch (error) {
+			// Graceful fallback if cleanup fails
+			console.warn('Failed to cleanup missing files from conversation:', error);
+		}
+	}
+
+	/**
+	 * Show notice and chat message about missing context files
+	 */
+	private showMissingFilesNotice(missingFiles: string[]): void {
+		if (missingFiles.length === 0) return;
+		
+		try {
+			let noticeMessage: string;
+			let chatMessage: string;
+			
+			if (missingFiles.length === 1) {
+				noticeMessage = `⚠️ Context file no longer available: ${missingFiles[0]}`;
+				chatMessage = `Context file no longer available: ${missingFiles[0]}`;
+			} else {
+				// Limit display to avoid overly long notices
+				const displayFiles = missingFiles.slice(0, 3);
+				const remainingCount = missingFiles.length - displayFiles.length;
+				
+				if (remainingCount > 0) {
+					noticeMessage = `⚠️ ${missingFiles.length} context files no longer available: ${displayFiles.join(', ')} and ${remainingCount} more`;
+					chatMessage = `${missingFiles.length} context files no longer available: ${displayFiles.join(', ')} and ${remainingCount} more`;
+				} else {
+					noticeMessage = `⚠️ ${missingFiles.length} context files no longer available: ${displayFiles.join(', ')}`;
+					chatMessage = `${missingFiles.length} context files no longer available: ${displayFiles.join(', ')}`;
+				}
+			}
+			
+			// Show temporary notice for immediate feedback
+			new Notice(noticeMessage, ContextManager.NOTICE_DURATION_MS);
+			
+			// Add permanent chat message for conversation history
+			if (this.sidebarView && typeof this.sidebarView.addWarningMessage === 'function') {
+				this.sidebarView.addWarningMessage(chatMessage);
+			}
+		} catch (error) {
+			// Graceful fallback if notice or chat message fails
+			console.warn('Failed to show missing files notification:', error);
+		}
+	}
+
+	/**
+	 * Validate all context documents for a file and return results
+	 */
+	async validateContextDocuments(file: TFile): Promise<{
+		validFiles: string[];
+		missingFiles: string[];
+		totalCount: number;
+	}> {
+		if (!this.plugin.conversationManager) {
+			return { validFiles: [], missingFiles: [], totalCount: 0 };
+		}
+
+		try {
+			const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+			const validFiles: string[] = [];
+			const missingFiles: string[] = [];
+
+			for (const contextDoc of savedContextDocs) {
+				const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+				
+				if (contextFile && contextFile.path) {
+					validFiles.push(contextDoc.path);
+				} else {
+					missingFiles.push(contextDoc.path);
+				}
+			}
+
+			return {
+				validFiles,
+				missingFiles,
+				totalCount: savedContextDocs.length
+			};
+		} catch (error) {
+			// Graceful fallback
+			return { validFiles: [], missingFiles: [], totalCount: 0 };
+		}
+	}
+
+	/**
+	 * Schedule async persistence update
+	 */
+	private async schedulePersistenceUpdate(conversationFilePath: string, references: DocumentReference[]): Promise<void> {
+		// Run async save in background
+		const conversationFile = this.app.vault.getAbstractFileByPath(conversationFilePath);
+		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+			// Convert DocumentReferences to ContextDocumentRefs
+			const contextRefs = references.map(ref => ({
+				path: ref.file.path,
+				property: ref.property,
+				addedAt: Date.now()
+			}));
+			
+			// Save all context documents
+			await this.plugin.conversationManager.setContextDocuments(conversationFile as TFile, contextRefs);
+		}
+	}
+
 	cleanup(): void {
 		this.clearCurrentContext();
 		if (this.contextIndicator) {
@@ -636,6 +832,9 @@ export class ContextManager {
 			}
 			
 			this.persistentContext.set(conversationFilePath, updatedPersistent);
+			
+			// Schedule async save to conversation manager
+			this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent);
 		}
 
 		return { cleanedMessage, references };
@@ -765,8 +964,14 @@ export class ContextManager {
 	/**
 	 * Clear persistent context for a conversation
 	 */
-	clearPersistentContext(filePath: string): void {
+	async clearPersistentContext(filePath: string): Promise<void> {
 		this.persistentContext.delete(filePath);
+		
+		// Also clear from conversation manager
+		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
+		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.clearContextDocuments(conversationFile as TFile);
+		}
 	}
 
 	/**
@@ -779,7 +984,7 @@ export class ContextManager {
 	/**
 	 * Remove a specific document from persistent context
 	 */
-	removePersistentDoc(filePath: string, docToRemove: string): void {
+	async removePersistentDoc(filePath: string, docToRemove: string): Promise<void> {
 		const current = this.persistentContext.get(filePath) || [];
 		const filtered = current.filter(ref => ref.file.path !== docToRemove);
 		
@@ -787,6 +992,12 @@ export class ContextManager {
 			this.persistentContext.set(filePath, filtered);
 		} else {
 			this.persistentContext.delete(filePath);
+		}
+		
+		// Also remove from conversation manager
+		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
+		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.removeContextDocument(conversationFile as TFile, docToRemove);
 		}
 	}
 

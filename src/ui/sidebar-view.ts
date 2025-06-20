@@ -1916,9 +1916,8 @@ USER REQUEST: ${processedMessage}`;
 			return;
 		}
 		
-		// Initialize ContextManager for new file (drawer starts closed)
-		console.log('🧹 INITIALIZING CONTEXT for file switch');
-		await this.contextManager.initializeForFile(targetFile);
+		// Set current file in ContextManager but don't restore context yet (will do after chat loads)
+		this.contextManager.setCurrentFile(targetFile);
 		
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
@@ -1963,6 +1962,12 @@ USER REQUEST: ${processedMessage}`;
 				console.log('⚠️ File load operation cancelled during conversation loading');
 				return;
 			}
+			
+			// Now restore context after chat is loaded (so missing file notifications persist)
+			await this.contextManager.restoreContextAfterChatLoad(targetFile);
+			
+			// Refresh the context UI after restoration to remove any stale references
+			await this.refreshContext();
 			
 			// Show document insights after loading conversation
 			await this.showDocumentInsights(targetFile);

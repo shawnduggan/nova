@@ -190,6 +190,20 @@ export interface ConversationMessage {
 }
 
 /**
+ * Context document reference for persistence
+ */
+export interface ContextDocumentRef {
+    /** File path to the context document */
+    path: string;
+    
+    /** Optional property/section to focus on */
+    property?: string;
+    
+    /** Timestamp when added to context */
+    addedAt: number;
+}
+
+/**
  * File-scoped conversation storage
  */
 export interface ConversationData {
@@ -201,6 +215,9 @@ export interface ConversationData {
     
     /** Last updated timestamp */
     lastUpdated: number;
+    
+    /** Context documents for this conversation */
+    contextDocuments?: ContextDocumentRef[];
     
     /** Conversation metadata */
     metadata?: {

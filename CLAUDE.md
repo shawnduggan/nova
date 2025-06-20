@@ -73,9 +73,10 @@
 - **Command palette integration** (9 clean commands without confusing modals)
 - **Drag-and-drop file context** from Obsidian file explorer
 - **Native Obsidian file picker** for `[[` wikilink autocomplete (indistinguishable from core Obsidian)
+- **Context persistence across Obsidian restarts** with missing file handling
 - **Unified streaming system** with notice-based thinking animations
 - **Mobile-optimized UI** with responsive design
-- **Test suite passing** (34/34 test suites, 368 tests total)
+- **Test suite passing** (34/34 test suites, 424 tests total)
 - **Clean architecture** with simplified document editing
 
 ---
@@ -86,7 +87,6 @@
 - **Task** - change document stats/analytics to show reading time instead of word count and sections. should display like "~ 4 min read". use existing word count function, divide words by 225 to get the time.
 - **BUG: Long text generation fails** - Generating long text doesn't complete. Have to keep prompting, eventually gets error without finishing: "❌ Failed to edit content: Prompt validation failed: User prompt is too long (>10000 characters)"
 - **BUG: Current file can be added to context** - Drag and drop and typing [[ add files manually allows adding the current active file which is already in context
-- **Remove console logging before production launch** - Clean up debug logging from Google provider fixes and other development debugging.
 - **Settings tab menu mobile optimization** - Fix tab navigation in Settings modal for mobile devices (touch targets, overflow, readability)
 - Command System Polish (Custom Commands feature alignment)
 - Market Preparation Tasks (business infrastructure, plugin submission)

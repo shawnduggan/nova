@@ -4,7 +4,7 @@
  */
 
 import { TFile } from 'obsidian';
-import { ConversationData, ConversationMessage, EditCommand, EditResult, EditAction } from './types';
+import { ConversationData, ConversationMessage, EditCommand, EditResult, EditAction, ContextDocumentRef } from './types';
 
 export interface DataStore {
     loadData(key: string): Promise<any>;
@@ -16,9 +16,14 @@ export class ConversationManager {
     private maxMessagesPerFile = 100; // Limit conversation history
     private storageKey = 'nova-conversations';
     private cleanupInterval: number | null = null;
+    private initializePromise: Promise<void>;
 
     constructor(private dataStore: DataStore) {
-        this.loadConversations();
+        this.initializePromise = this.initialize();
+    }
+
+    private async initialize(): Promise<void> {
+        await this.loadConversations();
         this.startPeriodicCleanup();
     }
 
@@ -28,14 +33,83 @@ export class ConversationManager {
     private async loadConversations(): Promise<void> {
         try {
             const data = await this.dataStore.loadData(this.storageKey);
+            
             if (data && Array.isArray(data)) {
                 for (const conversation of data) {
-                    this.conversations.set(conversation.filePath, conversation);
+                    try {
+                        // Validate and sanitize conversation data
+                        const sanitizedConversation = this.sanitizeConversationData(conversation);
+                        this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
+                    } catch (error) {
+                        // Skip corrupted individual conversations
+                        console.warn(`Skipped corrupted conversation for file: ${conversation?.filePath || 'unknown'}`, error);
+                    }
                 }
             }
         } catch (error) {
             // Failed to load conversation data - graceful fallback
+            console.error('❌ ConversationManager.loadConversations: Load failed:', error);
         }
+    }
+
+    /**
+     * Sanitize and validate conversation data
+     */
+    private sanitizeConversationData(conversation: any): ConversationData {
+        // Ensure required fields exist and are valid
+        if (!conversation.filePath || typeof conversation.filePath !== 'string') {
+            throw new Error('Invalid or missing filePath');
+        }
+
+        // Ensure messages array exists and is valid
+        const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
+
+        // Ensure contextDocuments array exists and is valid
+        let contextDocuments: ContextDocumentRef[] = [];
+        if (Array.isArray(conversation.contextDocuments)) {
+            contextDocuments = conversation.contextDocuments
+                .filter((doc: any) => this.isValidContextDocument(doc))
+                .map((doc: any) => this.sanitizeContextDocument(doc));
+        }
+
+        // Ensure basic structure
+        return {
+            filePath: conversation.filePath,
+            messages,
+            lastUpdated: typeof conversation.lastUpdated === 'number' ? conversation.lastUpdated : Date.now(),
+            contextDocuments,
+            metadata: conversation.metadata || {
+                editCount: 0,
+                commandFrequency: {
+                    add: 0,
+                    edit: 0,
+                    delete: 0,
+                    grammar: 0,
+                    rewrite: 0,
+                    metadata: 0
+                }
+            }
+        };
+    }
+
+    /**
+     * Validate context document structure
+     */
+    private isValidContextDocument(doc: any): boolean {
+        return doc && 
+               typeof doc.path === 'string' && 
+               doc.path.trim().length > 0;
+    }
+
+    /**
+     * Sanitize context document data
+     */
+    private sanitizeContextDocument(doc: any): ContextDocumentRef {
+        return {
+            path: doc.path,
+            property: typeof doc.property === 'string' ? doc.property : undefined,
+            addedAt: typeof doc.addedAt === 'number' ? doc.addedAt : Date.now()
+        };
     }
 
     /**
@@ -46,7 +120,7 @@ export class ConversationManager {
             const conversationsArray = Array.from(this.conversations.values());
             await this.dataStore.saveData(this.storageKey, conversationsArray);
         } catch (error) {
-            // Failed to save conversation data - graceful fallback
+            console.error('❌ ConversationManager.saveConversations: Save failed:', error);
         }
     }
 
@@ -54,6 +128,7 @@ export class ConversationManager {
      * Get conversation for a specific file
      */
     getConversation(file: TFile): ConversationData {
+        // Note: This method is synchronous and used by other methods that await initializePromise
         const filePath = file.path;
         
         if (!this.conversations.has(filePath)) {
@@ -62,6 +137,7 @@ export class ConversationManager {
                 filePath,
                 messages: [],
                 lastUpdated: Date.now(),
+                contextDocuments: [],
                 metadata: {
                     editCount: 0,
                     commandFrequency: {
@@ -77,7 +153,13 @@ export class ConversationManager {
             this.conversations.set(filePath, newConversation);
         }
 
-        return this.conversations.get(filePath)!;
+        // Ensure backward compatibility - add contextDocuments if missing
+        const conversation = this.conversations.get(filePath)!;
+        if (!conversation.contextDocuments) {
+            conversation.contextDocuments = [];
+        }
+
+        return conversation;
     }
 
     /**
@@ -217,6 +299,7 @@ export class ConversationManager {
     async clearConversation(file: TFile): Promise<void> {
         const conversation = this.getConversation(file);
         conversation.messages = [];
+        // Do NOT clear contextDocuments - those are managed separately from the drawer
         conversation.lastUpdated = Date.now();
         
         if (conversation.metadata) {
@@ -379,6 +462,77 @@ export class ConversationManager {
         if (cleaned) {
             await this.saveConversations();
         }
+    }
+
+    /**
+     * Add a context document to the conversation
+     */
+    async addContextDocument(file: TFile, contextPath: string, property?: string): Promise<void> {
+        await this.initializePromise; // Ensure initialization is complete
+        
+        const conversation = this.getConversation(file);
+        
+        // Check if document already in context
+        const exists = conversation.contextDocuments?.some(doc => 
+            doc.path === contextPath && doc.property === property
+        );
+        
+        if (!exists) {
+            const contextDoc: ContextDocumentRef = {
+                path: contextPath,
+                property,
+                addedAt: Date.now()
+            };
+            
+            conversation.contextDocuments?.push(contextDoc);
+            conversation.lastUpdated = Date.now();
+            
+            await this.saveConversations();
+        }
+    }
+
+    /**
+     * Remove a context document from the conversation
+     */
+    async removeContextDocument(file: TFile, contextPath: string, property?: string): Promise<void> {
+        const conversation = this.getConversation(file);
+        
+        if (conversation.contextDocuments) {
+            conversation.contextDocuments = conversation.contextDocuments.filter(doc =>
+                !(doc.path === contextPath && doc.property === property)
+            );
+            conversation.lastUpdated = Date.now();
+            await this.saveConversations();
+        }
+    }
+
+    /**
+     * Get all context documents for a conversation
+     */
+    async getContextDocuments(file: TFile): Promise<ContextDocumentRef[]> {
+        await this.initializePromise; // Ensure initialization is complete
+        const conversation = this.getConversation(file);
+        return conversation.contextDocuments || [];
+    }
+
+    /**
+     * Clear all context documents for a conversation
+     */
+    async clearContextDocuments(file: TFile): Promise<void> {
+        const conversation = this.getConversation(file);
+        conversation.contextDocuments = [];
+        conversation.lastUpdated = Date.now();
+        await this.saveConversations();
+    }
+
+    /**
+     * Update context documents (replace entire list)
+     */
+    async setContextDocuments(file: TFile, documents: ContextDocumentRef[]): Promise<void> {
+        const conversation = this.getConversation(file);
+        conversation.contextDocuments = documents;
+        conversation.lastUpdated = Date.now();
+        await this.saveConversations();
     }
 
     /**

@@ -1240,17 +1240,12 @@ var _ContextManager = class _ContextManager {
     return this.currentFilePath;
   }
   /**
-   * Initialize context for a new file (drawer always starts closed)
+   * Restore context after chat has been loaded (prevents missing file notifications from being cleared)
    */
-  async initializeForFile(file) {
-    const newFilePath = (file == null ? void 0 : file.path) || null;
-    if (this.currentFilePath !== newFilePath) {
-      this.currentContext = null;
-      this.currentOperationId = null;
-      this.hideContextIndicator();
-      this.hideContextPreview();
+  async restoreContextAfterChatLoad(file) {
+    if (file && this.plugin.conversationManager) {
+      await this.restoreContextFromConversation(file);
     }
-    this.currentFilePath = newFilePath;
     await this.refreshContextFromStorage();
   }
   /**
@@ -1265,10 +1260,14 @@ var _ContextManager = class _ContextManager {
    * Add document to context for current file
    */
   async addDocument(file) {
-    if (!this.currentFilePath) return;
+    if (!this.currentFilePath) {
+      return;
+    }
     const current = this.persistentContext.get(this.currentFilePath) || [];
     const exists = current.some((doc) => doc.file.path === file.path);
-    if (exists) return;
+    if (exists) {
+      return;
+    }
     const newRef = {
       file,
       property: void 0,
@@ -1277,6 +1276,10 @@ var _ContextManager = class _ContextManager {
     };
     const updated = [...current, newRef];
     this.persistentContext.set(this.currentFilePath, updated);
+    const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+    if (currentFile && currentFile.path && this.plugin.conversationManager) {
+      await this.plugin.conversationManager.addContextDocument(currentFile, file.path);
+    }
     await this.refreshContextFromStorage();
   }
   /**
@@ -1290,6 +1293,10 @@ var _ContextManager = class _ContextManager {
       this.persistentContext.set(this.currentFilePath, filtered);
     } else {
       this.persistentContext.delete(this.currentFilePath);
+    }
+    const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+    if (currentFile && currentFile.path && this.plugin.conversationManager) {
+      await this.plugin.conversationManager.removeContextDocument(currentFile, file.path);
     }
     await this.refreshContextFromStorage();
   }
@@ -1348,6 +1355,141 @@ var _ContextManager = class _ContextManager {
       this.hideContextIndicator();
     }
   }
+  /**
+   * Restore context from conversation manager
+   */
+  async restoreContextFromConversation(file) {
+    if (!this.plugin.conversationManager) {
+      return;
+    }
+    try {
+      const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+      if (savedContextDocs.length === 0) {
+        this.persistentContext.delete(file.path);
+        return;
+      }
+      const validDocumentRefs = [];
+      const invalidPaths = [];
+      for (const contextDoc of savedContextDocs) {
+        try {
+          if (!contextDoc || !contextDoc.path || typeof contextDoc.path !== "string") {
+            console.warn("Invalid context document structure:", contextDoc);
+            continue;
+          }
+          const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+          if (contextFile && contextFile.path && contextFile instanceof import_obsidian4.TFile) {
+            validDocumentRefs.push({
+              file: contextFile,
+              property: contextDoc.property,
+              isPersistent: true,
+              rawReference: contextDoc.property ? `[[${contextFile.basename}#${contextDoc.property}]]` : `[[${contextFile.basename}]]`
+            });
+          } else {
+            invalidPaths.push(contextDoc.path);
+          }
+        } catch (docError) {
+          console.warn("Error processing context document, skipping:", docError);
+        }
+      }
+      if (invalidPaths.length > 0) {
+        await this.cleanupMissingFiles(file, invalidPaths);
+        this.showMissingFilesNotice(invalidPaths);
+      }
+      if (validDocumentRefs.length > 0) {
+        this.persistentContext.set(file.path, validDocumentRefs);
+      } else {
+        this.persistentContext.delete(file.path);
+      }
+    } catch (error) {
+      console.warn("Failed to restore context from conversation:", error);
+      this.persistentContext.delete(file.path);
+    }
+  }
+  /**
+   * Clean up missing files from conversation storage
+   */
+  async cleanupMissingFiles(file, invalidPaths) {
+    if (!this.plugin.conversationManager) return;
+    try {
+      for (const invalidPath of invalidPaths) {
+        await this.plugin.conversationManager.removeContextDocument(file, invalidPath);
+      }
+    } catch (error) {
+      console.warn("Failed to cleanup missing files from conversation:", error);
+    }
+  }
+  /**
+   * Show notice and chat message about missing context files
+   */
+  showMissingFilesNotice(missingFiles) {
+    if (missingFiles.length === 0) return;
+    try {
+      let noticeMessage;
+      let chatMessage;
+      if (missingFiles.length === 1) {
+        noticeMessage = `\u26A0\uFE0F Context file no longer available: ${missingFiles[0]}`;
+        chatMessage = `Context file no longer available: ${missingFiles[0]}`;
+      } else {
+        const displayFiles = missingFiles.slice(0, 3);
+        const remainingCount = missingFiles.length - displayFiles.length;
+        if (remainingCount > 0) {
+          noticeMessage = `\u26A0\uFE0F ${missingFiles.length} context files no longer available: ${displayFiles.join(", ")} and ${remainingCount} more`;
+          chatMessage = `${missingFiles.length} context files no longer available: ${displayFiles.join(", ")} and ${remainingCount} more`;
+        } else {
+          noticeMessage = `\u26A0\uFE0F ${missingFiles.length} context files no longer available: ${displayFiles.join(", ")}`;
+          chatMessage = `${missingFiles.length} context files no longer available: ${displayFiles.join(", ")}`;
+        }
+      }
+      new import_obsidian4.Notice(noticeMessage, _ContextManager.NOTICE_DURATION_MS);
+      if (this.sidebarView && typeof this.sidebarView.addWarningMessage === "function") {
+        this.sidebarView.addWarningMessage(chatMessage);
+      }
+    } catch (error) {
+      console.warn("Failed to show missing files notification:", error);
+    }
+  }
+  /**
+   * Validate all context documents for a file and return results
+   */
+  async validateContextDocuments(file) {
+    if (!this.plugin.conversationManager) {
+      return { validFiles: [], missingFiles: [], totalCount: 0 };
+    }
+    try {
+      const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+      const validFiles = [];
+      const missingFiles = [];
+      for (const contextDoc of savedContextDocs) {
+        const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+        if (contextFile && contextFile.path) {
+          validFiles.push(contextDoc.path);
+        } else {
+          missingFiles.push(contextDoc.path);
+        }
+      }
+      return {
+        validFiles,
+        missingFiles,
+        totalCount: savedContextDocs.length
+      };
+    } catch (error) {
+      return { validFiles: [], missingFiles: [], totalCount: 0 };
+    }
+  }
+  /**
+   * Schedule async persistence update
+   */
+  async schedulePersistenceUpdate(conversationFilePath, references) {
+    const conversationFile = this.app.vault.getAbstractFileByPath(conversationFilePath);
+    if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+      const contextRefs = references.map((ref) => ({
+        path: ref.file.path,
+        property: ref.property,
+        addedAt: Date.now()
+      }));
+      await this.plugin.conversationManager.setContextDocuments(conversationFile, contextRefs);
+    }
+  }
   cleanup() {
     this.clearCurrentContext();
     if (this.contextIndicator) {
@@ -1395,6 +1537,7 @@ var _ContextManager = class _ContextManager {
         }
       }
       this.persistentContext.set(conversationFilePath, updatedPersistent);
+      this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent);
     }
     return { cleanedMessage, references };
   }
@@ -1489,8 +1632,12 @@ ${cache.frontmatter[property]}`;
   /**
    * Clear persistent context for a conversation
    */
-  clearPersistentContext(filePath) {
+  async clearPersistentContext(filePath) {
     this.persistentContext.delete(filePath);
+    const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
+    if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+      await this.plugin.conversationManager.clearContextDocuments(conversationFile);
+    }
   }
   /**
    * Get persistent context for a conversation
@@ -1501,13 +1648,17 @@ ${cache.frontmatter[property]}`;
   /**
    * Remove a specific document from persistent context
    */
-  removePersistentDoc(filePath, docToRemove) {
+  async removePersistentDoc(filePath, docToRemove) {
     const current = this.persistentContext.get(filePath) || [];
     const filtered = current.filter((ref) => ref.file.path !== docToRemove);
     if (filtered.length > 0) {
       this.persistentContext.set(filePath, filtered);
     } else {
       this.persistentContext.delete(filePath);
+    }
+    const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
+    if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+      await this.plugin.conversationManager.removeContextDocument(conversationFile, docToRemove);
     }
   }
   /**
@@ -4055,8 +4206,7 @@ USER REQUEST: ${processedMessage}`;
       console.log("\u23ED\uFE0F Skipping file switch - same file or no file");
       return;
     }
-    console.log("\u{1F9F9} INITIALIZING CONTEXT for file switch");
-    await this.contextManager.initializeForFile(targetFile);
+    this.contextManager.setCurrentFile(targetFile);
     this.currentFileCursorPosition = null;
     console.log("\u{1F504} SWITCHING TO FILE:", {
       from: (_b = this.currentFile) == null ? void 0 : _b.path,
@@ -4083,6 +4233,8 @@ USER REQUEST: ${processedMessage}`;
         console.log("\u26A0\uFE0F File load operation cancelled during conversation loading");
         return;
       }
+      await this.contextManager.restoreContextAfterChatLoad(targetFile);
+      await this.refreshContext();
       await this.showDocumentInsights(targetFile);
       if (this.currentFileLoadOperation !== operationId) {
         console.log("\u26A0\uFE0F File load operation cancelled during insights loading");
@@ -7507,7 +7659,10 @@ var ConversationManager = class {
     // Limit conversation history
     this.storageKey = "nova-conversations";
     this.cleanupInterval = null;
-    this.loadConversations();
+    this.initializePromise = this.initialize();
+  }
+  async initialize() {
+    await this.loadConversations();
     this.startPeriodicCleanup();
   }
   /**
@@ -7518,11 +7673,63 @@ var ConversationManager = class {
       const data = await this.dataStore.loadData(this.storageKey);
       if (data && Array.isArray(data)) {
         for (const conversation of data) {
-          this.conversations.set(conversation.filePath, conversation);
+          try {
+            const sanitizedConversation = this.sanitizeConversationData(conversation);
+            this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
+          } catch (error) {
+            console.warn(`Skipped corrupted conversation for file: ${(conversation == null ? void 0 : conversation.filePath) || "unknown"}`, error);
+          }
         }
       }
     } catch (error) {
+      console.error("\u274C ConversationManager.loadConversations: Load failed:", error);
     }
+  }
+  /**
+   * Sanitize and validate conversation data
+   */
+  sanitizeConversationData(conversation) {
+    if (!conversation.filePath || typeof conversation.filePath !== "string") {
+      throw new Error("Invalid or missing filePath");
+    }
+    const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
+    let contextDocuments = [];
+    if (Array.isArray(conversation.contextDocuments)) {
+      contextDocuments = conversation.contextDocuments.filter((doc) => this.isValidContextDocument(doc)).map((doc) => this.sanitizeContextDocument(doc));
+    }
+    return {
+      filePath: conversation.filePath,
+      messages,
+      lastUpdated: typeof conversation.lastUpdated === "number" ? conversation.lastUpdated : Date.now(),
+      contextDocuments,
+      metadata: conversation.metadata || {
+        editCount: 0,
+        commandFrequency: {
+          add: 0,
+          edit: 0,
+          delete: 0,
+          grammar: 0,
+          rewrite: 0,
+          metadata: 0
+        }
+      }
+    };
+  }
+  /**
+   * Validate context document structure
+   */
+  isValidContextDocument(doc) {
+    return doc && typeof doc.path === "string" && doc.path.trim().length > 0;
+  }
+  /**
+   * Sanitize context document data
+   */
+  sanitizeContextDocument(doc) {
+    return {
+      path: doc.path,
+      property: typeof doc.property === "string" ? doc.property : void 0,
+      addedAt: typeof doc.addedAt === "number" ? doc.addedAt : Date.now()
+    };
   }
   /**
    * Save conversations to plugin data
@@ -7532,6 +7739,7 @@ var ConversationManager = class {
       const conversationsArray = Array.from(this.conversations.values());
       await this.dataStore.saveData(this.storageKey, conversationsArray);
     } catch (error) {
+      console.error("\u274C ConversationManager.saveConversations: Save failed:", error);
     }
   }
   /**
@@ -7544,6 +7752,7 @@ var ConversationManager = class {
         filePath,
         messages: [],
         lastUpdated: Date.now(),
+        contextDocuments: [],
         metadata: {
           editCount: 0,
           commandFrequency: {
@@ -7558,7 +7767,11 @@ var ConversationManager = class {
       };
       this.conversations.set(filePath, newConversation);
     }
-    return this.conversations.get(filePath);
+    const conversation = this.conversations.get(filePath);
+    if (!conversation.contextDocuments) {
+      conversation.contextDocuments = [];
+    }
+    return conversation;
   }
   /**
    * Add a user message to the conversation
@@ -7788,6 +8001,66 @@ ${contextLines.join("\n")}
     if (cleaned) {
       await this.saveConversations();
     }
+  }
+  /**
+   * Add a context document to the conversation
+   */
+  async addContextDocument(file, contextPath, property) {
+    var _a, _b;
+    await this.initializePromise;
+    const conversation = this.getConversation(file);
+    const exists = (_a = conversation.contextDocuments) == null ? void 0 : _a.some(
+      (doc) => doc.path === contextPath && doc.property === property
+    );
+    if (!exists) {
+      const contextDoc = {
+        path: contextPath,
+        property,
+        addedAt: Date.now()
+      };
+      (_b = conversation.contextDocuments) == null ? void 0 : _b.push(contextDoc);
+      conversation.lastUpdated = Date.now();
+      await this.saveConversations();
+    }
+  }
+  /**
+   * Remove a context document from the conversation
+   */
+  async removeContextDocument(file, contextPath, property) {
+    const conversation = this.getConversation(file);
+    if (conversation.contextDocuments) {
+      conversation.contextDocuments = conversation.contextDocuments.filter(
+        (doc) => !(doc.path === contextPath && doc.property === property)
+      );
+      conversation.lastUpdated = Date.now();
+      await this.saveConversations();
+    }
+  }
+  /**
+   * Get all context documents for a conversation
+   */
+  async getContextDocuments(file) {
+    await this.initializePromise;
+    const conversation = this.getConversation(file);
+    return conversation.contextDocuments || [];
+  }
+  /**
+   * Clear all context documents for a conversation
+   */
+  async clearContextDocuments(file) {
+    const conversation = this.getConversation(file);
+    conversation.contextDocuments = [];
+    conversation.lastUpdated = Date.now();
+    await this.saveConversations();
+  }
+  /**
+   * Update context documents (replace entire list)
+   */
+  async setContextDocuments(file, documents) {
+    const conversation = this.getConversation(file);
+    conversation.contextDocuments = documents;
+    conversation.lastUpdated = Date.now();
+    await this.saveConversations();
   }
   /**
    * Cleanup method to call when plugin is disabled
