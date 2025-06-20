@@ -40,6 +40,9 @@ export class NovaWikilinkAutocomplete {
     }
 
     private showNativeFileModal(): void {
+        // Get current file from sidebar view
+        const currentFile = this.sidebarView?.currentFile || this.app.workspace.getActiveFile();
+        
         const modal = new WikilinkFileModal(
             this.app,
             async (file: TFile) => {
@@ -48,7 +51,8 @@ export class NovaWikilinkAutocomplete {
             () => {
                 // User cancelled - reset trigger position
                 this.lastTriggerPos = -1;
-            }
+            },
+            currentFile
         );
         modal.open();
     }
@@ -96,16 +100,19 @@ export class NovaWikilinkAutocomplete {
 class WikilinkFileModal extends FuzzySuggestModal<TFile> {
     private onSelectCallback: (file: TFile) => void;
     private onCancelCallback?: () => void;
+    private currentFile: TFile | null;
     private allFiles: TFile[] = [];
 
     constructor(
         app: App,
         onSelect: (file: TFile) => void,
-        onCancel?: () => void
+        onCancel?: () => void,
+        currentFile?: TFile | null
     ) {
         super(app);
         this.onSelectCallback = onSelect;
         this.onCancelCallback = onCancel;
+        this.currentFile = currentFile || null;
         
         this.setPlaceholder('Search files to add to context...');
         this.loadFiles();
@@ -135,6 +142,12 @@ class WikilinkFileModal extends FuzzySuggestModal<TFile> {
 
     private loadFiles(): void {
         this.allFiles = this.app.vault.getMarkdownFiles();
+        
+        // Filter out the current file if it exists
+        if (this.currentFile) {
+            this.allFiles = this.allFiles.filter(file => file.path !== this.currentFile!.path);
+        }
+        
         // Sort by modification time (most recent first)
         this.allFiles.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }

@@ -156,6 +156,8 @@ var NovaWikilinkAutocomplete = class {
     }
   }
   showNativeFileModal() {
+    var _a;
+    const currentFile = ((_a = this.sidebarView) == null ? void 0 : _a.currentFile) || this.app.workspace.getActiveFile();
     const modal = new WikilinkFileModal(
       this.app,
       async (file) => {
@@ -163,7 +165,8 @@ var NovaWikilinkAutocomplete = class {
       },
       () => {
         this.lastTriggerPos = -1;
-      }
+      },
+      currentFile
     );
     modal.open();
   }
@@ -189,11 +192,12 @@ var NovaWikilinkAutocomplete = class {
   }
 };
 var WikilinkFileModal = class extends import_obsidian.FuzzySuggestModal {
-  constructor(app, onSelect, onCancel) {
+  constructor(app, onSelect, onCancel, currentFile) {
     super(app);
     this.allFiles = [];
     this.onSelectCallback = onSelect;
     this.onCancelCallback = onCancel;
+    this.currentFile = currentFile || null;
     this.setPlaceholder("Search files to add to context...");
     this.loadFiles();
   }
@@ -215,6 +219,9 @@ var WikilinkFileModal = class extends import_obsidian.FuzzySuggestModal {
   }
   loadFiles() {
     this.allFiles = this.app.vault.getMarkdownFiles();
+    if (this.currentFile) {
+      this.allFiles = this.allFiles.filter((file) => file.path !== this.currentFile.path);
+    }
     this.allFiles.sort((a, b) => b.stat.mtime - a.stat.mtime);
   }
   getItems() {
@@ -1261,6 +1268,9 @@ var _ContextManager = class _ContextManager {
    */
   async addDocument(file) {
     if (!this.currentFilePath) {
+      return;
+    }
+    if (file.path === this.currentFilePath) {
       return;
     }
     const current = this.persistentContext.get(this.currentFilePath) || [];
@@ -5194,12 +5204,14 @@ Let me help.`;
    * Add files to persistent context
    */
   async addFilesToContext(filenames) {
+    var _a;
     if (!this.currentFile) {
       new import_obsidian10.Notice("No file is open. Please open a file to add context.", 3e3);
       return;
     }
     const addedFiles = [];
     const alreadyExistingFiles = [];
+    const currentFiles = [];
     const notFoundFiles = [];
     const existingPersistent = this.contextManager.getPersistentContext(this.currentFile.path) || [];
     const updatedPersistent = [...existingPersistent];
@@ -5215,23 +5227,28 @@ Let me help.`;
         ) || null;
       }
       if (file instanceof import_obsidian10.TFile) {
-        const exists = updatedPersistent.some((ref) => ref.file.path === file.path);
-        if (!exists) {
-          updatedPersistent.push({
-            file,
-            property: void 0,
-            isPersistent: true,
-            rawReference: `+[[${file.basename}]]`
-          });
-          addedFiles.push(file.basename);
+        if (file.path === ((_a = this.currentFile) == null ? void 0 : _a.path)) {
+          currentFiles.push(file.basename);
+          this.chatRenderer.addWarningMessage("Current file is always in context and doesn't need to be added explicitly.", false);
         } else {
-          alreadyExistingFiles.push(file.basename);
+          const exists = updatedPersistent.some((ref) => ref.file.path === file.path);
+          if (!exists) {
+            updatedPersistent.push({
+              file,
+              property: void 0,
+              isPersistent: true,
+              rawReference: `+[[${file.basename}]]`
+            });
+            addedFiles.push(file.basename);
+          } else {
+            alreadyExistingFiles.push(file.basename);
+          }
         }
       } else {
         notFoundFiles.push(filename);
       }
     }
-    if (addedFiles.length > 0 || alreadyExistingFiles.length > 0) {
+    if (addedFiles.length > 0 || alreadyExistingFiles.length > 0 || currentFiles.length > 0) {
       this.contextManager.clearPersistentContext(this.currentFile.path);
       for (const doc of updatedPersistent) {
         await this.contextManager.addDocument(doc.file);
@@ -5252,6 +5269,13 @@ Let me help.`;
         messages.push(`"${alreadyExistingFiles[0]}" already in context`);
       } else {
         messages.push(`${alreadyExistingFiles.length} already in context`);
+      }
+    }
+    if (currentFiles.length > 0) {
+      if (currentFiles.length === 1) {
+        messages.push(`Current file is always in context`);
+      } else {
+        messages.push(`${currentFiles.length} current files are always in context`);
       }
     }
     if (notFoundFiles.length > 0) {

@@ -3236,6 +3236,7 @@ USER REQUEST: ${processedMessage}`;
 
 		const addedFiles: string[] = [];
 		const alreadyExistingFiles: string[] = [];
+		const currentFiles: string[] = [];
 		const notFoundFiles: string[] = [];
 		
 		// Get existing persistent context directly (without clearing it)
@@ -3257,20 +3258,28 @@ USER REQUEST: ${processedMessage}`;
 			}
 			
 			if (file instanceof TFile) {
-				// Check if already in persistent context (check both existing and newly added in this batch)
-				const exists = updatedPersistent.some(ref => ref.file.path === (file as TFile).path);
-				if (!exists) {
-					// Add to persistent context
-					updatedPersistent.push({
-						file: file,
-						property: undefined,
-						isPersistent: true,
-						rawReference: `+[[${file.basename}]]`
-					});
-					addedFiles.push(file.basename);
+				// Check if this is the current active file
+				if (file.path === this.currentFile?.path) {
+					// Current file is already implicitly in context
+					currentFiles.push(file.basename);
+					// Add warning message to chat (not saved to conversation history)
+					this.chatRenderer.addWarningMessage("Current file is always in context and doesn't need to be added explicitly.", false);
 				} else {
-					// File already exists in context
-					alreadyExistingFiles.push(file.basename);
+					// Check if already in persistent context (check both existing and newly added in this batch)
+					const exists = updatedPersistent.some(ref => ref.file.path === (file as TFile).path);
+					if (!exists) {
+						// Add to persistent context
+						updatedPersistent.push({
+							file: file,
+							property: undefined,
+							isPersistent: true,
+							rawReference: `+[[${file.basename}]]`
+						});
+						addedFiles.push(file.basename);
+					} else {
+						// File already exists in context
+						alreadyExistingFiles.push(file.basename);
+					}
 				}
 			} else {
 				// File not found
@@ -3279,7 +3288,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 		
 		// Update persistent context if we made any changes
-		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0) {
+		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0 || currentFiles.length > 0) {
 			// Use ContextManager to update persistent context
 			this.contextManager.clearPersistentContext(this.currentFile.path);
 			for (const doc of updatedPersistent) {
@@ -3307,6 +3316,14 @@ USER REQUEST: ${processedMessage}`;
 				messages.push(`"${alreadyExistingFiles[0]}" already in context`);
 			} else {
 				messages.push(`${alreadyExistingFiles.length} already in context`);
+			}
+		}
+		
+		if (currentFiles.length > 0) {
+			if (currentFiles.length === 1) {
+				messages.push(`Current file is always in context`);
+			} else {
+				messages.push(`${currentFiles.length} current files are always in context`);
 			}
 		}
 		

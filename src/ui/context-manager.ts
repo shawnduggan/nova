@@ -441,6 +441,12 @@ export class ContextManager {
 			return;
 		}
 		
+		// Check if trying to add the current file to its own context
+		if (file.path === this.currentFilePath) {
+			// Current file is already implicitly in context, skip silently
+			return;
+		}
+		
 		// Get current persistent context
 		const current = this.persistentContext.get(this.currentFilePath) || [];
 		
