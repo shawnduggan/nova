@@ -171,8 +171,8 @@ export class NovaSidebarView extends ItemView {
 		const rightContainer = topRowEl.createDiv();
 		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
 		
-		// Privacy indicator pill
-		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
+		// Privacy indicator pill (desktop version)
+		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator nova-privacy-desktop' });
 		this.updatePrivacyIndicator(privacyIndicator);
 		
 		// Store reference for updates
@@ -529,6 +529,8 @@ export class NovaSidebarView extends ItemView {
 			await this.plugin.settingTab.setCurrentModel(providerId);
 			await this.plugin.saveSettings();
 			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
+			// Refresh provider status indicators (privacy badges)
+			await this.refreshProviderStatus();
 			return true;
 		}
 
@@ -2042,10 +2044,31 @@ USER REQUEST: ${processedMessage}`;
 			statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 		}
 		
-		// Ensure token element exists (right side)
+		// Create mobile right-aligned group for privacy + context
+		let mobileRightGroup = statsContainer.querySelector('.nova-mobile-right-group');
+		if (!mobileRightGroup) {
+			mobileRightGroup = statsContainer.createEl('div', { cls: 'nova-mobile-right-group' });
+		}
+		
+		// Ensure mobile privacy indicator exists (inside mobile group)
+		let mobilePrivacyEl = mobileRightGroup.querySelector('.nova-privacy-mobile') as HTMLElement;
+		if (!mobilePrivacyEl) {
+			mobilePrivacyEl = mobileRightGroup.createEl('div', { cls: 'nova-privacy-indicator nova-privacy-mobile' });
+			this.updatePrivacyIndicator(mobilePrivacyEl);
+			// Store reference for updates
+			(this as any).mobilePrivacyIndicator = mobilePrivacyEl;
+		}
+		
+		// Ensure token element exists (desktop: in container, mobile: in group)
 		let tokenEl = statsContainer.querySelector('.nova-token-usage') as HTMLElement;
 		if (!tokenEl) {
 			tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
+		}
+		
+		// Also create token element inside mobile group
+		let mobileTokenEl = mobileRightGroup.querySelector('.nova-token-usage') as HTMLElement;
+		if (!mobileTokenEl) {
+			mobileTokenEl = mobileRightGroup.createEl('div', { cls: 'nova-token-usage' });
 		}
 		
 		// Get total context usage if available, otherwise fall back to old calculation
@@ -2070,21 +2093,32 @@ USER REQUEST: ${processedMessage}`;
 			warningLevel = 'safe'; // No warnings when calculation unavailable
 		}
 		
-		// Update display text
-		tokenEl.textContent = displayText;
+		// Update both desktop and mobile token elements
+		const updateTokenElement = (el: HTMLElement) => {
+			el.textContent = displayText;
+			el.title = tooltipText;
+			el.className = 'nova-token-usage';
+			if (warningLevel === 'safe') {
+				el.addClass('nova-token-safe');
+			} else if (warningLevel === 'warning') {
+				el.addClass('nova-token-warning');
+			} else if (warningLevel === 'critical') {
+				el.addClass('nova-token-danger');
+			}
+		};
 		
-		// Set tooltip
-		tokenEl.title = tooltipText;
+		// Update desktop token element
+		updateTokenElement(tokenEl);
 		
-		// Apply color coding and show warnings
-		tokenEl.className = 'nova-token-usage';
-		if (warningLevel === 'safe') {
-			tokenEl.addClass('nova-token-safe');
-		} else if (warningLevel === 'warning') {
-			tokenEl.addClass('nova-token-warning');
+		// Update mobile token element if it exists
+		if (mobileTokenEl) {
+			updateTokenElement(mobileTokenEl);
+		}
+		
+		// Show warnings only once
+		if (warningLevel === 'warning') {
 			this.showTokenWarning(85); // 85% usage = 15% remaining
 		} else if (warningLevel === 'critical') {
-			tokenEl.addClass('nova-token-danger');
 			this.showTokenWarning(95); // 95% usage = 5% remaining
 		}
 	}
@@ -2416,9 +2450,14 @@ USER REQUEST: ${processedMessage}`;
 	 * Refresh all provider status indicators in the UI
 	 */
 	private async refreshProviderStatus(): Promise<void> {
-		// Update privacy indicator if it exists
+		// Update desktop privacy indicator if it exists
 		if ((this as any).privacyIndicator) {
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		}
+		
+		// Update mobile privacy indicator if it exists
+		if ((this as any).mobilePrivacyIndicator) {
+			await this.updatePrivacyIndicator((this as any).mobilePrivacyIndicator);
 		}
 
 		// Update send button state
@@ -2683,6 +2722,9 @@ USER REQUEST: ${processedMessage}`;
 				console.error('Error saving model selection:', error);
 				this.addErrorMessage('Failed to save model selection');
 			});
+			
+			// Refresh provider status indicators (privacy badges)
+			this.refreshProviderStatus();
 			
 		} catch (error) {
 			console.error('Error switching model:', error);

@@ -1870,6 +1870,50 @@
     min-width: 0; /* Prevent flex overflow */
 }
 
+/* Mobile right-aligned container for privacy and context */
+.nova-mobile-right-group {
+    display: none;
+}
+
+.is-mobile .nova-mobile-right-group {
+    display: flex !important;
+    align-items: center;
+    gap: var(--size-2-2);
+    margin-left: auto; /* Push to the right */
+}
+
+/* Add bullet separator between privacy and context on mobile */
+.is-mobile .nova-mobile-right-group .nova-privacy-indicator::after {
+    content: "•";
+    margin-left: var(--size-2-2);
+    color: var(--text-muted);
+}
+
+/* Ensure desktop layout stays the same */
+.nova-document-stats-container .nova-token-usage {
+    margin-left: auto; /* Right align on desktop */
+}
+
+/* Hide individual token usage on mobile when grouped */
+.is-mobile .nova-document-stats-container > .nova-token-usage {
+    display: none !important;
+}
+
+/* Hide desktop privacy indicator on mobile */
+.is-mobile .nova-privacy-desktop {
+    display: none !important;
+}
+
+/* Hide mobile privacy indicator on desktop */
+.nova-privacy-mobile {
+    display: none !important;
+}
+
+/* Show mobile privacy indicator only on mobile */
+.is-mobile .nova-privacy-mobile {
+    display: inline-flex !important;
+}
+
 /* Document Stats Analytics Text */
 .nova-document-stats {
     font-size: 0.85em; /* Default smaller size */
