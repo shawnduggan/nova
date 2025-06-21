@@ -1591,7 +1591,7 @@ export class NovaSidebarView extends ItemView {
 			const initialPhrase = this.getContextualThinkingPhrase(contextualCommand, processedMessage);
 			
 			const loadingTextEl = loadingEl.createSpan({ text: initialPhrase });
-			loadingTextEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em;';
+			loadingTextEl.style.cssText = 'color: var(--interactive-accent); font-size: var(--font-text-size); font-weight: 500;';
 			
 			// Start phrase rotation animation
 			this.startThinkingPhraseRotation(loadingTextEl, contextualCommand, processedMessage);
