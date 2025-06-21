@@ -8,10 +8,44 @@
     overflow-x: auto;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
+    position: relative;
+    scroll-behavior: smooth;
 }
 
 .nova-tab-container::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
+}
+
+/* Scroll indicators for tab overflow on mobile */
+.nova-tab-container::before,
+.nova-tab-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 1px;
+    width: 20px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nova-tab-container::before {
+    left: 0;
+    background: linear-gradient(to right, var(--background-primary) 0%, transparent 100%);
+}
+
+.nova-tab-container::after {
+    right: 0;
+    background: linear-gradient(to left, var(--background-primary) 0%, transparent 100%);
+}
+
+/* Show scroll indicators when content overflows */
+@media (max-width: 768px) {
+    .nova-tab-container.scrollable::before,
+    .nova-tab-container.scrollable::after {
+        opacity: 1;
+    }
 }
 
 .nova-tab {
@@ -24,11 +58,26 @@
     user-select: none;
     white-space: nowrap;
     flex-shrink: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 200px;
 }
 
-.nova-tab:hover {
-    color: var(--text-normal);
-    background: var(--background-modifier-hover);
+/* Desktop hover only */
+@media (hover: hover) {
+    .nova-tab:hover {
+        color: var(--text-normal);
+        background: var(--background-modifier-hover);
+    }
+}
+
+/* Mobile touch states */
+@media (hover: none) {
+    .nova-tab:active {
+        color: var(--text-normal);
+        background: var(--background-modifier-hover);
+        transform: scale(0.98);
+    }
 }
 
 .nova-tab.active {
@@ -1343,6 +1392,9 @@
         padding: 10px 16px;
         font-size: 0.9em;
         min-width: 44px; /* Touch-friendly minimum */
+        max-width: 150px; /* Reduced max width for mobile */
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
     
     .nova-tab-content {
@@ -1954,15 +2006,36 @@
 
 @media (max-width: 480px) {
     .nova-tab {
-        padding: 12px 14px; /* Maintain touch-friendly padding */
-        font-size: 0.9em; /* Better than 0.85em */
-        min-width: 90px; /* Increased minimum width */
+        padding: 10px 12px; /* Tighter padding for small screens */
+        font-size: 0.85em; /* Smaller font for more tabs */
+        min-width: 80px; /* Reduced minimum width */
+        max-width: 120px; /* Smaller max width */
         min-height: 44px; /* Ensure touch target */
+    }
+    
+    .nova-tab-container {
+        padding: 0 4px; /* Reduced padding on container */
     }
 }
 
-/* Responsive adjustments */
+/* Extra small screens - most aggressive optimization */
 @media (max-width: 400px) {
+    .nova-tab {
+        padding: 8px 10px; /* Most compact padding */
+        font-size: 0.8em; /* Smallest readable font */
+        min-width: 70px; /* Minimum viable width */
+        max-width: 100px; /* Very compact max width */
+    }
+    
+    .nova-tab-container {
+        padding: 0 2px; /* Minimal container padding */
+        margin-bottom: 6px; /* Reduced margin */
+    }
+    
+    .nova-tab-content {
+        padding: 12px !important; /* Reduced content padding */
+    }
+    
     .nova-input-container button {
         width: 32px;
         height: 32px;

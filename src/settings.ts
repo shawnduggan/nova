@@ -121,6 +121,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
 	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
+	private tabContainer: HTMLElement | null = null;
+	private contentContainer: HTMLElement | null = null;
 
 	constructor(app: App, plugin: NovaPlugin) {
 		super(app, plugin);
@@ -132,12 +134,17 @@ export class NovaSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.createEl('h2', { text: 'Nova Settings' });
 
+		// Create tab navigation container (only once)
+		this.tabContainer = containerEl.createDiv({ cls: 'nova-tab-container' });
 		this.createTabNavigation();
-		this.createTabContent();
+		
+		// Create content container (only once)  
+		this.contentContainer = containerEl.createDiv({ cls: 'nova-tab-content' });
+		this.updateTabContent();
 	}
 
 	private createTabNavigation(): void {
-		const tabContainer = this.containerEl.createDiv({ cls: 'nova-tab-container' });
+		if (!this.tabContainer) return;
 		
 		const tabs = [
 			{ id: 'getting-started', label: 'Getting Started' },
@@ -152,10 +159,11 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 
 		tabs.forEach(tab => {
-			const tabEl = tabContainer.createDiv({ 
+			const tabEl = this.tabContainer!.createDiv({ 
 				cls: `nova-tab ${this.activeTab === tab.id ? 'active' : ''}`,
 				text: tab.label
 			});
+			tabEl.dataset.tabId = tab.id;
 			
 			tabEl.addEventListener('click', () => {
 				this.switchTab(tab.id as 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug');
@@ -165,27 +173,60 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug'): void {
 		this.activeTab = tabId;
-		this.display(); // Re-render with new active tab
+		this.updateTabStates();
+		this.updateTabContent();
+		this.scrollToActiveTab();
 	}
 
-	private createTabContent(): void {
-		const contentContainer = this.containerEl.createDiv({ cls: 'nova-tab-content' });
+	private updateTabStates(): void {
+		if (!this.tabContainer) return;
+		
+		// Update tab active states without re-creating elements
+		const tabElements = this.tabContainer.querySelectorAll('.nova-tab');
+		tabElements.forEach(tabEl => {
+			const htmlTabEl = tabEl as HTMLElement;
+			if (htmlTabEl.dataset.tabId === this.activeTab) {
+				htmlTabEl.addClass('active');
+			} else {
+				htmlTabEl.removeClass('active');
+			}
+		});
+	}
+
+	private scrollToActiveTab(): void {
+		if (!this.tabContainer) return;
+		
+		const activeTab = this.tabContainer.querySelector('.nova-tab.active') as HTMLElement;
+		if (activeTab) {
+			activeTab.scrollIntoView({
+				behavior: 'smooth',
+				block: 'nearest',
+				inline: 'center'
+			});
+		}
+	}
+
+	private updateTabContent(): void {
+		if (!this.contentContainer) return;
+		
+		// Clear existing content
+		this.contentContainer.empty();
 		
 		switch (this.activeTab) {
 			case 'getting-started':
-				this.createGettingStartedTabContent(contentContainer);
+				this.createGettingStartedTabContent(this.contentContainer);
 				break;
 			case 'general':
-				this.createGeneralTabContent(contentContainer);
+				this.createGeneralTabContent(this.contentContainer);
 				break;
 			case 'providers':
-				this.createProvidersTabContent(contentContainer);
+				this.createProvidersTabContent(this.contentContainer);
 				break;
 			case 'supernova':
-				this.createSupernovaTabContent(contentContainer);
+				this.createSupernovaTabContent(this.contentContainer);
 				break;
 			case 'debug':
-				this.createDebugTabContent(contentContainer);
+				this.createDebugTabContent(this.contentContainer);
 				break;
 		}
 	}
@@ -836,8 +877,8 @@ export class NovaSettingTab extends PluginSettingTab {
 						sidebarView.refreshSupernovaUI();
 					}
 					
-					// Refresh the display to show updated status
-					this.display();
+					// Refresh the content to show updated status
+					this.updateTabContent();
 				}
 			}
 		});
@@ -876,8 +917,8 @@ export class NovaSettingTab extends PluginSettingTab {
 									sidebarView.refreshSupernovaUI();
 								}
 								
-								// Refresh display
-								this.display();
+								// Refresh content 
+								this.updateTabContent();
 							}
 						} catch (error) {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
@@ -973,8 +1014,8 @@ export class NovaSettingTab extends PluginSettingTab {
 							sidebarView.refreshSupernovaUI();
 						}
 						
-						// Refresh display to show updated feature status
-						this.display();
+						// Refresh content to show updated feature status
+						this.updateTabContent();
 					}));
 
 			// Clear licenses button
@@ -1015,8 +1056,8 @@ export class NovaSettingTab extends PluginSettingTab {
 						// Show success message
 						this.showLicenseMessage('All licenses cleared successfully.', 'success');
 
-						// Refresh display
-						this.display();
+						// Refresh content
+						this.updateTabContent();
 					}));
 		}
 	}
@@ -1789,8 +1830,8 @@ export class NovaSettingTab extends PluginSettingTab {
 						sidebarView.refreshSupernovaUI();
 					}
 					
-					// Refresh the display to show updated status
-					this.display();
+					// Refresh the content to show updated status
+					this.updateTabContent();
 				}
 			}
 		});

@@ -20,7 +20,6 @@
 ## 🎯 PENDING TASKS
 
 * privacyIndicator not switching from local to cloud properly
-* Settings tab menu not optimized for mobile
 * Revise model list. Remove Sonnet 3.5 Oct 22, Add o4, o3 models. Claude Code should ask me for input.
 * remove all logging
 
