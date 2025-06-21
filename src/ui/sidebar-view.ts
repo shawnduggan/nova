@@ -2700,6 +2700,11 @@ USER REQUEST: ${processedMessage}`;
 				console.error('Error refreshing provider status:', error);
 			});
 			
+			// Refresh context to update token count display for new provider
+			this.refreshContext().catch(error => {
+				console.error('Error refreshing context after model switch:', error);
+			});
+			
 		} catch (error) {
 			console.error('Error switching model:', error);
 			this.addErrorMessage('Failed to switch model');

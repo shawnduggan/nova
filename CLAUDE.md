@@ -27,5 +27,4 @@
 ## 🎯 PENDING TASKS
 
 * remove all logging
-* Switching providers does not update token count
 

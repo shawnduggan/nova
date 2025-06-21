@@ -4908,6 +4908,9 @@ Let me help.`;
       this.refreshProviderStatus().catch((error) => {
         console.error("Error refreshing provider status:", error);
       });
+      this.refreshContext().catch((error) => {
+        console.error("Error refreshing context after model switch:", error);
+      });
     } catch (error) {
       console.error("Error switching model:", error);
       this.addErrorMessage("Failed to switch model");
