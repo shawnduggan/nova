@@ -768,15 +768,15 @@
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
     max-width: 80%;
-    font-size: 1.05em; /* Larger/more prominent */
-    font-weight: 500; /* More prominent weight */
+    font-size: var(--font-text-size); /* Match document text size */
+    font-weight: 400; /* Normal weight */
 }
 
 .is-mobile .nova-message-assistant {
     max-width: 90%; /* More screen real estate on mobile */
     padding: 10px 14px; /* Reduced padding for better density */
     line-height: 1.5; /* Comfortable reading for primary content */
-    font-size: 1.1em; /* Larger on mobile for prominence */
+    font-size: var(--font-text-size); /* Match document text size */
 }
 
 .nova-message-role {
