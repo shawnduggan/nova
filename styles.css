@@ -1876,6 +1876,15 @@
     color: var(--text-muted);
 }
 
+/* Mobile responsive privacy indicator positioning */
+.is-mobile .nova-header .nova-privacy-indicator {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--size-2-2);
+    z-index: 10;
+}
+
 /* Token Usage Display */
 .nova-token-usage {
     font-size: 0.85em; /* Same size as document stats */

@@ -1277,7 +1277,7 @@ var _ContextManager = class _ContextManager {
         tokenCount,
         isNearLimit: false,
         // Legacy field - warnings now handled in sidebar-view.ts
-        totalContextUsage: totalContextUsage || void 0
+        totalContextUsage
       };
       if (this.currentOperationId !== operationId || !this.currentFilePath || this.currentFilePath !== targetFilePath) {
         return null;
@@ -1432,13 +1432,16 @@ var _ContextManager = class _ContextManager {
         } catch (error) {
         }
       }
+      const fileAttachments = persistentDocs.length > 0 ? [{ content: `Context files: ${persistentDocs.map((d) => d.file.basename).join(", ")}` }] : [];
+      const totalContextUsage = await this.calculateTotalContextUsage(fileAttachments);
       this.currentContext = {
         persistentDocs,
         contextString: "",
         // Not needed for UI
         tokenCount: totalTokens,
-        isNearLimit: false
+        isNearLimit: false,
         // Legacy field - warnings now handled in sidebar-view.ts
+        totalContextUsage
       };
     } catch (error) {
       this.currentContext = null;
@@ -1723,19 +1726,27 @@ ${cache.frontmatter[property]}`;
    * Calculate total context usage including conversation history
    */
   async calculateTotalContextUsage(fileAttachments = [], currentInput = "", recentResponse = "") {
-    var _a, _b;
+    var _a, _b, _c;
+    let providerType = "claude";
+    let model = "claude-3-5-sonnet-20241022";
+    let conversationHistory = [];
     try {
-      const providerType = await ((_a = this.plugin.aiProviderManager) == null ? void 0 : _a.getCurrentProviderType());
-      if (!providerType) {
-        return null;
+      const detectedProviderType = await ((_a = this.plugin.aiProviderManager) == null ? void 0 : _a.getCurrentProviderType());
+      if (detectedProviderType) {
+        providerType = detectedProviderType;
+        if (this.plugin.aiProviderManager) {
+          try {
+            const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+            if (currentModel) {
+              model = currentModel;
+            }
+          } catch (error) {
+            console.warn("Failed to get current model, using default:", error);
+          }
+        }
+      } else {
+        console.warn("Provider type detection failed, using Claude defaults");
       }
-      let model;
-      const providers = this.plugin.settings.aiProviders;
-      model = ((_b = providers[providerType]) == null ? void 0 : _b.model) || "";
-      if (!model) {
-        return null;
-      }
-      let conversationHistory = [];
       if (this.currentFilePath && this.plugin.conversationManager) {
         const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
         if (currentFile) {
@@ -1743,21 +1754,20 @@ ${cache.frontmatter[property]}`;
           conversationHistory = ((conversation == null ? void 0 : conversation.messages) || []).map((msg) => ({ content: msg.content }));
         }
       }
-      const ollamaDefaultContext = this.plugin.settings.ollamaDefaultContext || 32e3;
-      const usage = calculateContextUsage(
-        providerType,
-        model,
-        conversationHistory,
-        fileAttachments,
-        currentInput,
-        recentResponse,
-        ollamaDefaultContext
-      );
-      return usage;
     } catch (error) {
-      console.warn("Failed to calculate total context usage:", error);
-      return null;
+      console.warn("Error during context calculation setup, using defaults:", error);
     }
+    const ollamaDefaultContext = ((_c = (_b = this.plugin) == null ? void 0 : _b.settings) == null ? void 0 : _c.ollamaDefaultContext) || 32e3;
+    const usage = calculateContextUsage(
+      providerType,
+      model,
+      conversationHistory,
+      fileAttachments,
+      currentInput,
+      recentResponse,
+      ollamaDefaultContext
+    );
+    return usage;
   }
   /**
    * Clear persistent context for a conversation

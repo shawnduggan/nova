@@ -237,7 +237,7 @@ export class ContextManager {
 				contextString,
 				tokenCount,
 				isNearLimit: false, // Legacy field - warnings now handled in sidebar-view.ts
-				totalContextUsage: totalContextUsage || undefined
+				totalContextUsage: totalContextUsage
 			};
 			
 			// Validate operation is still current and file hasn't changed
@@ -460,12 +460,19 @@ export class ContextManager {
 			}
 
 
+			// Calculate total context usage for the stored context
+			const fileAttachments = persistentDocs.length > 0 ? 
+				[{ content: `Context files: ${persistentDocs.map(d => d.file.basename).join(', ')}` }] : 
+				[];
+			const totalContextUsage = await this.calculateTotalContextUsage(fileAttachments);
+
 			// Build context object
 			this.currentContext = {
 				persistentDocs: persistentDocs,
 				contextString: '', // Not needed for UI
 				tokenCount: totalTokens,
-				isNearLimit: false // Legacy field - warnings now handled in sidebar-view.ts
+				isNearLimit: false, // Legacy field - warnings now handled in sidebar-view.ts
+				totalContextUsage: totalContextUsage
 			};
 
 			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
@@ -868,53 +875,60 @@ export class ContextManager {
 		fileAttachments: Array<{content: string}> = [],
 		currentInput: string = '',
 		recentResponse: string = ''
-	): Promise<ContextUsage | null> {
+	): Promise<ContextUsage> {
+		// Use simple defaults to ensure we always return a result
+		let providerType = 'claude';
+		let model = 'claude-3-5-sonnet-20241022';
+		let conversationHistory: Array<{content: string}> = [];
+		
 		try {
-			// Get current provider and model
-			const providerType = await this.plugin.aiProviderManager?.getCurrentProviderType();
-			if (!providerType) {
-				return null;
-			}
-			
-			// Get model from settings based on provider type
-			let model: string;
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			model = providers[providerType]?.model || '';
-			
-			if (!model) {
-				return null;
+			// Try to get actual provider and model
+			const detectedProviderType = await this.plugin.aiProviderManager?.getCurrentProviderType();
+			if (detectedProviderType) {
+				providerType = detectedProviderType;
+				
+				// Get model from provider manager
+				if (this.plugin.aiProviderManager) {
+					try {
+						const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+						if (currentModel) {
+							model = currentModel;
+						}
+					} catch (error) {
+						console.warn('Failed to get current model, using default:', error);
+					}
+				}
+			} else {
+				console.warn('Provider type detection failed, using Claude defaults');
 			}
 			
 			// Get conversation history for current file
-			let conversationHistory: Array<{content: string}> = [];
 			if (this.currentFilePath && this.plugin.conversationManager) {
 				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath) as TFile;
 				if (currentFile) {
 					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
-					// Convert conversation messages to simple content array
 					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
 				}
 			}
 			
-			// Get Ollama default context from settings
-			const ollamaDefaultContext = this.plugin.settings.ollamaDefaultContext || 32000;
-			
-			// Calculate total context usage
-			const usage = calculateContextUsage(
-				providerType,
-				model,
-				conversationHistory,
-				fileAttachments,
-				currentInput,
-				recentResponse,
-				ollamaDefaultContext
-			);
-			
-			return usage;
 		} catch (error) {
-			console.warn('Failed to calculate total context usage:', error);
-			return null;
+			console.warn('Error during context calculation setup, using defaults:', error);
 		}
+		
+		// Always calculate context usage with fallback values
+		const ollamaDefaultContext = this.plugin?.settings?.ollamaDefaultContext || 32000;
+		
+		const usage = calculateContextUsage(
+			providerType,
+			model,
+			conversationHistory,
+			fileAttachments,
+			currentInput,
+			recentResponse,
+			ollamaDefaultContext
+		);
+		
+		return usage;
 	}
 
 	/**
