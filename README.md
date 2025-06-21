@@ -1,65 +1,109 @@
-# Nova - AI Thinking Partner for Obsidian
+# Nova - Your AI Writing Partner for Obsidian
 
-**Tired of AI that guesses where to edit your documents?**
+I built Nova because I was tired of copying and pasting between ChatGPT and my notes.
 
-Every AI writing tool makes you hope they put edits in the right place. Nova lets you tell them exactly where with surgical precision.
+Nova solves this with precise AI editing - select text and right-click, or use chat commands that edit exactly at your cursor. No more guessing, no more copy-paste chaos.
 
-**Stop copying from chat. Start collaborating with AI.**
+**✨ AI edits exactly where you want**  
+**🔒 Privacy-first with local AI or your own API keys**  
+**🆓 Every feature free forever with your API keys**
 
-I built Nova for myself because copy-pasting between ChatGPT and Obsidian was killing my writing flow. Every feature exists because I hit that exact friction in my own work. I'm sharing it as my passion project for the Obsidian community.
+## 🎯 The Problem Every Writer Knows
 
-Nova transforms AI from a chat interface into a true collaborative writing partner that directly edits, enhances, and creates content in your documents through natural conversation.
+**Before Nova (Every Other AI Tool):**
+- User: "Improve this paragraph"
+- AI: *Makes edit somewhere, hopefully in the right place*
+- User: "Wait, where did it put that? Let me find it and move it..."
+- Result: **Constant copy-paste frustration and guesswork**
 
-## 🌟 What Makes Nova Different
-
-**Direct Document Editing**: Unlike other AI tools that make you copy-paste suggestions, Nova edits your documents directly where you write.
-
-**Native Obsidian Integration**: Nova feels like part of Obsidian, not an add-on. I obsessed over the details - from using `[[]]` autocomplete to matching Obsidian's design language and keyboard shortcuts. Everything just works the way you'd expect.
-
-**Privacy-First**: Choose between local AI (completely private) or cloud providers using your own API keys. Your data, your choice.
-
-**Everything Free**: All features are available to everyone with their own API keys. No artificial restrictions, no feature gates.
-
-**Works Everywhere**: Identical full-featured experience on desktop and mobile - only the AI provider setup differs by platform.
-
-**Community-Supported**: Optional Supernova supporters get early access to new features and help sustain development.
+**With Nova:**
+- **Selection**: *Select text → Right-click → "Improve Writing"*
+- **Cursor**: *Type "Add conclusion here" → AI writes exactly at cursor*
+- Result: **Surgical precision, zero copy-paste**
 
 ## ✨ Features
 
-### 🔧 Core Document Editing
-- **Add Content**: "Add a conclusion section about..."
-- **Edit Content**: "Make this paragraph more professional..."
-- **Delete Content**: "Remove the redundant parts..."
-- **Fix Grammar**: Automatically correct grammar and clarity
-- **Rewrite Content**: "Rewrite this to be more compelling..."
-- **Update Metadata**: "Add tags: research, important"
+### 🎯 Selection-Based Editing with Streaming Magic
 
-### 🤖 AI Provider Support
-- **Claude (Anthropic)**: Premium reasoning capabilities
-- **ChatGPT (OpenAI)**: Industry-standard AI assistance  
-- **Google Gemini**: Fast, efficient responses
-- **Ollama**: Local AI models for complete privacy
-- **Provider Switching**: Switch AI models using the provider dropdown
+Transform any selected text directly in place with magical streaming effects:
 
-### 🎯 Smart Writing Features
-- **Multi-Document Context**: Reference other notes with `[[Document Name]]` syntax - uses Obsidian's native autocomplete with document suggestions
-- **File-Scoped Conversations**: Each document maintains its own chat history
-- **Auto-Growing Input**: Smart input area that expands as you type
-- **Context-Aware Editing**: AI understands your document structure and tone
-- **Mobile & Desktop**: Full functionality across all platforms
+**Desktop Experience:**
+- **Select text → Right-click** to access Nova's context menu
+- **Powerful actions**: Improve Writing, Make Longer/Shorter, Change Tone, Custom Instructions, and more
+- **Typewriter streaming**: Watch AI content appear with smooth streaming effects
+- **Clean undo behavior**: Two-step undo (AI content → empty → original text)
 
-### 🎯 Precise Document Targeting
-- **Semantic Commands**: Natural language like "append conclusion to Results/Data Analysis"
-- **Hierarchical Paths**: Target nested sections with `Methods/Data Collection/Statistics` syntax
-- **Interactive Path Picker**: Type `/` to browse document structure visually
-- **Error Prevention**: Autocomplete eliminates typos and shows available sections
-- **Surgical Precision**: Distinguish between "append" (end), "prepend" (start), and "insert" operations
+**Mobile Experience:**
+- **Select text → Command Palette** (Cmd/Ctrl+P or tap command icon)
+- **Search "Nova:"** to find all selection actions
+- **Complete feature parity** with desktop - all 8 actions, chat commands, file context
+- **Perfect text selection preservation** during transformation
 
-### ⚡ Advanced Workflow
-- **Natural Language Commands**: Describe what you want in plain English
-- **Undo Integration**: All edits work with Obsidian's native undo/redo
-- **Privacy Indicators**: Clear visual indicators for local vs cloud AI usage
-- **Provider Health Monitoring**: Automatic fallback when providers are unavailable
+### 💬 Intelligent Chat & Document Editing
+
+Full conversation capability with smart editing detection:
+
+- **Chat about your notes**: "What are the main themes in this document?" 
+- **Ask questions**: "How does this relate to my research in [[Other Document]]?"
+- **Smart intention detection**: AI knows when to chat vs. when to edit your document
+- **Cursor-precise editing**: "Add a conclusion here" edits exactly at cursor location
+- **Same streaming experience**: Whether chatting or editing on desktop or mobile
+
+### 📁 Drag-and-Drop File Context
+
+Seamless file integration for multi-document workflows:
+
+- **Drag markdown files** from Obsidian's file explorer onto chat input
+- **Auto-context addition**: Files automatically added to conversation context
+- **Multiple file support**: Drag several files simultaneously  
+- **Smart filtering**: Only accepts `.md` files with friendly error messages
+- **Visual feedback**: Accent-colored drop zone during drag operations
+
+### 🤖 AI Provider Flexibility
+
+**Local Providers (Privacy-First):**
+- **Ollama** (recommended for desktop) - Complete privacy, no internet required
+- **LM Studio** - Alternative local option
+- **Custom endpoints** - Self-hosted AI models
+
+**Cloud Providers (with your API keys):**
+- **Claude** (Anthropic) - Recommended for quality and reasoning
+- **Google Gemini** - Fast and budget-friendly
+- **OpenAI** (ChatGPT) - Industry standard
+
+**Provider Features:**
+- **Seamless switching**: Change providers mid-conversation
+- **Context preservation**: Full conversation history maintained across switches
+- **API resilience**: Automatic retry with exponential backoff for server errors
+- **Clear privacy indicators**: 🔒 Local / ☁️ Cloud status display
+
+### 🗂️ Smart Multi-Document Context
+
+Include content from other vault documents in your conversation:
+
+- **File picker**: Type `[[` to open Obsidian's fuzzy search and select documents
+- **Drag and drop**: Drag markdown files from file explorer directly onto chat input
+- **Persistent context**: Added files stay active across the entire conversation
+- **Context management**: Visual panel with remove buttons and clear all option
+- **Security protection**: Context documents are read-only for editing operations
+
+### 🏷️ AI-Powered Tag Management
+
+Natural language tag operations:
+
+- **"Add tags: research, important"** - Modifies document metadata directly
+- **"Add suggested tags"** - AI analyzes content and suggests relevant tags
+- **"Clean up tags"** - Optimizes and deduplicates tag lists
+- **Smart formatting**: Converts spaces to hyphens automatically
+- **Success feedback**: Clear messages showing tag changes
+
+### 💾 File-Scoped Memory & Enhanced UX
+
+- **File-scoped conversations**: Each document maintains its own chat history
+- **Auto-growing input**: Platform-specific sizing (desktop 6 lines, mobile 2 lines)
+- **Enhanced input experience**: Smooth transitions and auto-reset after submission
+- **Memory management**: Automatic 7-day conversation cleanup
+- **Native modals**: Professional Obsidian-style design throughout
 
 ## 🚀 Getting Started
 
@@ -71,181 +115,156 @@ Nova transforms AI from a chat interface into a true collaborative writing partn
 
 **Desktop Users**: Nova ships ready-to-use with Ollama as the default local AI provider.
 
-**Mobile Users**: You'll need to configure a cloud provider since local AI isn't available on mobile.
+**Mobile Users**: Configure a cloud provider since local AI isn't available on mobile.
 
-Setup options:
+**Setup Steps:**
 1. Open **Settings** → **Nova AI Settings**
-2. **For local AI (desktop only)**: Install [Ollama](https://ollama.ai/) and pull a model (e.g., `ollama pull llama2`)
-3. **For cloud AI** (required for mobile, optional for desktop), add API keys:
-   - **Claude**: Get API key from [Anthropic Console](https://console.anthropic.com/)
-   - **OpenAI**: Get API key from [OpenAI Platform](https://platform.openai.com/)
-   - **Google**: Get API key from [Google AI Studio](https://aistudio.google.com/)
-4. **LM Studio users**: The Ollama provider works with LM Studio's OpenAI-compatible server
+2. **For local AI (desktop)**: Install [Ollama](https://ollama.ai/) and pull a model (`ollama pull llama3`)
+3. **For cloud AI**: Add your API key:
+   - **Claude**: [Anthropic Console](https://console.anthropic.com/)
+   - **OpenAI**: [OpenAI Platform](https://platform.openai.com/)
+   - **Google**: [Google AI Studio](https://aistudio.google.com/)
 
-### 3. Start Writing
+### 3. Start Transforming Text
 1. **Open any document** in Obsidian
-2. **Click the Nova star** ⭐ in the sidebar
-3. **Ask for help**: "Add an introduction explaining why this topic matters"
-4. **Watch Nova edit directly** in your document - no copy-paste needed, no learning curve, just natural writing assistance that feels like Obsidian magic
+2. **Select some text**
+3. **Desktop**: Right-click → Choose Nova action
+4. **Mobile**: Command Palette (Cmd/Ctrl+P) → Search "Nova: Improve Writing"
+5. **Watch the magic**: Thinking animation → Streaming transformation in place
 
-### 4. Pro Tips
-- **Switch providers**: Use the provider dropdown to change AI models
-- **Add document context**: "Edit this section using ideas from [[My Research Notes]]"
-- **Use natural language**: "Make this sound more professional but keep it concise"
+### 4. Pro Workflows
+- **Provider switching**: Change AI models mid-conversation
+- **File context**: Type `[[` to add other documents to conversation
+- **Cursor targeting**: "Add conclusion section" for precise document additions
+- **Custom instructions**: Right-click → "Tell Nova..." for specific transformations
 
-## 🎭 Usage Examples
+## 🎮 Usage Examples
 
 ### Academic Writing
 ```
-You: "Add a literature review section for renewable energy economics"
-Nova: *Creates structured academic section with proper formatting*
+Select methodology paragraph → Right-click → "Change Tone to Academic"
+Nova: *Transforms text with academic language and structure*
 
-You: *Switch to Claude via provider dropdown* "Improve the methodology to be more rigorous"
-Nova: *Enhances the methodology section with Claude's analysis*
+Type: "Add literature review section using context from [[Research Notes]]"
+Nova: *Creates structured academic section with proper citations*
 ```
 
 ### Creative Writing
 ```
-You: "Develop this character's backstory with childhood trauma"
-Nova: *Adds character development that fits your narrative*
+Select character description → Right-click → "Make Longer"
+Nova: *Expands with rich details and backstory*
 
-You: "Create dialogue that shows tension between these characters"
-Nova: *Generates compelling dialogue directly in your document*
+Chat: "Create dialogue showing tension between these characters"
+Nova: *Generates compelling dialogue at cursor position*
 ```
 
 ### Technical Documentation
 ```
-You: "Add error handling documentation for this API endpoint"
-Nova: *Creates comprehensive error docs with examples*
+Select API description → Right-click → "Improve Writing" 
+Nova: *Enhances clarity and technical accuracy*
 
-You: "Include code examples using context from [[API Guidelines]]"
-Nova: *References your guidelines and adds appropriate code samples*
+Chat: "Add error handling examples using [[API Guidelines]]"
+Nova: *References guidelines and adds appropriate code samples*
 ```
 
-## 🌟 Supernova Supporters
+## 🎭 Why Nova Is Different
 
-Nova is free forever with your API keys. If you find it valuable, consider becoming a **Supernova Supporter** to help sustain development and get early access to new features.
+### Selection-Based Revolution
+- **End the guesswork**: AI edits exactly where you specify, not where it hopes
+- **Visual precision**: See exactly what will be transformed before it happens
+- **Magical UX**: Polished interactions with smooth animations that make editing enjoyable
+- **Zero learning curve**: Right-click and selection are universal patterns
 
-### What Supernova Supporters Get
-- **🎯 Priority Support** - Get help faster when you need it
-- **🗳️ Feature Voting** - Influence development priorities
-- **⚡ Early Access** - Try new features 2-6 months before general release
-- **💝 Gratitude** - Know you're supporting sustainable open-source development
+### Native Obsidian Integration
+- **Feels like core Obsidian**: Uses native modals, command palette, file picker
+- **Obsessive UX polish**: Every interaction crafted to feel seamless and intuitive
+- **Cross-platform excellence**: Identical experience on desktop and mobile
+- **Privacy-first**: Local AI emphasis with optional cloud using your keys
+- **Community-supported**: All features free with your API keys
 
-### Upcoming Supernova Features (Early Access)
+### Built for Writers
+- **Direct document editing**: No copy-paste workflow interruption
+- **Context-aware**: Understands document structure and writing style
+- **Multi-document intelligence**: Reference and incorporate other notes seamlessly
+- **Writing flow preservation**: Maintains focus without external chat windows
 
-**⚡ Rapid Command System** *(Coming July 2025)*
-- Lightning-fast workflow acceleration with intuitive shortcuts
-- Context-aware automation that learns your writing patterns
-- Advanced keyboard-driven editing for power users
+## 🛠️ Technical Excellence
 
-**🎯 Contextual Text Intelligence** *(Coming August 2025)*
-- Adaptive text refinement with precision targeting
-- Intelligent content adjustment based on selection context
-- Professional-grade text transformation tools
+### Performance & Reliability
+- **API resilience**: Automatic retry with exponential backoff (1s, 2s, 4s)
+- **Memory management**: Efficient resource usage with automatic cleanup
+- **Streaming optimization**: Smooth typewriter effects with 20ms character timing
+- **Cross-platform consistency**: Identical experience across all devices
 
-**📊 Clarity Optimization Engine** *(Coming September 2025)*
-- Advanced readability analysis and enhancement
-- Multi-level writing complexity management
-- Audience-aware content optimization
+### Security & Privacy
+- **Local-first architecture**: Ollama provider requires no internet connection
+- **Secure API storage**: Keys encrypted using Obsidian's secure settings
+- **Context document protection**: Read-only security for multi-document workflows
+- **No analytics**: Zero usage tracking or data collection
+- **Offline license validation**: Supernova licenses work completely offline - nothing calls home, ever
 
-**🔧 Local AI Orchestration** *(Coming October 2025)*
-- Intelligent model management for local AI workflows
-- Seamless switching between local AI configurations
-- Performance optimization for offline writing
+### Code Quality
+- **400+ comprehensive tests**: Including security, performance, and integration suites
+- **TypeScript**: Full type safety and maintainability
+- **Zero dependencies**: Self-contained with no external runtime requirements
+- **Open source**: AGPL-3.0 license for transparency and community contribution
 
-**🗂️ Multi-Document Intelligence** *(Coming November 2025)*
-- Cross-document context analysis and editing
-- Batch operations across your entire knowledge base
-- Advanced vault-wide content management
+## 🌟 Community & Support
 
-**[Become a Supernova Supporter →](https://novawriter.ai/supernova)**
+### Free Forever
+**Every feature is available to everyone with their own API keys.** No artificial restrictions, no feature gates, no subscription walls.
 
-## 🔒 Privacy & Security
+### Supernova Support
+If Nova transforms your writing workflow, consider supporting development:
+- **Priority support** when you need help
+- **Early access** to new features (2-4 months ahead)
+- **Community voice** in development priorities
+- **Sustainable development** funding
 
-**Your Data, Your Choice**:
-- **Local AI**: Use Ollama for complete privacy - nothing leaves your device
-- **Cloud AI**: Use your own API keys - Nova never sees your content
-- **No Analytics**: Nova doesn't track your usage or collect data
-- **Transparent**: Open-source under AGPL-3.0 license
+**[Go Supernova! →](https://github.com/sponsors/shawnduggan)**
 
-**Privacy Indicators**:
-- Clear visual status indicators show whether you're using local or cloud AI
-- Sidebar header displays current provider type and name
-- No data transmission without explicit user action
+### Get Involved
+- **🐛 Issues**: [GitHub Issues](https://github.com/shawnduggan/nova-obsidian/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/shawnduggan/nova-obsidian/discussions)  
+- **📚 Documentation**: [User Guide](https://docs.novawriter.ai)
+- **🤝 Contributing**: [Contributing Guide](./CONTRIBUTING.md)
 
-## 🛠️ Requirements
+## 🔮 What's Next
 
+Nova is actively developed with exciting features planned:
+
+**Coming Soon for Supernova Supporters** *(Regular users get access 2-4 months later)*:
+- **Custom Commands** (July 2025): Create your own editing workflows
+- **Writing Modes**: Specialized environments for different writing styles
+- **Personalized Style Mirroring**: AI learns and adapts to your unique voice
+- **Smart Content Synthesis**: Merge insights from multiple sources intelligently
+- **And more!** Supernova supporters vote on priorities and help shape development
+
+## 📄 License & Requirements
+
+### License
+Nova is open source under **AGPL-3.0**, ensuring:
+- ✅ **Free forever** for all uses (personal, commercial, enterprise)
+- ✅ **Community contributions** protected and shared
+- ✅ **No hidden restrictions** or commercial exploitation
+- ✅ **Transparent development** with public code
+
+### Requirements
 - **Obsidian**: v1.0.0 or newer
-- **AI Provider**: 
-  - **Desktop**: Nova ships with Ollama as the default (no API key required for complete privacy)
-  - **Mobile**: Requires a cloud provider API key (Claude, OpenAI, or Google) - local AI not available on mobile
-- **Platform**: Windows, macOS, Linux, iOS, Android
-
-**For privacy-conscious users**: Nova defaults to Ollama for local AI that never leaves your device. The Ollama provider also works with LM Studio and other OpenAI-compatible local servers.
-
-**For mobile users**: You'll need at least one cloud provider API key since local AI models cannot run on mobile devices.
-
-## 📖 Documentation
-
-- **[Setup Guide](https://docs.novawriter.ai/setup)** - Complete installation and configuration
-- **[User Guide](https://docs.novawriter.ai/guide)** - How to get the most out of Nova
-- **[API Providers](https://docs.novawriter.ai/providers)** - Comparison and setup for each provider
-- **[Troubleshooting](https://docs.novawriter.ai/troubleshooting)** - Common issues and solutions
-
-## 🤝 Contributing
-
-Nova is open-source and welcomes contributions! See our [Contributing Guide](./CONTRIBUTING.md) for details.
-
-**Ways to contribute**:
-- 🐛 Report bugs and suggest improvements
-- 🔧 Submit pull requests (CLA required)
-- 📖 Improve documentation
-- 🧪 Test on different platforms
-- ⭐ Star the repository to show support
-
-## 📄 License
-
-Nova is licensed under **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-### Why AGPL-3.0?
-
-I chose AGPL-3.0 because it aligns perfectly with the Obsidian community's values while protecting Nova's open-source future:
-
-- **Complete freedom**: Use Nova for any purpose (personal, commercial, non-profit)
-- **Community protection**: Any improvements must be shared back with everyone
-- **No exploitation**: Prevents closed-source commercial forks that exploit our work
-- **Transparency**: Just like Obsidian respects your data ownership, Nova respects your right to inspect and modify the code
-- **Local-first alignment**: Supports the same philosophy that brought you to Obsidian
-
-**What this means for you**:
-- ✅ **Free to use** for any purpose (personal, commercial, non-profit)
-- ✅ **Free to modify** and customize for your needs  
-- ✅ **Free to distribute** (with source code)
-- ✅ **Improvements must be shared** back with the community
-- ✅ **No hidden restrictions** or commercial traps
-
-**Commercial Use**: Nova is completely free for all uses, including enterprise environments. If you need additional licensing options for your organization, feel free to reach out.
-
-This license ensures Nova remains free and open while protecting against closed-source commercial exploitation that would undermine the community's contributions.
-
-See [LICENSE.md](./LICENSE.md) for full details.
-
-## 🆘 Support
-
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/shawnduggan/nova-obsidian/issues)
-- **💬 Community**: [GitHub Discussions](https://github.com/shawnduggan/nova-obsidian/discussions)
-- **📧 Supernova Support**: priority@novawriter.ai (supporters only)
-- **📚 Documentation**: [docs.novawriter.ai](https://docs.novawriter.ai)
-
-## 🚀 What's Next
-
-Nova is actively developed with new features added regularly. Supernova supporters get early access to upcoming features, while all features eventually become available to everyone.
-
-Follow [GitHub Issues](https://github.com/shawnduggan/nova-obsidian/issues) for development updates and community discussions.
+- **AI Provider**: Ollama (local) or cloud API key
+- **Platforms**: Windows, macOS, Linux, iOS, Android
 
 ---
 
-**Ready to transform your writing workflow?** [Install Nova today →](https://obsidian.md/plugins?id=nova)
+## 🎯 Ready to End AI Guesswork?
 
-**Crafted with ❤️ in Halifax NS 🇨🇦**
+**Stop hoping AI gets it right. Start controlling exactly where it goes.**
+
+Transform your writing workflow with surgical precision:
+
+1. **[Install Nova](https://obsidian.md/plugins?id=nova)** from Community Plugins
+2. **Select some text** in any document  
+3. **Right-click → "Improve Writing"**
+4. **Watch the magic** happen exactly where you want it
+
+**Built with ❤️ in Halifax, Nova Scotia 🇨🇦**
