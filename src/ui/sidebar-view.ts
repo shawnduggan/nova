@@ -2702,6 +2702,11 @@ USER REQUEST: ${processedMessage}`;
 				this.addErrorMessage('Failed to save model selection');
 			});
 			
+			// ADD THIS: Refresh privacy indicator and other status elements
+			this.refreshProviderStatus().catch(error => {
+				console.error('Error refreshing provider status:', error);
+			});
+			
 		} catch (error) {
 			console.error('Error switching model:', error);
 			this.addErrorMessage('Failed to switch model');

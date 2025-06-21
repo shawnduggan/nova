@@ -4917,6 +4917,9 @@ Let me help.`;
         console.error("Error saving model selection:", error);
         this.addErrorMessage("Failed to save model selection");
       });
+      this.refreshProviderStatus().catch((error) => {
+        console.error("Error refreshing provider status:", error);
+      });
     } catch (error) {
       console.error("Error switching model:", error);
       this.addErrorMessage("Failed to switch model");
