@@ -1873,10 +1873,14 @@
 /* Mobile responsive privacy indicator positioning */
 .is-mobile .nova-header .nova-privacy-indicator {
     position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: var(--size-2-2);
+    bottom: 0; /* Align to bottom edge of header */
+    right: 70px; /* Keep perfect horizontal position */
     z-index: 10;
+}
+
+/* Ensure header is the positioning context on mobile */
+.is-mobile .nova-header {
+    position: relative;
 }
 
 /* Document Stats Analytics Text */
