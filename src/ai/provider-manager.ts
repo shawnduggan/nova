@@ -77,10 +77,6 @@ export class AIProviderManager {
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
 		const selectedModel = this.settings.platformSettings[platform].selectedModel;
 		
-		console.log('🔍 AIProviderManager.getSelectedModel():');
-		console.log('🔍 Platform:', platform);
-		console.log('🔍 Selected model:', selectedModel);
-		
 		return selectedModel;
 	}
 
@@ -95,8 +91,6 @@ export class AIProviderManager {
 		
 		const provider = this.providers.get(providerType);
 		const isAvailable = provider ? await this.checkProviderAvailability(providerType) : false;
-		
-		console.log('🔍 Provider for model:', { selectedModel, providerType, isAvailable });
 		
 		if (provider && isAvailable) {
 			return provider;

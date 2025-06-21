@@ -26,5 +26,5 @@
 
 ## 🎯 PENDING TASKS
 
-* remove all logging
+No pending tasks.
 

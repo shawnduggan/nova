@@ -590,8 +590,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		const originalText = buttonEl.textContent || 'Test Connection';
 		const button = buttonEl as HTMLButtonElement;
 		
-		console.log(`Starting connection test for ${provider}, button disabled: ${button.disabled}`);
-		
 		// Force enable and set initial state
 		button.disabled = false;
 		button.textContent = 'Testing...';
@@ -608,7 +606,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			button.disabled = false;
 			button.textContent = originalText;
 			button.style.opacity = '1';
-			console.log(`Button force-restored for ${provider}`);
 		};
 		
 		const backupTimer = setTimeout(restoreButton, 12000); // 12 second backup
@@ -633,10 +630,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Update provider status to connected
 			await this.updateProviderStatus(provider, 'connected', 'Connected successfully');
 			this.setConnectionStatus(statusContainer, 'success', '● Connected');
-			console.log(`Connection test successful for ${provider}`);
 			
 		} catch (error: any) {
-			console.log(`Connection test failed for ${provider}:`, error);
+			console.error(`Connection test failed for ${provider}:`, error);
 			let errorMessage = 'Connection failed';
 			
 			if (error.message === 'Connection timeout') {
@@ -734,8 +730,6 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private async performRealConnectionTest(provider: 'claude' | 'openai' | 'google' | 'ollama'): Promise<void> {
-		console.log(`Starting real connection test for ${provider}`);
-		
 		// Test the provider classes directly
 		switch (provider) {
 			case 'claude': {
@@ -764,7 +758,6 @@ export class NovaSettingTab extends PluginSettingTab {
 				break;
 			}
 		}
-		console.log(`Connection test successful for ${provider}`);
 	}
 
 	private setConnectionStatus(container: HTMLElement, type: 'success' | 'error' | 'testing' | 'none', message: string): void {

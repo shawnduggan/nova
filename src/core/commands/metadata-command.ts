@@ -78,9 +78,6 @@ export class MetadataCommand {
                 };
             }
             
-            // Log what we're updating for debugging
-            console.log('Metadata updates:', updates);
-            
             // Update or create frontmatter
             const updatedContent = this.updateFrontmatter(documentContext.content, updates);
             

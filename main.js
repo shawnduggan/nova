@@ -4077,12 +4077,9 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian10.ItemView
     const sendButton = this.inputHandler.sendButton;
     if (sendButton) sendButton.setDisabled(true);
     try {
-      console.log("\u{1F680} CHAT INPUT HANDLING:", { messageText });
       const activeFile = this.app.workspace.getActiveFile();
       if (activeFile) {
-        console.log("\u{1F4BE} About to persist user message:", { file: activeFile.path, messageText });
         await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null);
-        console.log("\u{1F4FA} About to display user message in UI");
         this.addMessage("user", messageText);
       }
       const loadingEl = this.chatContainer.createDiv({ cls: "nova-loading" });
@@ -4283,12 +4280,7 @@ USER REQUEST: ${processedMessage}`;
     }
   }
   async loadConversationForActiveFile() {
-    var _a, _b;
     const activeFile = this.app.workspace.getActiveFile();
-    console.log("\u{1F504} FILE SWITCH EVENT:", {
-      activeFile: activeFile == null ? void 0 : activeFile.path,
-      currentFile: (_a = this.currentFile) == null ? void 0 : _a.path
-    });
     this.isUserInitiatedProviderChange = false;
     const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     this.currentFileLoadOperation = operationId;
@@ -4306,7 +4298,6 @@ USER REQUEST: ${processedMessage}`;
       }
     }
     if (!targetFile && this.currentFile) {
-      console.log("\u{1F5D1}\uFE0F Clearing chat - no target file");
       this.currentFile = null;
       this.chatContainer.empty();
       this.currentContext = null;
@@ -4316,15 +4307,10 @@ USER REQUEST: ${processedMessage}`;
       return;
     }
     if (!targetFile || targetFile === this.currentFile) {
-      console.log("\u23ED\uFE0F Skipping file switch - same file or no file");
       return;
     }
     this.contextManager.setCurrentFile(targetFile);
     this.currentFileCursorPosition = null;
-    console.log("\u{1F504} SWITCHING TO FILE:", {
-      from: (_b = this.currentFile) == null ? void 0 : _b.path,
-      to: targetFile.path
-    });
     this.currentFile = targetFile;
     this.currentContext = this.contextManager.getCurrentContext();
     this.updateContextIndicator();
@@ -4333,28 +4319,23 @@ USER REQUEST: ${processedMessage}`;
     if (activeView && activeView.editor) {
       this.trackCursorPosition(activeView.editor);
     }
-    console.log("\u{1F9F9} CLEARING CHAT for file switch");
     this.chatContainer.empty();
     if (this.currentFileLoadOperation !== operationId) {
-      console.log("\u26A0\uFE0F File load operation cancelled - newer operation in progress");
       return;
     }
     try {
-      console.log("\u{1F4DA} LOADING CONVERSATION HISTORY via ChatRenderer");
       await this.chatRenderer.loadConversationHistory(targetFile);
       if (this.currentFileLoadOperation !== operationId) {
-        console.log("\u26A0\uFE0F File load operation cancelled during conversation loading");
         return;
       }
       await this.contextManager.restoreContextAfterChatLoad(targetFile);
       await this.refreshContext();
       await this.showDocumentInsights(targetFile);
       if (this.currentFileLoadOperation !== operationId) {
-        console.log("\u26A0\uFE0F File load operation cancelled during insights loading");
         return;
       }
     } catch (error) {
-      console.log("\u274C CONVERSATION LOADING ERROR:", error);
+      console.error("Conversation loading error:", error);
       this.addWelcomeMessage();
     }
   }
@@ -4878,13 +4859,11 @@ Let me help.`;
         models = this.getAvailableModels(searchProviderType);
         model = models.find((m) => m.value === modelValue);
         if (model) {
-          console.log("\u{1F3A8} Found model in different provider:", { searchProviderType, modelValue, foundModel: model });
           break;
         }
       }
     }
     const displayName = model ? model.label : modelValue;
-    console.log("\u{1F3A8} getModelDisplayName:", { providerType, modelValue, foundModel: model, displayName });
     return displayName;
   }
   /**
@@ -5239,7 +5218,6 @@ Let me help.`;
   async refreshProviderDropdown() {
     var _a;
     if ((_a = this.currentProviderDropdown) == null ? void 0 : _a.updateCurrentProvider) {
-      console.log("\u{1F504} Refreshing provider dropdown UI after settings update");
       try {
         await this.currentProviderDropdown.updateCurrentProvider();
       } catch (error) {
@@ -6854,7 +6832,6 @@ var NovaSettingTab = class extends import_obsidian12.PluginSettingTab {
     var _a, _b, _c, _d, _e, _f, _g;
     const originalText = buttonEl.textContent || "Test Connection";
     const button = buttonEl;
-    console.log(`Starting connection test for ${provider}, button disabled: ${button.disabled}`);
     button.disabled = false;
     button.textContent = "Testing...";
     button.style.opacity = "0.6";
@@ -6864,7 +6841,6 @@ var NovaSettingTab = class extends import_obsidian12.PluginSettingTab {
       button.disabled = false;
       button.textContent = originalText;
       button.style.opacity = "1";
-      console.log(`Button force-restored for ${provider}`);
     };
     const backupTimer = setTimeout(restoreButton, 12e3);
     try {
@@ -6879,9 +6855,8 @@ var NovaSettingTab = class extends import_obsidian12.PluginSettingTab {
       await Promise.race([testPromise, timeoutPromise]);
       await this.updateProviderStatus(provider, "connected", "Connected successfully");
       this.setConnectionStatus(statusContainer, "success", "\u25CF Connected");
-      console.log(`Connection test successful for ${provider}`);
     } catch (error) {
-      console.log(`Connection test failed for ${provider}:`, error);
+      console.error(`Connection test failed for ${provider}:`, error);
       let errorMessage = "Connection failed";
       if (error.message === "Connection timeout") {
         errorMessage = "Timeout";
@@ -6961,7 +6936,6 @@ var NovaSettingTab = class extends import_obsidian12.PluginSettingTab {
     }
   }
   async performRealConnectionTest(provider) {
-    console.log(`Starting real connection test for ${provider}`);
     switch (provider) {
       case "claude": {
         const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude);
@@ -6987,7 +6961,6 @@ var NovaSettingTab = class extends import_obsidian12.PluginSettingTab {
         break;
       }
     }
-    console.log(`Connection test successful for ${provider}`);
   }
   setConnectionStatus(container, type, message) {
     container.empty();
@@ -7844,9 +7817,6 @@ var AIProviderManager = class {
   getSelectedModel() {
     const platform = import_obsidian13.Platform.isMobile ? "mobile" : "desktop";
     const selectedModel = this.settings.platformSettings[platform].selectedModel;
-    console.log("\u{1F50D} AIProviderManager.getSelectedModel():");
-    console.log("\u{1F50D} Platform:", platform);
-    console.log("\u{1F50D} Selected model:", selectedModel);
     return selectedModel;
   }
   async getAvailableProvider() {
@@ -7857,7 +7827,6 @@ var AIProviderManager = class {
     }
     const provider = this.providers.get(providerType);
     const isAvailable = provider ? await this.checkProviderAvailability(providerType) : false;
-    console.log("\u{1F50D} Provider for model:", { selectedModel, providerType, isAvailable });
     if (provider && isAvailable) {
       return provider;
     }
@@ -10624,7 +10593,6 @@ var MetadataCommand = class {
           editType: "replace"
         };
       }
-      console.log("Metadata updates:", updates);
       const updatedContent = this.updateFrontmatter(documentContext.content, updates);
       await this.app.vault.modify(documentContext.file, updatedContent);
       const successMessage = this.generateSuccessMessage(updates);

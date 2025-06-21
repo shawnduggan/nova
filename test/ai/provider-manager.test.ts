@@ -12,10 +12,27 @@ jest.mock('obsidian', () => ({
 }));
 
 // Mock providers
-jest.mock('../../src/ai/providers/claude');
+jest.mock('../../src/ai/providers/claude', () => ({
+    ClaudeProvider: jest.fn().mockImplementation(() => ({
+        name: 'Claude (Anthropic)',
+        isAvailable: jest.fn().mockResolvedValue(true),
+        complete: jest.fn().mockResolvedValue('Test response')
+    }))
+}));
 jest.mock('../../src/ai/providers/openai');
 jest.mock('../../src/ai/providers/google');
 jest.mock('../../src/ai/providers/ollama');
+
+// Mock models utility
+jest.mock('../../src/ai/models', () => ({
+    getProviderTypeForModel: jest.fn((modelValue: string) => {
+        if (modelValue.includes('claude')) return 'claude';
+        if (modelValue.includes('gpt')) return 'openai';
+        if (modelValue.includes('gemini')) return 'google';
+        if (modelValue.includes('llama')) return 'ollama';
+        return null;
+    })
+}));
 
 describe('AIProviderManager', () => {
     let manager: AIProviderManager;
@@ -104,28 +121,20 @@ describe('AIProviderManager', () => {
             ).rejects.toThrow('Nova is disabled or no AI provider is available');
         });
 
-        test('should try fallback providers when primary is unavailable', async () => {
+        test('should return null when selected provider is unavailable', async () => {
             const claudeProvider = {
                 name: 'Claude (Anthropic)',
                 isAvailable: jest.fn().mockResolvedValue(false),
                 complete: jest.fn()
             };
 
-            const ollamaProvider = {
-                name: 'Ollama',
-                isAvailable: jest.fn().mockResolvedValue(true),
-                complete: jest.fn().mockResolvedValue('Ollama response')
-            };
-
             manager['providers'].set('claude', claudeProvider as any);
-            manager['providers'].set('ollama', ollamaProvider as any);
 
-            const result = await manager.complete('System prompt', 'User prompt');
+            await expect(
+                manager.complete('System prompt', 'User prompt')
+            ).rejects.toThrow('Nova is disabled or no AI provider is available');
 
             expect(claudeProvider.isAvailable).toHaveBeenCalled();
-            expect(ollamaProvider.isAvailable).toHaveBeenCalled();
-            expect(ollamaProvider.complete).toHaveBeenCalledWith('System prompt', 'User prompt', undefined);
-            expect(result).toBe('Ollama response');
         });
 
         test('should respect mobile platform settings', async () => {

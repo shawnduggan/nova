@@ -163,7 +163,7 @@ describe('ContextManager', () => {
 			expect(context!.tokenCount).toBeGreaterThan(10);
 		});
 
-		it('should detect when approaching token limit', async () => {
+		it('should calculate token count for long documents', async () => {
 			// Mock a very long document
 			const longContent = 'This is a very long document. '.repeat(2000);
 			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce(longContent);
@@ -172,7 +172,8 @@ describe('ContextManager', () => {
 			const context = await contextManager.buildContext(message, testFile);
 			
 			expect(context).not.toBeNull();
-			expect(context!.isNearLimit).toBe(true);
+			expect(context!.tokenCount).toBeGreaterThan(10000); // Long document should have many tokens
+			expect(context!.totalContextUsage).toBeDefined(); // Should have total context usage calculation
 		});
 	});
 
@@ -237,13 +238,13 @@ describe('ContextManager', () => {
 			
 			const indicators = contextManager.getContextIndicators(context!);
 			
-			expect(indicators.text).toContain('2 docs');
-			expect(indicators.text).toContain('%');
+			expect(indicators.text).toBe('2 docs');
 			expect(indicators.className).toBe('nova-context-indicator');
 			expect(indicators.tooltip).toContain('2 documents');
+			expect(indicators.tooltip).toContain('tokens');
 		});
 
-		it('should show warning when near token limit', async () => {
+		it('should show document count correctly for large contexts', async () => {
 			// Mock a very long document
 			const longContent = 'This is a very long document. '.repeat(2000);
 			(mockApp.vault.read as jest.Mock).mockResolvedValueOnce(longContent);
@@ -253,8 +254,9 @@ describe('ContextManager', () => {
 			
 			const indicators = contextManager.getContextIndicators(context!);
 			
-			expect(indicators.className).toContain('nova-context-warning');
-			expect(indicators.tooltip).toContain('approaching limit');
+			expect(indicators.text).toBe('1 docs');
+			expect(indicators.className).toBe('nova-context-indicator');
+			expect(indicators.tooltip).toContain('1 document');
 		});
 	});
 

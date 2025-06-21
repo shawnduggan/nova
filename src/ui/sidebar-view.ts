@@ -1543,15 +1543,11 @@ export class NovaSidebarView extends ItemView {
 		if (sendButton) sendButton.setDisabled(true);
 
 		try {
-			console.log('🚀 CHAT INPUT HANDLING:', { messageText });
-			
 			// Store user message in conversation (will be restored via loadConversationHistory)
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
-				console.log('💾 About to persist user message:', { file: activeFile.path, messageText });
 				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null as any);
 				
-				console.log('📺 About to display user message in UI');
 				// Add user message to UI immediately after persistence
 				this.addMessage('user', messageText);
 			}
@@ -1838,11 +1834,6 @@ USER REQUEST: ${processedMessage}`;
 	private async loadConversationForActiveFile() {
 		const activeFile = this.app.workspace.getActiveFile();
 		
-		console.log('🔄 FILE SWITCH EVENT:', { 
-			activeFile: activeFile?.path, 
-			currentFile: this.currentFile?.path 
-		});
-		
 		// Ensure file switches don't trigger provider switch messages
 		this.isUserInitiatedProviderChange = false;
 		
@@ -1868,7 +1859,6 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If no file available and we have a current file, clear everything
 		if (!targetFile && this.currentFile) {
-			console.log('🗑️ Clearing chat - no target file');
 			this.currentFile = null;
 			this.chatContainer.empty();
 			// Immediately clear context state to prevent bleeding
@@ -1881,7 +1871,6 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If no file or same file, do nothing
 		if (!targetFile || targetFile === this.currentFile) {
-			console.log('⏭️ Skipping file switch - same file or no file');
 			return;
 		}
 		
@@ -1890,11 +1879,6 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
-		
-		console.log('🔄 SWITCHING TO FILE:', { 
-			from: this.currentFile?.path, 
-			to: targetFile.path 
-		});
 		
 		this.currentFile = targetFile;
 		this.currentContext = this.contextManager.getCurrentContext();
@@ -1912,23 +1896,19 @@ USER REQUEST: ${processedMessage}`;
 		}
 		
 		// Clear current chat
-		console.log('🧹 CLEARING CHAT for file switch');
 		this.chatContainer.empty();
 		
 		// PHASE 3 FIX: Check if this operation is still current before proceeding
 		if (this.currentFileLoadOperation !== operationId) {
-			console.log('⚠️ File load operation cancelled - newer operation in progress');
 			return;
 		}
 		
 		try {
-			console.log('📚 LOADING CONVERSATION HISTORY via ChatRenderer');
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
 			await this.chatRenderer.loadConversationHistory(targetFile);
 			
 			// PHASE 3 FIX: Check again after async operation
 			if (this.currentFileLoadOperation !== operationId) {
-				console.log('⚠️ File load operation cancelled during conversation loading');
 				return;
 			}
 			
@@ -1943,13 +1923,12 @@ USER REQUEST: ${processedMessage}`;
 			
 			// PHASE 3 FIX: Final check after all async operations
 			if (this.currentFileLoadOperation !== operationId) {
-				console.log('⚠️ File load operation cancelled during insights loading');
 				return;
 			}
 			
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
-			console.log('❌ CONVERSATION LOADING ERROR:', error);
+			console.error('Conversation loading error:', error);
 			// Failed to load conversation history - graceful fallback
 			// Show welcome message on error
 			this.addWelcomeMessage();
@@ -2656,15 +2635,12 @@ USER REQUEST: ${processedMessage}`;
 				models = this.getAvailableModels(searchProviderType);
 				model = models.find(m => m.value === modelValue);
 				if (model) {
-					console.log('🎨 Found model in different provider:', { searchProviderType, modelValue, foundModel: model });
 					break;
 				}
 			}
 		}
 		
 		const displayName = model ? model.label : modelValue;
-		
-		console.log('🎨 getModelDisplayName:', { providerType, modelValue, foundModel: model, displayName });
 		
 		return displayName;
 	}
@@ -3105,7 +3081,6 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	async refreshProviderDropdown(): Promise<void> {
 		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
-			console.log('🔄 Refreshing provider dropdown UI after settings update');
 			try {
 				await (this as any).currentProviderDropdown.updateCurrentProvider();
 			} catch (error) {
