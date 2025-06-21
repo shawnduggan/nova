@@ -19,4 +19,7 @@
 
 ## 🎯 PENDING TASKS
 
-* No pending tasks at this time
+* dot bug in privacyIndicator on mobile
+* Revise model list. Remove Sonnet 3.5 Oct 22, Add o4, o3 models
+* remove all logging
+

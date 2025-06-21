@@ -1870,12 +1870,6 @@
     min-width: 0; /* Prevent flex overflow */
 }
 
-/* Document Stats Analytics Text */
-.nova-document-stats {
-    font-size: 0.85em; /* Default smaller size */
-    color: var(--text-muted);
-}
-
 /* Mobile responsive privacy indicator positioning */
 .is-mobile .nova-header .nova-privacy-indicator {
     position: absolute;
@@ -1884,6 +1878,13 @@
     margin-top: var(--size-2-2);
     z-index: 10;
 }
+
+/* Document Stats Analytics Text */
+.nova-document-stats {
+    font-size: 0.85em; /* Default smaller size */
+    color: var(--text-muted);
+}
+
 
 /* Token Usage Display */
 .nova-token-usage {
@@ -1913,6 +1914,7 @@
 .is-mobile .nova-token-usage {
     font-size: 0.9em; /* Match document stats size on mobile */
 }
+
 
 /* Improved dropdown menu spacing */
 .is-mobile .nova-provider-dropdown-menu {
