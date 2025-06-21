@@ -146,7 +146,7 @@ describe('AIIntentClassifier', () => {
             }
         });
 
-        it('should handle mixed patterns as CONTENT (fallback)', async () => {
+        it('should handle mixed patterns as CHAT (simplified approach)', async () => {
             const mixedInputs = [
                 'I feel this section needs work',
                 'I\'m thinking this paragraph is unclear'
@@ -154,7 +154,7 @@ describe('AIIntentClassifier', () => {
 
             for (const input of mixedInputs) {
                 const result = await classifier.classifyIntent(input);
-                expect(result).toBe('CONTENT');
+                expect(result).toBe('CHAT');
             }
         });
     });

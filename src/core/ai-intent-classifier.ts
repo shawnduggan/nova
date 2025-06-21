@@ -71,7 +71,12 @@ Answer with one word only:`;
     private fallbackClassification(userInput: string): UserIntent {
         const lowerInput = userInput.toLowerCase().trim();
 
-        // Check for questions FIRST (highest priority)
+        // Check for greetings FIRST (highest priority)
+        if (this.isGreeting(lowerInput)) {
+            return 'CHAT';
+        }
+
+        // Check for questions SECOND (high priority)
         if (lowerInput.includes('?') || 
             lowerInput.startsWith('what') ||
             lowerInput.startsWith('why') ||
@@ -102,14 +107,42 @@ Answer with one word only:`;
             return 'CONTENT';
         }
 
-        // For ambiguous cases, check metadata patterns
+        // Handle ambiguous cases - check metadata patterns first, then default to chat
+        if (intentClassification.type === 'ambiguous') {
+            // Check metadata patterns even for ambiguous cases
+            if (this.isMetadataRelated(lowerInput)) {
+                return 'METADATA';
+            }
+            
+            // For unclear inputs, default to chat
+            return 'CHAT';
+        }
+
+        // For remaining cases, check metadata patterns
         if (this.isMetadataRelated(lowerInput)) {
             return 'METADATA';
         }
 
-        // Default to content editing for other commands
-        return 'CONTENT';
+        // Default to chat for anything else that doesn't clearly indicate editing intent
+        return 'CHAT';
     }
+
+    /**
+     * Helper method to check if input is a greeting
+     */
+    private isGreeting(lowerInput: string): boolean {
+        return (
+            // Basic greetings
+            /^(hi|hello|hey|hiya|howdy)(\s|$)/i.test(lowerInput) ||
+            // Greetings with Nova
+            /^(hi|hello|hey|hiya|howdy)\s+(nova|there)(\s|$)/i.test(lowerInput) ||
+            // Time-based greetings
+            /^(good\s+(morning|afternoon|evening|night))(\s|$)/i.test(lowerInput) ||
+            // Just "nova" as a greeting
+            /^nova(\s|$)/i.test(lowerInput)
+        );
+    }
+
 
     /**
      * Helper method to check if input is metadata-related

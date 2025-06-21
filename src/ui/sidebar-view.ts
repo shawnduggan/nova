@@ -2241,6 +2241,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 	}
 
+
 	/**
 	 * Process user input with intent detection integration
 	 */

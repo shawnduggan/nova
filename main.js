@@ -11624,6 +11624,9 @@ var AIIntentClassifier = class {
    */
   fallbackClassification(userInput) {
     const lowerInput = userInput.toLowerCase().trim();
+    if (this.isGreeting(lowerInput)) {
+      return "CHAT";
+    }
     if (lowerInput.includes("?") || lowerInput.startsWith("what") || lowerInput.startsWith("why") || lowerInput.startsWith("how") || lowerInput.startsWith("when") || lowerInput.startsWith("where") || lowerInput.startsWith("who") || lowerInput.startsWith("can you") || lowerInput.startsWith("could you") || lowerInput.includes("explain") || lowerInput.includes("help me understand")) {
       return "CHAT";
     }
@@ -11637,10 +11640,28 @@ var AIIntentClassifier = class {
       }
       return "CONTENT";
     }
+    if (intentClassification.type === "ambiguous") {
+      if (this.isMetadataRelated(lowerInput)) {
+        return "METADATA";
+      }
+      return "CHAT";
+    }
     if (this.isMetadataRelated(lowerInput)) {
       return "METADATA";
     }
-    return "CONTENT";
+    return "CHAT";
+  }
+  /**
+   * Helper method to check if input is a greeting
+   */
+  isGreeting(lowerInput) {
+    return (
+      // Basic greetings
+      /^(hi|hello|hey|hiya|howdy)(\s|$)/i.test(lowerInput) || // Greetings with Nova
+      /^(hi|hello|hey|hiya|howdy)\s+(nova|there)(\s|$)/i.test(lowerInput) || // Time-based greetings
+      /^(good\s+(morning|afternoon|evening|night))(\s|$)/i.test(lowerInput) || // Just "nova" as a greeting
+      /^nova(\s|$)/i.test(lowerInput)
+    );
   }
   /**
    * Helper method to check if input is metadata-related
