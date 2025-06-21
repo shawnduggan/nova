@@ -3026,7 +3026,7 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian10.ItemView
 		</svg>Nova`;
     const rightContainer = topRowEl.createDiv();
     rightContainer.style.cssText = "display: flex; align-items: center; gap: var(--size-2-3);";
-    const privacyIndicator = rightContainer.createDiv({ cls: "nova-privacy-indicator nova-privacy-desktop" });
+    const privacyIndicator = rightContainer.createDiv({ cls: "nova-privacy-indicator" });
     this.updatePrivacyIndicator(privacyIndicator);
     this.privacyIndicator = privacyIndicator;
     await this.createProviderDropdown(rightContainer);
@@ -3295,7 +3295,6 @@ var _NovaSidebarView = class _NovaSidebarView extends import_obsidian10.ItemView
       await this.plugin.settingTab.setCurrentModel(providerId);
       await this.plugin.saveSettings();
       this.addSuccessMessage(`\u2713 Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
-      await this.refreshProviderStatus();
       return true;
     }
     if (this.plugin.featureManager.isFeatureEnabled("commands")) {
@@ -4423,23 +4422,9 @@ USER REQUEST: ${processedMessage}`;
     if (!statsEl) {
       statsEl = statsContainer.createEl("div", { cls: "nova-document-stats" });
     }
-    let mobileRightGroup = statsContainer.querySelector(".nova-mobile-right-group");
-    if (!mobileRightGroup) {
-      mobileRightGroup = statsContainer.createEl("div", { cls: "nova-mobile-right-group" });
-    }
-    let mobilePrivacyEl = mobileRightGroup.querySelector(".nova-privacy-mobile");
-    if (!mobilePrivacyEl) {
-      mobilePrivacyEl = mobileRightGroup.createEl("div", { cls: "nova-privacy-indicator nova-privacy-mobile" });
-      this.updatePrivacyIndicator(mobilePrivacyEl);
-      this.mobilePrivacyIndicator = mobilePrivacyEl;
-    }
     let tokenEl = statsContainer.querySelector(".nova-token-usage");
     if (!tokenEl) {
       tokenEl = statsContainer.createEl("div", { cls: "nova-token-usage" });
-    }
-    let mobileTokenEl = mobileRightGroup.querySelector(".nova-token-usage");
-    if (!mobileTokenEl) {
-      mobileTokenEl = mobileRightGroup.createEl("div", { cls: "nova-token-usage" });
     }
     const totalContextUsage = (_a = this.currentContext) == null ? void 0 : _a.totalContextUsage;
     let remainingPercent;
@@ -4458,25 +4443,16 @@ USER REQUEST: ${processedMessage}`;
       tooltipText = `File context: ${currentTokens} tokens (total context calculation unavailable)`;
       warningLevel = "safe";
     }
-    const updateTokenElement = (el) => {
-      el.textContent = displayText;
-      el.title = tooltipText;
-      el.className = "nova-token-usage";
-      if (warningLevel === "safe") {
-        el.addClass("nova-token-safe");
-      } else if (warningLevel === "warning") {
-        el.addClass("nova-token-warning");
-      } else if (warningLevel === "critical") {
-        el.addClass("nova-token-danger");
-      }
-    };
-    updateTokenElement(tokenEl);
-    if (mobileTokenEl) {
-      updateTokenElement(mobileTokenEl);
-    }
-    if (warningLevel === "warning") {
+    tokenEl.textContent = displayText;
+    tokenEl.title = tooltipText;
+    tokenEl.className = "nova-token-usage";
+    if (warningLevel === "safe") {
+      tokenEl.addClass("nova-token-safe");
+    } else if (warningLevel === "warning") {
+      tokenEl.addClass("nova-token-warning");
       this.showTokenWarning(85);
     } else if (warningLevel === "critical") {
+      tokenEl.addClass("nova-token-danger");
       this.showTokenWarning(95);
     }
   }
@@ -4727,9 +4703,6 @@ Let me help.`;
     if (this.privacyIndicator) {
       await this.updatePrivacyIndicator(this.privacyIndicator);
     }
-    if (this.mobilePrivacyIndicator) {
-      await this.updatePrivacyIndicator(this.mobilePrivacyIndicator);
-    }
     this.updateSendButtonState();
     if ((_a = this.currentProviderDropdown) == null ? void 0 : _a.updateCurrentProvider) {
       await this.currentProviderDropdown.updateCurrentProvider();
@@ -4934,7 +4907,6 @@ Let me help.`;
         console.error("Error saving model selection:", error);
         this.addErrorMessage("Failed to save model selection");
       });
-      this.refreshProviderStatus();
     } catch (error) {
       console.error("Error switching model:", error);
       this.addErrorMessage("Failed to switch model");
