@@ -876,9 +876,9 @@ export class ContextManager {
 		currentInput: string = '',
 		recentResponse: string = ''
 	): Promise<ContextUsage> {
-		// Use simple defaults to ensure we always return a result
-		let providerType = 'claude';
-		let model = 'claude-3-5-sonnet-20241022';
+		// Try to get actual provider and model - no hardcoded defaults
+		let providerType: string | null = null;
+		let model: string | null = null;
 		let conversationHistory: Array<{content: string}> = [];
 		
 		try {
@@ -895,11 +895,24 @@ export class ContextManager {
 							model = currentModel;
 						}
 					} catch (error) {
-						console.warn('Failed to get current model, using default:', error);
+						console.warn('Failed to get current model:', error);
 					}
 				}
-			} else {
-				console.warn('Provider type detection failed, using Claude defaults');
+			}
+			
+			// If no provider or model configured, return minimal context usage
+			if (!providerType || !model) {
+				return {
+					totalTokens: 0,
+					contextLimit: 32000, // Generic fallback context size
+					usagePercentage: 0,
+					breakdown: {
+						conversationHistory: 0,
+						fileAttachments: 0,
+						currentInput: 0,
+						recentResponse: 0
+					}
+				} as ContextUsage;
 			}
 			
 			// Get conversation history for current file
@@ -919,8 +932,8 @@ export class ContextManager {
 		const ollamaDefaultContext = this.plugin?.settings?.ollamaDefaultContext || 32000;
 		
 		const usage = calculateContextUsage(
-			providerType,
-			model,
+			providerType!,
+			model!,
 			conversationHistory,
 			fileAttachments,
 			currentInput,

@@ -6,6 +6,7 @@ import { GoogleProvider } from './providers/google';
 import { OllamaProvider } from './providers/ollama';
 import { NovaSettings } from '../settings';
 import { FeatureManager } from '../licensing/feature-manager';
+import { getProviderTypeForModel } from './models';
 
 export class AIProviderManager {
 	private providers: Map<ProviderType, AIProvider> = new Map();
@@ -66,23 +67,7 @@ export class AIProviderManager {
 	 * Get the provider type that handles a specific model
 	 */
 	private getProviderForModel(modelName: string): ProviderType | null {
-		// Claude models
-		if (modelName.startsWith('claude-')) {
-			return 'claude';
-		}
-		
-		// OpenAI models
-		if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
-			return 'openai';
-		}
-		
-		// Google models
-		if (modelName.startsWith('gemini-')) {
-			return 'google';
-		}
-		
-		// Ollama models (everything else)
-		return 'ollama';
+		return getProviderTypeForModel(modelName, this.settings) as ProviderType | null;
 	}
 
 	/**

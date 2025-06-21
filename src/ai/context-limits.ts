@@ -11,80 +11,45 @@ export interface ProviderContextLimits {
 const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
     claude: {
         // Claude models - all current versions have 200k tokens
+        'claude-opus-4-20250514': { tokens: 200000 },
         'claude-sonnet-4-20250514': { tokens: 200000 },
-        'claude-3-5-sonnet-20241022': { tokens: 200000 },
-        'claude-3-5-sonnet-20240620': { tokens: 200000 },
-        'claude-3-5-haiku-20241022': { tokens: 200000 },
-        'claude-3-opus-20240229': { tokens: 200000 },
-        'claude-3-sonnet-20240229': { tokens: 200000 },
-        'claude-3-haiku-20240307': { tokens: 200000 },
+        'claude-3-7-sonnet-latest': { tokens: 200000 },
+        'claude-3-5-sonnet-latest': { tokens: 200000 },
+        'claude-3-5-haiku-latest': { tokens: 200000 },
         // Fallback for any Claude model
         'default': { tokens: 200000, fallback: true }
     },
     
     openai: {
-        // GPT-4.1 models - 1M tokens
-        'gpt-4.1-mini-2025-04-14': { tokens: 1000000 },
-        'gpt-4.1-turbo-2025-04-14': { tokens: 1000000 },
+        // GPT-4.1 models 
+        'gpt-4.1-2025-04-14': { tokens: 1047576 },
+        'gpt-4.1-mini-2025-04-14': { tokens: 1047576 },
+        'gpt-4.1-nano-2025-04-14': { tokens: 1047576 },
+
+        // o4 models 
+        'o4-mini-2025-04-16': { tokens: 200000 },
         
-        // GPT-4o models - 128k tokens
+        // o3 models 
+        'o3-2025-04-16': { tokens: 200000 },
+        'o3-mini-2025-01-31': { tokens: 200000 },
+        
+        // o1 models 
+        'o1-2024-12-17': { tokens: 128000 },
+      
+        // GPT-4o models 
         'gpt-4o': { tokens: 128000 },
-        'gpt-4o-2024-08-06': { tokens: 128000 },
-        'gpt-4o-2024-05-13': { tokens: 128000 },
         'gpt-4o-mini': { tokens: 128000 },
-        'gpt-4o-mini-2024-07-18': { tokens: 128000 },
-        
-        // GPT-4 Turbo models - 128k tokens
-        'gpt-4-turbo': { tokens: 128000 },
-        'gpt-4-turbo-2024-04-09': { tokens: 128000 },
-        'gpt-4-turbo-preview': { tokens: 128000 },
-        'gpt-4-0125-preview': { tokens: 128000 },
-        'gpt-4-1106-preview': { tokens: 128000 },
-        
-        // Legacy GPT-4 models - 8k tokens
-        'gpt-4': { tokens: 8000 },
-        'gpt-4-0613': { tokens: 8000 },
-        'gpt-4-0314': { tokens: 8000 },
-        
-        // GPT-3.5 models - 16k tokens
-        'gpt-3.5-turbo': { tokens: 16000 },
-        'gpt-3.5-turbo-0125': { tokens: 16000 },
-        'gpt-3.5-turbo-1106': { tokens: 16000 },
-        'gpt-3.5-turbo-16k': { tokens: 16000 },
-        
+    
         // Fallback for OpenAI models - assume GPT-4o capacity
         'default': { tokens: 128000, fallback: true }
     },
     
     google: {
         // Gemini 2.5 models - 1M tokens
-        'gemini-2.5-flash-preview-04-17': { tokens: 1000000 },
-        'gemini-2.5-flash-exp': { tokens: 1000000 },
-        
-        // Gemini 2.0 models - 1M tokens
-        'gemini-2.0-flash-exp': { tokens: 1000000 },
-        'gemini-2.0-flash-thinking-exp-01-21': { tokens: 1000000 },
-        
-        // Gemini 1.5 models - 1M tokens
-        'gemini-1.5-pro': { tokens: 1000000 },
-        'gemini-1.5-pro-latest': { tokens: 1000000 },
-        'gemini-1.5-pro-002': { tokens: 1000000 },
-        'gemini-1.5-pro-001': { tokens: 1000000 },
-        'gemini-1.5-flash': { tokens: 1000000 },
-        'gemini-1.5-flash-latest': { tokens: 1000000 },
-        'gemini-1.5-flash-002': { tokens: 1000000 },
-        'gemini-1.5-flash-001': { tokens: 1000000 },
-        'gemini-1.5-flash-8b': { tokens: 1000000 },
-        'gemini-1.5-flash-8b-latest': { tokens: 1000000 },
-        'gemini-1.5-flash-8b-001': { tokens: 1000000 },
-        
-        // Legacy Gemini models - 30k tokens
-        'gemini-pro': { tokens: 30000 },
-        'gemini-pro-vision': { tokens: 30000 },
-        'gemini-1.0-pro': { tokens: 30000 },
-        'gemini-1.0-pro-latest': { tokens: 30000 },
-        'gemini-1.0-pro-001': { tokens: 30000 },
-        
+        'gemini-2.5-pro': { tokens: 1048576 },
+        'gemini-2.5-flash': { tokens: 1048576 },
+        'gemini-2.5-flash-lite-preview-06-17': { tokens: 1000000 },
+           
         // Fallback for Google models - assume modern Gemini capacity
         'default': { tokens: 1000000, fallback: true }
     }

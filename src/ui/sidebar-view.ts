@@ -4,7 +4,7 @@ import NovaPlugin from '../../main';
 import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { MultiDocContext } from './context-manager';
-import { getAvailableModels } from '../ai/models';
+import { getAvailableModels, getProviderTypeForModel } from '../ai/models';
 import { InputHandler } from './input-handler';
 import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
@@ -2552,18 +2552,11 @@ USER REQUEST: ${processedMessage}`;
 				
 				if (currentModel) {
 					// Get provider type directly from model name (no async needed)
-					const providerType = this.getProviderTypeFromModel(currentModel);
+					const providerType = getProviderTypeForModel(currentModel, this.plugin.settings);
 					if (providerType) {
 						const displayText = this.getModelDisplayName(providerType, currentModel);
 						
-						// Defensive check to prevent "II" or other malformed displays
-						if (displayText && displayText.length > 2 && !displayText.match(/^I+$/)) {
-							providerName.setText(displayText);
-						} else {
-							// Fallback to raw model name if display text is invalid
-							console.warn('Invalid model display text, using raw model name:', displayText);
-							providerName.setText(currentModel);
-						}
+						providerName.setText(displayText);
 					} else {
 						// Unknown provider, use raw model name
 						providerName.setText(currentModel);
@@ -2648,32 +2641,32 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Get model display name from model value
+	 * Get model display name from model value - searches all providers if needed
 	 */
 	private getModelDisplayName(providerType: string, modelValue: string): string {
-		const models = this.getAvailableModels(providerType);
-		const model = models.find(m => m.value === modelValue);
-		const displayName = model ? model.label : modelValue;
+		// First try the specified provider
+		let models = this.getAvailableModels(providerType);
+		let model = models.find(m => m.value === modelValue);
 		
-		// Defensive check to prevent "II" bug
-		if (displayName === "II" || displayName.match(/^I+$/) || displayName.length < 3) {
-			console.warn('Invalid model display name prevented:', displayName, 'for model:', modelValue);
-			// Return a more descriptive fallback
-			return this.getProviderDisplayName(providerType);
+		// If not found in specified provider, search all providers
+		if (!model) {
+			const providerTypes = ['claude', 'openai', 'google', 'ollama'];
+			for (const searchProviderType of providerTypes) {
+				if (searchProviderType === providerType) continue; // Already checked
+				models = this.getAvailableModels(searchProviderType);
+				model = models.find(m => m.value === modelValue);
+				if (model) {
+					console.log('🎨 Found model in different provider:', { searchProviderType, modelValue, foundModel: model });
+					break;
+				}
+			}
 		}
 		
+		const displayName = model ? model.label : modelValue;
+		
+		console.log('🎨 getModelDisplayName:', { providerType, modelValue, foundModel: model, displayName });
+		
 		return displayName;
-	}
-
-	/**
-	 * Get provider type from model name synchronously (pattern matching)
-	 */
-	private getProviderTypeFromModel(modelName: string): string | null {
-		if (modelName.startsWith('claude-')) return 'claude';
-		if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) return 'openai';
-		if (modelName.startsWith('gemini-')) return 'google';
-		// Default to Ollama for unrecognized models
-		return 'ollama';
 	}
 
 	/**

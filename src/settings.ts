@@ -65,20 +65,20 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	aiProviders: {
 		claude: {
 			apiKey: '',
-			model: 'claude-3-5-sonnet-20241022',
+			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		openai: {
 			apiKey: '',
 			baseUrl: 'https://api.openai.com/v1',
-			model: 'gpt-4o',
+			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		google: {
 			apiKey: '',
-			model: 'gemini-1.5-flash',
+			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
@@ -94,7 +94,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			selectedModel: 'llama3.1'  // Default to Ollama model for desktop
 		},
 		mobile: {
-			selectedModel: 'claude-3-5-sonnet-20241022'  // Default to Claude for mobile
+			selectedModel: ''  // No default model
 		}
 	},
 	customCommands: [],
@@ -397,7 +397,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						if (value) {
 							// Enable mobile with Claude as default (most reliable)
-							this.plugin.settings.platformSettings.mobile.selectedModel = 'claude-3-5-sonnet-20241022';
+							this.plugin.settings.platformSettings.mobile.selectedModel = '';
 						} else {
 							// Disable mobile
 							this.plugin.settings.platformSettings.mobile.selectedModel = 'none';

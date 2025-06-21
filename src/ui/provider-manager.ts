@@ -159,11 +159,11 @@ export class ProviderManager {
 		const settings = this.plugin.settings;
 		switch (provider) {
 			case 'claude':
-				return settings.aiProviders?.claude?.model || 'claude-3-5-sonnet-20241022';
+				return settings.aiProviders?.claude?.model || null;
 			case 'openai':
-				return settings.aiProviders?.openai?.model || 'gpt-4o';
+				return settings.aiProviders?.openai?.model || null;
 			case 'google':
-				return settings.aiProviders?.google?.model || 'gemini-1.5-flash';
+				return settings.aiProviders?.google?.model || null;
 			case 'ollama':
 				return settings.aiProviders?.ollama?.model || null;
 			default:
@@ -178,19 +178,32 @@ export class ProviderManager {
 	private getProviderWithModelDisplayName(providerType: string): string {
 		const settings = this.plugin.settings;
 		
+		// Get the selected model from platform settings (same as AI provider manager)
+		const platform = Platform.isMobile ? 'mobile' : 'desktop';
+		const selectedModelId = settings.platformSettings[platform].selectedModel;
+		
+		if (!selectedModelId || selectedModelId === 'none') {
+			return 'No model configured';
+		}
+		
+		// Find the model in the appropriate provider's model list
 		switch (providerType) {
 			case 'claude':
-				const claudeModel = settings.aiProviders?.claude?.model || 'sonnet';
-				return `Claude (${claudeModel})`;
+				const claudeModels = getAvailableModels('claude', settings);
+				const claudeModel = claudeModels.find(m => m.value === selectedModelId);
+				return claudeModel?.label || selectedModelId;
 			case 'openai':
-				const openaiModel = settings.aiProviders?.openai?.model || 'gpt-4';
-				return `OpenAI (${openaiModel})`;
+				const openaiModels = getAvailableModels('openai', settings);
+				const openaiModel = openaiModels.find(m => m.value === selectedModelId);
+				return openaiModel?.label || selectedModelId;
 			case 'google':
-				const googleModel = settings.aiProviders?.google?.model || 'gemini-pro';
-				return `Google (${googleModel})`;
+				const googleModels = getAvailableModels('google', settings);
+				const googleModel = googleModels.find(m => m.value === selectedModelId);
+				return googleModel?.label || selectedModelId;
 			case 'ollama':
+				// Ollama uses different logic
 				const ollamaModel = settings.aiProviders?.ollama?.model;
-				return `Ollama (${ollamaModel || 'not configured'})`;
+				return ollamaModel || 'Not configured';
 			default:
 				return 'Unknown Provider';
 		}
