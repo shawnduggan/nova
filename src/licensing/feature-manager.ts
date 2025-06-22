@@ -1,6 +1,6 @@
 import { LicenseValidator } from './license-validator';
 import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings, SupernovaValidationResult } from './types';
-import { SUPERNOVA_FEATURES, CORE_FEATURES, TimeGatedFeature, CoreFeature } from './feature-config';
+import { SUPERNOVA_FEATURES, TimeGatedFeature } from './feature-config';
 
 export class FeatureManager {
 	private features: Map<string, FeatureFlag> = new Map();
@@ -28,20 +28,10 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Initialize all feature flags
-	 * Core features are always enabled
-	 * Time-gated features depend on current date and Supernova status
+	 * Initialize feature flags for time-gated features only
+	 * Core features work without any feature checking
 	 */
 	private initializeFeatureFlags(): void {
-		// Core features - always available to all users
-		Object.entries(CORE_FEATURES).forEach(([key, config]) => {
-			this.registerFeature({
-				key,
-				enabled: true,
-				description: config.description
-			});
-		});
-
 		// Time-gated features - available based on date
 		Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
 			const enabled = this.isTimeGatedFeatureEnabled(key, config);
@@ -170,46 +160,18 @@ export class FeatureManager {
 
 	/**
 	 * Check if a feature is enabled
+	 * Only handles time-gated features - everything else just works without checking
 	 */
 	isFeatureEnabled(featureKey: string): boolean {
-		// Handle old feature keys that might still be referenced
-		if (this.isLegacyFeatureKey(featureKey)) {
-			return true; // All legacy features are now enabled for everyone
-		}
-
 		const feature = this.features.get(featureKey);
 		return feature?.enabled ?? false;
 	}
 
 	/**
-	 * Check if this is a legacy feature key that should always be enabled
-	 */
-	private isLegacyFeatureKey(key: string): boolean {
-		const legacyKeys = [
-			'basic_editing',
-			'local_ai_providers',
-			'file_conversations',
-			'single_cloud_provider',
-			'unlimited_cloud_ai',
-			'provider_switching',
-			'mobile_access',
-			'advanced_templates',
-			'batch_operations',
-			'cross_document_context',
-			'priority_support'
-		];
-		return legacyKeys.includes(key);
-	}
-
-	/**
 	 * Check feature access with detailed result
+	 * Only handles time-gated features
 	 */
 	checkFeatureAccess(featureKey: string): FeatureAccessResult {
-		// Handle legacy features
-		if (this.isLegacyFeatureKey(featureKey)) {
-			return { allowed: true };
-		}
-
 		const feature = this.features.get(featureKey);
 		
 		if (!feature) {
@@ -256,7 +218,7 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Get all enabled features
+	 * Get all enabled time-gated features
 	 */
 	getEnabledFeatures(): FeatureFlag[] {
 		return Array.from(this.features.values()).filter(feature => feature.enabled);
@@ -304,7 +266,7 @@ export class FeatureManager {
 	}
 
 	/**
-	 * Get feature summary
+	 * Get feature summary for time-gated features only
 	 */
 	getFeatureSummary(): { 
 		isSupernova: boolean; 
@@ -314,6 +276,7 @@ export class FeatureManager {
 		const enabled: string[] = [];
 		const comingSoon: Array<{key: string; availableDate: string; isSupernova: boolean}> = [];
 
+		// Only check time-gated features
 		for (const [key, feature] of this.features) {
 			if (feature.enabled) {
 				enabled.push(key);

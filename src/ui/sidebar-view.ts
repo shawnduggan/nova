@@ -881,11 +881,6 @@ export class NovaSidebarView extends ItemView {
 
 
 	private createContextPreview(): HTMLElement {
-		// Check if multi-doc context feature is enabled
-		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-			// Return a dummy element that won't be used
-			return document.createElement('div');
-		}
 
 		// Create a preview area that shows live context as user types
 		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview' });
@@ -928,7 +923,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private updateLiveContextPreview(): void {
-		if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+		if (!this.contextPreview) {
 			return;
 		}
 
@@ -1472,68 +1467,60 @@ export class NovaSidebarView extends ItemView {
 		let multiDocContext: MultiDocContext | null = null;
 		
 		if (this.currentFile) {
-			// Check for early access
-			if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-				if (messageText.includes('[[')) {
-					this.addErrorMessage('Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.');
-					return;
+			// Parse and build context
+			const context = await this.contextManager.buildContext(messageText, this.currentFile);
+			const contextResult = context ? { cleanedMessage: '', context } : null;
+			processedMessage = contextResult?.cleanedMessage || messageText;
+			multiDocContext = contextResult?.context || null;
+			this.currentContext = multiDocContext;
+			
+			// Update UI indicator
+			this.updateContextIndicator();
+			
+			// Check if message is just document references (context-only mode)
+			// Since all docs are now persistent, check if we have new docs and empty message
+			const previousPersistentCount = this.currentContext?.persistentDocs?.length || 0;
+			const currentPersistentCount = multiDocContext?.persistentDocs?.length || 0;
+			const hasNewDocs = currentPersistentCount > previousPersistentCount;
+			const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
+			
+			if (isContextOnlyMessage) {
+				// Handle context-only commands - show newly added documents
+				const newDocsCount = currentPersistentCount - previousPersistentCount;
+				if (newDocsCount > 0 && multiDocContext?.persistentDocs && multiDocContext.persistentDocs.length > 0) {
+					// Get the newly added documents (last N documents)
+					const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
+					const docNames = newDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
+					if (docNames) {
+						this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
+					}
 				}
-			} else {
-				// Parse and build context
-				const context = await this.contextManager.buildContext(messageText, this.currentFile);
-				const contextResult = context ? { cleanedMessage: '', context } : null;
-				processedMessage = contextResult?.cleanedMessage || messageText;
-				multiDocContext = contextResult?.context || null;
-				this.currentContext = multiDocContext;
 				
-				// Update UI indicator
+				// Clear input and update context indicator
+				this.inputHandler.setValue('');
 				this.updateContextIndicator();
 				
-				// Check if message is just document references (context-only mode)
-				// Since all docs are now persistent, check if we have new docs and empty message
-				const previousPersistentCount = this.currentContext?.persistentDocs?.length || 0;
-				const currentPersistentCount = multiDocContext?.persistentDocs?.length || 0;
-				const hasNewDocs = currentPersistentCount > previousPersistentCount;
-				const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
-				
-				if (isContextOnlyMessage) {
-					// Handle context-only commands - show newly added documents
-					const newDocsCount = currentPersistentCount - previousPersistentCount;
-					if (newDocsCount > 0 && multiDocContext?.persistentDocs && multiDocContext.persistentDocs.length > 0) {
-						// Get the newly added documents (last N documents)
-						const newDocs = multiDocContext.persistentDocs.slice(-newDocsCount);
-						const docNames = newDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
-						if (docNames) {
-							this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
-						}
-					}
-					
-					// Clear input and update context indicator
-					this.inputHandler.setValue('');
-					this.updateContextIndicator();
-					
-					// Hide context preview since we're done
-					if (this.contextPreview) {
-						this.contextPreview.style.display = 'none';
-					}
-					return;
+				// Hide context preview since we're done
+				if (this.contextPreview) {
+					this.contextPreview.style.display = 'none';
 				}
-				
-				// Show context confirmation if documents were included in a regular message
-				if (multiDocContext?.persistentDocs?.length) {
-					const allDocs = multiDocContext.persistentDocs;
-					const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
-					if (docNames && allDocs.length > 0) {
-						const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
-						const currentFile = this.currentFile?.basename || 'current file';
-						this.addSuccessMessage(`✓ Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`);
-					}
+				return;
+			}
+			
+			// Show context confirmation if documents were included in a regular message
+			if (multiDocContext?.persistentDocs?.length) {
+				const allDocs = multiDocContext.persistentDocs;
+				const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).join(', ');
+				if (docNames && allDocs.length > 0) {
+					const tokenInfo = multiDocContext.tokenCount > 0 ? ` (~${multiDocContext.tokenCount} tokens)` : '';
+					const currentFile = this.currentFile?.basename || 'current file';
+					this.addSuccessMessage(`✓ Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`);
 				}
-				
-				// Check token limit
-				if (multiDocContext?.isNearLimit) {
-					new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
-				}
+			}
+			
+			// Check token limit
+			if (multiDocContext?.isNearLimit) {
+				new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
 			}
 		}
 

@@ -440,12 +440,6 @@ export class InputHandler {
 	private async addFilesToContext(filenames: string[]): Promise<void> {
 		if (filenames.length === 0) return;
 
-		// Check if multi-doc context feature is enabled
-		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
-			new Notice('Multi-document context is currently in early access for Supernova supporters. Available to all users August 15, 2025.', 3000);
-			return;
-		}
-
 		// Add files to context
 		if (this.sidebarView) {
 			await this.sidebarView.addFilesToContext(filenames);

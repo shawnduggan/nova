@@ -101,7 +101,7 @@ export class ContextManager {
 	}
 
 	updateLiveContextPreview(message: string): void {
-		if (!this.contextPreview || !this.plugin.featureManager.isFeatureEnabled('multi-doc-context')) {
+		if (!this.contextPreview) {
 			return;
 		}
 
@@ -145,7 +145,7 @@ export class ContextManager {
 	}
 
 	async buildContext(message: string, currentFile: TFile | null): Promise<MultiDocContext | null> {
-		if (!this.plugin.featureManager.isFeatureEnabled('multi-doc-context') || !currentFile) {
+		if (!currentFile) {
 			return null;
 		}
 
