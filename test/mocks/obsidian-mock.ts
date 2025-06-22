@@ -302,6 +302,11 @@ export class ItemView {
     registerEvent(event: any): void {
         // Mock implementation
     }
+    
+    registerDomEvent(element: EventTarget, type: string, handler: EventListener): void {
+        // Mock implementation for DOM event registration
+        element.addEventListener(type, handler);
+    }
 }
 
 export class MarkdownView extends ItemView {
