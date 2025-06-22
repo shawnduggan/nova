@@ -387,7 +387,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setDesc('Allow Nova to work on mobile devices using cloud-based AI providers')
 			.addToggle(toggle => {
 				const currentMobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
-				const isMobileEnabled = currentMobileModel !== 'none';
+				const isMobileEnabled = currentMobileModel !== 'none' && currentMobileModel !== '';
 				
 				toggle
 					.setValue(isMobileEnabled)
