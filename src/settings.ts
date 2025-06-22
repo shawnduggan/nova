@@ -1709,13 +1709,23 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (supernovaLicense) {
 			const statusEl = container.createDiv({ cls: 'nova-license-status' });
 			const expiryText = supernovaLicense.expiresAt 
-				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
-				: 'Lifetime Support';
+				? `Expires ${supernovaLicense.expiresAt.toLocaleDateString()}`
+				: 'Lifetime License';
 			statusEl.innerHTML = `
-				<div class="license-info" style="margin-bottom: 16px; padding: 12px; background: var(--background-modifier-form-field); border-radius: var(--radius-s);">
-					<div style="display: flex; justify-content: space-between; align-items: center;">
-						<span style="color: var(--text-normal);">${supernovaLicense.email}</span>
-						<span style="color: var(--text-muted); font-size: 0.9em;">${expiryText}</span>
+				<div class="nova-license-validated">
+					<div class="nova-license-header">
+						<span class="nova-license-checkmark">✓</span>
+						<span class="nova-license-title">Valid Supernova License</span>
+					</div>
+					<div class="nova-license-details">
+						<div class="nova-license-email">
+							<span class="nova-license-label">Licensed to:</span>
+							<span class="nova-license-value">${supernovaLicense.email}</span>
+						</div>
+						<div class="nova-license-expiry">
+							<span class="nova-license-label">Status:</span>
+							<span class="nova-license-value">${expiryText}</span>
+						</div>
 					</div>
 				</div>
 			`;
