@@ -154,7 +154,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		];
 
 		// Add Debug tab only for debug builds
-		if (process.env.NODE_ENV === 'development' || this.plugin.settings.licensing.debugSettings.enabled) {
+		if (process.env.NODE_ENV === 'development') {
 			tabs.push({ id: 'debug', label: 'Debug' });
 		}
 
