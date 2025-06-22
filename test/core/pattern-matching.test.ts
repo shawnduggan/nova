@@ -84,7 +84,13 @@ describe('Pattern Matching Comprehensive Tests', () => {
                 'Add some examples',
                 'Remove extra words',
                 'Rewrite for clarity',
-                'Edit the structure'
+                'Edit the structure',
+                'Write 3 paragraphs',
+                'Write an introduction',
+                'Create new content',
+                'Compose a better ending',
+                'Draft a response',
+                'Generate alternative text'
             ];
 
             commandVariations.forEach(input => {

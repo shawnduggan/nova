@@ -70,7 +70,10 @@ describe('Intent Detection Integration', () => {
             const editingInputs = [
                 'Make this clearer',
                 'Fix the grammar',
-                'This section needs work'
+                'This section needs work',
+                'Write 3 paragraphs',
+                'Write a conclusion',
+                'Create an introduction'
             ];
 
             const executeCommandSpy = jest.spyOn(sidebarView as any, 'executeCommand').mockResolvedValue('Edit complete');

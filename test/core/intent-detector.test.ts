@@ -102,7 +102,13 @@ describe('IntentDetector', () => {
                 'Add more detail',
                 'Remove redundancy',
                 'Rewrite this part',
-                'Edit for clarity'
+                'Edit for clarity',
+                'Write 3 paragraphs',
+                'Write a conclusion',
+                'Create an introduction',
+                'Compose a summary',
+                'Draft the outline',
+                'Generate some examples'
             ];
 
             commandInputs.forEach(input => {

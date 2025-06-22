@@ -14,7 +14,7 @@ export class IntentDetector {
     ];
 
     private editingPatterns = [
-        { pattern: /\b(mak(e|ing)|fix|improve|change|add|remove|rewrite|edit)\b/i, name: 'command_verb' },
+        { pattern: /\b(write|mak(e|ing)|fix|improve|change|add|remove|rewrite|edit|create|compose|draft|generate)\b/i, name: 'command_verb' },
         { pattern: /\b(this (section|paragraph|part|text|writing|better)|the writing here|here we|here needs|this is (unclear|wrong|confusing|right))\b/i, name: 'document_reference' },
         { pattern: /\b(unclear|needs work|sounds wrong|too wordy|confusing)\b/i, name: 'quality_assessment' },
         { pattern: /\b(at the end|in the (introduction|conclusion)|before this|after that)\b/i, name: 'document_targeting' }
