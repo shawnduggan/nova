@@ -82,8 +82,14 @@ export default class NovaPlugin extends Plugin {
 				if (leaves.length > 0) {
 					const sidebarView = leaves[0].view as NovaSidebarView;
 					sidebarView.refreshSupernovaUI();
-					// Also refresh provider dropdown to reflect loaded settings
-					await sidebarView.refreshProviderDropdown();
+					// Update provider dropdown display to reflect loaded settings
+					if ((sidebarView as any).currentProviderDropdown?.updateCurrentProvider) {
+						try {
+							(sidebarView as any).currentProviderDropdown.updateCurrentProvider();
+						} catch (error) {
+							console.error('❌ Failed to update provider dropdown on startup:', error);
+						}
+					}
 				}
 			});
 

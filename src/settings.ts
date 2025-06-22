@@ -631,6 +631,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			await this.updateProviderStatus(provider, 'connected', 'Connected successfully');
 			this.setConnectionStatus(statusContainer, 'success', '● Connected');
 			
+			// Emit event to notify sidebar of provider configuration
+			document.dispatchEvent(new CustomEvent('nova-provider-configured', { 
+				detail: { provider, status: 'connected' } 
+			}));
+			
 		} catch (error: any) {
 			console.error(`Connection test failed for ${provider}:`, error);
 			let errorMessage = 'Connection failed';
@@ -660,6 +665,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Update provider status to error
 			await this.updateProviderStatus(provider, 'error', errorMessage);
 			this.setConnectionStatus(statusContainer, 'error', `● ${errorMessage}`);
+			
+			// Emit event to notify sidebar that provider has failed
+			document.dispatchEvent(new CustomEvent('nova-provider-disconnected', { 
+				detail: { provider, status: 'error', message: errorMessage } 
+			}));
 		} finally {
 			// Clear backup timer and restore button
 			clearTimeout(backupTimer);

@@ -5,6 +5,7 @@ import { EditCommand } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { MultiDocContext } from './context-manager';
 import { getAvailableModels, getProviderTypeForModel } from '../ai/models';
+import { ProviderType } from '../ai/types';
 import { InputHandler } from './input-handler';
 import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
@@ -85,6 +86,10 @@ export class NovaSidebarView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		
+		// Listen for provider configuration events
+		this.registerDomEvent(document, 'nova-provider-configured' as any, this.handleProviderConfigured.bind(this));
+		this.registerDomEvent(document, 'nova-provider-disconnected' as any, this.handleProviderDisconnected.bind(this));
 	}
 
 	getViewType() {
@@ -3078,16 +3083,85 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Refresh the provider dropdown display to reflect current settings
+	 * Handle provider configuration events
 	 */
-	async refreshProviderDropdown(): Promise<void> {
+	private handleProviderConfigured = (event: Event) => {
+		// Update current provider display text
 		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
 			try {
-				await (this as any).currentProviderDropdown.updateCurrentProvider();
+				(this as any).currentProviderDropdown.updateCurrentProvider();
 			} catch (error) {
-				console.error('❌ Failed to refresh provider dropdown:', error);
+				console.error('❌ Failed to update provider display after configuration:', error);
 			}
 		}
+		
+		// If dropdown is currently open, refresh the available models
+		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
+		if (dropdownMenu && dropdownMenu.style.display !== 'none') {
+			this.populateProviderDropdown(dropdownMenu);
+		}
+	}
+
+	/**
+	 * Handle provider disconnection events - auto-switch to valid model if current becomes invalid
+	 */
+	private handleProviderDisconnected = async (event: Event) => {
+		const customEvent = event as CustomEvent;
+		const { provider: failedProvider } = customEvent.detail;
+		
+		// Check if current model belongs to the failed provider
+		const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+		const currentProviderType = getProviderTypeForModel(currentModel, this.plugin.settings);
+		
+		if (currentProviderType === failedProvider) {
+			// Current model is invalid - switch to first available model
+			const firstAvailableModel = await this.getFirstAvailableModel();
+			if (firstAvailableModel) {
+				// Switch to the fallback model
+				const fallbackProviderType = getProviderTypeForModel(firstAvailableModel, this.plugin.settings);
+				if (fallbackProviderType) {
+					this.switchToModel(fallbackProviderType, firstAvailableModel);
+				}
+			}
+		}
+		
+		// Update display regardless (in case dropdown was open)
+		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
+			try {
+				(this as any).currentProviderDropdown.updateCurrentProvider();
+			} catch (error) {
+				console.error('❌ Failed to update provider display after disconnection:', error);
+			}
+		}
+		
+		// If dropdown is currently open, refresh the available models
+		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
+		if (dropdownMenu && dropdownMenu.style.display !== 'none') {
+			this.populateProviderDropdown(dropdownMenu);
+		}
+	}
+
+	/**
+	 * Get the first available model from any working provider
+	 */
+	private async getFirstAvailableModel(): Promise<string | null> {
+		// Get provider availability status
+		const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
+		
+		// Provider priority order: Claude > OpenAI > Google > Ollama
+		const providerPriority: ProviderType[] = ['claude', 'openai', 'google', 'ollama'];
+		
+		for (const providerType of providerPriority) {
+			const isAvailable = providerAvailability.get(providerType);
+			if (isAvailable) {
+				const models = getAvailableModels(providerType, this.plugin.settings);
+				if (models.length > 0) {
+					return models[0].value; // Return first model from this provider
+				}
+			}
+		}
+		
+		return null; // No available models found
 	}
 
 	/**

@@ -28,6 +28,5 @@
 
 ### Bugs
 * **Settings UI:** Recommended defaults section should mention Ollama as an option for privacy-focused users
-* **Provider Configuration:** Model dropdown in sidebar doesn't refresh when provider is configured for the first time in settings - needs to update after successful connection test
 * **Model Loading:** Not all models for configured providers are loading in the model dropdown
 
