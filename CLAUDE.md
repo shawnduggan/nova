@@ -8,7 +8,7 @@
 * **Extend Don't Duplicate:** Build on existing features - never create duplicated functions or workflows
 * **Follow Existing Patterns:** Use established Nova architecture for providers, settings, UI, and error handling
 * **Apply DRY and SOLID:** Use Don't Repeat Yourself and SOLID principles for clean, maintainable code
-* **Test-Driven Development:** Write/update tests before implementing new functionality
+* **Test-Driven Development:** Write/update tests before implementing new functionality. Focus on business logic not complex low-value UI and DOM tests.
 * **Performance First:** Profile changes affecting conversation flow or UI responsiveness
 * **Code Reuse:** Always verify existing functionality before creating new implementations
 
@@ -22,7 +22,18 @@
 * **Don't be a sycophant:** Give honest opinions. Never start a response with "You're absolutely right!"
 * **Never commit unless I ask you to:** I need to test and validate all changes first
 * **Never mention Claude in a commit comment:** Keep comments clean and to the point
-* **Follow TDD principles where it makes sense:** Unit tests should test what is valuable. Write unit tests for business logic, not UI and DOM interactions which are complex to mock and offer little value.
+
+## Serena Tools Usage
+
+### When using Serena's MCP tools:
+1. Always call `initial_instructions` before starting any programming task
+2. Check onboarding status with `check_onboarding_performed` and run if needed
+3. Prefer symbolic operations (`find_symbol`, `replace_symbol_body`) over line-based edits
+4. Use `get_symbols_overview` before diving into specific code sections
+5. Store project-specific knowledge with memory tools for future reference
+6. Use `think_about_collected_information` after search sequences
+7. Call `think_about_task_adherence` before making code changes
+8. Use `summarize_changes` after completing non-trivial tasks
 
 ## 🎯 PENDING TASKS
 
