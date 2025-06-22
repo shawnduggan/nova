@@ -26,7 +26,5 @@
 
 ## 🎯 PENDING TASKS
 
-### Bugs
-* **Settings UI:** Recommended defaults section should mention Ollama as an option for privacy-focused users
-* **Model Loading:** Not all models for configured providers are loading in the model dropdown
+No pending tasks.
 
