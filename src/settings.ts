@@ -65,20 +65,17 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	aiProviders: {
 		claude: {
 			apiKey: '',
-			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		openai: {
 			apiKey: '',
 			baseUrl: 'https://api.openai.com/v1',
-			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
 		google: {
 			apiKey: '',
-			model: '',
 			temperature: 0.7,
 			maxTokens: 1000
 		},
@@ -1200,6 +1197,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			<div class="nova-info-card">
 				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
 				just add your API keys below to get started.</p>
+				<p><strong>Model Selection:</strong> After connecting successfully, select models for any provider using the dropdown in the Nova sidebar.</p>
 			</div>
 			<div class="nova-info-card nova-model-guidance">
 				<h4>Recommended Defaults</h4>
@@ -1250,44 +1248,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Test Connection button
 		this.createTestConnectionButton(claudeContainer, 'claude');
 
-		// Model setting with refresh button
-		const modelSetting = new Setting(claudeContainer)
-			.setName('Model')
-			.setDesc('Claude model to use');
-
-		let modelDropdown: any;
-		
-		modelSetting.addDropdown(dropdown => {
-			modelDropdown = dropdown;
-			dropdown.selectEl.style.width = '200px';
-			dropdown.selectEl.style.height = '40px';
-			this.populateClaudeModels(dropdown);
-			
-			// Auto-select first model if none is configured
-			const models = getAvailableModels('claude');
-			const selectedModel = this.plugin.settings.aiProviders.claude.model || (models.length > 0 ? models[0].value : '');
-			
-			return dropdown
-				.setValue(selectedModel)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.claude.model = value;
-					await this.plugin.saveSettings();
-				});
-		});
-
-		// Claude models are hardcoded - no refresh needed
-	}
-
-	private populateClaudeModels(dropdown: any) {
-		// Clear existing options
-		dropdown.selectEl.empty();
-		
-		// Use centralized model definitions
-		const currentModels = getAvailableModels('claude');
-
-		currentModels.forEach(model => {
-			dropdown.addOption(model.value, model.label);
-		});
 	}
 
 
@@ -1318,45 +1278,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Test Connection button
 		this.createTestConnectionButton(openaiContainer, 'openai');
 
-		// Model setting with refresh button
-		const modelSetting = new Setting(openaiContainer)
-			.setName('Model')
-			.setDesc('OpenAI model to use');
-
-		let modelDropdown: any;
-		
-		modelSetting.addDropdown(dropdown => {
-			modelDropdown = dropdown;
-			dropdown.selectEl.style.width = '200px';
-			dropdown.selectEl.style.height = '40px';
-			this.populateOpenAIModels(dropdown);
-			
-			// Auto-select first model if none is configured
-			const models = getAvailableModels('openai');
-			const selectedModel = this.plugin.settings.aiProviders.openai.model || (models.length > 0 ? models[0].value : '');
-			
-			return dropdown
-				.setValue(selectedModel)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.openai.model = value;
-					await this.plugin.saveSettings();
-				});
-		});
-
-		// OpenAI models are hardcoded - no refresh needed
 	}
 
-	private populateOpenAIModels(dropdown: any) {
-		// Clear existing options
-		dropdown.selectEl.empty();
-		
-		// Use centralized model definitions
-		const currentModels = getAvailableModels('openai');
-
-		currentModels.forEach(model => {
-			dropdown.addOption(model.value, model.label);
-		});
-	}
 
 	private createGoogleSettings(containerEl = this.containerEl) {
 		
@@ -1384,45 +1307,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Test Connection button
 		this.createTestConnectionButton(googleContainer, 'google');
 
-		// Model setting with refresh button
-		const modelSetting = new Setting(googleContainer)
-			.setName('Model')
-			.setDesc('Gemini model to use');
-
-		let modelDropdown: any;
-		
-		modelSetting.addDropdown(dropdown => {
-			modelDropdown = dropdown;
-			dropdown.selectEl.style.width = '200px';
-			dropdown.selectEl.style.height = '40px';
-			this.populateGoogleModels(dropdown);
-			
-			// Auto-select first model if none is configured
-			const models = getAvailableModels('google');
-			const selectedModel = this.plugin.settings.aiProviders.google.model || (models.length > 0 ? models[0].value : '');
-			
-			return dropdown
-				.setValue(selectedModel)
-				.onChange(async (value) => {
-					this.plugin.settings.aiProviders.google.model = value;
-					await this.plugin.saveSettings();
-				});
-		});
-
-		// Google models are hardcoded - no refresh needed
 	}
 
-	private populateGoogleModels(dropdown: any) {
-		// Clear existing options
-		dropdown.selectEl.empty();
-		
-		// Use centralized model definitions
-		const currentModels = getAvailableModels('google');
-
-		currentModels.forEach(model => {
-			dropdown.addOption(model.value, model.label);
-		});
-	}
 
 	private createOllamaSettings(containerEl = this.containerEl) {
 		const ollamaContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
