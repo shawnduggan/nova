@@ -38,10 +38,8 @@ describe('FeatureManager', () => {
 
 	describe('Time-Gated Features', () => {
 		test('should have time-gated features disabled before general availability', () => {
-			// These features are not yet generally available (future dates in config)
+			// Commands feature is not yet generally available (future date in config)
 			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
-			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
-			expect(featureManager.isFeatureEnabled('enhanced-providers')).toBe(false);
 			
 			// Multi-doc context is now a core feature (always available)
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
@@ -137,16 +135,13 @@ describe('FeatureManager', () => {
 		test('should allow date override for testing', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-07-01', // Date when auto-input is generally available
+				overrideDate: '2025-08-01', // Date before commands general availability
 				forceSupernova: false
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
 
-			// auto-input should be available (general date is 2025-07-15)
-			expect(featureManager.isFeatureEnabled('auto-input')).toBe(false);
-			
-			// But command-system should not be (general date is 2025-09-15)
+			// Commands should not be available yet (general date is 2025-09-30)
 			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
 		});
 
@@ -214,10 +209,9 @@ describe('FeatureManager', () => {
 			};
 			featureManager.updateDebugSettings(debugSettings);
 
-			// All time-gated features should be available for Supernova supporters
+			// Time-gated features should be available for Supernova supporters
 			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
-			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});
 
 		test('should handle general availability dates correctly', () => {
@@ -232,7 +226,6 @@ describe('FeatureManager', () => {
 			// All features should be available to everyone
 			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
 			expect(featureManager.isFeatureEnabled('multi-doc-context')).toBe(true);
-			expect(featureManager.isFeatureEnabled('auto-input')).toBe(true);
 		});
 	});
 });

@@ -117,8 +117,8 @@ export class FeatureManager {
 	 * Get Supernova status (can be overridden in debug mode)
 	 */
 	private getIsSupernova(): boolean {
-		// Only allow debug overrides in development builds
-		if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== undefined && process.env.NODE_ENV === 'development') {
+		// Only allow debug overrides in development and test builds
+		if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== undefined && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
 			console.log(`🔧 Debug: Force Supernova enabled: ${this.debugSettings.forceSupernova}`);
 			return this.debugSettings.forceSupernova;
 		}

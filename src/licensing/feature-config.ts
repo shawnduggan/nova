@@ -18,23 +18,9 @@ export interface CoreFeature {
 export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
     // Commands (unified) - 2 month early access
     'commands': {
-        supernovaDate: '2025-07-31',  // Supernova early access
+        supernovaDate: '2025-07-20',  // Supernova early access
         generalDate: '2025-09-30',   // General availability 
         description: 'Command system with : triggers, command button, and custom commands'
-    },
-    
-    // Auto-growing input - 1 month early access
-    'auto-input': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-07-15',   // 1 month later
-        description: 'Auto-growing input area with smooth transitions'
-    },
-    
-    // Enhanced provider management - 2 month early access
-    'enhanced-providers': {
-        supernovaDate: '2025-06-15',  // Launch day
-        generalDate: '2025-08-15',   // 2 months later
-        description: 'Advanced provider configuration and switching'
     }
 };
 
