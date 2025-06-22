@@ -88,7 +88,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	platformSettings: {
 		desktop: {
-			selectedModel: 'llama3.1'  // Default to Ollama model for desktop
+			selectedModel: ''  // No default model
 		},
 		mobile: {
 			selectedModel: ''  // No default model
@@ -254,6 +254,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createGettingStartedTabContent(container: HTMLElement): void {
 		this.createWelcomeSection(container);
+		this.createNavigationHelp(container);
 		this.createQuickStartGuide(container);
 		this.createSupernovaCTA(container, {
 			buttonAction: 'tab',
@@ -261,7 +262,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			marginTop: '32px',
 			marginBottom: '32px'
 		});
-		this.createNavigationHelp(container);
 	}
 
 	private createSupernovaTabContent(container: HTMLElement): void {
@@ -627,6 +627,13 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Update provider status to connected
 			await this.updateProviderStatus(provider, 'connected', 'Connected successfully');
 			this.setConnectionStatus(statusContainer, 'success', '● Connected');
+			
+			// For Ollama, if a model is configured, automatically select it
+			if (provider === 'ollama' && this.plugin.settings.aiProviders.ollama.model) {
+				const platform = Platform.isMobile ? 'mobile' : 'desktop';
+				this.plugin.settings.platformSettings[platform].selectedModel = this.plugin.settings.aiProviders.ollama.model;
+				await this.plugin.saveSettings();
+			}
 			
 			// Emit event to notify sidebar of provider configuration
 			document.dispatchEvent(new CustomEvent('nova-provider-configured', { 
@@ -1815,24 +1822,25 @@ export class NovaSettingTab extends PluginSettingTab {
 		const navCard = navSection.createDiv({ cls: 'nova-navigation-card' });
 		navCard.innerHTML = `
 			<div class="nova-card-header">
-				<span class="nova-card-icon">📚</span>
-				<h4>Next Steps</h4>
+				<span class="nova-card-icon">⚡</span>
+				<h4>Quick Start</h4>
 			</div>
 			<div class="nova-card-content">
 				<div class="nova-next-steps">
 					<div class="nova-next-step">
-						<span>1. Configure AI providers</span>
-						<a href="#" class="nova-step-link" data-tab="providers">→ Go to AI Providers tab</a>
+						<span>1. Explore Privacy and General Settings</span>
+						<a href="#" class="nova-step-link" data-tab="general">→ Go to General tab</a>
 					</div>
 					<div class="nova-next-step">
-						<span>2. Explore Privacy and General Settings</span>
-						<a href="#" class="nova-step-link" data-tab="general">→ Go to General tab</a>
+						<span>2. Configure AI providers</span>
+						<a href="#" class="nova-step-link" data-tab="providers">→ Go to AI Providers tab</a>
 					</div>
 					<div class="nova-next-step">
 						<span>3. Manage Supernova License</span>
 						<a href="#" class="nova-step-link" data-tab="supernova">→ Go to Supernova tab</a>
 					</div>
 				</div>
+				<div class="nova-tip">💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Nova: Open sidebar" to access Nova</div>
 			</div>
 		`;
 

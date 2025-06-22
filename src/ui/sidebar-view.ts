@@ -2728,6 +2728,10 @@ USER REQUEST: ${processedMessage}`;
 				const providers = this.plugin.settings.aiProviders as Record<string, any>;
 				const hasApiKey = providers[providerType]?.apiKey;
 				if (!hasApiKey && providerType !== 'ollama') continue;
+				
+				// Check if provider has been successfully tested
+				const providerStatus = this.plugin.settings.providerStatus?.[providerType];
+				if (!providerStatus || providerStatus.status !== 'connected') continue;
 
 				const models = this.getAvailableModels(providerType);
 				const providerDisplayName = this.getProviderDisplayName(providerType);
@@ -2811,7 +2815,7 @@ USER REQUEST: ${processedMessage}`;
 					color: var(--text-muted);
 					font-size: 0.8em;
 				`;
-				noProvidersItem.setText('No providers available');
+				noProvidersItem.setText('None configured');
 			}
 
 		} catch (error) {
@@ -3085,7 +3089,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider configuration events
 	 */
-	private handleProviderConfigured = (event: Event) => {
+	private handleProviderConfigured = async (event: Event) => {
 		// Update current provider display text
 		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
 			try {
@@ -3093,6 +3097,11 @@ USER REQUEST: ${processedMessage}`;
 			} catch (error) {
 				console.error('❌ Failed to update provider display after configuration:', error);
 			}
+		}
+		
+		// Update privacy indicator
+		if ((this as any).privacyIndicator) {
+			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
 		// If dropdown is currently open, refresh the available models
@@ -3122,6 +3131,11 @@ USER REQUEST: ${processedMessage}`;
 				if (fallbackProviderType) {
 					this.switchToModel(fallbackProviderType, firstAvailableModel);
 				}
+			} else {
+				// No available models - clear the selection
+				const platform = Platform.isMobile ? 'mobile' : 'desktop';
+				this.plugin.settings.platformSettings[platform].selectedModel = '';
+				await this.plugin.saveSettings();
 			}
 		}
 		
@@ -3132,6 +3146,11 @@ USER REQUEST: ${processedMessage}`;
 			} catch (error) {
 				console.error('❌ Failed to update provider display after disconnection:', error);
 			}
+		}
+		
+		// Update privacy indicator
+		if ((this as any).privacyIndicator) {
+			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
 		// If dropdown is currently open, refresh the available models
@@ -3153,7 +3172,9 @@ USER REQUEST: ${processedMessage}`;
 		
 		for (const providerType of providerPriority) {
 			const isAvailable = providerAvailability.get(providerType);
-			if (isAvailable) {
+			// Also check if provider has been successfully tested
+			const providerStatus = this.plugin.settings.providerStatus?.[providerType];
+			if (isAvailable && providerStatus?.status === 'connected') {
 				const models = getAvailableModels(providerType, this.plugin.settings);
 				if (models.length > 0) {
 					return models[0].value; // Return first model from this provider
