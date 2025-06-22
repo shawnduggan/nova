@@ -1252,8 +1252,13 @@ export class NovaSettingTab extends PluginSettingTab {
 			dropdown.selectEl.style.width = '200px';
 			dropdown.selectEl.style.height = '40px';
 			this.populateClaudeModels(dropdown);
+			
+			// Auto-select first model if none is configured
+			const models = getAvailableModels('claude');
+			const selectedModel = this.plugin.settings.aiProviders.claude.model || (models.length > 0 ? models[0].value : '');
+			
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.claude.model || 'claude-sonnet-4-20250514')
+				.setValue(selectedModel)
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.claude.model = value;
 					await this.plugin.saveSettings();
@@ -1315,8 +1320,13 @@ export class NovaSettingTab extends PluginSettingTab {
 			dropdown.selectEl.style.width = '200px';
 			dropdown.selectEl.style.height = '40px';
 			this.populateOpenAIModels(dropdown);
+			
+			// Auto-select first model if none is configured
+			const models = getAvailableModels('openai');
+			const selectedModel = this.plugin.settings.aiProviders.openai.model || (models.length > 0 ? models[0].value : '');
+			
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.openai.model || 'gpt-4.1-mini-2025-04-14')
+				.setValue(selectedModel)
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.openai.model = value;
 					await this.plugin.saveSettings();
@@ -1376,8 +1386,13 @@ export class NovaSettingTab extends PluginSettingTab {
 			dropdown.selectEl.style.width = '200px';
 			dropdown.selectEl.style.height = '40px';
 			this.populateGoogleModels(dropdown);
+			
+			// Auto-select first model if none is configured
+			const models = getAvailableModels('google');
+			const selectedModel = this.plugin.settings.aiProviders.google.model || (models.length > 0 ? models[0].value : '');
+			
 			return dropdown
-				.setValue(this.plugin.settings.aiProviders.google.model || 'gemini-2.5-flash-preview-04-17')
+				.setValue(selectedModel)
 				.onChange(async (value) => {
 					this.plugin.settings.aiProviders.google.model = value;
 					await this.plugin.saveSettings();
