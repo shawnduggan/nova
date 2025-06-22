@@ -9,7 +9,9 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = (process.argv[2] === 'production');
+const mode = process.argv[2] || 'development';
+const prod = (mode === 'production');
+const devOnce = (mode === 'development-once');
 
 const context = await esbuild.context({
 	banner: {
@@ -43,7 +45,7 @@ const context = await esbuild.context({
 	},
 });
 
-if (prod) {
+if (prod || devOnce) {
 	await context.rebuild();
 	process.exit(0);
 } else {
