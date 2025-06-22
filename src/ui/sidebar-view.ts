@@ -424,11 +424,13 @@ export class NovaSidebarView extends ItemView {
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
 		
-		// Create CommandSystem with the actual textArea from InputHandler
-		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
-		
-		// Connect the CommandSystem to the InputHandler
-		this.inputHandler.setCommandSystem(this.commandSystem);
+		// Create CommandSystem only if commands feature is enabled
+		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
+			this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
+			
+			// Connect the CommandSystem to the InputHandler
+			this.inputHandler.setCommandSystem(this.commandSystem);
+		}
 		
 		// Set up send message callback
 		this.inputHandler.setOnSendMessage((message: string) => {

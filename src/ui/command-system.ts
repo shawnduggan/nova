@@ -193,6 +193,12 @@ export class CommandSystem {
 		
 		const input = this.textArea.getValue();
 		
+		// Check if commands feature is enabled before handling triggers
+		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+			this.hideCommandPicker();
+			return;
+		}
+		
 		// Handle different triggers
 		if (input.startsWith(':')) {
 			// Custom command trigger - show structured commands
