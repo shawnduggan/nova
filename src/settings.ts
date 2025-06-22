@@ -1205,8 +1205,9 @@ export class NovaSettingTab extends PluginSettingTab {
 					<li><strong>Claude Sonnet 4</strong> - Latest generation with excellent instruction following for collaborative editing</li>
 					<li><strong>GPT-4.1 Mini</strong> - Current-generation model that outperforms GPT-4o while remaining cost-effective</li>
 					<li><strong>Gemini 2.5 Flash</strong> - Best price/performance with "thinking" capabilities and strong coding support</li>
+					<li><strong>Ollama (Local)</strong> - Complete privacy with local processing - requires setup but keeps all data on your device</li>
 				</ul>
-				<p class="nova-guidance-note">These defaults offer modern AI capabilities without premium pricing.</p>
+				<p class="nova-guidance-note">Cloud options offer modern AI capabilities without premium pricing, while local options provide complete privacy.</p>
 			</div>
 		`;
 
