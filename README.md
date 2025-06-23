@@ -3,12 +3,13 @@ Nova – Your AI Writing Partner in Obsidian
 Nova is the first AI that edits exactly where you want — not where it guesses.
 
 🪄 Select text → Right-click → Nova transforms it in place
-Or place your cursor and type a chat command — Nova inserts the response exactly where your cursor is
+Or place your cursor and type a chat command — Nova inserts the response exactly where your cursor is.
 
-No copy-paste. No context switching. Just seamless writing with magical streaming
-	•	✨ Works on desktop and mobile
-	•	🔒 Local AI or your own API keys
-	•	🆓 Free forever — no feature gates or subscriptions
+No copy-paste. No context switching. Just seamless writing with magical streaming.
+
+✨ Works on desktop and mobile
+🔒 Local AI or your own API keys
+🆓 Free forever — no feature gates or subscriptions
 
 ⸻
 
@@ -71,7 +72,7 @@ Technical Documentation
 
 💎 Why It’s Free (and How to Support It)
 
-Nova is open source and free forever — with no locked features
+Nova is open source and free forever — with no locked features.
 
 If Nova transforms your writing workflow, consider becoming a Supernova supporter:
 	•	Early access to advanced features (2–4 months ahead)
