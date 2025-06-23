@@ -44,6 +44,13 @@
 
 > Never execute or modify without reasoning through the task first.
 
+## 🐛 Known Issues
+
+> No known issues currently.
+
 ## 📋 Current Tasks
 
-> No active tasks. Awaiting instruction.
+BUG: Nova is logging too much to console by default. It's valuable info for debugging or troubleshooting but not needed under normal circumstances, consider if we shold remove all info type logging except error handling or add a Settings option for Verbose logging that can be enabled?
+
+BUG: Each AI Provider is storing temperature and max tokens instead of using the values from Settings > General.
+

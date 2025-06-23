@@ -1,4 +1,5 @@
 import { License, SupernovaLicense, LicenseValidationResult, SupernovaValidationResult, LicenseError } from './types';
+import { CryptoService } from '../core/crypto-service';
 
 export class LicenseValidator {
 	// Embedded signing key - in production this would be obfuscated
@@ -84,22 +85,14 @@ export class LicenseValidator {
 	 * Safe base64 decode that handles both browser and Node.js environments
 	 */
 	private base64Decode(str: string): string {
-		if (typeof atob !== 'undefined') {
-			return atob(str);
-		}
-		// Fallback for Node.js environment
-		return Buffer.from(str, 'base64').toString('utf8');
+		return CryptoService.base64Decode(str);
 	}
 
 	/**
 	 * Safe base64 encode that handles both browser and Node.js environments
 	 */
 	private base64Encode(str: string): string {
-		if (typeof btoa !== 'undefined') {
-			return btoa(str);
-		}
-		// Fallback for Node.js environment
-		return Buffer.from(str, 'utf8').toString('base64');
+		return CryptoService.base64Encode(str);
 	}
 
 	/**
@@ -141,23 +134,7 @@ export class LicenseValidator {
 		issuedAt: Date
 	): Promise<string> {
 		const data = `${email}|${tier}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}`;
-		
-		const encoder = new TextEncoder();
-		const keyData = encoder.encode(this.SECRET_KEY);
-		const messageData = encoder.encode(data);
-		
-		const cryptoKey = await crypto.subtle.importKey(
-			'raw',
-			keyData,
-			{ name: 'HMAC', hash: 'SHA-256' },
-			false,
-			['sign']
-		);
-		
-		const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-		return Array.from(new Uint8Array(signature))
-			.map(b => b.toString(16).padStart(2, '0'))
-			.join('');
+		return CryptoService.generateHmacSignature(data, this.SECRET_KEY);
 	}
 
 	/**
@@ -293,23 +270,7 @@ export class LicenseValidator {
 		issuedAt: Date
 	): Promise<string> {
 		const data = `${email}|${type}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}`;
-		
-		const encoder = new TextEncoder();
-		const keyData = encoder.encode(this.SECRET_KEY);
-		const messageData = encoder.encode(data);
-		
-		const cryptoKey = await crypto.subtle.importKey(
-			'raw',
-			keyData,
-			{ name: 'HMAC', hash: 'SHA-256' },
-			false,
-			['sign']
-		);
-		
-		const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-		return Array.from(new Uint8Array(signature))
-			.map(b => b.toString(16).padStart(2, '0'))
-			.join('');
+		return CryptoService.generateHmacSignature(data, this.SECRET_KEY);
 	}
 
 	/**

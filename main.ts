@@ -19,6 +19,7 @@ import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
 import { SelectionContextMenu } from './src/ui/selection-context-menu';
 import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
+import { CryptoService } from './src/core/crypto-service';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -232,6 +233,24 @@ export default class NovaPlugin extends Plugin {
 		console.log('🔧 Final merged platformSettings:', this.settings.platformSettings);
 		console.log('🔧 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
 		console.log('🔧 Selected model for current platform:', this.settings.platformSettings[Platform.isMobile ? 'mobile' : 'desktop'].selectedModel);
+		
+		// Decrypt API keys if they are encrypted
+		if (this.settings.aiProviders) {
+			try {
+				if (this.settings.aiProviders.claude?.apiKey) {
+					this.settings.aiProviders.claude.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.claude.apiKey);
+				}
+				if (this.settings.aiProviders.openai?.apiKey) {
+					this.settings.aiProviders.openai.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.openai.apiKey);
+				}
+				if (this.settings.aiProviders.google?.apiKey) {
+					this.settings.aiProviders.google.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.google.apiKey);
+				}
+				console.log('🔧 API keys decrypted successfully');
+			} catch (error) {
+				console.error('❌ Failed to decrypt API keys:', error);
+			}
+		}
 	}
 
 
@@ -258,6 +277,28 @@ export default class NovaPlugin extends Plugin {
 
 	async saveSettings() {
 		console.log('💾 Nova: Saving settings...');
+		
+		// Create a copy of settings to encrypt API keys for storage
+		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
+		
+		// Encrypt API keys before saving
+		if (settingsToSave.aiProviders) {
+			try {
+				if (settingsToSave.aiProviders.claude?.apiKey) {
+					settingsToSave.aiProviders.claude.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.claude.apiKey);
+				}
+				if (settingsToSave.aiProviders.openai?.apiKey) {
+					settingsToSave.aiProviders.openai.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.openai.apiKey);
+				}
+				if (settingsToSave.aiProviders.google?.apiKey) {
+					settingsToSave.aiProviders.google.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.google.apiKey);
+				}
+				console.log('💾 API keys encrypted successfully');
+			} catch (error) {
+				console.error('❌ Failed to encrypt API keys:', error);
+				// Fall back to saving without encryption if encryption fails
+			}
+		}
 		console.log('💾 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
 		console.log('💾 Platform settings being saved:', this.settings.platformSettings);
 		console.log('💾 Desktop selectedModel being saved:', this.settings.platformSettings.desktop.selectedModel);
@@ -265,12 +306,12 @@ export default class NovaPlugin extends Plugin {
 		
 		try {
 			// Force save multiple times to ensure it persists
-			await this.saveData(this.settings);
+			await this.saveData(settingsToSave);
 			console.log('💾 First saveData() completed');
 			
 			// Add delay and try again
 			await new Promise(resolve => setTimeout(resolve, 200));
-			await this.saveData(this.settings);
+			await this.saveData(settingsToSave);
 			console.log('💾 Second saveData() completed');
 			
 			// Add another delay and verify
@@ -295,7 +336,7 @@ export default class NovaPlugin extends Plugin {
 				
 				// Try one more time with manual file write
 				console.log('💾 Attempting forced save...');
-				await this.saveData(JSON.parse(JSON.stringify(this.settings)));
+				await this.saveData(settingsToSave);
 				await new Promise(resolve => setTimeout(resolve, 300));
 				
 				const finalCheck = await this.loadData();
