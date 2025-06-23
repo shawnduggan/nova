@@ -204,35 +204,17 @@ export default class NovaPlugin extends Plugin {
 
 	async loadSettings() {
 		const savedData = await this.loadData();
-		console.log('🔧 Nova: Loading settings...');
-		console.log('🔧 Saved data (full):', savedData);
-		console.log('🔧 Saved data platformSettings:', savedData?.platformSettings);
-		
-		if (savedData?.platformSettings?.desktop) {
-			console.log('🔧 Saved desktop primaryProvider:', savedData.platformSettings.desktop.primaryProvider);
-		}
-		
-		console.log('🔧 Default platformSettings:', DEFAULT_SETTINGS.platformSettings);
 		
 		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 		
 		// Manually merge platformSettings to ensure saved model selections are preserved
 		if (savedData?.platformSettings) {
-			console.log('🔧 Before merge - Default desktop selectedModel:', DEFAULT_SETTINGS.platformSettings.desktop.selectedModel);
-			console.log('🔧 Before merge - Saved desktop selectedModel:', savedData.platformSettings.desktop?.selectedModel);
-			
 			this.settings.platformSettings = {
 				desktop: Object.assign({}, DEFAULT_SETTINGS.platformSettings.desktop, savedData.platformSettings.desktop || {}),
 				mobile: Object.assign({}, DEFAULT_SETTINGS.platformSettings.mobile, savedData.platformSettings.mobile || {})
 			};
-			
-			console.log('🔧 After merge - Final desktop selectedModel:', this.settings.platformSettings.desktop.selectedModel);
 		}
-		
-		console.log('🔧 Final merged platformSettings:', this.settings.platformSettings);
-		console.log('🔧 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
-		console.log('🔧 Selected model for current platform:', this.settings.platformSettings[Platform.isMobile ? 'mobile' : 'desktop'].selectedModel);
 		
 		// Decrypt API keys if they are encrypted
 		if (this.settings.aiProviders) {
@@ -246,7 +228,6 @@ export default class NovaPlugin extends Plugin {
 				if (this.settings.aiProviders.google?.apiKey) {
 					this.settings.aiProviders.google.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.google.apiKey);
 				}
-				console.log('🔧 API keys decrypted successfully');
 			} catch (error) {
 				console.error('❌ Failed to decrypt API keys:', error);
 			}
@@ -276,8 +257,6 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		console.log('💾 Nova: Saving settings...');
-		
 		// Create a copy of settings to encrypt API keys for storage
 		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
 		
@@ -293,34 +272,25 @@ export default class NovaPlugin extends Plugin {
 				if (settingsToSave.aiProviders.google?.apiKey) {
 					settingsToSave.aiProviders.google.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.google.apiKey);
 				}
-				console.log('💾 API keys encrypted successfully');
 			} catch (error) {
 				console.error('❌ Failed to encrypt API keys:', error);
 				// Fall back to saving without encryption if encryption fails
 			}
 		}
-		console.log('💾 Current platform:', Platform.isMobile ? 'mobile' : 'desktop');
-		console.log('💾 Platform settings being saved:', this.settings.platformSettings);
-		console.log('💾 Desktop selectedModel being saved:', this.settings.platformSettings.desktop.selectedModel);
-		console.log('💾 Mobile selectedModel being saved:', this.settings.platformSettings.mobile.selectedModel);
 		
 		try {
 			// Force save multiple times to ensure it persists
 			await this.saveData(settingsToSave);
-			console.log('💾 First saveData() completed');
 			
 			// Add delay and try again
 			await new Promise(resolve => setTimeout(resolve, 200));
 			await this.saveData(settingsToSave);
-			console.log('💾 Second saveData() completed');
 			
 			// Add another delay and verify
 			await new Promise(resolve => setTimeout(resolve, 200));
 			
 			// Verify the save by reading it back
 			const readBack = await this.loadData();
-			console.log('💾 Verification read - Desktop selectedModel:', readBack?.platformSettings?.desktop?.selectedModel);
-			console.log('💾 Verification read - Mobile selectedModel:', readBack?.platformSettings?.mobile?.selectedModel);
 			
 			// Check if the save actually worked
 			const currentPlatform = Platform.isMobile ? 'mobile' : 'desktop';
@@ -335,23 +305,17 @@ export default class NovaPlugin extends Plugin {
 				});
 				
 				// Try one more time with manual file write
-				console.log('💾 Attempting forced save...');
 				await this.saveData(settingsToSave);
 				await new Promise(resolve => setTimeout(resolve, 300));
 				
 				const finalCheck = await this.loadData();
 				const finalActual = finalCheck?.platformSettings?.[currentPlatform]?.selectedModel;
-				if (expectedModel === finalActual) {
-					console.log('✅ Forced save succeeded');
-				} else {
+				if (expectedModel !== finalActual) {
 					console.error('❌ Forced save also failed!', { finalActual });
 				}
-			} else {
-				console.log('✅ Save verification successful');
 			}
 			
 			this.aiProviderManager?.updateSettings(this.settings);
-			console.log('💾 Settings saved successfully');
 		} catch (error) {
 			console.error('❌ Error during save operation:', error);
 			throw error;
