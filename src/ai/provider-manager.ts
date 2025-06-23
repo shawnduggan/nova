@@ -105,7 +105,13 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		return provider.generateText(prompt, options);
+		// Always use global settings
+		const enhancedOptions: AIGenerationOptions = {
+			temperature: this.getDefaultTemperature(),
+			maxTokens: this.getDefaultMaxTokens()
+		};
+		
+		return provider.generateText(prompt, enhancedOptions);
 	}
 
 	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
@@ -114,7 +120,13 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		yield* provider.generateTextStream(prompt, options);
+		// Always use global settings
+		const enhancedOptions: AIGenerationOptions = {
+			temperature: this.getDefaultTemperature(),
+			maxTokens: this.getDefaultMaxTokens()
+		};
+		
+		yield* provider.generateTextStream(prompt, enhancedOptions);
 	}
 
 	async chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string> {
@@ -122,7 +134,14 @@ export class AIProviderManager {
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
-		return provider.chatCompletion(messages, options);
+		
+		// Always use global settings
+		const enhancedOptions: AIGenerationOptions = {
+			temperature: this.getDefaultTemperature(),
+			maxTokens: this.getDefaultMaxTokens()
+		};
+		
+		return provider.chatCompletion(messages, enhancedOptions);
 	}
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
@@ -130,7 +149,14 @@ export class AIProviderManager {
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
-		yield* provider.chatCompletionStream(messages, options);
+		
+		// Always use global settings
+		const enhancedOptions: AIGenerationOptions = {
+			temperature: this.getDefaultTemperature(),
+			maxTokens: this.getDefaultMaxTokens()
+		};
+		
+		yield* provider.chatCompletionStream(messages, enhancedOptions);
 	}
 
 	getProviderNames(): string[] {
@@ -170,7 +196,14 @@ export class AIProviderManager {
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
-		return provider.complete(systemPrompt, userPrompt, options);
+		
+		// Always use global settings
+		const enhancedOptions: AIGenerationOptions = {
+			temperature: this.getDefaultTemperature(),
+			maxTokens: this.getDefaultMaxTokens()
+		};
+		
+		return provider.complete(systemPrompt, userPrompt, enhancedOptions);
 	}
 
 	getAllowedProviders(): ProviderType[] {
@@ -253,5 +286,9 @@ export class AIProviderManager {
 	 */
 	getDefaultMaxTokens(): number {
 		return this.settings.general.defaultMaxTokens;
+	}
+
+	getDefaultTemperature(): number {
+		return this.settings.general.defaultTemperature;
 	}
 }

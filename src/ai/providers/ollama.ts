@@ -42,8 +42,8 @@ export class OllamaProvider implements AIProvider {
 				prompt,
 				stream: false,
 				options: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					num_predict: options?.maxTokens || this.config.maxTokens || 1000
+					temperature: options?.temperature,
+					num_predict: options?.maxTokens
 				}
 			})
 		});
@@ -71,8 +71,8 @@ export class OllamaProvider implements AIProvider {
 				prompt,
 				stream: true,
 				options: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					num_predict: options?.maxTokens || this.config.maxTokens || 1000
+					temperature: options?.temperature,
+					num_predict: options?.maxTokens
 				}
 			})
 		});
@@ -143,8 +143,8 @@ export class OllamaProvider implements AIProvider {
 				})),
 				stream: false,
 				options: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					num_predict: options?.maxTokens || this.config.maxTokens || 1000
+					temperature: options?.temperature,
+					num_predict: options?.maxTokens
 				}
 			})
 		});
@@ -183,8 +183,8 @@ export class OllamaProvider implements AIProvider {
 				})),
 				stream: true,
 				options: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					num_predict: options?.maxTokens || this.config.maxTokens || 1000
+					temperature: options?.temperature,
+					num_predict: options?.maxTokens
 				}
 			})
 		});

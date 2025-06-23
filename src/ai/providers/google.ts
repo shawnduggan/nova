@@ -59,8 +59,8 @@ export class GoogleProvider implements AIProvider {
 		const requestBody: any = {
 			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
-				temperature: options?.temperature || this.config.temperature || 0.7,
-				maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
+				temperature: options?.temperature,
+				maxOutputTokens: options?.maxTokens
 			}
 		};
 
@@ -189,8 +189,8 @@ export class GoogleProvider implements AIProvider {
 			body: JSON.stringify({
 				contents: this.formatMessagesForGemini(messages),
 				generationConfig: {
-					temperature: options?.temperature || this.config.temperature || 0.7,
-					maxOutputTokens: options?.maxTokens || this.config.maxTokens || 1000
+					temperature: options?.temperature,
+				maxOutputTokens: options?.maxTokens
 				},
 				...(options?.systemPrompt && options.systemPrompt.trim() ? {
 					systemInstruction: {

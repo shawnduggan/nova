@@ -43,8 +43,8 @@ export class OpenAIProvider implements AIProvider {
 		const requestBody = JSON.stringify({
 			model: options?.model || this.config.model || 'gpt-3.5-turbo',
 			messages: requestMessages,
-			max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
-			temperature: options?.temperature || this.config.temperature || 0.7
+			max_tokens: options?.maxTokens,
+			temperature: options?.temperature
 		});
 
 		// Retry logic for 500-level errors
@@ -123,8 +123,8 @@ export class OpenAIProvider implements AIProvider {
 			body: JSON.stringify({
 				model: options?.model || this.config.model || 'gpt-3.5-turbo',
 				messages: requestMessages,
-				max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
-				temperature: options?.temperature || this.config.temperature || 0.7,
+				max_tokens: options?.maxTokens,
+			temperature: options?.temperature,
 				stream: true
 			})
 		});

@@ -35,8 +35,8 @@ export class ClaudeProvider implements AIProvider {
 
 		const requestBody = JSON.stringify({
 			model: options?.model || this.config.model || 'claude-3-5-haiku-latest',
-			max_tokens: options?.maxTokens || this.config.maxTokens || 1000,
-			temperature: options?.temperature || this.config.temperature || 0.7,
+			max_tokens: options?.maxTokens,
+			temperature: options?.temperature,
 			system: options?.systemPrompt,
 			messages: messages.map(msg => ({
 				role: msg.role === 'assistant' ? 'assistant' : 'user',

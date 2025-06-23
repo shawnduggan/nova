@@ -1164,22 +1164,15 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		new Setting(coreSection)
 			.setName('Default Max Tokens')
-			.setDesc('Maximum length of AI responses (higher = longer responses)')
-			.addText(text => {
-				text.inputEl.type = 'number';
-				text.inputEl.style.width = '150px';
-				text.inputEl.style.height = '40px';
-				return text
-					.setPlaceholder('1000')
-					.setValue(this.plugin.settings.general.defaultMaxTokens.toString())
-					.onChange(async (value) => {
-						const numValue = parseInt(value);
-						if (!isNaN(numValue) && numValue > 0) {
-							this.plugin.settings.general.defaultMaxTokens = numValue;
-							await this.plugin.saveSettings();
-						}
-					});
-			});
+			.setDesc('Maximum length of AI responses (1000-10000 tokens)')
+			.addSlider(slider => slider
+				.setLimits(1000, 10000, 500)
+				.setValue(this.plugin.settings.general.defaultMaxTokens)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.general.defaultMaxTokens = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(coreSection)
 			.setName('Auto-save settings')
