@@ -1,8 +1,14 @@
-Nova is the first AI that edits exactly where you want — not where it guesses.
+# Nova – Your AI Writing Partner for Obsidian
 
-Select text and right-click to transform in place. Or place your cursor and type natural language in chat — Nova inserts precisely.
+**Tired of AI that guesses where to edit? Nova gives you precision.**
 
-✅ Local or cloud AI (Ollama, Claude, Gemini, OpenAI)  
-🔒 Privacy-first, no analytics  
-🆓 Free forever — no copy-paste mess
+🪄 Select text → Right-click → Transform in place  
+🎯 Type a chat command → AI writes exactly at your cursor
 
+Nova eliminates the copy-paste mess with streaming edits that appear exactly where you want — not where AI hopes.
+
+✅ Works on desktop and mobile  
+🔒 Local or cloud AI with your own keys  
+🆓 Free forever — no feature gates, no subscriptions
+
+[See full setup and features →](https://github.com/shawnduggan/nova)
