@@ -50,22 +50,9 @@
 
 ## 📋 Current Tasks
 
-BUG: info console logging reveals too much. 🔧 Commands feature check: {now: '2025-06-23T21:12:12.306Z', supernovaDate: '2025-07-20T00:00:00.000Z', generalDate: '2025-09-30T00:00:00.000Z', isSupernova: false, debugEnabled: false, …}
-plugin:nova:11123 🔧 Commands: Not enabled - before release date
+BUG: Settings in data.json are visible and tampering could thwart app behaviour. 
+1. Ensure debugSettings are not saved to data.json. The debug menu item appears when compiled in debug mode, and all the debug settings can be transitory for that session. there is no need to remember them.
 
-BUG: Settings in data.json could thwart app behaviour customCommands[], showCommandButton, debugSettings
-   "customCommands": [],
-  "general": {
-    "defaultTemperature": 0.7,
-    "defaultMaxTokens": 1000,
-    "autoSave": true
-  },
-  "showCommandButton": true,
-  "licensing": {
-    "licenseKey": "",
-    "supernovaLicenseKey": "dXNlckBleGFtcGxlLmNvbXxhbm51YWx8MjAyNi0wNi0yMlQxNjozMjowOS40NTRafDIwMjUtMDYtMjJUMTY6MzI6MDkuNDU0WnwzOGY4YWNjMDMzZGM0MjllODI1ZmM4YTMyZGI4YzdiODZiNGJlMzgzNTY1Mzg2ZDEwZDI1OWViMjk0ODhlNzcz",
-    "isSupernova": false,
-    "debugSettings": {
-      "enabled": false,
-      "forceSupernova": false
-    }
+BUG: License key is saved to data.json unencrypted. license key should be encrypted like the API keys. Use the same methods for reading and writing this element.
+
+

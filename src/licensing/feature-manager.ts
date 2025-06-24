@@ -16,12 +16,8 @@ export class FeatureManager {
 			// In production builds, always disable debug features for security
 			if (process.env.NODE_ENV === 'production') {
 				this.debugSettings = { enabled: false };
-				console.log('🔒 Production mode: Debug features disabled');
 			} else {
 				this.debugSettings = debugSettings;
-				if (debugSettings.enabled) {
-					console.log('🔧 Debug mode enabled with settings:', debugSettings);
-				}
 			}
 		}
 		this.initializeFeatureFlags();
@@ -54,32 +50,17 @@ export class FeatureManager {
 		const generalDate = new Date(config.generalDate);
 		const isSupernova = this.getIsSupernova();
 
-		// Add debug logging for commands feature specifically
-		if (featureKey === 'commands') {
-			console.log(`🔧 Commands feature check:`, {
-				now: now.toISOString(),
-				supernovaDate: supernovaDate.toISOString(),
-				generalDate: generalDate.toISOString(),
-				isSupernova,
-				debugEnabled: this.debugSettings.enabled,
-				forceSupernova: this.debugSettings.forceSupernova,
-				nodeEnv: process.env.NODE_ENV
-			});
-		}
 
 		// Feature is available to everyone after general date
 		if (now >= generalDate) {
-			if (featureKey === 'commands') console.log(`🔧 Commands: Enabled via general availability`);
 			return true;
 		}
 
 		// Feature is available to Supernova supporters after supernova date
 		if (isSupernova && now >= supernovaDate) {
-			if (featureKey === 'commands') console.log(`🔧 Commands: Enabled via Supernova early access`);
 			return true;
 		}
 
-		if (featureKey === 'commands') console.log(`🔧 Commands: Not enabled - before release date`);
 		return false;
 	}
 
@@ -97,7 +78,6 @@ export class FeatureManager {
 	 */
 	private getCurrentDate(): Date {
 		if (this.debugSettings.enabled && this.debugSettings.overrideDate) {
-			console.log(`🔧 Debug: Using override date: ${this.debugSettings.overrideDate}`);
 			return new Date(this.debugSettings.overrideDate);
 		}
 		return new Date();
@@ -109,7 +89,6 @@ export class FeatureManager {
 	private getIsSupernova(): boolean {
 		// Only allow debug overrides in development and test builds
 		if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== undefined && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
-			console.log(`🔧 Debug: Force Supernova enabled: ${this.debugSettings.forceSupernova}`);
 			return this.debugSettings.forceSupernova;
 		}
 		return this.isSupernova;
@@ -240,10 +219,8 @@ export class FeatureManager {
 		// In production builds, never allow debug settings to be enabled
 		if (process.env.NODE_ENV === 'production') {
 			this.debugSettings = { enabled: false };
-			console.log('🔒 Production mode: Debug settings update ignored');
 		} else {
 			this.debugSettings = settings;
-			console.log('🔧 Debug settings updated:', settings);
 		}
 		// Reinitialize features with new debug settings
 		this.initializeFeatureFlags();
@@ -254,7 +231,6 @@ export class FeatureManager {
 	 */
 	resetDebugSettings(): void {
 		this.debugSettings = { enabled: false };
-		console.log('🔄 Debug settings reset to defaults');
 		this.initializeFeatureFlags();
 	}
 
