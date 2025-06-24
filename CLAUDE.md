@@ -50,9 +50,6 @@
 
 ## 📋 Current Tasks
 
-BUG: Settings in data.json are visible and tampering could thwart app behaviour. 
-1. Ensure debugSettings are not saved to data.json. The debug menu item appears when compiled in debug mode, and all the debug settings can be transitory for that session. there is no need to remember them.
-
-BUG: License key is saved to data.json unencrypted. license key should be encrypted like the API keys. Use the same methods for reading and writing this element.
+> No current tasks.
 
 

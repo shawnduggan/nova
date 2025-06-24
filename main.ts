@@ -232,6 +232,25 @@ export default class NovaPlugin extends Plugin {
 				console.error('❌ Failed to decrypt API keys:', error);
 			}
 		}
+		
+		// Decrypt license keys if they are encrypted
+		if (this.settings.licensing) {
+			try {
+				if (this.settings.licensing.licenseKey) {
+					this.settings.licensing.licenseKey = await CryptoService.decryptValue(this.settings.licensing.licenseKey);
+				}
+				if (this.settings.licensing.supernovaLicenseKey) {
+					this.settings.licensing.supernovaLicenseKey = await CryptoService.decryptValue(this.settings.licensing.supernovaLicenseKey);
+				}
+			} catch (error) {
+				console.error('❌ Failed to decrypt license keys:', error);
+			}
+		}
+		
+		// Always use default debugSettings (transitory for development sessions)
+		if (this.settings.licensing) {
+			this.settings.licensing.debugSettings = DEFAULT_SETTINGS.licensing.debugSettings;
+		}
 	}
 
 
@@ -260,6 +279,11 @@ export default class NovaPlugin extends Plugin {
 		// Create a copy of settings to encrypt API keys for storage
 		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
 		
+		// Remove debugSettings from saved data (should be transitory for development sessions)
+		if (settingsToSave.licensing?.debugSettings) {
+			delete settingsToSave.licensing.debugSettings;
+		}
+		
 		// Encrypt API keys before saving
 		if (settingsToSave.aiProviders) {
 			try {
@@ -274,6 +298,21 @@ export default class NovaPlugin extends Plugin {
 				}
 			} catch (error) {
 				console.error('❌ Failed to encrypt API keys:', error);
+				// Fall back to saving without encryption if encryption fails
+			}
+		}
+		
+		// Encrypt license keys before saving
+		if (settingsToSave.licensing) {
+			try {
+				if (settingsToSave.licensing.licenseKey) {
+					settingsToSave.licensing.licenseKey = await CryptoService.encryptValue(settingsToSave.licensing.licenseKey);
+				}
+				if (settingsToSave.licensing.supernovaLicenseKey) {
+					settingsToSave.licensing.supernovaLicenseKey = await CryptoService.encryptValue(settingsToSave.licensing.supernovaLicenseKey);
+				}
+			} catch (error) {
+				console.error('❌ Failed to encrypt license keys:', error);
 				// Fall back to saving without encryption if encryption fails
 			}
 		}
