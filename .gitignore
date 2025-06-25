@@ -138,5 +138,16 @@ dist
 # Project-specific files
 data.json
 
+# Generated/compiled files
+main.js
+
+# Tool directories
+.serena/
+.claude/
+
+# Personal files
+backup-claude.sh
+*.code-workspace
+
 # macOS
 .DS_Store
