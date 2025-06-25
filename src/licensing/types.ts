@@ -9,7 +9,7 @@ export interface License {
 
 export interface SupernovaLicense {
 	email: string;
-	type: 'annual' | 'lifetime';
+	type: 'annual' | 'lifetime' | 'founding';
 	expiresAt: Date | null; // null for lifetime
 	issuedAt: Date;
 	signature: string;

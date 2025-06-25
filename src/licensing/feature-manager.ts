@@ -138,6 +138,14 @@ export class FeatureManager {
 	}
 
 	/**
+	 * Check if user has lifetime access (lifetime or founding license)
+	 */
+	hasLifetimeAccess(): boolean {
+		const license = this.getSupernovaLicense();
+		return license !== null && (license.type === 'lifetime' || license.type === 'founding');
+	}
+
+	/**
 	 * Check if a feature is enabled
 	 * Only handles time-gated features - everything else just works without checking
 	 */

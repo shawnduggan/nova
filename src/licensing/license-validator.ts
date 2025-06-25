@@ -201,7 +201,7 @@ export class LicenseValidator {
 			const [email, type, expiresAtStr, issuedAtStr, signature] = parts;
 
 			// Validate type
-			if (type !== 'annual' && type !== 'lifetime') {
+			if (type !== 'annual' && type !== 'lifetime' && type !== 'founding') {
 				return null;
 			}
 
@@ -220,7 +220,7 @@ export class LicenseValidator {
 
 			return {
 				email,
-				type: type as 'annual' | 'lifetime',
+				type: type as 'annual' | 'lifetime' | 'founding',
 				expiresAt,
 				issuedAt,
 				signature,
@@ -265,7 +265,7 @@ export class LicenseValidator {
 	 */
 	private async generateSupernovaSignature(
 		email: string,
-		type: 'annual' | 'lifetime',
+		type: 'annual' | 'lifetime' | 'founding',
 		expiresAt: Date | null,
 		issuedAt: Date
 	): Promise<string> {
@@ -276,9 +276,9 @@ export class LicenseValidator {
 	/**
 	 * Creates a test Supernova license for development
 	 */
-	async createTestSupernovaLicense(email: string, type: 'annual' | 'lifetime'): Promise<string> {
+	async createTestSupernovaLicense(email: string, type: 'annual' | 'lifetime' | 'founding'): Promise<string> {
 		const issuedAt = new Date();
-		const expiresAt = type === 'lifetime' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+		const expiresAt = (type === 'lifetime' || type === 'founding') ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
 		const signature = await this.generateSupernovaSignature(email, type, expiresAt, issuedAt);
 		

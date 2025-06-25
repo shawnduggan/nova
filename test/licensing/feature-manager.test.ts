@@ -58,6 +58,26 @@ describe('FeatureManager', () => {
 			expect(featureManager.isSupernovaSupporter()).toBe(false);
 			expect(featureManager.getSupernovaLicense()).toBeNull();
 		});
+
+		test('should correctly identify lifetime access for founding and lifetime licenses', async () => {
+			// Test with no license
+			expect(featureManager.hasLifetimeAccess()).toBe(false);
+
+			// Test with annual license (not lifetime)
+			const annualLicense = await licenseValidator.createTestSupernovaLicense('annual@example.com', 'annual');
+			await featureManager.updateSupernovaLicense(annualLicense);
+			expect(featureManager.hasLifetimeAccess()).toBe(false);
+
+			// Test with lifetime license
+			const lifetimeLicense = await licenseValidator.createTestSupernovaLicense('lifetime@example.com', 'lifetime');
+			await featureManager.updateSupernovaLicense(lifetimeLicense);
+			expect(featureManager.hasLifetimeAccess()).toBe(true);
+
+			// Test with founding license (should also be lifetime)
+			const foundingLicense = await licenseValidator.createTestSupernovaLicense('founding@example.com', 'founding');
+			await featureManager.updateSupernovaLicense(foundingLicense);
+			expect(featureManager.hasLifetimeAccess()).toBe(true);
+		});
 	});
 
 	describe('Feature Access Checking', () => {

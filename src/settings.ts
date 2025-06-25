@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
-import { DebugSettings } from './licensing/types';
+import { DebugSettings, SupernovaLicense } from './licensing/types';
 import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
 import { getAvailableModels } from './ai/models';
 import { ClaudeProvider } from './ai/providers/claude';
@@ -828,8 +828,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		const supernovaLicense = this.plugin.featureManager?.getSupernovaLicense();
 		
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
-		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
-		const statusIcon = isSupernova ? `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #9333ea; filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));">
+		const badge = this.getLicenseBadge(supernovaLicense);
+		const statusText = badge?.text || (isSupernova ? 'Supernova Supporter' : 'Nova User');
+		const statusIcon = badge ? badge.icon : (isSupernova ? `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #9333ea; filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -841,9 +842,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 		</svg>` : `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--text-normal);">
 			${NOVA_ICON_SVG}
-		</svg>`;
+		</svg>`);
 		statusDisplay.innerHTML = `
-			<div class="nova-status-badge ${isSupernova ? 'supernova' : 'nova'}">
+			<div class="nova-status-badge ${badge?.className || (isSupernova ? 'supernova' : 'nova')}" ${badge ? `style="border-color: ${badge.color}; color: ${badge.color};"` : ''}>
 				<span class="status-icon">${statusIcon}</span>
 				<span class="status-name">${statusText}</span>
 			</div>
@@ -1693,6 +1694,39 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 
+	/**
+	 * Get badge information for license type
+	 */
+	private getLicenseBadge(license: SupernovaLicense | null): { icon: string; color: string; text: string; className: string } | null {
+		if (!license) return null;
+		
+		switch(license.type) {
+			case 'founding':
+				return { 
+					icon: '⭐', 
+					color: '#fdcb6e',
+					text: 'Founding Supernova',
+					className: 'founding'
+				};
+			case 'lifetime':
+				return { 
+					icon: '∞', 
+					color: '#9333ea',
+					text: 'Lifetime Supernova',
+					className: 'lifetime'
+				};
+			case 'annual':
+				return { 
+					icon: '🚀', 
+					color: '#3b82f6',
+					text: 'Supernova',
+					className: 'supernova'
+				};
+			default:
+				return null;
+		}
+	}
+
 	private createSupernovaLicenseInput(container: HTMLElement): void {
 		// Current Supernova status
 		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
@@ -1700,6 +1734,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Status display
 		if (supernovaLicense) {
+			const badge = this.getLicenseBadge(supernovaLicense);
 			const statusEl = container.createDiv({ cls: 'nova-license-status' });
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires ${supernovaLicense.expiresAt.toLocaleDateString()}`
@@ -1708,7 +1743,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				<div class="nova-license-validated">
 					<div class="nova-license-header">
 						<span class="nova-license-checkmark">✓</span>
-						<span class="nova-license-title">Valid Supernova License</span>
+						<span class="nova-license-title">${badge?.text || 'Valid Supernova License'}</span>
+						${badge ? `<span class="nova-license-badge ${badge.className}" style="background: ${badge.color};">${badge.icon}</span>` : ''}
 					</div>
 					<div class="nova-license-details">
 						<div class="nova-license-email">

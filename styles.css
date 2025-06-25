@@ -2329,3 +2329,53 @@
         transform: translateY(0);
     }
 }
+
+/* Founding Supernova License Badge Styles */
+.nova-license-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 20px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nova-license-badge.founding {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    animation: foundingGlow 2s ease-in-out infinite alternate;
+}
+
+.nova-license-badge.lifetime {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+}
+
+.nova-license-badge.supernova {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+/* Status badge styling for founding licenses */
+.nova-status-badge.founding {
+    border-color: #fdcb6e !important;
+    color: #fdcb6e !important;
+    background: rgba(253, 203, 110, 0.1);
+}
+
+.nova-status-badge.founding .status-icon {
+    filter: drop-shadow(0 0 4px rgba(253, 203, 110, 0.6));
+}
+
+/* Founding badge glow animation */
+@keyframes foundingGlow {
+    0% {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(253, 203, 110, 0.4);
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 16px rgba(253, 203, 110, 0.6);
+    }
+}

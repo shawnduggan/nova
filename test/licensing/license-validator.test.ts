@@ -138,6 +138,19 @@ describe('LicenseValidator', () => {
 			const result = await validator.validateLicense(legacyLicense);
 			expect(result.valid).toBe(true);
 		});
+
+		test('should create and validate founding Supernova licenses', async () => {
+			const foundingLicense = await validator.createTestSupernovaLicense('founder@example.com', 'founding');
+
+			expect(foundingLicense).toBeDefined();
+
+			// Verify it can be validated
+			const result = await validator.validateSupernovaLicense(foundingLicense);
+			expect(result.valid).toBe(true);
+			expect(result.license?.email).toBe('founder@example.com');
+			expect(result.license?.type).toBe('founding');
+			expect(result.license?.expiresAt).toBeNull(); // founding is lifetime
+		});
 	});
 
 	describe('error handling', () => {
