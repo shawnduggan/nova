@@ -11,15 +11,17 @@ import { requestUrl } from 'obsidian';
 describe('ClaudeProvider', () => {
     let provider: ClaudeProvider;
     let config: ProviderConfig;
+    const generalSettings = {
+        defaultTemperature: 0.7,
+        defaultMaxTokens: 1000
+    };
 
     beforeEach(() => {
         config = {
             apiKey: 'test-api-key',
-            model: 'claude-3-haiku-20240307',
-            temperature: 0.7,
-            maxTokens: 1000
+            model: 'claude-3-haiku-20240307'
         };
-        provider = new ClaudeProvider(config);
+        provider = new ClaudeProvider(config, generalSettings);
         jest.clearAllMocks();
     });
 
@@ -84,7 +86,7 @@ describe('ClaudeProvider', () => {
         });
 
         test('should throw error when API key is missing', async () => {
-            const providerWithoutKey = new ClaudeProvider({ apiKey: '' });
+            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings);
             
             await expect(
                 providerWithoutKey.complete('System prompt', 'User prompt')
@@ -117,12 +119,12 @@ describe('ClaudeProvider', () => {
         });
 
         test('should return false when API key is missing', async () => {
-            const providerWithoutKey = new ClaudeProvider({ apiKey: '' });
+            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings);
             expect(await providerWithoutKey.isAvailable()).toBe(false);
         });
 
         test('should return false when API key is undefined', async () => {
-            const providerWithoutKey = new ClaudeProvider({});
+            const providerWithoutKey = new ClaudeProvider({}, generalSettings);
             expect(await providerWithoutKey.isAvailable()).toBe(false);
         });
     });

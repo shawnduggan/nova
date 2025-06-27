@@ -21,19 +21,16 @@ export class AIProviderManager {
 	}
 
 	async initialize() {
-		this.providers.set('claude', new ClaudeProvider(this.settings.aiProviders.claude));
-		this.providers.set('openai', new OpenAIProvider(this.settings.aiProviders.openai));
-		this.providers.set('google', new GoogleProvider(this.settings.aiProviders.google));
-		this.providers.set('ollama', new OllamaProvider(this.settings.aiProviders.ollama));
+		this.providers.set('claude', new ClaudeProvider(this.settings.aiProviders.claude, this.settings.general));
+		this.providers.set('openai', new OpenAIProvider(this.settings.aiProviders.openai, this.settings.general));
+		this.providers.set('google', new GoogleProvider(this.settings.aiProviders.google, this.settings.general));
+		this.providers.set('ollama', new OllamaProvider(this.settings.aiProviders.ollama, this.settings.general));
 	}
 
 	updateSettings(settings: NovaSettings) {
 		this.settings = settings;
-		this.providers.forEach((provider, type) => {
-			if (type !== 'none' && type in this.settings.aiProviders) {
-				provider.updateConfig?.(this.settings.aiProviders[type as keyof AIProviderSettings]);
-			}
-		});
+		// Reinitialize providers with new settings including general settings
+		this.initialize();
 		// Clear cache when settings change to force re-check
 		this.availabilityCache.clear();
 	}

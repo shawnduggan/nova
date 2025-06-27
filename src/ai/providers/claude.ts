@@ -1,13 +1,15 @@
-import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { requestUrl } from 'obsidian';
+import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 
 export class ClaudeProvider implements AIProvider {
 	name = 'Claude (Anthropic)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
+	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
 
-	constructor(config: ProviderConfig) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
 		this.config = config;
+		this.generalSettings = generalSettings;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -35,8 +37,8 @@ export class ClaudeProvider implements AIProvider {
 
 		const requestBody = JSON.stringify({
 			model: options?.model || this.config.model || 'claude-3-5-haiku-latest',
-			max_tokens: options?.maxTokens || this.config.maxTokens,
-			temperature: options?.temperature || this.config.temperature,
+			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
+			temperature: options?.temperature || this.generalSettings.defaultTemperature,
 			system: options?.systemPrompt,
 			messages: messages.map(msg => ({
 				role: msg.role === 'assistant' ? 'assistant' : 'user',

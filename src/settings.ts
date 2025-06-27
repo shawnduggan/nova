@@ -64,26 +64,18 @@ export interface NovaSettings {
 export const DEFAULT_SETTINGS: NovaSettings = {
 	aiProviders: {
 		claude: {
-			apiKey: '',
-			temperature: 0.7,
-			maxTokens: 1000
+			apiKey: ''
 		},
 		openai: {
 			apiKey: '',
-			baseUrl: 'https://api.openai.com/v1',
-			temperature: 0.7,
-			maxTokens: 1000
+			baseUrl: 'https://api.openai.com/v1'
 		},
 		google: {
-			apiKey: '',
-			temperature: 0.7,
-			maxTokens: 1000
+			apiKey: ''
 		},
 		ollama: {
 			baseUrl: 'http://localhost:11434',
-			model: '',
-			temperature: 0.7,
-			maxTokens: 1000
+			model: ''
 		}
 	},
 	platformSettings: {
@@ -747,23 +739,23 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Test the provider classes directly
 		switch (provider) {
 			case 'claude': {
-				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude);
+				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude, this.plugin.settings.general);
 				// For Claude, just test a minimal completion instead of getAvailableModels
 				await claudeProvider.complete('You are a helpful assistant.', 'Hi', { maxTokens: 1 });
 				break;
 			}
 			case 'openai': {
-				const openaiProvider = new OpenAIProvider(this.plugin.settings.aiProviders.openai);
+				const openaiProvider = new OpenAIProvider(this.plugin.settings.aiProviders.openai, this.plugin.settings.general);
 				await openaiProvider.getAvailableModels();
 				break;
 			}
 			case 'google': {
-				const googleProvider = new GoogleProvider(this.plugin.settings.aiProviders.google);
+				const googleProvider = new GoogleProvider(this.plugin.settings.aiProviders.google, this.plugin.settings.general);
 				await googleProvider.getAvailableModels();
 				break;
 			}
 			case 'ollama': {
-				const ollamaProvider = new OllamaProvider(this.plugin.settings.aiProviders.ollama);
+				const ollamaProvider = new OllamaProvider(this.plugin.settings.aiProviders.ollama, this.plugin.settings.general);
 				// Ollama doesn't have getAvailableModels, check connection with isAvailable
 				const isAvailable = await ollamaProvider.isAvailable();
 				if (!isAvailable) {

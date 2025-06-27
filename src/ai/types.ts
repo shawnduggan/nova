@@ -33,8 +33,6 @@ export interface ProviderConfig {
 	apiKey?: string;
 	baseUrl?: string;
 	model?: string;
-	temperature?: number;
-	maxTokens?: number;
 }
 
 export interface AIProviderSettings {

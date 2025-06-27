@@ -3,9 +3,11 @@ import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderC
 export class OllamaProvider implements AIProvider {
 	name = 'Ollama (Local)';
 	private config: ProviderConfig;
+	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
 
-	constructor(config: ProviderConfig) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
 		this.config = config;
+		this.generalSettings = generalSettings;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -42,8 +44,8 @@ export class OllamaProvider implements AIProvider {
 				prompt,
 				stream: false,
 				options: {
-					temperature: options?.temperature,
-					num_predict: options?.maxTokens
+					temperature: options?.temperature || this.generalSettings.defaultTemperature,
+					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			})
 		});
@@ -71,8 +73,8 @@ export class OllamaProvider implements AIProvider {
 				prompt,
 				stream: true,
 				options: {
-					temperature: options?.temperature,
-					num_predict: options?.maxTokens
+					temperature: options?.temperature || this.generalSettings.defaultTemperature,
+					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			})
 		});
@@ -143,8 +145,8 @@ export class OllamaProvider implements AIProvider {
 				})),
 				stream: false,
 				options: {
-					temperature: options?.temperature,
-					num_predict: options?.maxTokens
+					temperature: options?.temperature || this.generalSettings.defaultTemperature,
+					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			})
 		});
@@ -183,8 +185,8 @@ export class OllamaProvider implements AIProvider {
 				})),
 				stream: true,
 				options: {
-					temperature: options?.temperature,
-					num_predict: options?.maxTokens
+					temperature: options?.temperature || this.generalSettings.defaultTemperature,
+					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			})
 		});

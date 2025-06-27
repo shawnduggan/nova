@@ -4,9 +4,11 @@ export class OpenAIProvider implements AIProvider {
 	name = 'OpenAI';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
+	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
 
-	constructor(config: ProviderConfig) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
 		this.config = config;
+		this.generalSettings = generalSettings;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -43,8 +45,8 @@ export class OpenAIProvider implements AIProvider {
 		const requestBody = JSON.stringify({
 			model: options?.model || this.config.model || 'gpt-3.5-turbo',
 			messages: requestMessages,
-			max_tokens: options?.maxTokens,
-			temperature: options?.temperature
+			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
+			temperature: options?.temperature || this.generalSettings.defaultTemperature
 		});
 
 		// Retry logic for 500-level errors
@@ -123,8 +125,8 @@ export class OpenAIProvider implements AIProvider {
 			body: JSON.stringify({
 				model: options?.model || this.config.model || 'gpt-3.5-turbo',
 				messages: requestMessages,
-				max_tokens: options?.maxTokens,
-			temperature: options?.temperature,
+				max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
+			temperature: options?.temperature || this.generalSettings.defaultTemperature,
 				stream: true
 			})
 		});

@@ -4,9 +4,11 @@ export class GoogleProvider implements AIProvider {
 	name = 'Google (Gemini)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
+	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
 
-	constructor(config: ProviderConfig) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
 		this.config = config;
+		this.generalSettings = generalSettings;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -59,8 +61,8 @@ export class GoogleProvider implements AIProvider {
 		const requestBody: any = {
 			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
-				temperature: options?.temperature,
-				maxOutputTokens: options?.maxTokens
+				temperature: options?.temperature || this.generalSettings.defaultTemperature,
+				maxOutputTokens: options?.maxTokens || this.generalSettings.defaultMaxTokens
 			}
 		};
 
@@ -189,8 +191,8 @@ export class GoogleProvider implements AIProvider {
 			body: JSON.stringify({
 				contents: this.formatMessagesForGemini(messages),
 				generationConfig: {
-					temperature: options?.temperature,
-				maxOutputTokens: options?.maxTokens
+					temperature: options?.temperature || this.generalSettings.defaultTemperature,
+				maxOutputTokens: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				},
 				...(options?.systemPrompt && options.systemPrompt.trim() ? {
 					systemInstruction: {

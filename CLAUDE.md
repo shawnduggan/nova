@@ -44,9 +44,9 @@
 
 > Never execute or modify without reasoning through the task first.
 
-## 🐛 Known Issues
+## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-> No known issues currently.
+> No known issues.
 
 ## 📋 Current Tasks
 
