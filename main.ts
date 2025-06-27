@@ -277,6 +277,23 @@ export default class NovaPlugin extends Plugin {
 		// Create a copy of settings to encrypt API keys for storage
 		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
 		
+		// Filter out settings for features that are not enabled
+		if (settingsToSave.features) {
+			const filteredFeatures: any = {};
+			
+			// Only include Commands settings if the feature is enabled
+			if (this.featureManager.isFeatureEnabled('commands') && settingsToSave.features.commands) {
+				filteredFeatures.commands = settingsToSave.features.commands;
+			}
+			
+			// Set features to filtered object, or remove it if empty
+			if (Object.keys(filteredFeatures).length > 0) {
+				settingsToSave.features = filteredFeatures;
+			} else {
+				delete settingsToSave.features;
+			}
+		}
+		
 		// Remove debugSettings from saved data (should be transitory for development sessions)
 		if (settingsToSave.licensing?.debugSettings) {
 			delete settingsToSave.licensing.debugSettings;

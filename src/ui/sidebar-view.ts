@@ -559,7 +559,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Check for custom commands (if feature enabled)
 		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
-			const customCommand = this.plugin.settings.customCommands?.find(cmd => cmd.trigger === command);
+			const customCommand = this.plugin.settings.features?.commands?.customCommands?.find(cmd => cmd.trigger === command);
 			if (customCommand) {
 				// Execute custom command
 				this.inputHandler.getTextArea().setValue(customCommand.template);
@@ -738,7 +738,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Add custom commands if feature is enabled
 		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
-			const customCommands = this.plugin.settings.customCommands || [];
+			const customCommands = this.plugin.settings.features?.commands?.customCommands || [];
 			if (customCommands.length > 0) {
 				commands.push({ trigger: '---', name: '─────────────', description: 'Custom Commands' });
 				customCommands.forEach(cmd => {
@@ -3065,7 +3065,7 @@ USER REQUEST: ${processedMessage}`;
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
 			return false;
 		}
-		return this.plugin.settings.showCommandButton;
+		return this.plugin.settings.features?.commands?.showCommandButton ?? true;
 	}
 
 	/**

@@ -38,16 +38,20 @@ export interface CustomCommand {
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
 	platformSettings: PlatformSettings;
-	customCommands?: CustomCommand[];
 	general: {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
 		autoSave: boolean;
 	};
-	showCommandButton: boolean;
 	licensing: {
 		supernovaLicenseKey: string;
 		debugSettings: DebugSettings;
+	};
+	features?: {
+		commands?: {
+			customCommands: CustomCommand[];
+			showCommandButton: boolean;
+		};
 	};
 }
 
@@ -77,13 +81,11 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			selectedModel: ''  // No default model
 		}
 	},
-	customCommands: [],
 	general: {
 		defaultTemperature: 0.7,
 		defaultMaxTokens: 1000,
 		autoSave: true
 	},
-	showCommandButton: true,
 	licensing: {
 		supernovaLicenseKey: '',
 		debugSettings: {
@@ -92,7 +94,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			forceSupernova: false
 		}
 	}
-};
+};;
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
@@ -1438,9 +1440,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Show Command Button in Chat (Mobile)')
 			.setDesc('Show the Commands button beside the Send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showCommandButton)
-				.onChange(async (value) => {
-					this.plugin.settings.showCommandButton = value;
+				.setValue(this.plugin.settings.features?.commands?.showCommandButton ?? true)
+			.onChange(async (value) => {
+				if (!this.plugin.settings.features) this.plugin.settings.features = {};
+				if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
+				this.plugin.settings.features.commands.showCommandButton = value;
 					await this.plugin.saveSettings();
 					
 					// Find and refresh sidebar view
@@ -1473,7 +1477,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (existingList) existingList.remove();
 
 		const commandsList = container.createDiv({ cls: 'nova-commands-list' });
-		const commands = this.plugin.settings.customCommands || [];
+		const commands = this.plugin.settings.features?.commands?.customCommands || [];
 
 		if (commands.length === 0) {
 			const emptyEl = commandsList.createDiv({ cls: 'nova-commands-empty' });
@@ -1543,7 +1547,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private showEditCommandDialog(index: number) {
-		const command = this.plugin.settings.customCommands?.[index];
+		const command = this.plugin.settings.features?.commands?.customCommands?.[index];
 		if (command) {
 			this.showCommandDialog(command, index);
 		}
@@ -1573,12 +1577,14 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		if (editIndex !== undefined) {
 			// Edit existing command
-			if (!this.plugin.settings.customCommands) this.plugin.settings.customCommands = [];
-			this.plugin.settings.customCommands[editIndex] = result;
+			if (!this.plugin.settings.features) this.plugin.settings.features = {};
+			if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
+			this.plugin.settings.features.commands.customCommands[editIndex] = result;
 		} else {
 			// Add new command
-			if (!this.plugin.settings.customCommands) this.plugin.settings.customCommands = [];
-			this.plugin.settings.customCommands.push(result);
+			if (!this.plugin.settings.features) this.plugin.settings.features = {};
+			if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
+			this.plugin.settings.features.commands.customCommands.push(result);
 		}
 		
 		this.plugin.saveSettings();
@@ -1586,13 +1592,13 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private deleteCommand(index: number) {
-		if (!this.plugin.settings.customCommands) return;
+		if (!this.plugin.settings.features?.commands?.customCommands) return;
 		
-		const command = this.plugin.settings.customCommands[index];
+		const command = this.plugin.settings.features.commands.customCommands[index];
 		const confirmed = confirm(`Delete command "${command.name}" (${command.trigger})?`);
 		
 		if (confirmed) {
-			this.plugin.settings.customCommands.splice(index, 1);
+			this.plugin.settings.features.commands.customCommands.splice(index, 1);
 			this.plugin.saveSettings();
 			this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
 		}

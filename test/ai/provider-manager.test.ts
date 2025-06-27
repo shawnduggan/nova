@@ -63,7 +63,12 @@ describe('AIProviderManager', () => {
                 defaultMaxTokens: 1000,
                 autoSave: true
             },
-            showCommandButton: true,
+            features: {
+				commands: {
+					customCommands: [],
+					showCommandButton: true
+				}
+			},
             licensing: {
                 supernovaLicenseKey: '',
                 debugSettings: { enabled: false }
