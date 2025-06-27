@@ -1577,6 +1577,7 @@ export class NovaSidebarView extends ItemView {
 			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
 			const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
 			
+			
 			// Get initial contextual thinking phrase
 			let contextualCommand: EditCommand | undefined;
 			if (intent === 'METADATA' || intent === 'CONTENT') {
@@ -1594,12 +1595,16 @@ export class NovaSidebarView extends ItemView {
 
 			let response: string | null = null;
 			
-			if (intent === 'METADATA' && activeFile) {
-				// Handle metadata commands
-				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
-				response = await this.executeCommand(parsedCommand);
-			} else if (intent === 'CONTENT' && activeFile) {
-				// Handle content editing commands
+			if (intent === 'METADATA') {
+				// Handle metadata commands (require active file)
+				if (activeFile) {
+					const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
+					response = await this.executeCommand(parsedCommand);
+				} else {
+					response = this.createIconMessage('x-circle', 'No markdown file is open. Please open a file in the editor to use metadata commands.');
+				}
+			} else if (intent === 'CONTENT') {
+				// Handle content editing commands (executeCommand will handle no-file case)
 				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
 				response = await this.executeCommand(parsedCommand);
 			} else {
@@ -2236,26 +2241,6 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 
-	/**
-	 * Process user input with intent detection integration
-	 */
-	async processUserInputWithIntent(input: string): Promise<void> {
-		const intent = await this.plugin.aiIntentClassifier.classifyIntent(input);
-		
-		switch (intent) {
-			case 'CHAT':
-				await this.handleConsultationRequest(input);
-				break;
-			case 'CONTENT':
-				await this.handleEditingRequest(input);
-				break;
-			case 'METADATA':
-				// Handle metadata commands through existing flow
-				const parsedCommand = this.plugin.commandParser.parseCommand(input);
-				await this.executeCommand(parsedCommand);
-				break;
-		}
-	}
 
 	// Public methods for testing
 	async sendMessage(message: string): Promise<void> {
