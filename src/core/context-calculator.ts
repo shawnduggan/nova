@@ -31,12 +31,12 @@ export function calculateContextUsage(
     fileAttachments: Array<{content: string}> = [],
     currentInput: string = '',
     recentResponse: string = '',
-    ollamaDefaultContext: number = 32000
+    ollamaContextSize: number = 32000
 ): ContextUsage {
     // Get context limit for the provider/model
     let contextLimit: number;
     if (provider.toLowerCase() === 'ollama') {
-        contextLimit = ollamaDefaultContext;
+        contextLimit = ollamaContextSize;
     } else {
         contextLimit = getContextLimit(provider, model);
     }

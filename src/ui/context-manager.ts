@@ -929,7 +929,7 @@ export class ContextManager {
 		}
 		
 		// Always calculate context usage with fallback values
-		const ollamaDefaultContext = this.plugin?.settings?.ollamaDefaultContext || 32000;
+		const ollamaDefaultContext = this.plugin?.settings?.aiProviders?.ollama?.contextSize || 32000;
 		
 		const usage = calculateContextUsage(
 			providerType!,

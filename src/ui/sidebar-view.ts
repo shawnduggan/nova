@@ -2719,8 +2719,9 @@ USER REQUEST: ${processedMessage}`;
 				if (!hasApiKey && providerType !== 'ollama') continue;
 				
 				// Check if provider has been successfully tested
-				const providerStatus = this.plugin.settings.providerStatus?.[providerType];
-				if (!providerStatus || providerStatus.status !== 'connected') continue;
+				const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+				const providerStatus = providerConfig?.status;
+				if (!providerStatus || providerStatus.state !== 'connected') continue;
 
 				const models = this.getAvailableModels(providerType);
 				const providerDisplayName = this.getProviderDisplayName(providerType);
@@ -3160,10 +3161,12 @@ USER REQUEST: ${processedMessage}`;
 		const providerPriority: ProviderType[] = ['claude', 'openai', 'google', 'ollama'];
 		
 		for (const providerType of providerPriority) {
+			if (providerType === 'none') continue; // Skip 'none' provider type
 			const isAvailable = providerAvailability.get(providerType);
 			// Also check if provider has been successfully tested
-			const providerStatus = this.plugin.settings.providerStatus?.[providerType];
-			if (isAvailable && providerStatus?.status === 'connected') {
+			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const providerStatus = providerConfig?.status;
+			if (isAvailable && providerStatus?.state === 'connected') {
 				const models = getAvailableModels(providerType, this.plugin.settings);
 				if (models.length > 0) {
 					return models[0].value; // Return first model from this provider

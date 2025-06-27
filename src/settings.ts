@@ -49,14 +49,6 @@ export interface NovaSettings {
 		supernovaLicenseKey: string;
 		debugSettings: DebugSettings;
 	};
-	providerStatus?: {
-		[key: string]: {
-			status: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing';
-			message?: string;
-			lastChecked?: Date | string | null;
-		};
-	};
-	ollamaDefaultContext?: number;
 }
 
 export const DEFAULT_SETTINGS: NovaSettings = {
@@ -73,7 +65,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		},
 		ollama: {
 			baseUrl: 'http://localhost:11434',
-			model: ''
+			model: '',
+			contextSize: 32000
 		}
 	},
 	platformSettings: {
@@ -98,9 +91,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			overrideDate: undefined,
 			forceSupernova: false
 		}
-	},
-	providerStatus: {},
-	ollamaDefaultContext: 32000
+	}
 };
 
 export class NovaSettingTab extends PluginSettingTab {
@@ -480,7 +471,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		try {
 			const status = this.getProviderStatus(provider);
-			const statusEl = statusContainer.createDiv({ cls: `nova-provider-status ${status.status}` });
+			const statusEl = statusContainer.createDiv({ cls: `nova-provider-status ${status.state}` });
 			
 			// Status dot
 			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
@@ -514,9 +505,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		return statusContainer;
 	}
 
-	private getProviderStatus(provider: 'claude' | 'openai' | 'google' | 'ollama'): { status: string, message?: string, lastChecked?: Date | string | null } {
+	private getProviderStatus(provider: 'claude' | 'openai' | 'google' | 'ollama'): { state: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing', message?: string, lastChecked?: Date | string | null } {
 		try {
-			const savedStatus = this.plugin.settings.providerStatus?.[provider];
+			const savedStatus = this.plugin.settings.aiProviders[provider]?.status;
 			if (savedStatus) {
 				return savedStatus;
 			}
@@ -524,22 +515,22 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Determine initial status based on configuration
 			const hasConfig = this.hasProviderConfig(provider);
 			return {
-				status: hasConfig ? 'untested' : 'not-configured',
+				state: hasConfig ? 'untested' : 'not-configured',
 				message: hasConfig ? 'Configuration not tested' : 'No API key configured',
 				lastChecked: null
 			};
 		} catch (error) {
 			console.error(`Error getting provider status for ${provider}:`, error);
 			return {
-				status: 'not-configured',
+				state: 'not-configured',
 				message: 'Status unavailable',
 				lastChecked: null
 			};
 		}
 	}
 
-	private getStatusDisplayText(status: { status: string, message?: string }): string {
-		switch (status.status) {
+	private getStatusDisplayText(status: { state: string, message?: string }): string {
+		switch (status.state) {
 			case 'connected': return 'Connected';
 			case 'error': return 'Connection failed';
 			case 'not-configured': return 'Not configured';
@@ -670,15 +661,19 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private async updateProviderStatus(provider: 'claude' | 'openai' | 'google' | 'ollama', status: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing', message?: string): Promise<void> {
-		if (!this.plugin.settings.providerStatus) {
-			this.plugin.settings.providerStatus = {};
+		if (!this.plugin.settings.aiProviders[provider].status) {
+			this.plugin.settings.aiProviders[provider].status = {
+				state: status,
+				message,
+				lastChecked: status === 'testing' ? null : new Date()
+			};
+		} else {
+			this.plugin.settings.aiProviders[provider].status = {
+				state: status,
+				message,
+				lastChecked: status === 'testing' ? null : new Date()
+			};
 		}
-		
-		this.plugin.settings.providerStatus[provider] = {
-			status,
-			message,
-			lastChecked: status === 'testing' ? null : new Date()
-		};
 		
 		await this.plugin.saveSettings();
 		
@@ -702,7 +697,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const statusEl = container.querySelector('.nova-provider-status');
 		
 		if (statusEl) {
-			statusEl.className = `nova-provider-status ${status.status}`;
+			statusEl.className = `nova-provider-status ${status.state}`;
 			const textEl = statusEl.querySelector('.nova-status-text');
 			if (textEl) {
 				textEl.textContent = this.getStatusDisplayText(status);
@@ -1353,11 +1348,11 @@ export class NovaSettingTab extends PluginSettingTab {
 				text.inputEl.style.height = '40px';
 				return text
 					.setPlaceholder('32000')
-					.setValue((this.plugin.settings.ollamaDefaultContext || 32000).toString())
+					.setValue((this.plugin.settings.aiProviders.ollama?.contextSize || 32000).toString())
 					.onChange(async (value) => {
 						const numValue = parseInt(value);
 						if (!isNaN(numValue) && numValue > 0) {
-							this.plugin.settings.ollamaDefaultContext = numValue;
+							this.plugin.settings.aiProviders.ollama.contextSize = numValue;
 							await this.plugin.saveSettings();
 						}
 					});

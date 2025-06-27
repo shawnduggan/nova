@@ -33,6 +33,12 @@ export interface ProviderConfig {
 	apiKey?: string;
 	baseUrl?: string;
 	model?: string;
+	contextSize?: number;
+	status?: {
+		state: 'connected' | 'error' | 'not-configured' | 'untested' | 'testing';
+		message?: string;
+		lastChecked?: Date | string | null;
+	};
 }
 
 export interface AIProviderSettings {
