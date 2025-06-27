@@ -1352,12 +1352,17 @@ export class NovaSettingTab extends PluginSettingTab {
 					.setPlaceholder('32000')
 					.setValue((this.plugin.settings.aiProviders.ollama?.contextSize || 32000).toString())
 					.onChange(async (value) => {
-						const numValue = parseInt(value);
-						if (!isNaN(numValue) && numValue > 0) {
-							this.plugin.settings.aiProviders.ollama.contextSize = numValue;
-							await this.plugin.saveSettings();
-						}
-					});
+					const numValue = parseInt(value);
+					if (!isNaN(numValue) && numValue > 0) {
+						this.plugin.settings.aiProviders.ollama.contextSize = numValue;
+						await this.plugin.saveSettings();
+						
+						// Trigger UI update for token count display
+						document.dispatchEvent(new CustomEvent('nova-provider-configured', { 
+							detail: { provider: 'ollama', status: 'connected' } 
+						}));
+					}
+				});
 			});
 	}
 

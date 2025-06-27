@@ -46,7 +46,7 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-- **Low**: Changing the Ollama context size does not update the token count. Needs to fire the same event as the test connection buttons to trigger UI updates.
+> No known issues.
 
 ## 📋 Current Tasks
 
