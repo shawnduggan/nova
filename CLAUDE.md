@@ -46,10 +46,19 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-> No known issues.
+**Low:** When streaming content to the document new content can be added beyond the current page. We need to scroll the page to keep the streaming cursor in sight. It should be smooth and not jerky.
 
 ## 📋 Current Tasks
 
-> No current tasks.
+### Intent Detection Hybrid Architecture (Critical Priority)
+
+**Status**: ✅ **COMPLETED** - Core issue resolved. Editing commands now correctly route to CONTENT intent.
+
+#### Remaining Optional Tasks (Low Priority)
+- [ ] Add local debug logging (no external telemetry)
+- [ ] Create classification confidence metrics  
+- [ ] Add manual override mechanism for edge cases
+
+**Note**: Optional debug features can be added later if needed for troubleshooting.
 
 

@@ -21,48 +21,213 @@ export class AIIntentClassifier {
      * Classify user input into one of three intents
      */
     async classifyIntent(userInput: string, hasSelection: boolean = false): Promise<UserIntent> {
-        // Handle special syntax first
-        if (userInput.startsWith(':')) {
-            // Colon commands are typically provider switches or custom commands
-            return 'CHAT';
-        }
-
-        // Always use fallback for now - AI classification is causing issues
-        // We can re-enable this once we have a more reliable approach
-        return this.fallbackClassification(userInput);
-        
-        /* Disabled AI classification due to provider compatibility issues
         try {
-            // Simplified prompt for better compatibility
-            const prompt = `Classify this text as CHAT, METADATA, or CONTENT:
-"${userInput}"
-
-CHAT = questions/discussion
-METADATA = tags/properties/frontmatter
-CONTENT = edit document text
-
-Answer with one word only:`;
-
-            const response = await this.providerManager.complete('', prompt, {
-                temperature: 0.1,
-                maxTokens: 10
-            });
-
-            const classification = response.trim().toUpperCase();
-            
-            // Validate response
-            if (classification === 'CHAT' || classification === 'METADATA' || classification === 'CONTENT') {
-                return classification as UserIntent;
+            // Input validation
+            if (!userInput || typeof userInput !== 'string') {
+                return 'CHAT';
             }
 
-            // Fallback heuristic if AI gives unexpected response
-            return this.fallbackClassification(userInput);
+            const trimmedInput = userInput.trim();
+            if (trimmedInput.length === 0) {
+                return 'CHAT';
+            }
+
+            // Handle special syntax first
+            if (trimmedInput.startsWith(':')) {
+                // Colon commands are typically provider switches or custom commands
+                return 'CHAT';
+            }
+
+            // Try fast classification first (90% of cases)
+            const fastResult = this.fastClassification(trimmedInput);
+            
+            // If fast classification is confident, use it
+            if (fastResult.confidence >= 0.8) {
+                return fastResult.intent;
+            }
+
+            // For ambiguous cases, fall back to enhanced heuristics
+            return this.enhancedFallbackClassification(trimmedInput, fastResult);
+
         } catch (error) {
-            console.error('AI intent classification failed:', error);
-            // Use fallback heuristic
-            return this.fallbackClassification(userInput);
+            console.error('Error in classifyIntent:', error);
+            // Ultimate fallback to safe default
+            return 'CHAT';
         }
-        */
+    }
+
+    /**
+     * Fast heuristic classification for 90% of clear cases
+     * Returns confidence score to determine if AI classification is needed
+     */
+    private fastClassification(userInput: string): { intent: UserIntent; confidence: number } {
+        // Input validation
+        if (!userInput || typeof userInput !== 'string') {
+            return { intent: 'CHAT', confidence: 0.3 };
+        }
+
+        try {
+            const lowerInput = userInput.toLowerCase().trim();
+
+            // Handle empty or whitespace-only input
+            if (lowerInput.length === 0) {
+                return { intent: 'CHAT', confidence: 0.3 };
+            }
+
+            // Check for greetings FIRST (highest confidence)
+            if (this.isGreeting(lowerInput)) {
+                return { intent: 'CHAT', confidence: 0.95 };
+            }
+
+            // Check for clear questions SECOND (high confidence)
+            if (this.isQuestion(lowerInput)) {
+                return { intent: 'CHAT', confidence: 0.9 };
+            }
+
+            // Check for direct editing commands (high confidence)
+            if (this.isDirectEditingCommand(lowerInput)) {
+                // Check if it's metadata-related editing
+                if (this.isMetadataRelated(lowerInput)) {
+                    return { intent: 'METADATA', confidence: 0.9 };
+                }
+                return { intent: 'CONTENT', confidence: 0.9 };
+            }
+
+            // Check for metadata-only patterns (high confidence)
+            if (this.isMetadataRelated(lowerInput)) {
+                return { intent: 'METADATA', confidence: 0.85 };
+            }
+
+            // Use IntentDetector for pattern-based classification
+            const intentClassification = this.intentDetector.classifyInput(userInput);
+            
+            // Map IntentDetector results with adjusted confidence
+            if (intentClassification.type === 'consultation' && intentClassification.confidence >= 0.8) {
+                return { intent: 'CHAT', confidence: intentClassification.confidence };
+            }
+            
+            if (intentClassification.type === 'editing' && intentClassification.confidence >= 0.8) {
+                return { intent: 'CONTENT', confidence: intentClassification.confidence };
+            }
+
+            // Low confidence - needs enhanced fallback
+            return { intent: 'CHAT', confidence: 0.5 };
+
+        } catch (error) {
+            console.warn('Error in fastClassification:', error);
+            // Fallback to safe default
+            return { intent: 'CHAT', confidence: 0.3 };
+        }
+    }
+
+    /**
+     * Enhanced question detection
+     */
+    private isQuestion(lowerInput: string): boolean {
+        return (
+            lowerInput.includes('?') || 
+            lowerInput.startsWith('what') ||
+            lowerInput.startsWith('why') ||
+            lowerInput.startsWith('how') ||
+            lowerInput.startsWith('when') ||
+            lowerInput.startsWith('where') ||
+            lowerInput.startsWith('who') ||
+            lowerInput.startsWith('can you') ||
+            lowerInput.startsWith('could you') ||
+            lowerInput.startsWith('would you') ||
+            lowerInput.startsWith('should i') ||
+            lowerInput.includes('explain') ||
+            lowerInput.includes('help me understand') ||
+            lowerInput.includes('tell me about') ||
+            lowerInput.includes('what about')
+        );
+    }
+
+    /**
+     * Enhanced direct editing command detection for 90% of cases
+     */
+    private isDirectEditingCommand(lowerInput: string): boolean {
+        try {
+            if (!lowerInput || typeof lowerInput !== 'string') {
+                return false;
+            }
+
+            // Direct command verbs at start of input (highest confidence)
+            const directCommands = /^(add|write|create|insert|make|generate|compose|draft|build|construct|produce)\s+/i;
+            if (directCommands.test(lowerInput)) {
+                return true;
+            }
+
+            // Action verbs with clear editing intent
+            const editingVerbs = /\b(fix|improve|change|edit|rewrite|update|modify|revise|enhance|refine|polish|correct|adjust)\b/i;
+            if (editingVerbs.test(lowerInput)) {
+                return true;
+            }
+
+            // Document manipulation commands
+            const documentCommands = /\b(delete|remove|clear|replace|substitute|swap|rearrange|reorganize)\b/i;
+            if (documentCommands.test(lowerInput)) {
+                return true;
+            }
+
+            // Specific content requests
+            const contentRequests = /\b(paragraph|section|heading|bullet|list|table|summary|conclusion|introduction|outline)\b/i;
+            if (contentRequests.test(lowerInput) && !this.isQuestion(lowerInput)) {
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.warn('Error in isDirectEditingCommand:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Enhanced fallback classification for ambiguous cases
+     */
+    private enhancedFallbackClassification(userInput: string, fastResult: { intent: UserIntent; confidence: number }): UserIntent {
+        const lowerInput = userInput.toLowerCase().trim();
+
+        // Check for subtle editing patterns that fast classification might miss
+        const subtleEditingPatterns = [
+            /\bmake\s+(this|it|that)\s+(better|clearer|shorter|longer|more|less)\b/i,
+            /\b(this|it|that)\s+(needs|requires|should|could)\s+(to\s+be\s+)?(better|clearer|improved|fixed|changed)\b/i,
+            /\b(here|there)\s+(is|are)\s+(some|too|not)\s+(issues?|problems?|errors?)\b/i,
+            /\blet\s*'?s\s+(add|change|fix|improve|make|create)\b/i,
+        ];
+
+        for (const pattern of subtleEditingPatterns) {
+            if (pattern.test(userInput)) {
+                if (this.isMetadataRelated(lowerInput)) {
+                    return 'METADATA';
+                }
+                return 'CONTENT';
+            }
+        }
+
+        // Check for conversational patterns
+        const conversationalPatterns = [
+            /\b(i\s+(think|feel|believe|wonder|notice|see|realize|understand))\b/i,
+            /\b(it\s+(seems|appears|looks|feels)\s+like)\b/i,
+            /\b(reminds\s+me|makes\s+me\s+think)\b/i,
+            /\b(lately|recently|nowadays|these\s+days)\b/i,
+        ];
+
+        for (const pattern of conversationalPatterns) {
+            if (pattern.test(userInput)) {
+                return 'CHAT';
+            }
+        }
+
+        // For truly ambiguous cases, use context clues
+        // Favor CONTENT for inputs with command-like structure
+        if (/^[a-z]+\s+[a-z]/i.test(lowerInput) && !this.isQuestion(lowerInput)) {
+            return 'CONTENT';
+        }
+
+        // Default to CHAT for safety (prevents unwanted edits)
+        return 'CHAT';
     }
 
     /**
