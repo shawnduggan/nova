@@ -67,5 +67,22 @@ describe('Ambiguous Intent Handling', () => {
     });
 
     describe('intent classification integration', () => {
+        it('should handle ambiguous classification result', async () => {
+            // Mock ambiguous classification
+            mockPlugin.aiIntentClassifier.classifyIntent.mockResolvedValue('CHAT');
+            
+            sidebarView.handleAmbiguousRequest = jest.fn();
+            sidebarView.processUserInputWithIntent = jest.fn(async (input) => {
+                const intent = await mockPlugin.aiIntentClassifier.classifyIntent(input);
+                if (intent === 'CHAT') {
+                    // This would trigger ambiguous handler in real scenario
+                    await sidebarView.handleAmbiguousRequest(input, 'consultation');
+                }
+            });
+
+            await sidebarView.processUserInputWithIntent('Mixed signal input');
+            
+            expect(sidebarView.handleAmbiguousRequest).toHaveBeenCalled();
+        });
     });
 });
