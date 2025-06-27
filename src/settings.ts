@@ -1698,7 +1698,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				};
 			case 'lifetime':
 				return { 
-					icon: '∞', 
+					icon: '🚀', 
 					color: '#9333ea',
 					text: 'Lifetime Supernova',
 					className: 'lifetime'
@@ -1707,12 +1707,16 @@ export class NovaSettingTab extends PluginSettingTab {
 				return { 
 					icon: '🚀', 
 					color: '#3b82f6',
-					text: 'Supernova',
+					text: 'Annual Supernova',
 					className: 'supernova'
 				};
 			default:
 				return null;
 		}
+	}
+
+	private getCurrentLicense(): SupernovaLicense | null {
+		return this.plugin.featureManager?.getSupernovaLicense() || null;
 	}
 
 	private createSupernovaLicenseInput(container: HTMLElement): void {
@@ -1805,8 +1809,12 @@ export class NovaSettingTab extends PluginSettingTab {
 			return;
 		}
 		
-		const statusText = isSupernova ? 'Supernova Supporter' : 'Nova User';
-		const statusIcon = isSupernova ? '⭐' : '🌟';
+		// Get license-specific badge information
+		const currentLicense = this.getCurrentLicense();
+		const badgeInfo = this.getLicenseBadge(currentLicense);
+		
+		const statusText = badgeInfo ? badgeInfo.text : 'Nova User';
+		const statusIcon = badgeInfo ? badgeInfo.icon : '✨';
 		
 		// Create the CTA section
 		const ctaSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
