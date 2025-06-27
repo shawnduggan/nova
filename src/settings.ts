@@ -46,9 +46,7 @@ export interface NovaSettings {
 	};
 	showCommandButton: boolean;
 	licensing: {
-		licenseKey: string;
-		supernovaLicenseKey?: string;
-		isSupernova?: boolean;
+		supernovaLicenseKey: string;
 		debugSettings: DebugSettings;
 	};
 	providerStatus?: {
@@ -94,9 +92,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	showCommandButton: true,
 	licensing: {
-		licenseKey: '',
 		supernovaLicenseKey: '',
-		isSupernova: false,
 		debugSettings: {
 			enabled: false,
 			overrideDate: undefined,

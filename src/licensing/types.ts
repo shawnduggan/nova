@@ -1,10 +1,4 @@
-export interface License {
-	email: string;
-	expiresAt: Date | null; // null for lifetime licenses
-	issuedAt: Date;
-	signature: string; // HMAC-SHA256 signature for validation
-	licenseKey: string; // The original license key string
-}
+
 
 
 export interface SupernovaLicense {
@@ -16,11 +10,7 @@ export interface SupernovaLicense {
 	licenseKey: string;
 }
 
-export interface LicenseValidationResult {
-	valid: boolean;
-	license?: License;
-	error?: LicenseError;
-}
+
 
 export interface SupernovaValidationResult {
 	valid: boolean;

@@ -65,10 +65,8 @@ describe('AIProviderManager', () => {
             },
             showCommandButton: true,
             licensing: {
-                licenseKey: '',
-                debugSettings: {
-                    enabled: false
-                }
+                supernovaLicenseKey: '',
+                debugSettings: { enabled: false }
             }
         } as NovaSettings;
 

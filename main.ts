@@ -73,8 +73,8 @@ export default class NovaPlugin extends Plugin {
 			);
 			
 			// Update license from settings
-			if (this.settings.licensing.licenseKey) {
-				await this.featureManager.updateSupernovaLicense(this.settings.licensing.licenseKey);
+			if (this.settings.licensing.supernovaLicenseKey) {
+				await this.featureManager.updateSupernovaLicense(this.settings.licensing.supernovaLicenseKey);
 			}
 
 			// Refresh Supernova UI after license validation to handle expired licenses
@@ -236,9 +236,7 @@ export default class NovaPlugin extends Plugin {
 		// Decrypt license keys if they are encrypted
 		if (this.settings.licensing) {
 			try {
-				if (this.settings.licensing.licenseKey) {
-					this.settings.licensing.licenseKey = await CryptoService.decryptValue(this.settings.licensing.licenseKey);
-				}
+				
 				if (this.settings.licensing.supernovaLicenseKey) {
 					this.settings.licensing.supernovaLicenseKey = await CryptoService.decryptValue(this.settings.licensing.supernovaLicenseKey);
 				}
@@ -305,9 +303,7 @@ export default class NovaPlugin extends Plugin {
 		// Encrypt license keys before saving
 		if (settingsToSave.licensing) {
 			try {
-				if (settingsToSave.licensing.licenseKey) {
-					settingsToSave.licensing.licenseKey = await CryptoService.encryptValue(settingsToSave.licensing.licenseKey);
-				}
+				
 				if (settingsToSave.licensing.supernovaLicenseKey) {
 					settingsToSave.licensing.supernovaLicenseKey = await CryptoService.encryptValue(settingsToSave.licensing.supernovaLicenseKey);
 				}
