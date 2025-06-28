@@ -10,6 +10,7 @@ export interface StreamingOptions {
     onComplete?: () => void;
     onError?: (error: Error) => void;
     animationMode?: 'notice' | 'inline'; // Controls whether to use Notice animations or inline
+    scrollBehavior?: 'smooth' | 'instant'; // Scroll animation style (default: 'smooth')
 }
 
 export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
@@ -20,6 +21,11 @@ export class StreamingManager {
     private currentStreamingEndPos: any = null;
     private streamingStartPos: any = null;
     private originalPosition: any = null;
+    private scrollThrottleTimeout: NodeJS.Timeout | null = null;
+    
+    // Magical scroll configuration
+    private static readonly SCROLL_THROTTLE_MS = 16; // 60fps for smooth experience
+    // Removed SCROLL_MARGIN - using always-scroll approach instead
 
     // Comprehensive thinking phrases for all action types
     private static readonly THINKING_PHRASES: Record<ActionType, string[]> = {
@@ -194,6 +200,8 @@ export class StreamingManager {
      * Start streaming at a specific position with hybrid approach
      * For selection replacement: startPos and endPos define the range to replace
      * For cursor insertion: startPos is the cursor position, endPos should be null
+     * 
+     * Features magical smooth scroll-to-cursor by default for enhanced UX
      */
     startStreaming(
         editor: Editor, 
@@ -233,6 +241,54 @@ export class StreamingManager {
     /**
      * Update streaming text with proper position tracking
      */
+    /**
+     * Magically smooth scroll to keep streaming cursor in view
+     * Uses throttling to prevent jerky movements and provides smooth experience
+     */
+    private magicalScrollToCursor(editor: Editor, position: any, options: StreamingOptions): void {
+        // Use throttled updates for smooth 60fps experience
+        if (this.scrollThrottleTimeout) {
+            clearTimeout(this.scrollThrottleTimeout);
+        }
+        
+        // Immediate scroll for responsive experience
+        const performScroll = () => {
+            try {
+                // Always scroll during streaming to keep cursor visible
+                const scrollBehavior = options.scrollBehavior || 'smooth';
+                
+                if (scrollBehavior === 'smooth') {
+                    // Use Obsidian's smooth scroll method
+                    editor.scrollIntoView({
+                        from: position,
+                        to: position
+                    }, true); // true enables smooth animation
+                    
+                    console.debug('Magical scroll: smooth scroll to line', position.line);
+                } else {
+                    // Instant scroll for performance when configured
+                    editor.scrollIntoView({
+                        from: position,
+                        to: position
+                    }, false);
+                    
+                    console.debug('Magical scroll: instant scroll to line', position.line);
+                }
+            } catch (error) {
+                // Make failures visible during development
+                console.warn('Magical scroll failed:', error);
+            }
+        };
+        
+        // Immediate scroll for responsive experience
+        performScroll();
+        
+        // Also schedule a throttled update for optimization
+        this.scrollThrottleTimeout = setTimeout(() => {
+            performScroll();
+        }, StreamingManager.SCROLL_THROTTLE_MS);
+    }
+
     private updateStreamingText(
         editor: Editor, 
         newText: string, 
@@ -259,6 +315,9 @@ export class StreamingManager {
                 // Replace all content from start to current end with new text
                 editor.replaceRange(newText, this.streamingStartPos, this.currentStreamingEndPos);
                 this.currentStreamingEndPos = newEndPos;
+
+                // Apply magical smooth scroll to keep cursor in view during streaming
+                this.magicalScrollToCursor(editor, this.currentStreamingEndPos, options);
 
                 // Trigger chunk callback
                 if (options.onChunk) {
@@ -347,6 +406,12 @@ export class StreamingManager {
     private cleanup(): void {
         // Stop notice animation if it's running
         this.stopDotsAnimation();
+        
+        // Clear scroll throttle timeout
+        if (this.scrollThrottleTimeout) {
+            clearTimeout(this.scrollThrottleTimeout);
+            this.scrollThrottleTimeout = null;
+        }
         
         this.currentStreamingEndPos = null;
         this.streamingStartPos = null;

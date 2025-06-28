@@ -46,8 +46,6 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-**Low:** When streaming content to the document new content can be added beyond the current page. We need to scroll the page to keep the streaming cursor in sight. It should be smooth and not jerky. This is magical streaming effect! Make sure it is magical!
-
 
 ## 📋 Current Tasks
 
