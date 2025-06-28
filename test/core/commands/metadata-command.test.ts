@@ -128,27 +128,25 @@ describe('MetadataCommand', () => {
     });
 
     describe('updateFrontmatter', () => {
-        it('should add frontmatter to document without existing frontmatter', () => {
+        it('should not create frontmatter for non-existing frontmatter (correct behavior)', () => {
             const content = '# Test Document\nSome content here.';
             const updates = { title: 'Test', tags: ['test'] };
             
             // Access the private method through any
             const result = (metadataCommand as any).updateFrontmatter(content, updates);
             
-            expect(result).toContain('---');
-            expect(result).toContain('title: Test');
-            expect(result).toContain('tags: ["test"]');
-            expect(result).toContain('# Test Document');
+            // Should return original content unchanged when no frontmatter exists
+            expect(result).toBe(content);
         });
 
-        it('should update existing frontmatter', () => {
+        it('should update existing fields and add new non-protected fields (correct behavior)', () => {
             const content = '---\ntitle: Old Title\nstatus: draft\n---\n# Test Document\nContent here.';
             const updates = { title: 'New Title', tags: ['updated'] };
             
             const result = (metadataCommand as any).updateFrontmatter(content, updates);
             
-            expect(result).toContain('title: New Title');
-            expect(result).toContain('tags: ["updated"]');
+            expect(result).toContain('title: New Title'); // Updated existing field
+            expect(result).toContain('tags: ["updated"]'); // Added new field (now allowed)
             expect(result).toContain('status: draft'); // Preserved existing
         });
 
@@ -160,6 +158,49 @@ describe('MetadataCommand', () => {
             
             expect(result).toContain('title: Updated');
             expect(result).not.toContain('status:'); // Should be removed
+        });
+
+        it('should not create duplicates when parsing quoted property names', () => {
+            const content = '---\ntags: ["existing"]\nstatus: draft\n---\n# Document';
+            
+            // Simulate AI response with quoted key names
+            const aiResponse = '"tags": ["updated", "work"]\n"status": "published"';
+            const updates = (metadataCommand as any).parsePropertyUpdates(aiResponse);
+            
+            const result = (metadataCommand as any).updateFrontmatter(content, updates);
+            
+            // Should not have both `tags:` and `"tags":` in the result
+            const tagMatches = result.match(/tags:/g);
+            expect(tagMatches).toHaveLength(1); // Only one tags field
+            
+            const statusMatches = result.match(/status:/g);
+            expect(statusMatches).toHaveLength(1); // Only one status field
+            
+            expect(result).toContain('tags: ["updated","work"]');
+            expect(result).toContain('status: published');
+        });
+
+        it('should handle direct JSON response without code blocks', () => {
+            const content = '---\nalias: \ntags: []\ntype: \nstatus: \n---\n# Document';
+            
+            // Simulate direct JSON AI response (the problematic case)
+            const aiResponse = '{"tags": ["Canada", "Maritime provinces", "Nova Scotia", "Geography", "History"], "type": "reference", "status": "complete"}';
+            const updates = (metadataCommand as any).parsePropertyUpdates(aiResponse);
+            
+            expect(updates).not.toBeNull();
+            expect(updates.tags).toEqual(["canada", "maritime-provinces", "nova-scotia", "geography", "history"]);
+            expect(updates.type).toBe("reference");
+            expect(updates.status).toBe("complete");
+            
+            const result = (metadataCommand as any).updateFrontmatter(content, updates);
+            
+            // Should properly update the frontmatter without duplicates
+            expect(result).toContain('tags: ["canada","maritime-provinces","nova-scotia","geography","history"]');
+            expect(result).toContain('type: reference');
+            expect(result).toContain('status: complete');
+            
+            // Should not contain the raw JSON object
+            expect(result).not.toContain('{"tags":');
         });
     });
 });

@@ -13,6 +13,94 @@ import { EditCommand, EditResult, DocumentContext } from '../types';
  * Handles metadata/property update commands
  */
 export class MetadataCommand {
+    // Protected fields that should never be modified by AI
+    private static readonly PROTECTED_FIELDS = new Set([
+        'created', 'date-created', 'created-date', 'creation-date',
+        'modified', 'last-modified', 'updated', 'date-modified',
+        'id', 'uuid', 'uid', 'permalink', 'url', 'link'
+    ]);
+
+    /**
+     * Normalize property key for consistent matching
+     */
+    private normalizeKey(key: string): string {
+        return key.toLowerCase().trim();
+    }
+
+    /**
+     * Normalize tag value: trim, lowercase, replace spaces with hyphens
+     */
+    private normalizeTagValue(tag: string): string {
+        return tag.trim().toLowerCase().replace(/\s+/g, '-');
+    }
+
+    /**
+     * Check if a field is protected from AI modification
+     */
+    private isProtectedField(key: string): boolean {
+        return MetadataCommand.PROTECTED_FIELDS.has(this.normalizeKey(key));
+    }
+
+    /**
+     * Filter AI updates to only include existing, non-protected fields
+     */
+    private filterUpdatesForExistingFields(updates: Record<string, any>, existingFields: Set<string>): Record<string, any> {
+        const filteredUpdates: Record<string, any> = {};
+        
+        for (const [key, value] of Object.entries(updates)) {
+            const normalizedKey = this.normalizeKey(key);
+            
+            // Skip protected fields
+            if (this.isProtectedField(key)) {
+                continue;
+            }
+            
+            // Only include fields that exist in the frontmatter
+            const matchingExistingKey = Array.from(existingFields).find(existingKey => 
+                this.normalizeKey(existingKey) === normalizedKey
+            );
+            
+            if (matchingExistingKey) {
+                // Use the original existing field name to maintain formatting
+                filteredUpdates[matchingExistingKey] = value;
+            }
+        }
+        
+        return filteredUpdates;
+    }
+
+    /**
+     * Filter AI updates for general metadata operations - allows any non-protected field
+     */
+    private filterUpdatesForMetadata(updates: Record<string, any>, existingFields: Set<string>): Record<string, any> {
+        const filteredUpdates: Record<string, any> = {};
+        
+        for (const [key, value] of Object.entries(updates)) {
+            // Skip protected fields
+            if (this.isProtectedField(key)) {
+                continue;
+            }
+            
+            // For general metadata operations, allow any non-protected field
+            // Always normalize keys for consistency
+            const normalizedKey = this.normalizeKey(key);
+            
+            // Check if field already exists with case-insensitive matching
+            const matchingExistingKey = Array.from(existingFields).find(existingKey => 
+                this.normalizeKey(existingKey) === normalizedKey
+            );
+            
+            if (matchingExistingKey) {
+                // Use the existing field name to maintain original formatting
+                filteredUpdates[matchingExistingKey] = value;
+            } else {
+                // For new fields, use the normalized key to ensure consistency
+                filteredUpdates[normalizedKey] = value;
+            }
+        }
+        
+        return filteredUpdates;
+    }
     constructor(
         private app: App,
         private documentEngine: DocumentEngine,
@@ -108,10 +196,22 @@ export class MetadataCommand {
      */
     private parsePropertyUpdates(response: string): Record<string, any> | null {
         try {
-            // Try to parse as JSON first
+            // Try to parse as JSON first (in code blocks)
             const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[1]);
+                const parsed = JSON.parse(jsonMatch[1]);
+                return this.normalizeAndFilterUpdates(parsed);
+            }
+            
+            // Try to parse as direct JSON (no code blocks)
+            try {
+                const trimmedResponse = response.trim();
+                if (trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) {
+                    const parsed = JSON.parse(trimmedResponse);
+                    return this.normalizeAndFilterUpdates(parsed);
+                }
+            } catch {
+                // Not valid JSON, continue to YAML-like parsing
             }
             
             // Try to parse as YAML-like format
@@ -122,21 +222,42 @@ export class MetadataCommand {
                 // Match patterns like "key: value" or "- key: value"
                 const match = line.match(/^[-\s]*([^:]+):\s*(.+)$/);
                 if (match) {
-                    const key = match[1].trim();
-                    let value = match[2].trim();
+                    let key = match[1].trim();
+                    let valueString = match[2].trim();
+                    
+                    // Remove quotes from key if present
+                    if ((key.startsWith('"') && key.endsWith('"')) || 
+                        (key.startsWith("'") && key.endsWith("'"))) {
+                        key = key.slice(1, -1);
+                    }
+                    
+                    // Skip protected fields immediately
+                    if (this.isProtectedField(key)) {
+                        continue;
+                    }
                     
                     // Try to parse value as JSON (for arrays/objects)
+                    let value: any = valueString;
                     try {
-                        value = JSON.parse(value);
+                        value = JSON.parse(valueString);
                     } catch {
                         // If not JSON, treat as string
                         // Remove quotes if present
-                        if ((value.startsWith('"') && value.endsWith('"')) || 
-                            (value.startsWith("'") && value.endsWith("'"))) {
-                            value = value.slice(1, -1);
+                        if ((valueString.startsWith('"') && valueString.endsWith('"')) || 
+                            (valueString.startsWith("'") && valueString.endsWith("'"))) {
+                            value = valueString.slice(1, -1);
                         }
                     }
                     
+                    // Normalize tag values if this is a tags field
+                    if (this.normalizeKey(key) === 'tags' && Array.isArray(value)) {
+                        value = value.map((tag: any) => this.normalizeTagValue(String(tag)));
+                    } else if (this.normalizeKey(key) === 'tags' && typeof value === 'string') {
+                        // Handle comma-separated tag strings
+                        value = value.split(',').map(tag => this.normalizeTagValue(tag)).filter(t => t);
+                    }
+                    
+                    // Keep original key from AI response
                     updates[key] = value;
                 }
             }
@@ -149,75 +270,106 @@ export class MetadataCommand {
     }
 
     /**
+     * Normalize keys and filter out protected fields from updates
+     */
+    private normalizeAndFilterUpdates(updates: Record<string, any>): Record<string, any> {
+        const filtered: Record<string, any> = {};
+        
+        for (const [key, value] of Object.entries(updates)) {
+            // Skip protected fields
+            if (this.isProtectedField(key)) {
+                continue;
+            }
+            
+            let processedValue = value;
+            
+            // Normalize tag values if this is a tags field
+            if (this.normalizeKey(key) === 'tags' && Array.isArray(value)) {
+                processedValue = value.map((tag: any) => this.normalizeTagValue(String(tag)));
+            } else if (this.normalizeKey(key) === 'tags' && typeof value === 'string') {
+                // Handle comma-separated tag strings
+                processedValue = value.split(',').map(tag => this.normalizeTagValue(tag)).filter(t => t);
+            }
+            
+            // Keep original key from AI response
+            filtered[key] = processedValue;
+        }
+        
+        return filtered;
+    }
+
+    /**
      * Update or create frontmatter in document content
      */
     private updateFrontmatter(content: string, updates: Record<string, any>): string {
         const lines = content.split('\n');
         
         // Check if frontmatter exists
-        if (lines[0] === '---') {
-            // Find the closing ---
-            let endIndex = -1;
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i] === '---') {
-                    endIndex = i;
-                    break;
-                }
-            }
-            
-            if (endIndex > 0) {
-                // Parse existing frontmatter
-                const existingProps: Record<string, any> = {};
-                for (let i = 1; i < endIndex; i++) {
-                    const match = lines[i].match(/^([^:]+):\s*(.*)$/);
-                    if (match) {
-                        const key = match[1].trim();
-                        let value = match[2].trim();
-                        
-                        // Try to parse as JSON
-                        try {
-                            value = JSON.parse(value);
-                        } catch {
-                            // Keep as string
-                        }
-                        
-                        existingProps[key] = value;
-                    }
-                }
-                
-                // Merge updates with existing properties
-                const mergedProps = { ...existingProps, ...updates };
-                
-                // Rebuild frontmatter
-                const newFrontmatter = ['---'];
-                for (const [key, value] of Object.entries(mergedProps)) {
-                    if (value === null || value === undefined) {
-                        // Skip null/undefined values (allows deletion)
-                        continue;
-                    }
-                    
-                    const formattedValue = typeof value === 'object' 
-                        ? JSON.stringify(value)
-                        : String(value);
-                    
-                    newFrontmatter.push(`${key}: ${formattedValue}`);
-                }
-                newFrontmatter.push('---');
-                
-                // Replace old frontmatter with new
-                return [
-                    ...newFrontmatter,
-                    ...lines.slice(endIndex + 1)
-                ].join('\n');
+        if (lines[0] !== '---') {
+            // No frontmatter exists - don't create new one, just return original content
+            return content;
+        }
+        
+        // Find the closing ---
+        let endIndex = -1;
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i] === '---') {
+                endIndex = i;
+                break;
             }
         }
         
-        // No frontmatter exists, create new
+        if (endIndex === -1) {
+            // Malformed frontmatter - return original content
+            return content;
+        }
+        
+        // Parse existing frontmatter and collect field names
+        const existingProps: Record<string, any> = {};
+        const existingFieldNames = new Set<string>();
+        
+        for (let i = 1; i < endIndex; i++) {
+            const match = lines[i].match(/^([^:]+):\s*(.*)$/);
+            if (match) {
+                const key = match[1].trim();
+                let value = match[2].trim();
+                
+                existingFieldNames.add(key);
+                
+                // Try to parse as JSON
+                try {
+                    value = JSON.parse(value);
+                } catch {
+                    // Keep as string
+                }
+                
+                existingProps[key] = value;
+            }
+        }
+        
+        // Filter updates - allow any non-protected field for metadata operations
+        const filteredUpdates = this.filterUpdatesForMetadata(updates, existingFieldNames);
+        
+        // Apply updates to existing properties
+        const updatedProps = { ...existingProps, ...filteredUpdates };
+        
+        // Rebuild frontmatter with clean formatting
         const newFrontmatter = ['---'];
-        for (const [key, value] of Object.entries(updates)) {
+        const processedKeys = new Set<string>();
+        
+        // Process all properties, skipping duplicates based on normalized keys
+        for (const [key, value] of Object.entries(updatedProps)) {
             if (value === null || value === undefined) {
+                // Skip null/undefined values (allows deletion)
                 continue;
             }
+            
+            // Check if we've already processed this key (case-insensitive)
+            const normalizedKey = this.normalizeKey(key);
+            if (processedKeys.has(normalizedKey)) {
+                continue;
+            }
+            processedKeys.add(normalizedKey);
             
             const formattedValue = typeof value === 'object' 
                 ? JSON.stringify(value)
@@ -225,10 +377,110 @@ export class MetadataCommand {
             
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
-        newFrontmatter.push('---', '');
+        newFrontmatter.push('---');
         
-        // Add frontmatter to beginning of document
-        return newFrontmatter.join('\n') + content;
+        // Return updated content
+        return [
+            ...newFrontmatter,
+            ...lines.slice(endIndex + 1)
+        ].join('\n');
+    }
+
+    /**
+     * Update frontmatter specifically for tag operations - allows creating frontmatter for tags
+     */
+    private updateFrontmatterForTags(content: string, updates: Record<string, any>): string {
+        const lines = content.split('\n');
+        
+        // Check if frontmatter exists
+        if (lines[0] !== '---') {
+            // No frontmatter exists - create new one for tags only
+            if (updates.tags && Array.isArray(updates.tags) && updates.tags.length > 0) {
+                const newFrontmatter = [
+                    '---',
+                    `tags: ${JSON.stringify(updates.tags)}`,
+                    '---',
+                    ''
+                ];
+                return newFrontmatter.join('\n') + content;
+            }
+            return content;
+        }
+        
+        // Find the closing ---
+        let endIndex = -1;
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i] === '---') {
+                endIndex = i;
+                break;
+            }
+        }
+        
+        if (endIndex === -1) {
+            // Malformed frontmatter - return original content
+            return content;
+        }
+        
+        // Parse existing frontmatter and collect field names
+        const existingProps: Record<string, any> = {};
+        const existingFieldNames = new Set<string>();
+        
+        for (let i = 1; i < endIndex; i++) {
+            const match = lines[i].match(/^([^:]+):\s*(.*)$/);
+            if (match) {
+                const key = match[1].trim();
+                let value = match[2].trim();
+                
+                existingFieldNames.add(key);
+                
+                // Try to parse as JSON
+                try {
+                    value = JSON.parse(value);
+                } catch {
+                    // Keep as string
+                }
+                
+                existingProps[key] = value;
+            }
+        }
+        
+        // For tags specifically, always allow adding even if tags field doesn't exist
+        const updatedProps = { ...existingProps };
+        if (updates.tags) {
+            updatedProps.tags = updates.tags;
+        }
+        
+        // Rebuild frontmatter with clean formatting
+        const newFrontmatter = ['---'];
+        const processedKeys = new Set<string>();
+        
+        // Process all properties, skipping duplicates based on normalized keys
+        for (const [key, value] of Object.entries(updatedProps)) {
+            if (value === null || value === undefined) {
+                // Skip null/undefined values (allows deletion)
+                continue;
+            }
+            
+            // Check if we've already processed this key (case-insensitive)
+            const normalizedKey = this.normalizeKey(key);
+            if (processedKeys.has(normalizedKey)) {
+                continue;
+            }
+            processedKeys.add(normalizedKey);
+            
+            const formattedValue = typeof value === 'object' 
+                ? JSON.stringify(value)
+                : String(value);
+            
+            newFrontmatter.push(`${key}: ${formattedValue}`);
+        }
+        newFrontmatter.push('---');
+        
+        // Return updated content
+        return [
+            ...newFrontmatter,
+            ...lines.slice(endIndex + 1)
+        ].join('\n');
     }
 
     /**
@@ -242,7 +494,7 @@ export class MetadataCommand {
         if (colonMatch) {
             const action = colonMatch[1];
             const tagString = colonMatch[2];
-            const newTags = tagString ? tagString.split(',').map(t => t.trim()).filter(t => t) : [];
+            const newTags = tagString ? tagString.split(',').map(t => this.normalizeTagValue(t)).filter(t => t) : [];
             
             // If "add tags" with no specific tags, treat as AI-powered suggestion
             if (action === 'add' && newTags.length === 0) {
@@ -258,8 +510,9 @@ export class MetadataCommand {
             switch (action) {
                 case 'add':
                     // Add new tags without duplicates
+                    const normalizedCurrentTags = currentTags.map(t => this.normalizeTagValue(t));
                     const tagsToAdd = newTags.filter(tag => 
-                        !currentTags.some(existing => existing.toLowerCase() === tag.toLowerCase())
+                        !normalizedCurrentTags.includes(tag)
                     );
                     updatedTags = [...currentTags, ...tagsToAdd];
                     message = tagsToAdd.length > 0 
@@ -269,10 +522,9 @@ export class MetadataCommand {
                     
                 case 'remove':
                     // Remove specified tags
-                    const lowerNewTags = newTags.map(t => t.toLowerCase());
                     const beforeCount = currentTags.length;
                     updatedTags = currentTags.filter(tag => 
-                        !lowerNewTags.includes(tag.toLowerCase())
+                        !newTags.includes(this.normalizeTagValue(tag))
                     );
                     const removedCount = beforeCount - updatedTags.length;
                     message = removedCount > 0
@@ -283,14 +535,14 @@ export class MetadataCommand {
                 case 'set':
                 case 'update':
                     // Replace all tags
-                    updatedTags = [...new Set(newTags.map(t => t.toLowerCase()))];
+                    updatedTags = [...new Set(newTags)];
                     message = `Set ${updatedTags.length} tag${updatedTags.length !== 1 ? 's' : ''}`;
                     break;
             }
             
             // Update content
             const updates = { tags: updatedTags };
-            const updatedContent = this.updateFrontmatter(documentContext.content, updates);
+            const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
             await this.app.vault.modify(documentContext.file, updatedContent);
             
             return {
@@ -302,9 +554,9 @@ export class MetadataCommand {
             };
         }
         
-        // Handle AI-powered tag operations
-        if (/\b(clean up|cleanup|optimize|improve|review|analyze)\s+.*\btags?\b/i.test(lowerInstruction) ||
-            /\b(suggest|recommend)\s+.*\btags?\b/i.test(lowerInstruction) ||
+        // Handle AI-powered tag operations (only when tags are explicitly mentioned, not metadata/frontmatter)
+        if ((/\b(clean up|cleanup|optimize|improve|review|analyze)\s+tags?\b/i.test(lowerInstruction) && !/\b(metadata|frontmatter)\b/i.test(lowerInstruction)) ||
+            (/\b(suggest|recommend)\s+tags?\b/i.test(lowerInstruction) && !/\b(metadata|frontmatter)\b/i.test(lowerInstruction)) ||
             /^add suggested tags$/i.test(lowerInstruction) ||
             /^add tags$/i.test(lowerInstruction) ||  // Handle simple "add tags" as AI suggestion
             /^update tags$/i.test(lowerInstruction)) {  // Handle "update tags" as AI operation
@@ -420,7 +672,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             
             // Update tags
             const updates = { tags: parsed.tags };
-            const updatedContent = this.updateFrontmatter(documentContext.content, updates);
+            const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
             await this.app.vault.modify(documentContext.file, updatedContent);
             
             // Generate appropriate message
@@ -506,7 +758,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                     const parsed = JSON.parse(jsonMatch[0]);
                     if (parsed.tags && Array.isArray(parsed.tags)) {
                         return {
-                            tags: parsed.tags.map((t: any) => String(t).toLowerCase().trim().replace(/\s+/g, '-')).filter((t: string) => t),
+                            tags: parsed.tags.map((t: any) => this.normalizeTagValue(String(t))).filter((t: string) => t),
                             reasoning: parsed.reasoning
                         };
                     }
@@ -547,7 +799,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                     
                     if (tags.length > 0) {
                         return { 
-                            tags: tags.map(t => t.toLowerCase().trim().replace(/\s+/g, '-')).filter(t => t)
+                            tags: tags.map(t => this.normalizeTagValue(t)).filter(t => t)
                         };
                     }
                 }
@@ -563,7 +815,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                 
                 if (tags.length > 0) {
                     return { 
-                        tags: tags.map(t => t.toLowerCase().trim()).filter(t => t)
+                        tags: tags.map(t => this.normalizeTagValue(t)).filter(t => t)
                     };
                 }
             }
@@ -581,12 +833,12 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                            !line.toLowerCase().includes('suggest');
                 })
                 .map(line => {
-                    // Clean up the line and convert spaces to hyphens
-                    return line.toLowerCase()
+                    // Clean up the line and normalize
+                    const cleaned = line
                         .replace(/^[-•*#]\s*/, '') // Remove bullet points and hashtags
                         .replace(/^\d+\.\s*/, '') // Remove numbered lists
-                        .trim()
-                        .replace(/\s+/g, '-'); // Convert spaces to hyphens
+                        .trim();
+                    return this.normalizeTagValue(cleaned);
                 })
                 .filter(tag => tag);
             

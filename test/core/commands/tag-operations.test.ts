@@ -326,4 +326,245 @@ describe('Tag Operations', () => {
             expect(result.successMessage).toBe('Optimized tags: 5 tags (was 4)');
         });
     });
+
+    describe('Tag Space Normalization', () => {
+        const mockFile = { path: 'test.md', basename: 'test' } as TFile;
+
+        beforeEach(() => {
+            mockDocumentEngine.getDocumentContext.mockResolvedValue({
+                file: mockFile,
+                filename: 'test',
+                content: '---\ntags: []\n---\n# Test Document',
+                headings: [],
+                selectedText: undefined,
+                cursorPosition: undefined,
+                surroundingLines: undefined
+            });
+            
+            // Setup mocks for AI-powered operations
+            mockDocumentEngine.getConversationContext.mockReturnValue('');
+            mockContextBuilder.buildPrompt.mockReturnValue({
+                systemPrompt: 'System prompt',
+                userPrompt: 'User prompt',
+                context: 'Context',
+                config: { temperature: 0.7, maxTokens: 1000 }
+            });
+            mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
+            mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
+        });
+
+        it('should normalize spaces to hyphens in direct tag operations', async () => {
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'add tags: machine learning, data science, artificial intelligence',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["machine-learning","data-science","artificial-intelligence"]')
+            );
+        });
+
+        it('should normalize spaces to hyphens in set tag operations', async () => {
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document', 
+                instruction: 'set tags: React Component, Best Practices, Web Development',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["react-component","best-practices","web-development"]')
+            );
+        });
+
+        it('should normalize spaces in AI tag suggestions', async () => {
+            const documentContext = {
+                file: mockFile,
+                filename: 'test',
+                content: '---\ntags: []\n---\n# Machine Learning Tutorial',
+                headings: [],
+                selectedText: undefined,
+                cursorPosition: undefined,
+                surroundingLines: undefined
+            };
+
+            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+
+            // AI returns tags with spaces
+            const aiResponse = '{"tags": ["Machine Learning", "Artificial Intelligence", "Deep Learning", "Neural Networks"]}';
+            mockProviderManager.complete.mockResolvedValue(aiResponse);
+
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'add suggested tags',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["machine-learning","artificial-intelligence","deep-learning","neural-networks"]')
+            );
+        });
+
+        it('should normalize spaces in general metadata updates', async () => {
+            const documentContext = {
+                file: mockFile,
+                filename: 'test',
+                content: '---\ntags: []\ntype: article\n---\n# Test Document',
+                headings: [],
+                selectedText: undefined,
+                cursorPosition: undefined,
+                surroundingLines: undefined
+            };
+
+            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+
+            // AI returns metadata with spaces in tags
+            const aiResponse = '{"tags": ["React Native", "Mobile Development"], "type": "tutorial"}';
+            mockProviderManager.complete.mockResolvedValue(aiResponse);
+
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'update frontmatter with new values',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["react-native","mobile-development"]')
+            );
+        });
+
+        it('should normalize spaces in YAML-like AI responses', async () => {
+            const documentContext = {
+                file: mockFile,
+                filename: 'test', 
+                content: '---\ntags: []\n---\n# Test Document',
+                headings: [],
+                selectedText: undefined,
+                cursorPosition: undefined,
+                surroundingLines: undefined
+            };
+
+            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+
+            // AI returns YAML-like format with spaces in tags
+            const aiResponse = 'tags: ["Vue Components", "Frontend Development", "User Interface"]';
+            mockProviderManager.complete.mockResolvedValue(aiResponse);
+
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'update frontmatter with new values',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["vue-components","frontend-development","user-interface"]')
+            );
+        });
+
+        it('should handle multiple spaces and mixed case', async () => {
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'add tags: Machine   Learning, Data     Science, AI   Research',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["machine-learning","data-science","ai-research"]')
+            );
+        });
+
+        it('should preserve tags without spaces unchanged', async () => {
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'add tags: javascript, react, vue',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('tags: ["javascript","react","vue"]')
+            );
+        });
+
+        it('should route "update metadata" to general metadata flow, not tag-only', async () => {
+            const documentContext = {
+                file: mockFile,
+                filename: 'test',
+                content: '---\ntags: ["old-tag"]\ntype: draft\nstatus: pending\n---\n# Test Document',
+                headings: [],
+                selectedText: undefined,
+                cursorPosition: undefined,
+                surroundingLines: undefined
+            };
+
+            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+
+            // AI returns all properties including tags, type, and status
+            const aiResponse = '{"tags": ["updated tag", "new content"], "type": "article", "status": "published", "priority": "high"}';
+            mockProviderManager.complete.mockResolvedValue(aiResponse);
+
+            const command: EditCommand = {
+                action: 'metadata',
+                target: 'document',
+                instruction: 'update metadata',
+                context: undefined
+            };
+
+            const result = await metadataCommand.execute(command);
+
+            expect(result.success).toBe(true);
+            
+            // Should update ALL properties, not just tags
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringMatching(/tags:\s*\["updated-tag","new-content"\]/)
+            );
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('type: article')
+            );
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('status: published')
+            );
+            expect(mockApp.vault.modify).toHaveBeenCalledWith(
+                mockFile,
+                expect.stringContaining('priority: high')
+            );
+        });
+    });
 });
