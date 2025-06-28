@@ -29,29 +29,11 @@ export class ChatRenderer {
 	addMessage(role: 'user' | 'assistant' | 'system', content: string): void {
 		
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
-		messageEl.style.cssText = `
-			margin-bottom: var(--size-4-2);
-			padding: var(--size-2-3) var(--size-4-3);
-			border-radius: var(--radius-s);
-			max-width: 85%;
-			${role === 'user' 
-				? 'margin-left: auto; background: var(--interactive-accent); color: var(--text-on-accent);' 
-				: role === 'system'
-				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: var(--font-ui-small);'
-				: 'background: var(--background-primary); border: 1px solid var(--background-modifier-border);'
-			}
-		`;
 
 		const roleEl = messageEl.createEl('div', { 
 			text: role === 'user' ? 'You' : role === 'system' ? 'System' : 'Nova',
 			cls: 'nova-message-role'
 		});
-		roleEl.style.cssText = `
-			font-size: var(--font-ui-smaller);
-			opacity: 0.7;
-			margin-bottom: var(--size-2-1);
-			font-weight: 600;
-		`;
 
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 		// Use innerHTML for system messages to support icons, textContent for others for security
@@ -134,17 +116,10 @@ export class ChatRenderer {
 
 	addWelcomeMessage(message?: string): void {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
-		welcomeEl.style.cssText = `
-			padding: 20px;
-			margin-bottom: var(--size-4-3);
-			background: var(--background-primary);
-			border-radius: var(--radius-s);
-			border: 1px solid var(--background-modifier-border);
-		`;
 
 		const content = message || `
-			<div style="display: flex; flex-direction: column; align-items: center;">
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: var(--interactive-accent); margin-bottom: var(--size-4-2);">
+			<div class="nova-welcome-content">
+				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="nova-welcome-icon">
 					<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 					<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 					<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -155,7 +130,7 @@ export class ChatRenderer {
 					<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
-				<p style="margin: 0; margin-left: var(--size-2-3); color: var(--text-muted); font-size: var(--font-ui-medium); line-height: 1.4; text-align: left; align-self: flex-start;">
+				<p class="nova-welcome-text">
 					I'm your AI writing partner. Select text and right-click for instant editing, or chat for cursor-precise commands.
 				</p>
 			</div>

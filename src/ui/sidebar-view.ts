@@ -442,48 +442,6 @@ export class NovaSidebarView extends ItemView {
 		
 	}
 
-	private addMessage(role: 'user' | 'assistant' | 'system', content: string) {
-		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
-		messageEl.style.cssText = `
-			margin-bottom: var(--size-4-2);
-			padding: var(--size-2-3) var(--size-4-3);
-			border-radius: var(--radius-s);
-			max-width: 85%;
-			${role === 'user' 
-				? 'margin-left: auto; background: var(--interactive-accent); color: var(--text-on-accent);' 
-				: role === 'system'
-				? 'margin: 0 auto; background: var(--background-modifier-hover); color: var(--text-muted); text-align: center; font-size: var(--font-text-size);'
-				: 'background: var(--background-primary); border: 1px solid var(--background-modifier-border);'
-			}
-		`;
-
-		const roleEl = messageEl.createEl('div', { 
-			text: role === 'user' ? 'You' : role === 'system' ? 'System' : 'Nova',
-			cls: 'nova-message-role'
-		});
-		roleEl.style.cssText = `
-			font-size: var(--font-ui-smaller);
-			opacity: 0.7;
-			margin-bottom: var(--size-2-1);
-			font-weight: 600;
-		`;
-
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		// Use innerHTML for system messages to support icons, textContent for others for security
-		if (role === 'system' && content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
-
-		// Auto-scroll to bottom with smooth animation
-		setTimeout(() => {
-			this.chatContainer.scrollTo({
-				top: this.chatContainer.scrollHeight,
-				behavior: 'smooth'
-			});
-		}, NovaSidebarView.SCROLL_DELAY_MS);
-	}
 
 	// REPLACE with simple delegation to ChatRenderer:
 	private addSuccessMessage(content: string): void {
@@ -1543,7 +1501,7 @@ export class NovaSidebarView extends ItemView {
 				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null as any);
 				
 				// Add user message to UI immediately after persistence
-				this.addMessage('user', messageText);
+				this.chatRenderer.addMessage('user', messageText);
 			}
 			
 			// Add loading indicator with animated nova
@@ -1666,7 +1624,7 @@ USER REQUEST: ${processedMessage}`;
 					filteredResponse.includes('Unable to set')) {
 					this.addErrorMessage(filteredResponse);
 				} else {
-					this.addMessage('assistant', filteredResponse);
+					this.chatRenderer.addMessage('assistant', filteredResponse);
 				}
 			}
 		} catch (error) {
@@ -2130,33 +2088,14 @@ USER REQUEST: ${processedMessage}`;
 					
 					// Create a custom left-aligned message for document insights
 					const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-assistant nova-insights' });
-					messageEl.style.cssText = `
-						margin-bottom: var(--size-4-2);
-						padding: var(--size-2-3) var(--size-4-3);
-						border-radius: var(--radius-s);
-						max-width: 85%;
-						background: var(--background-modifier-hover);
-						color: var(--text-muted);
-						font-size: var(--font-ui-medium);
-						text-align: left;
-						margin-left: 0;
-						margin-right: auto;
-					`;
 
 					const roleEl = messageEl.createEl('div', { 
 						text: 'Nova',
 						cls: 'nova-message-role'
 					});
-					roleEl.style.cssText = `
-						font-size: var(--font-ui-smaller);
-						opacity: 0.7;
-						margin-bottom: var(--size-2-1);
-						font-weight: 600;
-					`;
 
-					const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-					contentEl.style.cssText = 'white-space: pre-line; text-align: left;';
-					contentEl.textContent = `I noticed:\n\n${bulletList}\n\nLet me help.`;
+					const contentEl = messageEl.createEl('div', { cls: 'nova-message-content nova-insights-content' });
+					contentEl.textContent = `I noticed:\n${bulletList}\n\nLet me help.`;
 
 					// Scroll to show the new message
 					setTimeout(() => {

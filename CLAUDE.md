@@ -49,3 +49,18 @@
 
 ## 📋 Current Tasks
 
+**Determine if this code is needed** I am wondering if the first part is related to the upcoming but not released Commands feature which is triggered by a ":". The second bit may be leftover code from when multi-doc context was once considered an upcoming feature. It is a core part of Nova and should not be treated as a feature at all. 
+
+from sidebar-view.ts lines 1456-1467:
+// Check for command system feature availability
+		if (messageText.startsWith(':')) {
+			const commandResult = await this.handleColonCommand(messageText);
+			if (commandResult) {
+				this.inputHandler.setValue('');
+				return;
+			}
+		}
+
+		// Check if multi-doc context feature is enabled and parse references
+		let processedMessage = messageText;
+		let multiDocContext: MultiDocContext | null = null;

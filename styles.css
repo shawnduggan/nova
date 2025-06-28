@@ -834,7 +834,7 @@
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
     max-width: 80%;
-    font-size: 0.9em; /* Smaller/secondary styling */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
     font-weight: 400; /* Less prominent weight */
 }
 
@@ -843,7 +843,7 @@
     max-width: 90%; /* More screen real estate on mobile */
     padding: 8px 12px; /* Further reduced padding for density */
     line-height: 1.4; /* Compact line height for secondary text */
-    font-size: 0.85em; /* Even smaller on mobile for secondary styling */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
 }
 
 .nova-message-assistant {
@@ -865,7 +865,7 @@
 }
 
 .nova-message-role {
-    font-size: 0.65em; /* Much smaller for subtlety */
+    font-size: calc(var(--font-text-size) * 0.70); /* 70% of document font size */
     opacity: 0.5; /* More subtle */
     margin-bottom: 2px; /* Reduced margin */
     font-weight: 400; /* Less prominent weight */
@@ -875,7 +875,7 @@
 
 /* Mobile-specific role styling - even more subtle */
 .is-mobile .nova-message-role {
-    font-size: 0.6em; /* Extra small on mobile */
+    font-size: calc(var(--font-text-size) * 0.70); /* 70% of document font size */
     opacity: 0.4; /* Very subtle */
     margin-bottom: 1px; /* Minimal margin */
 }
@@ -1802,14 +1802,14 @@
     gap: 3px; /* Reduced gap */
     padding: 1px 6px; /* Much smaller padding */
     border-radius: 8px; /* Smaller radius */
-    font-size: 0.65em; /* Much smaller text */
+    font-size: calc(var(--font-text-size) * 0.70); /* 70% of document font size */
     font-weight: 400; /* Less prominent */
     transition: background-color 0.2s ease;
 }
 
 /* Mobile typography improvements */
 .is-mobile .nova-status-pill {
-    font-size: 0.7em; /* Smaller on mobile */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
     padding: 2px 6px; /* Minimal padding */
 }
 
@@ -1836,7 +1836,7 @@
     background: var(--background-modifier-hover) !important;
     color: var(--text-muted) !important;
     text-align: center !important;
-    font-size: 0.9em !important;
+    font-size: calc(var(--font-text-size) * 0.85) !important;
     border-radius: 12px !important;
     max-width: 70% !important;
 }
@@ -1854,7 +1854,7 @@
     color: #4caf50 !important;
     border: 1px solid rgba(76, 175, 80, 0.3) !important;
     text-align: center !important;
-    font-size: 0.9em !important;
+    font-size: calc(var(--font-text-size) * 0.85) !important;
     border-radius: 20px !important;
     max-width: 200px !important;
     padding: 8px 12px !important;
@@ -1867,7 +1867,7 @@
     color: var(--text-muted) !important;
     border: 1px solid var(--background-modifier-border) !important;
     text-align: center !important;
-    font-size: 0.9em !important;
+    font-size: calc(var(--font-text-size) * 0.85) !important;
     border-radius: 20px !important;
     max-width: 250px !important;
     padding: 8px 12px !important;
@@ -2026,14 +2026,14 @@
 
 /* Document Stats Analytics Text */
 .nova-document-stats {
-    font-size: 0.85em; /* Default smaller size */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
     color: var(--text-muted);
 }
 
 
 /* Token Usage Display */
 .nova-token-usage {
-    font-size: 0.85em; /* Same size as document stats */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
     font-weight: 500;
     color: var(--text-muted);
 }
@@ -2053,11 +2053,11 @@
 
 /* Mobile document stats to match conversation text size exactly */
 .is-mobile .nova-document-stats {
-    font-size: 0.9em; /* Smaller to better match conversation bubble appearance */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
 }
 
 .is-mobile .nova-token-usage {
-    font-size: 0.9em; /* Match document stats size on mobile */
+    font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
 }
 
 
@@ -2378,4 +2378,50 @@
     100% {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 16px rgba(253, 203, 110, 0.6);
     }
+}
+
+/* Chat Welcome Message Styles */
+.nova-welcome {
+    padding: 20px;
+    margin-bottom: var(--size-4-3);
+    background: var(--background-primary);
+    border-radius: var(--radius-s);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.nova-welcome-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.nova-welcome-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--interactive-accent);
+    margin-bottom: var(--size-4-2);
+}
+
+.nova-welcome-text {
+    margin: 0;
+    margin-left: var(--size-2-3);
+    color: var(--text-muted);
+    font-size: var(--font-text-size);
+    line-height: 1.4;
+    text-align: left;
+    align-self: flex-start;
+}
+
+/* Document Insights Message Styles */
+.nova-insights {
+    background: var(--background-modifier-hover) !important;
+    color: var(--text-muted) !important;
+    text-align: left !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+.nova-insights-content {
+    white-space: pre-line;
+    text-align: left;
 }
