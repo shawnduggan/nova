@@ -1420,7 +1420,7 @@ export class NovaSidebarView extends ItemView {
 			}
 		}
 
-		// Check if multi-doc context feature is enabled and parse references
+		// Parse document references and build multi-doc context
 		let processedMessage = messageText;
 		let multiDocContext: MultiDocContext | null = null;
 		
