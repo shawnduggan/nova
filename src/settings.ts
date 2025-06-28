@@ -1880,6 +1880,10 @@ export class NovaSettingTab extends PluginSettingTab {
 						<span>3. Manage Supernova License</span>
 						<a href="#" class="nova-step-link" data-tab="supernova">→ Go to Supernova tab</a>
 					</div>
+					<div class="nova-next-step">
+						<span>4. Explore the User Guide</span>
+						<a href="https://novawriter.ai/guide.html" class="nova-step-link nova-external-link" target="_blank">→ Open User Guide ↗</a>
+					</div>
 				</div>
 				<div class="nova-tip">💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Nova: Open sidebar" to access Nova</div>
 			</div>
@@ -1888,9 +1892,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Add click handlers for navigation links
 		navCard.querySelectorAll('.nova-step-link').forEach(link => {
 			link.addEventListener('click', (e) => {
-				e.preventDefault();
-				const tabId = (e.target as HTMLElement).getAttribute('data-tab') as 'general' | 'providers' | 'supernova';
-				this.switchTab(tabId);
+				// Only prevent default for internal navigation links, not external links
+				if (!(e.target as HTMLElement).classList.contains('nova-external-link')) {
+					e.preventDefault();
+					const tabId = (e.target as HTMLElement).getAttribute('data-tab') as 'general' | 'providers' | 'supernova';
+					this.switchTab(tabId);
+				}
+				// External links will use default browser behavior (target="_blank")
 			});
 		});
 	}
