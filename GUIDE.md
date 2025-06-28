@@ -107,7 +107,6 @@ Selection-based editing is perfect for quick transformations of existing text. S
 
 **Use Chat when:**
 - Adding new content
-- Making complex edits requiring context
 - Combining multiple operations
 - Need more control over the editing process
 
@@ -115,125 +114,141 @@ Selection-based editing is perfect for quick transformations of existing text. S
 
 ## Chat Commands & Cursor-Based Editing
 
-Chat commands let you have a conversation with Nova while it edits your document directly. Place your cursor where you want Nova to work and start typing commands.
+Nova's chat system is designed around **cursor-based editing** with intelligent **intention detection**. Place your cursor where you want Nova to work and describe what you need—Nova automatically determines whether you want a conversational response or direct document editing.
 
-### The Seven Core Commands
+### How Intention Detection Works
 
-#### 1. **Add Command**
-Creates new content at your cursor position.
+Nova analyzes your message to understand your intent:
 
-**Syntax variations:**
-```
-add a section about methodology
-create a paragraph explaining the benefits
-write an introduction to this chapter
-insert a conclusion here
-```
+**✅ Editing Commands** (Nova edits your document):
+- "add a conclusion here"
+- "insert a methodology section"
+- "create a methodology section"
+- "add tags: productivity, writing"
 
-**Example conversation:**
-```
-You: add a paragraph about the importance of sleep
-Nova: [Writes at cursor] Sleep plays a crucial role in maintaining physical and mental health. During sleep, the body repairs tissues, consolidates memories, and releases important hormones that regulate growth and appetite...
-```
+**💬 Chat Responses** (Nova responds conversationally):
+- "what should I write about?"
+- "explain the difference between X and Y"
+- "help me brainstorm ideas"
+- "what's the best approach for this?"
 
-#### 2. **Edit Command**  
-Modifies selected text or content near the cursor.
+### Cursor-Based Document Editing
 
-**Syntax variations:**
-```
-edit this to be more formal
-modify the tone to be friendlier  
-change this section to focus on benefits
-update this paragraph to include statistics
-```
+When Nova detects an editing intent, it writes directly at your cursor position with real-time streaming updates.
 
-**Example:**
+#### Adding New Content
+Place your cursor and describe what you want:
 ```
-You: [Select a paragraph] edit this to be more persuasive
-Nova: [Replaces selection with more compelling version]
-```
-
-#### 3. **Delete Command**
-Removes specified content.
-
-**Syntax variations:**
-```
-delete the third paragraph
-remove this section
-eliminate the redundant sentences
-cut the introduction
+add a paragraph about the benefits of exercise
+create an introduction for this chapter
+write a conclusion summarizing the key points
+insert a methodology section here
+add literature review using [[Research Notes]]
+create dialogue showing tension between these characters
+add error handling examples from [[API Guidelines]]
+write a detailed analysis of the current market trends
+develop a comprehensive project timeline
+create a character backstory with psychological depth
 ```
 
-#### 4. **Rewrite Command**
-Restructures content with a specific style or format.
+Nova can generate sophisticated content at your cursor position, from simple paragraphs to complex sections that incorporate context from referenced documents. The AI draws on its training to create detailed, contextually appropriate content based on your specific request.
 
-**Syntax variations:**
+#### Document Operations
+Nova can modify document metadata and properties:
 ```
-rewrite this as bullet points
-rewrite in a more academic style
-restructure this as a numbered list
-reword this section to be clearer
-```
-
-#### 5. **Grammar Command**
-Fixes grammar, spelling, and language errors.
-
-**Syntax variations:**
-```
-fix grammar in this document
-check spelling and grammar
-correct the errors in this section
-proofread this paragraph
-```
-
-#### 6. **Continue Command**
-Extends writing from the current cursor position.
-
-**Syntax variations:**
-```
-continue writing this section
-continue with more examples
-keep going with the explanation
-extend this thought
-```
-
-#### 7. **Metadata Command**
-Updates document properties, tags, and frontmatter.
-
-**Syntax variations:**
-```
-add tags: productivity, writing, tools
-update the title property
+add tags: productivity, writing
 set status to complete
-add suggested tags for this document
-clean up the existing tags
+update the title property
+clean up tags
 ```
+
+### Tag and Metadata Commands
+
+Nova includes specialized commands for document properties:
+
+**Tag Management:**
+- `add tags: productivity, writing, AI` - Adds specific tags
+- `add suggested tags` - Analyzes content and suggests relevant tags
+- `clean up tags` - Removes duplicates and optimizes tag structure
+- `remove tag: draft` - Removes specific tags
+
+**Frontmatter Operations:**
+- `set status to complete` - Updates frontmatter properties
+- `add creation date` - Adds date fields
+- `update the title property` - Modifies document properties
+
+**What Tag Commands Edit:**
+- ✅ **Current document's frontmatter** - Tags and properties in the active file
+- ✅ **Document metadata** - YAML frontmatter fields
+- ❌ **Other documents** - Commands only affect the current file
+- ❌ **File names or folders** - Only document content and properties
+
+**❌ Protected Fields (Nova Won't Edit These)**
+
+1. **Creation Date Fields:**
+   - created
+   - date-created
+   - created-date
+   - creation-date
+2. **Modification Date Fields:**
+   - modified
+   - last-modified
+   - updated
+   - date-modified
+3. **Identifier Fields:**
+   - id
+   - uuid
+   - uid
+   - permalink
+   - url
+   - link
+
+These fields are protected because they're typically:
+- **System-generated** (like creation/modification dates)
+- **Unique identifiers** that shouldn't be changed
+- **Permanent references** (permalinks, URLs)
+
+**Additional Restrictions**
+
+Beyond these protected fields, Nova also has these limitations:
+
+1. **Won't create new frontmatter** for general metadata operations (only exception is for tags)
+2. **Won't add new properties** to documents without existing frontmatter
+3. **Won't edit other documents** - only the current active file
+4. **Won't modify file names or folder structures**
+
+The protection is case-insensitive, so variations like Created, CREATED, or Date-Created are all protected.
 
 ### Natural Language Flexibility
 
-Nova understands natural language, so you don't need to memorize exact syntax:
-
-**These all work for adding content:**
+Nova understands natural language variations. These all work for adding content:
 - "add a conclusion"
 - "write a summary at the end"
 - "create a new section about results"
 - "I need a paragraph explaining the process"
 
-**These all work for editing:**
-- "make this more professional"
-- "edit to be shorter"
-- "improve the flow of this section"
-- "can you make this clearer?"
+For selection-based custom instructions, use the "Tell Nova..." menu option for maximum flexibility with existing text.
 
-### Command Palette (Mobile & Desktop)
+### Undo Integration
 
-**Desktop**: Use the command palette for structured commands:
-1. Place cursor where you want to work
-2. Look for the Nova command button or use Ctrl+P
-3. Select from pre-built command templates
-4. Fill in the specific instruction
+Nova integrates seamlessly with Obsidian's native undo system:
+- **First Ctrl/Cmd+Z**: Removes Nova's addition
+- **Second Ctrl/Cmd+Z**: Restores original content (if text was replaced)
+- Works exactly like any other Obsidian edit
+- No special Nova-specific undo needed
 
-**Mobile**: The command palette is especially useful on mobile devices where typing longer commands is more difficult.
+### When Chat Responds vs. Edits
+
+**Nova Edits Your Document When You:**
+- Give specific instructions about content creation
+- Place cursor and request new content to be added
+- Use action words: add, create, write, edit, fix, improve, rewrite
+
+**Nova Responds in Chat When You:**
+- Ask questions or seek advice
+- Request explanations or clarifications  
+- Brainstorm or discuss ideas
+- Use inquiry words: what, why, how, should, could, explain
 
 ---
 
@@ -249,18 +264,10 @@ Compare this section with [[Project Requirements]]
 Use the methodology from [[Research Notes]] to improve this
 ```
 
-#### Property Reference: `[[document#property]]`
-Extract specific frontmatter properties:
-```
-Set the status to match [[Project Plan#status]]
-Use the same tags as [[Meeting Notes#tags]]
-```
-
 ### How Document Context Works
 
 1. **Automatic Detection**: Nova automatically finds and includes referenced documents
 2. **All References are Persistent**: Once you reference a document in a conversation, Nova remembers it for the entire chat session
-3. **Property Extraction**: Use `#property` syntax to reference specific frontmatter fields
 
 ### Managing Context
 
@@ -278,26 +285,26 @@ Use the same tags as [[Meeting Notes#tags]]
 - Each AI provider has different context limits
 - Large documents consume more tokens
 - Nova shows warnings when approaching limits
-- Consider using specific properties (`[[doc#property]]`) instead of full documents for large files
+- Consider using smaller documents or excerpts for large files
 
 ### Practical Examples
 
-**Cross-document comparison:**
+**Cross-document reference:**
 ```
-You: Compare the writing style in this section with [[Style Guide]]
-Nova: [Analyzes both documents and provides comparison]
-```
-
-**Consistent formatting:**
-```
-You: Format this table to match the style in [[Data Analysis]]
-Nova: [Applies consistent formatting based on reference document]
+You: Add a methodology section using insights from [[Research Notes]]
+Nova: [Creates new methodology section incorporating referenced content]
 ```
 
-**Template application:**
+**Consistent metadata:**
 ```
-You: Use the structure from [[Meeting Template]] to organize these notes
-Nova: [Restructures content following the template format]
+You: Add the same tags as [[Project Plan]]
+Nova: [Copies tags from referenced document to current document]
+```
+
+**Content creation with reference:**
+```
+You: Create a summary based on [[Meeting Template]] structure
+Nova: [Generates new summary following the template format]
 ```
 
 ---
@@ -309,26 +316,22 @@ Nova supports multiple AI providers, each with different strengths and use cases
 ### Supported Providers
 
 #### Claude (Anthropic)
-- **Best for**: Complex writing tasks, analysis, long-form content
-- **Models**: Claude 3.5 Sonnet, Claude 3 Haiku, Claude 3 Opus
+- **Best for**: Complex reasoning and analysis
 - **Setup**: Requires API key from console.anthropic.com
 - **Context limit**: 200K tokens (very large)
 
 #### OpenAI  
-- **Best for**: Creative writing, code-related tasks
-- **Models**: GPT-4, GPT-4 Turbo, GPT-3.5 Turbo
+- **Best for**: Balanced performance and creativity
 - **Setup**: Requires API key from platform.openai.com
 - **Context limit**: Varies by model (8K-128K tokens)
 
 #### Google AI (Gemini)
-- **Best for**: Factual content, research tasks
-- **Models**: Gemini Pro, Gemini Pro Vision
+- **Best for**: Fast responses and research
 - **Setup**: Requires API key from Google AI Studio
 - **Context limit**: 1M tokens (extremely large)
 
 #### Ollama (Local)
-- **Best for**: Privacy-conscious users, offline work
-- **Models**: Llama 2, Code Llama, Mistral, many others
+- **Best for**: Local privacy and offline use 🔒
 - **Setup**: Install Ollama locally, no API key needed
 - **Context limit**: Varies by model and system resources
 
@@ -341,10 +344,10 @@ Nova supports multiple AI providers, each with different strengths and use cases
 4. Context and conversation history are preserved
 
 **Provider selection strategy:**
-- **Complex analysis**: Claude or GPT-4
-- **Quick edits**: Claude Haiku or GPT-3.5 Turbo  
-- **Privacy required**: Ollama local models
-- **Large context needed**: Google Gemini
+- **Claude**: For complex reasoning and analysis
+- **OpenAI**: For balanced performance and creativity
+- **Gemini**: For fast responses and research
+- **Ollama**: For local privacy and offline use
 
 ### Managing API Keys
 
@@ -375,7 +378,7 @@ Nova supports multiple AI providers, each with different strengths and use cases
 
 **"Context limit exceeded"**
 - Remove some document references
-- Use property references (`[[doc#property]]`) instead of full documents
+- Use smaller documents or document excerpts
 - Switch to a provider with larger context limits
 
 ---
@@ -438,19 +441,7 @@ organize the properties alphabetically
 remove unused properties
 ```
 
-### Custom Commands
 
-Create your own reusable commands in Nova settings:
-
-1. Settings → Community Plugins → Nova → Features → Commands
-2. Add custom command with template
-3. Use variables like `{selection}` and `{cursor}`
-4. Access through command palette
-
-**Example custom command:**
-- Name: "Academic Citation"
-- Template: "Convert {selection} to academic citation format"
-- Usage: Select text → Command palette → "Academic Citation"
 
 ### Mobile-Specific Features
 
@@ -533,7 +524,7 @@ Create your own reusable commands in Nova settings:
 - Keep commands concise and specific
 
 #### **Reducing token usage:**
-- Reference specific properties instead of full documents
+- Reference smaller documents when possible
 - Remove unnecessary documents from context
 - Use selection-based editing for small changes
 - Break large tasks into smaller operations
@@ -552,7 +543,6 @@ Create your own reusable commands in Nova settings:
 
 **Managing context effectively:**
 1. **Monitor the context indicator** in the sidebar
-2. **Use specific properties** (`[[doc#tags]]`) instead of full documents
 3. **Remove unnecessary document references** from conversation
 4. **Split large tasks** into smaller, focused operations
 5. **Switch to providers with larger context** (Google Gemini) when needed
@@ -592,8 +582,8 @@ Create your own reusable commands in Nova settings:
 
 ### Workflow Recommendations
 
-1. **Start with selection-based editing** for quick improvements
-2. **Use chat commands for new content** and complex edits  
+1. **Start with selection-based editing** for quick improvements to existing text
+2. **Use chat commands for new content**  
 3. **Reference documents strategically** - add context only when needed
 4. **Monitor token usage** to avoid hitting limits
 5. **Experiment with different providers** to find what works best for your tasks
