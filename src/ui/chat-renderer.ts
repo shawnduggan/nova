@@ -131,7 +131,7 @@ export class ChatRenderer {
 					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 				</svg>
 				<p class="nova-welcome-text">
-					I'm your AI writing partner. Select text and right-click for instant editing, or chat for cursor-precise commands.
+					Hi! I'm Nova, your AI writing partner. Select any text and right-click to transform it directly, or chat with me to add content exactly where your cursor is.
 				</p>
 			</div>
 		`;

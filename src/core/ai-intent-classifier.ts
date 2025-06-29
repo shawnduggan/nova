@@ -79,18 +79,20 @@ export class AIIntentClassifier {
                 return { intent: 'CHAT', confidence: 0.95 };
             }
 
-            // Check for clear questions SECOND (high confidence)
-            if (this.isQuestion(lowerInput)) {
-                return { intent: 'CHAT', confidence: 0.9 };
-            }
-
-            // Check for direct editing commands (high confidence)
+            // Check for direct editing commands SECOND (high confidence)
+            // This should take precedence over questions that might appear later in the text
             if (this.isDirectEditingCommand(lowerInput)) {
                 // Check if it's metadata-related editing
                 if (this.isMetadataRelated(lowerInput)) {
                     return { intent: 'METADATA', confidence: 0.9 };
                 }
                 return { intent: 'CONTENT', confidence: 0.9 };
+            }
+
+            // Check for clear questions THIRD (high confidence)
+            // Only after we've ruled out direct editing commands
+            if (this.isQuestion(lowerInput)) {
+                return { intent: 'CHAT', confidence: 0.9 };
             }
 
             // Check for metadata-only patterns (high confidence)
@@ -136,7 +138,9 @@ export class AIIntentClassifier {
             lowerInput.startsWith('could you') ||
             lowerInput.startsWith('would you') ||
             lowerInput.startsWith('should i') ||
-            lowerInput.includes('explain') ||
+            // More precise "explain" patterns for questions vs editing commands
+            lowerInput.startsWith('explain') ||
+            /\b(can you|could you|please|would you)\s+explain\b/i.test(lowerInput) ||
             lowerInput.includes('help me understand') ||
             lowerInput.includes('tell me about') ||
             lowerInput.includes('what about')
@@ -158,10 +162,14 @@ export class AIIntentClassifier {
                 return true;
             }
 
-            // Action verbs with clear editing intent
-            const editingVerbs = /\b(fix|improve|change|edit|rewrite|update|modify|revise|enhance|refine|polish|correct|adjust)\b/i;
-            if (editingVerbs.test(lowerInput)) {
-                return true;
+            // Action verbs with clear editing intent (avoid question patterns)
+            // Don't match questions that contain these verbs
+            const questionStarts = /^(what|why|how|when|where|who|can you|could you|would you|should i)\b/i;
+            if (!questionStarts.test(lowerInput) && !lowerInput.includes('?')) {
+                const editingVerbs = /\b(fix|improve|change|edit|rewrite|update|modify|revise|enhance|refine|polish|correct|adjust)\b/i;
+                if (editingVerbs.test(lowerInput)) {
+                    return true;
+                }
             }
 
             // Document manipulation commands

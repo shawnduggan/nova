@@ -115,6 +115,23 @@ describe('AIIntentClassifier', () => {
                 expect(intent).toBe('CONTENT');
             }
         });
+
+        it('should classify editing commands with "explain" context as CONTENT, not CHAT', async () => {
+            // Regression test for issue where "explain" pattern was incorrectly
+            // classified as question instead of editing command
+            const editingCommandsWithExplain = [
+                'Add an outline for explaining what a supernova is to a 5 year old',
+                'Write a section explaining the concept',
+                'Create content explaining this topic',
+                'Generate an outline explaining the benefits',
+                'Make a summary explaining the process'
+            ];
+
+            for (const command of editingCommandsWithExplain) {
+                const intent = await classifier.classifyIntent(command);
+                expect(intent).toBe('CONTENT');
+            }
+        });
     });
 
     describe('IntentDetector integration', () => {
