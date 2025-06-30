@@ -49,3 +49,4 @@
 
 ## 📋 Current Tasks
 
+**LOW Add slider setting for scroll speed**: Maybe on the General settings tab.

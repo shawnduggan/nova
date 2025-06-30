@@ -174,7 +174,7 @@ export class StreamingManager {
         }
 
         try {
-            // Select random phrase based on action type
+            // Select random phrase based on action type for initial display
             const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
             
@@ -188,8 +188,8 @@ export class StreamingManager {
                 noticeEl.textContent = initialNoticeText;
             }
             
-            // Start dots animation in notice
-            this.startNoticeDotsAnimation(randomPhrase);
+            // Start cycling animation with all phrases for this action type
+            this.startNoticeDotsAnimation(actionType);
             
         } catch (error) {
             console.warn('Failed to create thinking notice:', error);
@@ -349,25 +349,31 @@ export class StreamingManager {
     /**
      * Animate dots in notice text
      */
-    private startNoticeDotsAnimation(basePhrase: string): void {
+    private startNoticeDotsAnimation(actionType: ActionType): void {
+        const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
+        let phraseIndex = 0;
         let dotCount = 1;
         
         this.dotsAnimationInterval = setInterval(() => {
             try {
                 if (!this.thinkingNotice) return;
                 
-                dotCount++;
-                if (dotCount > 5) {
-                    dotCount = 1;
-                }
-                
+                // Get current phrase and add dots
+                const currentPhrase = phrases[phraseIndex];
                 const dots = '.'.repeat(dotCount);
-                const noticeText = `Nova: ${basePhrase}${dots}`;
+                const noticeText = `Nova: ${currentPhrase}${dots}`;
                 
                 // Update notice text directly
                 const noticeEl = (this.thinkingNotice as any).noticeEl;
                 if (noticeEl) {
                     noticeEl.textContent = noticeText;
+                }
+                
+                // Increment dot count, and when it reaches max, move to next phrase
+                dotCount++;
+                if (dotCount > 3) {
+                    dotCount = 1;
+                    phraseIndex = (phraseIndex + 1) % phrases.length;
                 }
                 
             } catch (error) {
