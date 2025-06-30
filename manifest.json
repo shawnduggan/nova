@@ -7,6 +7,5 @@
   "author": "Shawn Duggan",
   "authorUrl": "https://novawriter.ai",
   "fundingUrl": "https://github.com/sponsors/shawnduggan",
-  "isDesktopOnly": false,
-  "css": "styles.css"
+  "isDesktopOnly": false
 }
