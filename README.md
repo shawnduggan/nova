@@ -106,9 +106,8 @@ Nova is **free forever** with no feature walls. Built by writers, for writers.
 
 _Supporting sustainable, community-driven development_
 
-**$29/year or $199 lifetime**
 
-**[Become a Supernova →](https://github.com/sponsors/shawnduggan)**
+**[Become a Supernova →](https://novawriter.ai/plans.html)**
 
 ---
 
