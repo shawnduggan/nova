@@ -426,9 +426,10 @@
 
 /* Mobile-specific context indicator compression */
 .is-mobile .nova-context-indicator {
-    padding: 3px 6px; /* Even more compact on mobile */
-    font-size: 0.75em; /* Smaller on mobile */
-    min-height: 28px; /* Minimal height */
+    padding: 6px 8px; /* Better touch target on mobile */
+    font-size: 0.8em; /* Slightly larger for readability */
+    min-height: 32px; /* Better touch target height */
+    border-radius: 6px; /* Slightly more rounded for mobile */
 }
 
 .nova-context-indicator .nova-context-warning {
@@ -528,6 +529,10 @@
     border-radius: var(--radius-l);
     font-weight: bold;
     font-size: 1.1em;
+}
+
+.nova-tier-badge.modal-spacing {
+    margin-bottom: 1em;
 }
 
 .nova-tier-badge.core {
@@ -2001,13 +2006,20 @@
     overflow-y: auto;
 }
 
+.is-mobile .nova-provider-dropdown-menu {
+    min-width: 200px; /* Narrower on mobile */
+    max-width: calc(100vw - 32px); /* Prevent extending beyond screen */
+    right: 0; /* Align to right edge of container instead of left */
+    left: auto; /* Override left alignment */
+}
+
 .nova-provider-dropdown-item {
     padding: var(--size-2-3) var(--size-4-3);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--size-2-3);
-    font-size: 0.85em;
+    font-size: 0.9em; /* Increased from 0.85em for better readability */
     transition: background-color 0.2s ease;
 }
 
@@ -2708,6 +2720,11 @@
     color: var(--interactive-accent);
 }
 
+.nova-header-title svg {
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
 .nova-header-right-container {
     display: flex;
     align-items: center;
@@ -2882,6 +2899,8 @@
     right: 0;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
     max-height: 60vh;
+    border-radius: 12px 12px 0 0; /* Rounded top corners for mobile */
+    padding: 0 var(--size-2-3); /* Add horizontal padding to prevent items touching edges */
 }
 
 .nova-context-expanded-header {
@@ -2900,8 +2919,9 @@
 }
 
 .is-mobile .nova-context-expanded-header {
-    padding: 12px 16px;
-    min-height: 44px;
+    padding: 16px 20px; /* More generous padding for mobile */
+    min-height: 48px; /* Better touch target */
+    border-radius: 12px 12px 0 0; /* Match drawer border radius */
 }
 
 .nova-context-header-title {
@@ -2925,8 +2945,8 @@
 }
 
 .is-mobile .nova-context-doc-item {
-    padding: var(--size-2-3) var(--size-2-4);
-    min-height: 44px;
+    padding: var(--size-2-4) var(--size-4-2); /* More generous padding */
+    min-height: 48px; /* Better touch target */
 }
 
 .nova-context-doc-item:hover {
@@ -3522,7 +3542,13 @@
 }
 
 .is-mobile .nova-provider-dropdown-select {
-    min-width: 100px;
+    min-width: 80px;
+    max-width: 140px;
+    width: auto;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Command System Styles */
