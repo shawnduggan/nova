@@ -3,7 +3,7 @@
   "name": "Nova",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Your AI writing partner for Obsidian, without the copy-paste mess.",
+  "description": "Your AI writing partner, without the copy-paste mess.",
   "author": "Shawn Duggan",
   "authorUrl": "https://novawriter.ai",
   "fundingUrl": "https://github.com/sponsors/shawnduggan",
