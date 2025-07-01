@@ -65,43 +65,17 @@ export class InputHandler {
 	}
 
 	createInputInterface(chatContainer: HTMLElement): void {
-		this.container = this.container.createDiv({ cls: 'nova-input-container' });
-		this.container.style.cssText = `
-			flex-shrink: 0;
-			padding: var(--size-4-3);
-			border-top: 1px solid var(--background-modifier-border);
-			position: relative;
-		`;
+		this.container = this.container.createDiv({ cls: 'nova-input-container nova-input-wrapper' });
 
-		this.inputRow = this.container.createDiv({ cls: 'nova-input-row' });
-		this.inputRow.style.cssText = `
-			display: flex;
-			gap: var(--size-2-3);
-			align-items: center;
-			position: relative;
-		`;
+		this.inputRow = this.container.createDiv({ cls: 'nova-input-row nova-input-flex-row' });
 
 		// Textarea container
-		const textAreaContainer = this.inputRow.createDiv();
-		textAreaContainer.style.cssText = 'flex: 1; position: relative;';
+		const textAreaContainer = this.inputRow.createDiv({ cls: 'nova-textarea-container' });
 
 		// Create textarea
 		this.textArea = new TextAreaComponent(textAreaContainer);
 		this.textArea.setPlaceholder('How can I help?');
-		this.textArea.inputEl.style.cssText = `
-			max-height: 200px;
-			resize: none;
-			overflow-y: auto;
-			border-radius: var(--radius-s);
-			padding: var(--size-2-2) var(--size-2-3);
-			border: 1px solid var(--background-modifier-border);
-			background: var(--background-primary);
-			color: var(--text-normal);
-			font-family: var(--font-interface);
-			line-height: 1.4;
-			width: 100%;
-			box-sizing: border-box;
-		`;
+		this.textArea.inputEl.addClass('nova-textarea-styled');
 
 		// Auto-grow functionality
 		this.autoGrowTextarea = () => {
@@ -136,19 +110,7 @@ export class InputHandler {
 		this.sendButton.setIcon('send');
 		this.sendButton.setTooltip('Send message');
 		this.sendButton.onClick(() => this.handleSend());
-		this.sendButton.buttonEl.style.cssText = `
-			min-width: var(--size-4-9);
-			height: var(--size-4-9);
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 0;
-			flex-shrink: 0;
-			background: var(--interactive-accent);
-			color: var(--text-on-accent);
-			border: none;
-		`;
+		this.sendButton.buttonEl.addClass('nova-send-button-styled');
 
 		// Enter key handling and command/section picker
 		this.addEventListener(this.textArea.inputEl, 'keydown', (event: Event) => {
@@ -297,49 +259,15 @@ export class InputHandler {
 		if (!this.dropZoneOverlay) {
 			this.dropZoneOverlay = document.createElement('div');
 			this.dropZoneOverlay.className = 'nova-drop-zone-overlay';
-			this.dropZoneOverlay.style.cssText = `
-				position: absolute;
-				top: 0;
-				left: 0;
-				right: 0;
-				bottom: 0;
-				background: var(--interactive-accent);
-				opacity: 0;
-				border: 2px dashed var(--interactive-accent);
-				border-radius: var(--radius-s);
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				pointer-events: none;
-				transition: opacity 0.2s ease;
-				z-index: 10;
-			`;
 
 			// Add icon container
 			const iconContainer = document.createElement('div');
-			iconContainer.style.cssText = `
-				background: var(--background-primary);
-				border-radius: 50%;
-				width: 48px;
-				height: 48px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-				opacity: 0;
-				transform: scale(0.8);
-				transition: all 0.2s ease;
-			`;
+			iconContainer.className = 'nova-drop-icon-container';
 
 			// Add Obsidian's plus icon
 			const icon = document.createElement('div');
 			icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-			icon.style.cssText = `
-				color: var(--interactive-accent);
-				display: flex;
-				align-items: center;
-				justify-content: center;
-			`;
+			icon.className = 'nova-drop-icon-svg';
 
 			iconContainer.appendChild(icon);
 			this.dropZoneOverlay.appendChild(iconContainer);
@@ -347,17 +275,16 @@ export class InputHandler {
 
 		// Position relative to textarea
 		const textAreaContainer = this.textArea.inputEl.parentElement!;
-		textAreaContainer.style.position = 'relative';
+		// Position already set by CSS class
 		textAreaContainer.appendChild(this.dropZoneOverlay);
 
 		// Animate in
 		setTimeout(() => {
 			if (this.dropZoneOverlay) {
-				this.dropZoneOverlay.style.opacity = '0.1';
-				const icon = this.dropZoneOverlay.querySelector('div') as HTMLElement;
-				if (icon) {
-					icon.style.opacity = '1';
-					icon.style.transform = 'scale(1)';
+				this.dropZoneOverlay.classList.add('active');
+				const iconContainer = this.dropZoneOverlay.querySelector('.nova-drop-icon-container') as HTMLElement;
+				if (iconContainer) {
+					iconContainer.classList.add('active');
 				}
 			}
 		}, 10);
@@ -366,11 +293,10 @@ export class InputHandler {
 	private handleDragLeave(): void {
 		this.isDragging = false;
 		if (this.dropZoneOverlay) {
-			this.dropZoneOverlay.style.opacity = '0';
-			const icon = this.dropZoneOverlay.querySelector('div') as HTMLElement;
-			if (icon) {
-				icon.style.opacity = '0';
-				icon.style.transform = 'scale(0.8)';
+			this.dropZoneOverlay.classList.remove('active');
+			const iconContainer = this.dropZoneOverlay.querySelector('.nova-drop-icon-container') as HTMLElement;
+			if (iconContainer) {
+				iconContainer.classList.remove('active');
 			}
 			setTimeout(() => {
 				this.dropZoneOverlay?.remove();

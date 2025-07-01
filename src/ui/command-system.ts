@@ -37,17 +37,10 @@ export class CommandSystem {
 		this.commandButton.setIcon('zap');
 		this.commandButton.setTooltip('Commands');
 		this.commandButton.onClick(() => this.toggleCommandMenu());
-		this.commandButton.buttonEl.style.cssText = `
-			min-width: var(--size-4-9);
-			height: var(--size-4-9);
-			border-radius: 50%;
-			display: ${this.shouldShowCommandButton() ? 'flex' : 'none'};
-			align-items: center;
-			justify-content: center;
-			padding: 0;
-			flex-shrink: 0;
-			margin-right: var(--size-2-3);
-		`;
+		this.commandButton.buttonEl.addClass('nova-command-button-styled');
+		if (!this.shouldShowCommandButton()) {
+			this.commandButton.buttonEl.hide();
+		}
 		return this.commandButton;
 	}
 
@@ -56,22 +49,7 @@ export class CommandSystem {
 	}
 
 	createCommandPickerInContainer(container: HTMLElement): void {
-		this.commandPicker = container.createDiv({ cls: 'nova-command-picker' });
-		this.commandPicker.style.cssText = `
-			position: absolute;
-			bottom: 100%;
-			left: 0;
-			right: 0;
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 8px;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-			max-height: 200px;
-			overflow-y: auto;
-			z-index: 1000;
-			display: none;
-			margin-bottom: 4px;
-		`;
+		this.commandPicker = container.createDiv({ cls: 'nova-command-picker nova-command-picker-styled' });
 	}
 
 	shouldShowCommandButton(): boolean {
@@ -81,7 +59,11 @@ export class CommandSystem {
 	updateCommandButtonVisibility(): void {
 		if (this.commandButton) {
 			const shouldShow = this.shouldShowCommandButton();
-			this.commandButton.buttonEl.style.display = shouldShow ? 'flex' : 'none';
+			if (shouldShow) {
+				this.commandButton.buttonEl.show();
+			} else {
+				this.commandButton.buttonEl.hide();
+			}
 		}
 	}
 

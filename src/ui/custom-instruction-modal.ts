@@ -47,8 +47,7 @@ export class CustomInstructionModal extends Modal {
                 
                 // Make the text area larger
                 text.inputEl.rows = 4;
-                text.inputEl.style.width = '100%';
-                text.inputEl.style.minHeight = '100px';
+                text.inputEl.addClass('nova-custom-textarea');
                 
                 // Focus on the text area
                 setTimeout(() => text.inputEl.focus(), 50);
@@ -65,13 +64,13 @@ export class CustomInstructionModal extends Modal {
             });
         
         // Hide the setting name/description area to give full width to textarea
-        textAreaSetting.settingEl.style.border = 'none';
+        textAreaSetting.settingEl.addClass('nova-settings-no-border');
         textAreaSetting.settingEl.querySelector('.setting-item-info')?.remove();
         
         // Make the control take full width
         const control = textAreaSetting.settingEl.querySelector('.setting-item-control');
         if (control instanceof HTMLElement) {
-            control.style.width = '100%';
+            control.classList.add('nova-full-width-control');
         }
 
         // Buttons using Setting component

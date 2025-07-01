@@ -16,41 +16,17 @@ export class ProviderManager {
 	}
 
 	async createProviderDropdown(container: HTMLElement): Promise<void> {
-		this.statusContainer = container.createDiv();
-		const isMobile = Platform.isMobile;
-		this.statusContainer.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: var(--size-2-2);
-			font-size: var(--font-ui-small);
-			color: var(--text-muted);
-			min-width: ${isMobile ? '120px' : '180px'};
-		`;
+		this.statusContainer = container.createDiv({ cls: 'nova-provider-status-wrapper' });
 
 		// Status indicator dot
-		this.statusDot = this.statusContainer.createDiv();
-		this.statusDot.style.cssText = `
-			width: 8px;
-			height: 8px;
-			border-radius: 50%;
-			background: var(--text-muted);
-		`;
+		this.statusDot = this.statusContainer.createDiv({ cls: 'nova-provider-status-dot' });
 
 		// Provider name
 		const nameElement = this.statusContainer.createSpan();
 
 		// Dropdown
 		this.dropdown = new DropdownComponent(this.statusContainer);
-		this.dropdown.selectEl.style.cssText = `
-			background: transparent;
-			border: none;
-			color: var(--text-muted);
-			font-size: var(--font-ui-small);
-			cursor: pointer;
-			padding: 0;
-			margin-left: var(--size-2-1);
-			min-width: ${isMobile ? '100px' : '150px'};
-		`;
+		this.dropdown.selectEl.addClass('nova-provider-dropdown-select');
 
 		await this.updateProviderOptions();
 		await this.updateProviderStatus();
@@ -131,7 +107,8 @@ export class ProviderManager {
 		
 		if (currentProviderType) {
 			// Provider is available - show green status
-			this.statusDot.style.background = 'var(--text-success)';
+			this.statusDot.removeClass('error');
+			this.statusDot.addClass('success');
 			const displayText = this.getProviderWithModelDisplayName(currentProviderType);
 			const nameElement = this.statusContainer.querySelector('span');
 			if (nameElement) {
@@ -139,7 +116,8 @@ export class ProviderManager {
 			}
 		} else {
 			// No provider configured - show red status
-			this.statusDot.style.background = 'var(--text-error)';
+			this.statusDot.removeClass('success');
+			this.statusDot.addClass('error');
 			const nameElement = this.statusContainer.querySelector('span');
 			if (nameElement) {
 				nameElement.textContent = 'No provider configured';

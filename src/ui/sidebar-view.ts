@@ -130,36 +130,16 @@ export class NovaSidebarView extends ItemView {
 		// Mobile access is now available to all users with their own API keys
 		
 		// Create wrapper with proper flex layout
-		const wrapperEl = container.createDiv({ cls: 'nova-wrapper' });
-		wrapperEl.style.cssText = `
-			display: flex;
-			flex-direction: column;
-			height: 100%;
-			overflow: hidden;
-			padding-bottom: ${Platform.isDesktopApp ? 'var(--size-4-6)' : 'var(--size-4-5)'};
-		`;
+		const wrapperEl = container.createDiv({ cls: 'nova-wrapper nova-sidebar-wrapper' });
 		
 		// Header with provider info
-		const headerEl = wrapperEl.createDiv({ cls: 'nova-header' });
-		headerEl.style.cssText = `
-			display: flex;
-			flex-direction: column;
-			padding: var(--size-4-2);
-			border-bottom: 1px solid var(--background-modifier-border);
-			flex-shrink: 0;
-		`;
+		const headerEl = wrapperEl.createDiv({ cls: 'nova-header nova-sidebar-header' });
 		
 		// Top row container for title and controls
-		const topRowEl = headerEl.createDiv();
-		topRowEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		`;
+		const topRowEl = headerEl.createDiv({ cls: 'nova-header-top-row' });
 		
 		// Left side: Title with Nova icon
-		const titleEl = topRowEl.createEl('h4');
-		titleEl.style.cssText = 'margin: 0; font-size: var(--font-ui-medium); display: flex; align-items: center; gap: var(--size-2-2); color: var(--interactive-accent);';
+		const titleEl = topRowEl.createEl('h4', { cls: 'nova-header-title' });
 		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
 			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
 			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
@@ -173,8 +153,7 @@ export class NovaSidebarView extends ItemView {
 		</svg>Nova`;
 		
 		// Right side: Provider status and Clear button
-		const rightContainer = topRowEl.createDiv();
-		rightContainer.style.cssText = 'display: flex; align-items: center; gap: var(--size-2-3);';
+		const rightContainer = topRowEl.createDiv({ cls: 'nova-header-right-container' });
 		
 		// Privacy indicator pill
 		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
@@ -193,22 +172,7 @@ export class NovaSidebarView extends ItemView {
 			.onClick(() => this.clearChat());
 		
 		// Apply consistent styling to match delete all files button
-		const isMobile = Platform.isMobile;
-		clearButton.buttonEl.style.cssText = `
-			background: none;
-			border: 1px solid var(--text-faint);
-			color: var(--text-faint);
-			cursor: pointer;
-			padding: ${isMobile ? '8px 12px' : '4px 8px'};
-			border-radius: 4px;
-			font-size: 1em;
-			transition: all 0.2s;
-			min-width: ${isMobile ? '44px' : 'auto'};
-			min-height: ${isMobile ? '44px' : 'auto'};
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		`;
+		clearButton.buttonEl.addClass('nova-clear-button');
 
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
@@ -377,16 +341,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private createChatInterface(container: HTMLElement) {
-		this.chatContainer = container.createDiv({ cls: 'nova-chat-container' });
-		this.chatContainer.style.cssText = `
-			flex: 1;
-			overflow-y: auto;
-			padding: var(--size-4-2);
-			background: var(--background-secondary);
-			display: flex;
-			flex-direction: column;
-			gap: var(--size-2-3);
-		`;
+		this.chatContainer = container.createDiv({ cls: 'nova-chat-container nova-chat-flex-container' });
 
 		// Initialize chatRenderer now that chatContainer exists
 		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
@@ -534,20 +489,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private createCommandPicker(): void {
-		this.commandPicker = this.inputContainer.createDiv({ cls: 'nova-command-picker nova-panel-base' });
-		this.commandPicker.style.cssText = `
-			position: absolute;
-			bottom: 100%;
-			left: 0;
-			right: 0;
-			border-bottom: none;
-			border-radius: 8px 8px 0 0;
-			max-height: 200px;
-			overflow-y: auto;
-			z-index: 1000;
-			display: none;
-			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-		`;
+		this.commandPicker = this.inputContainer.createDiv({ cls: 'nova-command-picker nova-panel-base nova-command-picker-panel' });
 	}
 
 	private handleInputChange(): void {
@@ -583,7 +525,6 @@ export class NovaSidebarView extends ItemView {
 
 			const nameEl = item.createSpan({ cls: 'nova-command-name nova-panel-text' });
 			nameEl.textContent = command.name;
-			nameEl.style.cssText = 'flex: 1;';
 
 			if (command.description) {
 				const descEl = item.createSpan({ cls: 'nova-command-desc nova-panel-muted' });
@@ -601,16 +542,16 @@ export class NovaSidebarView extends ItemView {
 			this.commandPickerItems.push(item);
 		});
 
-		this.commandPicker.style.display = 'block';
+		this.commandPicker.addClass('show');
 	}
 
 	private hideCommandPicker(): void {
-		this.commandPicker.style.display = 'none';
+		this.commandPicker.removeClass('show');
 		this.selectedCommandIndex = -1;
 	}
 
 	private isCommandPickerVisible(): boolean {
-		return this.commandPicker.style.display === 'block';
+		return this.commandPicker.hasClass('show');
 	}
 
 	private navigateCommandPicker(direction: number): void {
@@ -713,20 +654,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private createCommandMenu(): void {
-		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu nova-panel-base' });
-		this.commandMenu.style.cssText = `
-			position: absolute;
-			bottom: 100%;
-			right: 0;
-			border-bottom: none;
-			border-radius: 8px 8px 0 0;
-			min-width: 240px;
-			max-height: 300px;
-			overflow-y: auto;
-			z-index: 1000;
-			display: none;
-			box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-		`;
+		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu nova-panel-base nova-command-menu-panel' });
 
 		// Close menu when clicking outside
 		const commandMenuClickHandler: EventListener = (event: Event) => {
@@ -765,17 +693,6 @@ export class NovaSidebarView extends ItemView {
 			// Handle separator items
 			if (command.trigger === '---') {
 				const separator = this.commandMenu.createDiv({ cls: 'nova-command-menu-separator' });
-				separator.style.cssText = `
-					padding: 8px 16px 4px 16px;
-					font-size: 0.75em;
-					color: var(--text-muted);
-					font-weight: 600;
-					text-transform: uppercase;
-					letter-spacing: 0.5px;
-					border-top: 1px solid var(--background-modifier-border);
-					margin-top: 4px;
-					cursor: default;
-				`;
 				separator.textContent = command.description || '';
 				return;
 			}
@@ -785,9 +702,8 @@ export class NovaSidebarView extends ItemView {
 			const nameEl = item.createDiv({ cls: 'nova-command-menu-name nova-panel-text' });
 			nameEl.textContent = command.name;
 
-			const triggerEl = item.createDiv({ cls: 'nova-command-menu-trigger nova-panel-trigger' });
+			const triggerEl = item.createDiv({ cls: 'nova-command-menu-trigger nova-panel-trigger nova-command-trigger-opacity' });
 			triggerEl.textContent = `:${command.trigger}`;
-			triggerEl.style.opacity = '0.8';
 
 			if (command.description) {
 				const descEl = item.createDiv({ cls: 'nova-command-menu-desc nova-panel-muted' });
@@ -799,12 +715,12 @@ export class NovaSidebarView extends ItemView {
 			});
 		});
 
-		this.commandMenu.style.display = 'block';
+		this.commandMenu.addClass('show');
 		this.isCommandMenuVisible = true;
 	}
 
 	private hideCommandMenu(): void {
-		this.commandMenu.style.display = 'none';
+		this.commandMenu.removeClass('show');
 		this.isCommandMenuVisible = false;
 	}
 
@@ -841,27 +757,12 @@ export class NovaSidebarView extends ItemView {
 	private createContextPreview(): HTMLElement {
 
 		// Create a preview area that shows live context as user types
-		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview' });
-		previewContainer.style.cssText = `
-			display: none;
-			padding: 8px 12px;
-			margin-bottom: 4px;
-			background: rgba(var(--interactive-accent-rgb), 0.1);
-			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
-			border-radius: 6px;
-			font-size: 0.8em;
-			color: var(--text-muted);
-			transition: all 0.2s ease;
-			align-items: center;
-			gap: 4px;
-		`;
+		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview nova-context-preview-container' });
 
-		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text' });
+		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text nova-preview-text' });
 		previewText.innerHTML = this.createInlineIcon('book-open') + ' Context will include: ';
-		previewText.style.cssText = 'font-weight: 500; display: flex; align-items: center; gap: 6px;';
 
-		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list' });
-		previewList.style.cssText = 'color: var(--interactive-accent);';
+		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-list' });
 
 		return previewContainer;
 	}
@@ -887,7 +788,7 @@ export class NovaSidebarView extends ItemView {
 
 		const message = this.inputHandler.getTextArea().getValue();
 		if (!message) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 			return;
 		}
 
@@ -934,9 +835,9 @@ export class NovaSidebarView extends ItemView {
 				});
 				previewList.textContent = docNames.join(', ');
 			}
-			this.contextPreview.style.display = 'block';
+			this.contextPreview.addClass('show');
 		} else {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 		}
 	}
 
@@ -968,6 +869,8 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
+		const isMobile = Platform.isMobile;
+
 		// Check if we actually need to recreate the indicator
 		const newDocCount = this.currentContext?.persistentDocs?.length || 0;
 		const currentDocCount = this.contextIndicator.getAttribute('data-doc-count');
@@ -990,7 +893,7 @@ export class NovaSidebarView extends ItemView {
 		this.contextIndicator.empty();
 		
 		if (!this.currentContext || !this.currentContext.persistentDocs) {
-			this.contextIndicator.style.display = 'none';
+			this.contextIndicator.removeClass('show');
 			this.contextIndicator.removeAttribute('data-doc-count');
 			this.contextIndicator.removeAttribute('data-file-path');
 			// Update input container state for mobile spacing
@@ -1003,7 +906,7 @@ export class NovaSidebarView extends ItemView {
 		const allDocs = this.currentContext.persistentDocs;
 		
 		if (!allDocs || allDocs.length === 0) {
-			this.contextIndicator.style.display = 'none';
+			this.contextIndicator.removeClass('show');
 			this.contextIndicator.removeAttribute('data-doc-count');
 			this.contextIndicator.removeAttribute('data-file-path');
 			// Update input container state for mobile spacing
@@ -1023,32 +926,10 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Show as thin line with mobile-optimized sizing
-		const isMobile = Platform.isMobile;
-		this.contextIndicator.style.cssText = `
-			display: flex;
-			position: relative;
-			padding: ${isMobile ? '12px 16px' : '8px 12px'};
-			margin-bottom: 4px;
-			background: rgba(var(--interactive-accent-rgb), 0.1);
-			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
-			border-radius: 6px;
-			font-size: ${isMobile ? '0.9em' : '0.8em'};
-			color: var(--text-muted);
-			transition: all 0.2s ease;
-			cursor: pointer;
-			min-height: ${isMobile ? '44px' : 'auto'};
-		`;
+		this.contextIndicator.addClass('nova-context-indicator-dynamic');
+		this.contextIndicator.addClass('show');
 		// Single line summary (same style as live preview)
 		const summaryEl = this.contextIndicator.createDiv({ cls: 'nova-context-summary' });
-		summaryEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			width: 100%;
-			height: 100%;
-			cursor: pointer;
-			pointer-events: auto;
-		`;
 		
 		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
 		
@@ -1056,91 +937,56 @@ export class NovaSidebarView extends ItemView {
 		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
 		
 		// Simplified single line display showing just document names
-		summaryTextEl.style.cssText = 'font-weight: 500; color: var(--text-muted); flex: 1; pointer-events: none; display: flex; align-items: center; gap: 6px; min-width: 0;';
+		summaryTextEl.addClass('nova-context-summary-text');
 		
 		// Create filename part that can truncate
-		const filenamePartEl = summaryTextEl.createSpan();
-		filenamePartEl.style.cssText = 'display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;';
+		const filenamePartEl = summaryTextEl.createSpan({ cls: 'nova-context-filename-part' });
 		// Create icon and text as separate elements for proper flex alignment
-		const iconSpan = filenamePartEl.createSpan();
+		const iconSpan = filenamePartEl.createSpan({ cls: 'nova-context-icon-span' });
 		iconSpan.innerHTML = this.createInlineIcon('book-open');
-		iconSpan.style.cssText = 'flex-shrink: 0; display: flex; align-items: center;';
 		
-		const textSpan = filenamePartEl.createSpan();
+		const textSpan = filenamePartEl.createSpan({ cls: 'nova-context-text-span' });
 		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
-		textSpan.style.cssText = 'overflow: hidden; text-overflow: ellipsis; min-width: 0;';
 		
 		// Mobile-friendly more menu indicator
 		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
 		expandIndicatorEl.innerHTML = this.createInlineIcon('more-horizontal', isMobile ? '16px' : '14px'); // More menu indicator
-		expandIndicatorEl.style.cssText = `
-			color: var(--interactive-accent);
-			font-size: ${isMobile ? '16px' : '14px'};
-			opacity: 0.8;
-			padding: ${isMobile ? '8px' : '4px'};
-			min-width: ${isMobile ? '44px' : 'auto'};
-			text-align: center;
-			border-radius: 4px;
-			transition: all 0.2s;
-			pointer-events: none;
-		`;
+		if (isMobile) {
+			expandIndicatorEl.addClass('is-mobile');
+		}
 		expandIndicatorEl.setAttr('title', 'Tap to manage documents');
 		
 		// Visual feedback on the whole summary line instead of just the indicator
 		if (isMobile) {
 			summaryEl.addEventListener('touchstart', () => {
-				expandIndicatorEl.style.background = 'rgba(var(--interactive-accent-rgb), 0.2)';
+				expandIndicatorEl.addClass('pressed');
 			});
 			summaryEl.addEventListener('touchend', () => {
 				this.addTrackedTimeout(() => {
-					expandIndicatorEl.style.background = 'none';
+					expandIndicatorEl.removeClass('pressed');
 				}, NovaSidebarView.HOVER_TIMEOUT_MS);
 			});
-		} else {
-			summaryEl.addEventListener('mouseenter', () => {
-				expandIndicatorEl.style.background = 'rgba(var(--interactive-accent-rgb), 0.2)';
-			});
-			summaryEl.addEventListener('mouseleave', () => {
-				expandIndicatorEl.style.background = 'none';
-			});
 		}
+		// Desktop hover handled by CSS
 
 		// Expanded state - mobile-responsive overlay
 		const expandedEl = this.contextIndicator.createDiv({ cls: 'nova-context-expanded' });
-		expandedEl.style.cssText = `
-			display: none;
-			position: absolute;
-			bottom: 100%;
-			left: ${isMobile ? '-8px' : '0'};
-			right: ${isMobile ? '-8px' : '0'};
-			background: var(--background-primary);
-			border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
-			border-radius: 6px;
-			box-shadow: 0 ${isMobile ? '-4px 16px' : '-2px 8px'} rgba(0, 0, 0, ${isMobile ? '0.15' : '0.1'});
-			z-index: 1000;
-			margin-bottom: 2px;
-			max-height: ${isMobile ? '60vh' : '200px'};
-			overflow-y: auto;
-			min-width: ${isMobile ? '100%' : 'auto'};
-		`;
+		expandedEl.addClass('nova-context-expanded');
+		expandedEl.style.display = 'none';
+		if (isMobile) {
+			expandedEl.addClass('is-mobile');
+		}
 		
 		// Header for expanded state with mobile-optimized clear button
 		const expandedHeaderEl = expandedEl.createDiv({ cls: 'nova-context-expanded-header' });
-		expandedHeaderEl.style.cssText = `
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: ${isMobile ? '12px 16px' : '8px 12px'};
-			border-bottom: 1px solid var(--background-modifier-border);
-			font-weight: 500;
-			color: var(--text-normal);
-			font-size: 1em;
-			min-height: ${isMobile ? '44px' : 'auto'};
-		`;
+		expandedHeaderEl.addClass('nova-context-expanded-header');
+		if (isMobile) {
+			expandedHeaderEl.addClass('is-mobile');
+		}
 		
 		const headerTitleEl = expandedHeaderEl.createSpan();
 		headerTitleEl.innerHTML = this.createInlineIcon('book-open') + ` Documents (${allDocs.length})`;
-		headerTitleEl.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+		headerTitleEl.addClass('nova-context-header-title');
 		
 		// Clear all button using Obsidian trash icon
 		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
@@ -1155,129 +1001,61 @@ export class NovaSidebarView extends ItemView {
 		
 		const clearAllBtn = clearAllBtnComponent.buttonEl;
 		clearAllBtn.addClass('nova-context-clear-all-btn');
-		clearAllBtn.style.cssText = `
-			background: none;
-			border: 1px solid var(--text-faint);
-			color: var(--text-faint);
-			cursor: pointer;
-			padding: ${isMobile ? '8px 12px' : '4px 8px'};
-			border-radius: 4px;
-			font-size: 1em;
-			transition: all 0.2s;
-			min-width: ${isMobile ? '44px' : 'auto'};
-			min-height: ${isMobile ? '44px' : 'auto'};
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		`;
+		if (isMobile) {
+			clearAllBtn.addClass('is-mobile');
+		}
 		
-		// Touch-friendly feedback for clear button
+		// Touch-friendly feedback for clear button on mobile
 		if (isMobile) {
 			clearAllBtn.addEventListener('touchstart', () => {
-				clearAllBtn.style.background = 'var(--background-modifier-error)';
-				clearAllBtn.style.borderColor = 'var(--text-error)';
-				clearAllBtn.style.color = 'var(--text-error)';
+				clearAllBtn.addClass('nova-button-pressed');
 			});
 			clearAllBtn.addEventListener('touchend', () => {
 				setTimeout(() => {
-					clearAllBtn.style.background = 'none';
-					clearAllBtn.style.borderColor = 'var(--text-faint)';
-					clearAllBtn.style.color = 'var(--text-faint)';
+					clearAllBtn.removeClass('nova-button-pressed');
 				}, NovaSidebarView.HOVER_TIMEOUT_MS);
 			});
-		} else {
-			clearAllBtn.addEventListener('mouseenter', () => {
-				clearAllBtn.style.background = 'var(--background-modifier-error)';
-				clearAllBtn.style.borderColor = 'var(--text-error)';
-				clearAllBtn.style.color = 'var(--text-error)';
-			});
-			clearAllBtn.addEventListener('mouseleave', () => {
-				clearAllBtn.style.background = 'none';
-				clearAllBtn.style.borderColor = 'var(--text-faint)';
-				clearAllBtn.style.color = 'var(--text-faint)';
-			});
 		}
+		// Desktop hover handled by CSS
 		
 		// Document list for expanded state
 		const docListEl = expandedEl.createDiv({ cls: 'nova-context-doc-list' });
 		
 		allDocs.filter(doc => doc?.file?.basename).forEach((doc, index) => {
 			const docItemEl = docListEl.createDiv({ cls: 'nova-context-doc-item' });
-			docItemEl.style.cssText = `
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				padding: ${isMobile ? '12px 16px' : '8px 12px'};
-				border-bottom: ${index < allDocs.length - 1 ? '1px solid var(--background-modifier-border)' : 'none'};
-				transition: background-color 0.2s;
-				min-height: ${isMobile ? '56px' : 'auto'};
-			`;
+			docItemEl.addClass('nova-context-doc-item');
+			if (isMobile) {
+				docItemEl.addClass('is-mobile');
+			}
+			if (index >= allDocs.length - 1) {
+				docItemEl.style.borderBottom = 'none';
+			}
 			
 			const docInfoEl = docItemEl.createDiv({ cls: 'nova-context-doc-info' });
-			docInfoEl.style.cssText = `
-				display: flex;
-				align-items: center;
-				gap: ${isMobile ? '12px' : '8px'};
-				flex: 1;
-				min-width: 0;
-			`;
+			docInfoEl.addClass('nova-context-doc-info');
 			
 			const iconEl = docInfoEl.createSpan();
 			iconEl.innerHTML = this.createInlineIcon('file-text');
-			iconEl.style.cssText = 'display: flex; align-items: center; font-size: 1em; flex-shrink: 0;';
+			iconEl.addClass('nova-context-doc-icon');
 			
 			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
 			const suffix = doc.property ? `#${doc.property}` : '';
 			nameEl.textContent = `${doc.file.basename}${suffix}`;
-			nameEl.style.cssText = `
-				font-weight: 400;
-				color: var(--text-normal);
-				text-overflow: ellipsis;
-				overflow: hidden;
-				white-space: nowrap;
-				font-size: 1em;
-				line-height: 1.4;
-				flex: 1;
-				min-width: 0;
-				margin-right: 8px;
-			`;
+			nameEl.addClass('nova-context-doc-name');
 			nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
 			
 			// Add read-only indicator
 			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
 			readOnlyEl.textContent = 'read-only';
-			readOnlyEl.style.cssText = `
-				font-size: 0.75em;
-				color: var(--text-muted);
-				background: var(--background-modifier-hover);
-				padding: 1px 4px;
-				border-radius: 3px;
-				font-weight: 500;
-				text-transform: uppercase;
-				letter-spacing: 0.5px;
-				flex-shrink: 0;
-				margin-right: 8px;
-			`;
+			readOnlyEl.addClass('nova-context-doc-readonly');
 			
 			// Mobile-optimized remove button with simple reliable icon
 			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
 			removeBtn.textContent = '×';
-			removeBtn.style.cssText = `
-				background: none;
-				border: none;
-				color: var(--text-faint);
-				cursor: pointer;
-				width: ${isMobile ? '44px' : '20px'};
-				height: ${isMobile ? '44px' : '20px'};
-				border-radius: 4px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				font-size: ${isMobile ? '18px' : '14px'};
-				transition: all 0.2s;
-				font-weight: normal;
-				line-height: 1;
-			`;
+			removeBtn.addClass('nova-context-remove-btn');
+			if (isMobile) {
+				removeBtn.addClass('is-mobile');
+			}
 			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
 			
 			removeBtn.addEventListener('click', async (e: Event) => {
@@ -1288,49 +1066,19 @@ export class NovaSidebarView extends ItemView {
 				}
 			});
 			
-			// Platform-specific interaction feedback
+			// Platform-specific interaction feedback using CSS classes
 			if (isMobile) {
 				removeBtn.addEventListener('touchstart', () => {
-					removeBtn.style.background = 'var(--background-modifier-error)';
-					removeBtn.style.color = 'var(--text-error)';
+					removeBtn.addClass('pressed');
 				});
 				
 				removeBtn.addEventListener('touchend', () => {
 					setTimeout(() => {
-						removeBtn.style.background = 'none';
-						removeBtn.style.color = 'var(--text-faint)';
+						removeBtn.removeClass('pressed');
 					}, NovaSidebarView.HOVER_TIMEOUT_MS);
-				});
-				
-				// Touch feedback for document items
-				docItemEl.addEventListener('touchstart', () => {
-					docItemEl.style.background = 'var(--background-modifier-hover)';
-				});
-				
-				docItemEl.addEventListener('touchend', () => {
-					setTimeout(() => {
-						docItemEl.style.background = 'transparent';
-					}, NovaSidebarView.HOVER_TIMEOUT_MS);
-				});
-			} else {
-				removeBtn.addEventListener('mouseenter', () => {
-					removeBtn.style.background = 'var(--background-modifier-error)';
-					removeBtn.style.color = 'var(--text-error)';
-				});
-				
-				removeBtn.addEventListener('mouseleave', () => {
-					removeBtn.style.background = 'none';
-					removeBtn.style.color = 'var(--text-faint)';
-				});
-				
-				docItemEl.addEventListener('mouseenter', () => {
-					docItemEl.style.background = 'var(--background-modifier-hover)';
-				});
-				
-				docItemEl.addEventListener('mouseleave', () => {
-					docItemEl.style.background = 'transparent';
 				});
 			}
+			// Desktop hover is handled by CSS
 		});
 
 		// Drawer always starts closed on file switch (transient state)
@@ -1460,7 +1208,7 @@ export class NovaSidebarView extends ItemView {
 				
 				// Hide context preview since we're done
 				if (this.contextPreview) {
-					this.contextPreview.style.display = 'none';
+					this.contextPreview.removeClass('show');
 				}
 				return;
 			}
@@ -1487,7 +1235,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Hide context preview since we're sending the message
 		if (this.contextPreview) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 		}
 		
 		// Disable send button during processing
@@ -1506,17 +1254,7 @@ export class NovaSidebarView extends ItemView {
 			
 			// Add loading indicator with animated nova
 			const loadingEl = this.chatContainer.createDiv({ cls: 'nova-loading' });
-			loadingEl.style.cssText = `
-				padding: 12px 16px;
-				background: var(--background-primary);
-				border: 1px solid var(--background-modifier-border);
-				border-radius: 12px;
-				margin-bottom: 8px;
-				max-width: 80%;
-				display: flex;
-				align-items: center;
-				gap: 10px;
-			`;
+			loadingEl.addClass('nova-loading-element');
 			
 			// Create animated nova burst
 			const novaContainer = loadingEl.createDiv({ cls: 'nova-burst-container' });
@@ -1543,7 +1281,7 @@ export class NovaSidebarView extends ItemView {
 			const initialPhrase = this.getContextualThinkingPhrase(contextualCommand, processedMessage);
 			
 			const loadingTextEl = loadingEl.createSpan({ text: initialPhrase });
-			loadingTextEl.style.cssText = 'color: var(--interactive-accent); font-size: var(--font-text-size); font-weight: 500;';
+			loadingTextEl.addClass('nova-loading-text');
 			
 			// Start phrase rotation animation
 			this.startThinkingPhraseRotation(loadingTextEl, contextualCommand, processedMessage);
@@ -2274,17 +2012,7 @@ USER REQUEST: ${processedMessage}`;
 		privacyIndicator.removeClass('nova-status-pill', 'local', 'cloud');
 		
 		// Apply inline styles for consistent sizing
-		privacyIndicator.style.cssText = `
-			display: inline-flex;
-			align-items: center;
-			gap: 4px;
-			padding: 2px 8px;
-			border-radius: 12px;
-			font-size: 0.75em;
-			font-weight: 500;
-			height: auto;
-			line-height: 1.5;
-		`;
+		privacyIndicator.addClass('nova-privacy-indicator-styled');
 		
 		if (currentProviderType) {
 			const isLocalProvider = currentProviderType === 'ollama';
@@ -2295,18 +2023,13 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Create icon element
 			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
-			iconEl.style.cssText = `
-				display: inline-flex;
-				align-items: center;
-				width: 14px;
-				height: 14px;
-			`;
+			iconEl.addClass('nova-privacy-icon');
 			const iconName = isLocalProvider ? 'shield-check' : 'cloud';
 			setIcon(iconEl, iconName);
 			
 			// Add text label
 			const labelEl = privacyIndicator.createSpan({ text: isLocalProvider ? 'Local' : 'Cloud' });
-			labelEl.style.cssText = `line-height: 1;`;
+			labelEl.addClass('nova-privacy-label');
 			
 			// Set tooltip
 			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
@@ -2317,16 +2040,11 @@ USER REQUEST: ${processedMessage}`;
 			privacyIndicator.addClass('nova-status-pill');
 			
 			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
-			iconEl.style.cssText = `
-				display: inline-flex;
-				align-items: center;
-				width: 14px;
-				height: 14px;
-			`;
+			iconEl.addClass('nova-privacy-icon');
 			setIcon(iconEl, 'help-circle');
 			
 			const labelEl = privacyIndicator.createSpan({ text: 'No provider' });
-			labelEl.style.cssText = `line-height: 1;`;
+			labelEl.addClass('nova-privacy-label');
 			
 			privacyIndicator.setAttribute('aria-label', 'No provider selected');
 			privacyIndicator.setAttribute('title', 'No provider selected');
@@ -2365,73 +2083,27 @@ USER REQUEST: ${processedMessage}`;
 	 * Create provider dropdown for all users with their own API keys
 	 */
 	private async createProviderDropdown(container: HTMLElement): Promise<void> {
+		const isMobile = Platform.isMobile;
 		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
-		dropdownContainer.style.cssText = `
-			position: relative;
-			display: flex;
-			align-items: center;
-		`;
+		dropdownContainer.addClass('nova-provider-dropdown-container');
 
 		// Current provider button
 		const providerButton = dropdownContainer.createEl('button', { cls: 'nova-provider-button' });
-		providerButton.style.cssText = `
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			padding: 4px 8px;
-			font-size: 0.75em;
-			color: var(--text-normal);
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 4px;
-			cursor: pointer;
-			transition: background-color 0.2s ease;
-		`;
+		providerButton.addClass('nova-provider-button');
+		if (isMobile) {
+			providerButton.addClass('is-mobile');
+		}
 
 		// Provider name - start with a placeholder to prevent "II" display
 		const providerName = providerButton.createSpan({ text: 'Loading...', cls: 'nova-provider-name' });
 
 		// Dropdown arrow
 		const dropdownArrow = providerButton.createSpan({ text: '▼' });
-		dropdownArrow.style.cssText = `
-			font-size: 0.6em;
-			margin-left: 4px;
-			transition: transform 0.2s ease;
-		`;
+		dropdownArrow.addClass('nova-dropdown-arrow');
 
 		// Dropdown menu (initially hidden)
 		const dropdownMenu = dropdownContainer.createDiv({ cls: 'nova-provider-dropdown-menu' });
-		dropdownMenu.style.cssText = `
-			position: absolute;
-			top: 100%;
-			right: 0;
-			min-width: 200px;
-			max-width: 280px;
-			max-height: 300px;
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 6px;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-			z-index: 1000;
-			display: none;
-			overflow-y: auto;
-			overflow-x: hidden;
-			
-			/* Mobile responsive adjustments */
-			@media (max-width: 768px) {
-				min-width: 180px;
-				max-width: 250px;
-				max-height: 250px;
-				right: -20px; /* Offset to prevent edge cutoff */
-			}
-			
-			/* Smooth scrolling */
-			scroll-behavior: smooth;
-			
-			/* Custom scrollbar styling */
-			scrollbar-width: thin;
-			scrollbar-color: var(--background-modifier-border) transparent;
-		`;
+		dropdownMenu.addClass('nova-dropdown-menu', 'hidden');
 		
 		// Add webkit scrollbar styling for better cross-browser support
 		const scrollbarStyle = document.createElement('style');
@@ -2629,12 +2301,7 @@ USER REQUEST: ${processedMessage}`;
 
 		// Show loading state
 		const loadingItem = dropdownMenu.createDiv({ cls: 'nova-dropdown-loading' });
-		loadingItem.style.cssText = `
-			padding: 12px;
-			text-align: center;
-			color: var(--text-muted);
-			font-size: 0.8em;
-		`;
+		loadingItem.addClass('nova-dropdown-loading');
 		loadingItem.setText('Loading providers...');
 
 		try {
@@ -2673,35 +2340,16 @@ USER REQUEST: ${processedMessage}`;
 				if (hasAnyProviders) {
 					// Add separator between provider sections
 					const separator = dropdownMenu.createDiv({ cls: 'nova-provider-separator' });
-					separator.style.cssText = `
-						height: 1px;
-						background: var(--background-modifier-border);
-						margin: 4px 8px;
-					`;
+					separator.addClass('nova-dropdown-separator');
 				}
 
 				const sectionHeader = dropdownMenu.createDiv({ cls: 'nova-provider-section-header' });
-				sectionHeader.style.cssText = `
-					padding: 8px 12px 4px 12px;
-					font-size: 0.75em;
-					font-weight: 600;
-					color: var(--text-muted);
-					text-transform: uppercase;
-					letter-spacing: 0.5px;
-					display: flex;
-					align-items: center;
-					gap: 6px;
-				`;
+				sectionHeader.addClass('nova-dropdown-section-header');
 
 				// Provider color dot in header
 				const headerDot = sectionHeader.createSpan();
-				headerDot.style.cssText = `
-					width: 6px;
-					height: 6px;
-					border-radius: 50%;
-					background: ${providerColor};
-					flex-shrink: 0;
-				`;
+				headerDot.addClass('nova-dropdown-section-dot');
+				headerDot.style.background = providerColor;
 
 				sectionHeader.createSpan({ text: providerDisplayName });
 				hasAnyProviders = true;
@@ -2738,12 +2386,7 @@ USER REQUEST: ${processedMessage}`;
 			// If no providers available, show message
 			if (!hasAnyProviders) {
 				const noProvidersItem = dropdownMenu.createDiv();
-				noProvidersItem.style.cssText = `
-					padding: 12px;
-					text-align: center;
-					color: var(--text-muted);
-					font-size: 0.8em;
-				`;
+				noProvidersItem.addClass('nova-dropdown-no-providers');
 				noProvidersItem.setText('None configured');
 			}
 
@@ -2751,12 +2394,7 @@ USER REQUEST: ${processedMessage}`;
 			console.error('Error populating provider dropdown:', error);
 			dropdownMenu.empty();
 			const errorItem = dropdownMenu.createDiv();
-			errorItem.style.cssText = `
-				padding: 12px;
-				text-align: center;
-				color: var(--text-error);
-				font-size: 0.8em;
-			`;
+			errorItem.addClass('nova-dropdown-error');
 			errorItem.setText('Error loading providers');
 		}
 	}
@@ -2774,49 +2412,28 @@ USER REQUEST: ${processedMessage}`;
 		currentModel: string
 	): void {
 		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
-		item.style.cssText = `
-			padding: 8px 12px 8px 20px;
-			cursor: pointer;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			font-size: 0.85em;
-			color: var(--text-normal);
-			transition: background-color 0.2s ease;
-			border-radius: 3px;
-			margin: 1px 6px;
-			${isCurrent ? 'background: var(--background-modifier-hover);' : ''}
-		`;
+		item.addClass('nova-dropdown-item');
+		if (isMobile) {
+			item.addClass('is-mobile');
+		}
+		if (isCurrent) {
+			item.style.background = 'var(--background-modifier-hover)';
+		}
 
 		// Provider color indicator (smaller dot)
 		const dot = item.createSpan();
-		dot.style.cssText = `
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: ${providerColor};
-			flex-shrink: 0;
-			opacity: 0.7;
-		`;
+		dot.addClass('nova-dropdown-item-dot');
+		dot.style.background = providerColor;
 
 		// Model name only (no provider prefix)
 		const textSpan = item.createSpan({ text: modelDisplayName });
-		textSpan.style.cssText = `
-			flex: 1;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		`;
+		textSpan.addClass('nova-dropdown-item-text');
 
 		// Current selection indicator
 		if (isCurrent) {
 			const checkmark = item.createSpan({ text: '✓' });
-			checkmark.style.cssText = `
-				color: ${providerColor};
-				font-weight: 600;
-				font-size: 0.9em;
-				flex-shrink: 0;
-			`;
+			checkmark.addClass('nova-dropdown-item-checkmark');
+			checkmark.style.color = providerColor;
 		}
 
 		// Click handler for single-click selection

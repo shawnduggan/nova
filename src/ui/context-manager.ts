@@ -91,11 +91,9 @@ export class ContextManager {
 			display: none;
 		`;
 
-		const previewLabel = previewContainer.createSpan({ text: 'Context: ' });
-		previewLabel.style.cssText = 'color: var(--text-muted); font-weight: 600;';
+		const previewLabel = previewContainer.createSpan({ text: 'Context: ', cls: 'nova-preview-label' });
 
-		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list' });
-		previewList.style.cssText = 'color: var(--interactive-accent);';
+		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-files' });
 
 		return previewContainer;
 	}
@@ -107,12 +105,12 @@ export class ContextManager {
 
 		// Validate we have a current file set
 		if (!this.currentFilePath) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 			return;
 		}
 
 		if (!message) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 			return;
 		}
 
@@ -128,7 +126,7 @@ export class ContextManager {
 		}
 
 		if (foundRefs.length === 0) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 			return;
 		}
 
@@ -141,7 +139,7 @@ export class ContextManager {
 			previewList.textContent = refsText;
 		}
 
-		this.contextPreview.style.display = 'block';
+		this.contextPreview.addClass('show');
 	}
 
 	async buildContext(message: string, currentFile: TFile | null): Promise<MultiDocContext | null> {
@@ -269,13 +267,13 @@ export class ContextManager {
 
 	hideContextPreview(): void {
 		if (this.contextPreview) {
-			this.contextPreview.style.display = 'none';
+			this.contextPreview.removeClass('show');
 		}
 	}
 
 	hideContextIndicator(): void {
 		if (this.contextIndicator) {
-			this.contextIndicator.style.display = 'none';
+			this.contextIndicator.removeClass('show');
 		}
 	}
 

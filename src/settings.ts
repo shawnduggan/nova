@@ -255,7 +255,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Benefits section with normal styling
 		const benefitsSection = container.createDiv({ cls: 'nova-benefits-section' });
-		benefitsSection.style.marginTop = '32px';
+		// Margin handled by CSS class
 		benefitsSection.createEl('h3', { text: 'Supernova Benefits' });
 		benefitsSection.createEl('hr', { cls: 'nova-section-divider' });
 		
@@ -305,8 +305,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 		
 		// License settings section - styled like API keys
-		const licenseSection = container.createDiv({ cls: 'nova-provider-section' });
-		licenseSection.style.marginTop = '32px';
+		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
 		licenseSection.createEl('h3', { text: 'License Management' });
 		
 		this.createSupernovaLicenseInput(licenseSection);
@@ -404,10 +403,8 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		setting.addText(text => {
 			text.inputEl.type = 'password';
-			text.inputEl.style.fontFamily = 'var(--font-monospace)';
-			text.inputEl.style.width = '400px';
-			text.inputEl.style.height = '40px';
-			text.inputEl.style.position = 'relative';
+			// Font family now handled by CSS class
+			text.inputEl.addClass('nova-api-input');
 			text.setPlaceholder(options.placeholder);
 
 			// Set initial display value
@@ -421,7 +418,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Create toggle button
 			const inputContainer = text.inputEl.parentElement;
 			if (inputContainer) {
-				inputContainer.style.position = 'relative';
+				inputContainer.addClass('nova-input-container');
 				
 				const toggleBtn = inputContainer.createEl('button', { cls: 'nova-toggle-btn' });
 				toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -571,7 +568,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Force enable and set initial state
 		button.disabled = false;
 		button.textContent = 'Testing...';
-		button.style.opacity = '0.6';
+		button.addClass('nova-button-testing');
 		
 		// Update provider status to testing
 		await this.updateProviderStatus(provider, 'testing', 'Testing connection...');
@@ -583,7 +580,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		const restoreButton = () => {
 			button.disabled = false;
 			button.textContent = originalText;
-			button.style.opacity = '1';
+			button.removeClass('nova-button-testing');
+			button.addClass('nova-button-ready');
 		};
 		
 		const backupTimer = setTimeout(restoreButton, 12000); // 12 second backup
@@ -898,7 +896,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								
 								if (isSupernova) {
 									this.showLicenseMessage('Valid Supernova license! You now have early access to new features.', 'success');
-									this.showConfetti();
+									// Confetti animation removed
 								} else {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
 								}
@@ -995,9 +993,9 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 						
-						// Show confetti when turning ON Force Supernova
+						// Confetti animation removed when turning ON Force Supernova
 						if (value) {
-							this.showConfetti();
+							// Confetti animation removed
 						}
 						
 						// Refresh sidebar to update feature availability
@@ -1073,68 +1071,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		}, 5000);
 	}
 
-	private showConfetti() {
-		// Create confetti container
-		const confettiContainer = document.createElement('div');
-		confettiContainer.className = 'nova-confetti-container';
-		document.body.appendChild(confettiContainer);
-
-		// Get settings container position for explosion center
-		const rect = this.containerEl.getBoundingClientRect();
-		const centerX = rect.left + rect.width / 2;
-		const centerY = rect.top + Math.min(rect.height / 2, 300);
-
-		// Colors for confetti
-		const colors = ['gold', 'blue', 'pink', 'green', 'red', ''];  // empty string = default purple
-
-		// Create confetti pieces
-		for (let i = 0; i < 150; i++) {
-			const confetti = document.createElement('div');
-			confetti.className = `nova-confetti-piece ${colors[Math.floor(Math.random() * colors.length)]}`;
-			
-			// Position at explosion center
-			confetti.style.left = `${centerX}px`;
-			confetti.style.top = `${centerY}px`;
-			
-			// Calculate explosion trajectory
-			const angle = (Math.PI * 2 * i) / 150 + (Math.random() * 0.2 - 0.1);
-			const velocity = 250 + Math.random() * 350; // pixels
-			const explodeX = Math.cos(angle) * velocity;
-			const explodeY = Math.sin(angle) * velocity - 150; // Strong upward bias
-			
-			// Set CSS custom properties for animation
-			confetti.style.setProperty('--explode-x', `${explodeX}px`);
-			confetti.style.setProperty('--explode-y', `${explodeY}px`);
-			
-			// Random delay for staggered explosion
-			confetti.style.animationDelay = `${Math.random() * 0.2}s`;
-			
-			// Random size
-			const size = 6 + Math.random() * 14;
-			confetti.style.width = `${size}px`;
-			confetti.style.height = `${size}px`;
-			
-			// Make some confetti rectangular
-			if (Math.random() > 0.5) {
-				confetti.style.height = `${size * 0.4}px`;
-			}
-			
-			confettiContainer.appendChild(confetti);
-		}
-
-		// Remove container after animation completes
-		setTimeout(() => {
-			confettiContainer.remove();
-		}, 4000);
-	}
 
 	private createGeneralSettings(containerEl = this.containerEl) {
 		// Core Settings section with clean header
 		const coreSection = containerEl.createDiv({ cls: 'nova-core-settings-section' });
 		coreSection.createEl('h3', { text: 'Core Settings' });
 		
-		// Add section spacing per specification
-		coreSection.style.marginBottom = '32px';
+		// Section spacing handled by CSS class
 
 		new Setting(coreSection)
 			.setName('Default Temperature')
@@ -1312,8 +1255,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Base URL')
 			.setDesc('Ollama server URL')
 			.addText(text => {
-				text.inputEl.style.width = '350px';
-				text.inputEl.style.height = '40px';
+				text.inputEl.addClass('nova-api-input-medium');
 				return text
 					.setPlaceholder('http://localhost:11434')
 					.setValue(this.plugin.settings.aiProviders.ollama.baseUrl || '')
@@ -1330,8 +1272,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Model')
 			.setDesc('Ollama model to use')
 			.addText(text => {
-				text.inputEl.style.width = '200px';
-				text.inputEl.style.height = '40px';
+				text.inputEl.addClass('nova-api-input-small');
 				return text
 					.setPlaceholder('llama2')
 					.setValue(this.plugin.settings.aiProviders.ollama.model || '')
@@ -1346,8 +1287,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setDesc('Context window size for all Ollama models (Nova defaults to 32K vs Ollama\'s 2K)')
 			.addText(text => {
 				text.inputEl.type = 'number';
-				text.inputEl.style.width = '150px';
-				text.inputEl.style.height = '40px';
+				text.inputEl.addClass('nova-api-input-tiny');
 				return text
 					.setPlaceholder('32000')
 					.setValue((this.plugin.settings.aiProviders.ollama?.contextSize || 32000).toString())
@@ -1462,7 +1402,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Add new command button at the top
 		const buttonEl = containerEl.createDiv({ cls: 'nova-add-command' });
-		buttonEl.style.cssText = 'margin-bottom: 16px;';
+		buttonEl.addClass('nova-custom-section-button');
 		
 		new Setting(buttonEl)
 			.addButton(button => 
@@ -1497,45 +1437,34 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		commands.forEach((command, index) => {
 			const commandEl = commandsList.createDiv({ cls: 'nova-command-item' });
-			commandEl.style.cssText = `
-				border: 1px solid var(--background-modifier-border);
-				border-radius: 8px;
-				padding: 16px;
-				margin-bottom: 12px;
-				background: var(--background-primary);
-			`;
 
 			// Command header
 			const headerEl = commandEl.createDiv({ cls: 'nova-command-header' });
-			headerEl.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;';
 
 			const infoEl = headerEl.createDiv({ cls: 'nova-command-info' });
 			
 			const nameEl = infoEl.createDiv({ cls: 'nova-command-name' });
 			nameEl.textContent = command.name;
-			nameEl.style.cssText = 'font-weight: 600; margin-bottom: 4px;';
 
 			const triggerEl = infoEl.createDiv({ cls: 'nova-command-trigger' });
 			triggerEl.innerHTML = `<code>:${command.trigger}</code>`;
-			triggerEl.style.cssText = 'font-family: var(--font-monospace); color: var(--interactive-accent); font-size: 0.9em;';
 
 			// Actions
 			const actionsEl = headerEl.createDiv({ cls: 'nova-command-actions' });
-			actionsEl.style.cssText = 'display: flex; gap: 8px;';
 
 			const editBtn = actionsEl.createEl('button', { text: 'Edit' });
-			editBtn.style.cssText = 'padding: 4px 8px; font-size: 0.8em; border-radius: 4px;';
+			editBtn.addClass('nova-command-edit-btn');
 			editBtn.onclick = () => this.showEditCommandDialog(index);
 
 			const deleteBtn = actionsEl.createEl('button', { text: 'Delete' });
-			deleteBtn.style.cssText = 'padding: 4px 8px; font-size: 0.8em; border-radius: 4px; background: var(--background-modifier-error); color: var(--text-on-accent);';
+			deleteBtn.addClass('nova-command-delete-btn');
 			deleteBtn.onclick = () => this.deleteCommand(index);
 
 			// Description and template preview
 			if (command.description) {
 				const descEl = commandEl.createDiv({ cls: 'nova-command-desc' });
 				descEl.textContent = command.description;
-				descEl.style.cssText = 'color: var(--text-muted); font-size: 0.9em; margin-bottom: 8px;';
+				descEl.addClass('nova-command-description');
 			}
 
 			const templateEl = commandEl.createDiv({ cls: 'nova-command-template' });
@@ -1627,8 +1556,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createQuickStartGuide(container: HTMLElement): void {
-		const guideSection = container.createDiv({ cls: 'nova-quick-start-section' });
-		guideSection.style.marginTop = '32px';
+		const guideSection = container.createDiv({ cls: 'nova-quick-start-section nova-guide-section' });
 		
 		// Selection-Based Editing
 		const selectionCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
@@ -1649,8 +1577,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 
 		// Chat Commands
-		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
-		chatCard.style.marginTop = '24px';
+		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-chat-card' });
 		chatCard.innerHTML = `
 			<div class="nova-card-header">
 				<span class="nova-card-icon">💬</span>
@@ -1667,8 +1594,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		`;
 
 		// AI Provider Selection
-		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
-		providerCard.style.marginTop = '24px';
+		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-provider-card' });
 		providerCard.innerHTML = `
 			<div class="nova-card-header">
 				<span class="nova-card-icon">🤖</span>
@@ -1787,8 +1713,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Add validation status message if needed
 		const validationEl = container.createDiv({ cls: 'nova-validation-status' });
-		validationEl.style.marginTop = '8px';
-		validationEl.style.fontSize = '0.9em';
+		validationEl.addClass('nova-validation-element');
 	}
 
 	private createSupernovaCTA(container: HTMLElement, options: {
@@ -1824,8 +1749,14 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Create the CTA section
 		const ctaSection = container.createDiv({ cls: 'nova-prominent-supernova-section' });
-		ctaSection.style.marginTop = marginTop;
-		ctaSection.style.marginBottom = marginBottom;
+		// Apply dynamic margin class based on size
+		if (marginTop === '32px' && marginBottom === '24px') {
+			ctaSection.addClass('nova-cta-section-large');
+		} else if (marginTop === '24px' && marginBottom === '16px') {
+			ctaSection.addClass('nova-cta-section-medium');
+		} else {
+			ctaSection.addClass('nova-cta-section-small');
+		}
 		
 		ctaSection.innerHTML = `
 			<div class="nova-supernova-cta">
@@ -1857,8 +1788,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createNavigationHelp(container: HTMLElement): void {
-		const navSection = container.createDiv({ cls: 'nova-navigation-section' });
-		navSection.style.marginTop = '32px';
+		const navSection = container.createDiv({ cls: 'nova-navigation-section nova-nav-section' });
 		
 		const navCard = navSection.createDiv({ cls: 'nova-navigation-card' });
 		navCard.innerHTML = `
