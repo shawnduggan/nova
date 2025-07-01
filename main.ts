@@ -172,7 +172,7 @@ export default class NovaPlugin extends Plugin {
 			});
 
 			this.addCommand({
-				id: 'nova-tell-nova',
+				id: 'tell-assistant',
 				name: 'Tell Nova...',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('custom', editor);

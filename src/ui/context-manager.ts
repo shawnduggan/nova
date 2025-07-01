@@ -61,35 +61,11 @@ export class ContextManager {
 	}
 
 	createContextIndicator(): void {
-		this.contextIndicator = this.container.createDiv({ cls: 'nova-context-indicator' });
-		this.contextIndicator.style.cssText = `
-			position: absolute;
-			top: -2px;
-			right: var(--size-4-3);
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			padding: var(--size-2-1) var(--size-2-2);
-			font-size: var(--font-ui-smaller);
-			color: var(--text-muted);
-			display: none;
-			z-index: 100;
-			max-width: 200px;
-			box-shadow: var(--shadow-s);
-		`;
+		this.contextIndicator = this.container.createDiv({ cls: 'nova-context-indicator nova-context-indicator-positioned' });
 	}
 
 	createContextPreview(): HTMLElement {
 		const previewContainer = this.container.createDiv({ cls: 'nova-context-preview' });
-		previewContainer.style.cssText = `
-			background: var(--background-modifier-hover);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			padding: var(--size-2-2) var(--size-2-3);
-			margin-bottom: var(--size-2-2);
-			font-size: var(--font-ui-small);
-			display: none;
-		`;
 
 		const previewLabel = previewContainer.createSpan({ text: 'Context: ', cls: 'nova-preview-label' });
 
@@ -370,8 +346,8 @@ export class ContextManager {
 		// Save to conversation manager for persistence
 		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
 		
-		if (currentFile && currentFile.path && this.plugin.conversationManager) {
-			await this.plugin.conversationManager.addContextDocument(currentFile as TFile, file.path);
+		if (currentFile instanceof TFile && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.addContextDocument(currentFile, file.path);
 		}
 		
 		// Refresh context and indicator
@@ -396,8 +372,8 @@ export class ContextManager {
 		
 		// Save to conversation manager for persistence
 		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
-		if (currentFile && currentFile.path && this.plugin.conversationManager) {
-			await this.plugin.conversationManager.removeContextDocument(currentFile as TFile, file.path);
+		if (currentFile instanceof TFile && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.removeContextDocument(currentFile, file.path);
 		}
 		
 		// Refresh context and indicator
@@ -658,7 +634,7 @@ export class ContextManager {
 	private async schedulePersistenceUpdate(conversationFilePath: string, references: DocumentReference[]): Promise<void> {
 		// Run async save in background
 		const conversationFile = this.app.vault.getAbstractFileByPath(conversationFilePath);
-		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
+		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
 			// Convert DocumentReferences to ContextDocumentRefs
 			const contextRefs = references.map(ref => ({
 				path: ref.file.path,
@@ -667,7 +643,7 @@ export class ContextManager {
 			}));
 			
 			// Save all context documents
-			await this.plugin.conversationManager.setContextDocuments(conversationFile as TFile, contextRefs);
+			await this.plugin.conversationManager.setContextDocuments(conversationFile, contextRefs);
 		}
 	}
 
@@ -915,8 +891,8 @@ export class ContextManager {
 			
 			// Get conversation history for current file
 			if (this.currentFilePath && this.plugin.conversationManager) {
-				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath) as TFile;
-				if (currentFile) {
+				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+				if (currentFile instanceof TFile) {
 					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
 					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
 				}
@@ -950,8 +926,8 @@ export class ContextManager {
 		
 		// Also clear from conversation manager
 		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
-		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
-			await this.plugin.conversationManager.clearContextDocuments(conversationFile as TFile);
+		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.clearContextDocuments(conversationFile);
 		}
 	}
 
@@ -977,8 +953,8 @@ export class ContextManager {
 		
 		// Also remove from conversation manager
 		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
-		if (conversationFile && conversationFile.path && this.plugin.conversationManager) {
-			await this.plugin.conversationManager.removeContextDocument(conversationFile as TFile, docToRemove);
+		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
+			await this.plugin.conversationManager.removeContextDocument(conversationFile, docToRemove);
 		}
 	}
 

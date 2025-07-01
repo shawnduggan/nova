@@ -183,7 +183,8 @@ export class StreamingManager {
             
             // Show initial state with 1 dot immediately
             const initialNoticeText = `Nova: ${randomPhrase}.`;
-            const noticeEl = (this.thinkingNotice as any).noticeEl;
+            const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };
+            const noticeEl = noticeWithEl.noticeEl;
             if (noticeEl) {
                 noticeEl.textContent = initialNoticeText;
             }
@@ -364,7 +365,8 @@ export class StreamingManager {
                 const noticeText = `Nova: ${currentPhrase}${dots}`;
                 
                 // Update notice text directly
-                const noticeEl = (this.thinkingNotice as any).noticeEl;
+                const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };
+            const noticeEl = noticeWithEl.noticeEl;
                 if (noticeEl) {
                     noticeEl.textContent = noticeText;
                 }
@@ -448,7 +450,7 @@ export class StreamingManager {
         actionType: ActionType,
         streamingCallback: (chunk: string, isComplete: boolean) => void,
         options: StreamingOptions = {}
-    ): Promise<void> {
+    ): Promise<(chunk: string, isComplete: boolean) => void> {
         // Set animation mode to 'notice' for selection operations
         const selectionOptions = { ...options, animationMode: 'notice' as const };
         
@@ -475,6 +477,6 @@ export class StreamingManager {
         };
 
         // Return the wrapped callback for external use
-        return wrappedCallback as any;
+        return wrappedCallback;
     }
 }

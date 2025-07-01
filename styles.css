@@ -394,6 +394,28 @@
     transition: all 0.2s ease;
     padding: 4px 8px; /* Compact padding for file drawer */
     font-size: 0.8em; /* Smaller text to match bubble consistency */
+    display: none; /* Hidden by default */
+    visibility: hidden;
+}
+
+.nova-context-indicator.show {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Context indicator positioning when created by context-manager */
+.nova-context-indicator-positioned {
+    position: relative;
+    width: calc(100% - 2 * var(--size-4-3));
+    margin: 0 var(--size-4-3) var(--size-2-2) var(--size-4-3);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: var(--size-2-1) var(--size-2-2);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    z-index: 100;
+    box-shadow: var(--shadow-s);
 }
 
 .nova-context-indicator .nova-context-main {
@@ -431,13 +453,17 @@
     border-color: var(--text-warning) !important;
 }
 
-/* License Settings Styles */
+/* License Settings Styles - match benefits section plain styling */
 .nova-license-section {
     margin-bottom: 2em;
+}
+
+/* Base info card style for Getting Started and other sections */
+.nova-info-card {
     padding: 1em;
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
-    background: var(--background-secondary);
+    margin-bottom: 1em;
 }
 
 .nova-info-card.compact {
@@ -535,6 +561,70 @@
 
 .license-expiry {
     color: var(--text-muted);
+}
+
+/* Supernova Feature Notice */
+.nova-feature-notice .nova-feature-card {
+    padding: 16px;
+    background: var(--background-modifier-hover);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.nova-feature-notice .nova-feature-title {
+    margin: 0 0 8px 0;
+    color: var(--text-normal);
+}
+
+.nova-feature-notice .nova-feature-description {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+/* Command Description */
+.nova-command-description p {
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+/* Empty Commands State */
+.nova-commands-empty .nova-empty-container {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+}
+
+.nova-commands-empty .nova-empty-help {
+    font-size: 0.9em;
+}
+
+/* Command Template Display */
+.nova-command-template .nova-template-container {
+    background: var(--background-modifier-hover);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: var(--font-monospace);
+    font-size: 0.8em;
+    white-space: pre-wrap;
+    max-height: 60px;
+    overflow-y: auto;
+}
+
+/* Benefits Content */
+.nova-benefits-content .nova-benefits-intro {
+    margin-bottom: 20px;
+}
+
+.nova-benefits-content .nova-benefits-closing {
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+/* License Badge Custom Colors */
+.nova-license-badge.custom-color {
+    /* Colors set via JavaScript for custom badges */
 }
 
 /* Enhanced License Validation Display */
@@ -969,12 +1059,15 @@
 }
 
 .nova-message-user {
-    margin-left: auto;
+    margin-left: auto !important;
+    margin-right: 0 !important;
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
-    max-width: 80%;
+    max-width: 80% !important;
+    width: auto !important;
+    display: block !important;
     font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
     font-weight: 400; /* Less prominent weight */
 }
@@ -988,12 +1081,15 @@
 }
 
 .nova-message-assistant {
-    margin-right: auto;
+    margin-right: auto !important;
+    margin-left: 0 !important;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     padding: var(--size-4-2) var(--size-4-3);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
-    max-width: 80%;
+    max-width: 80% !important;
+    width: auto !important;
+    display: block !important;
     font-size: var(--font-text-size); /* Match document text size */
     font-weight: 400; /* Normal weight */
 }
@@ -1395,7 +1491,6 @@
 }
 
 .nova-quick-start-card {
-    background: var(--background-secondary);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
     padding: 16px;
@@ -1534,7 +1629,6 @@
 }
 
 .nova-navigation-card {
-    background: var(--background-secondary);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
     padding: 16px;
@@ -1895,14 +1989,16 @@
 .nova-provider-dropdown-menu {
     position: absolute;
     top: 100%;
-    right: 0;
-    min-width: 150px;
+    left: 0;
+    min-width: 250px;
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
     box-shadow: var(--shadow-s);
     z-index: 1000;
     overflow: hidden;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .nova-provider-dropdown-item {
@@ -2398,22 +2494,20 @@
     margin-bottom: 12px !important; /* Match message spacing */
 }
 
-/* Unified message bubble styling for desktop */
+/* Unified message bubble styling for desktop - restore proper chat alignment */
 .is-desktop .nova-message-user,
 .is-desktop .nova-message-assistant {
     border-radius: var(--radius-m) !important; /* Consistent corner radius */
-    margin-left: 16px !important; /* Consistent horizontal margins */
-    margin-right: 16px !important;
-    max-width: calc(100% - 32px) !important; /* Account for horizontal margins */
+    max-width: 80% !important; /* Restore 80% width for proper chat flow */
 }
 
 .is-desktop .nova-message-user {
     margin-left: auto !important;
-    margin-right: 16px !important;
+    margin-right: 0 !important;
 }
 
 .is-desktop .nova-message-assistant {
-    margin-left: 16px !important;
+    margin-left: 0 !important;
     margin-right: auto !important;
 }
 
@@ -2434,14 +2528,20 @@
 
 /* Context Preview Styles */
 .nova-context-preview {
-    background: rgba(var(--interactive-accent-rgb), 0.1);
-    border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+    background: var(--background-modifier-hover);
+    border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
-    font-size: var(--font-text-size); /* Match conversation text size */
+    padding: var(--size-2-2) var(--size-2-3);
+    margin-bottom: var(--size-2-2);
+    font-size: var(--font-ui-small);
     color: var(--text-muted);
     transition: all 0.2s ease;
     animation: slideIn 0.2s ease-out;
-    padding: 6px 10px; /* Reduced padding */
+    display: none;
+}
+
+.nova-context-preview.show {
+    display: block;
 }
 
 /* Mobile context preview optimization */
@@ -2755,9 +2855,17 @@
     background: var(--background-primary);
     border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
     border-radius: 6px;
-    z-index: 1000;
+    z-index: 1001;
     margin-bottom: 2px;
     overflow-y: auto;
+    display: none;
+    box-shadow: var(--shadow-s);
+    width: 100%;
+}
+
+.nova-context-expanded.show {
+    display: block !important;
+    visibility: visible !important;
 }
 
 .nova-context-expanded:not(.is-mobile) {
@@ -2766,16 +2874,14 @@
     right: 0;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     max-height: 200px;
-    min-width: auto;
 }
 
 .is-mobile .nova-context-expanded {
     bottom: 100%;
-    left: -8px;
-    right: -8px;
+    left: 0;
+    right: 0;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
     max-height: 60vh;
-    min-width: 100%;
 }
 
 .nova-context-expanded-header {
@@ -2825,6 +2931,10 @@
 
 .nova-context-doc-item:hover {
     background: var(--background-modifier-hover);
+}
+
+.nova-context-doc-item.last-item {
+    border-bottom: none;
 }
 
 .nova-context-doc-info {
@@ -2997,8 +3107,9 @@
 .nova-dropdown-menu {
     position: absolute;
     top: 100%;
-    left: 0;
+    left: auto;
     right: 0;
+    min-width: 250px;
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
@@ -3034,21 +3145,20 @@
 
 .nova-dropdown-section-header {
     padding: var(--size-2-2) var(--size-2-3);
-    font-size: var(--font-ui-smaller);
+    font-size: var(--font-ui-small);
     font-weight: 600;
     color: var(--text-muted);
     background: var(--background-modifier-form-field);
     border-bottom: 1px solid var(--background-modifier-border);
     display: flex;
     align-items: center;
-    gap: var(--size-2-1);
+    gap: var(--size-2-2);
 }
 
 .nova-dropdown-section-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: currentColor;
     flex-shrink: 0;
 }
 
@@ -3081,6 +3191,7 @@
     width: 100%;
     text-align: left;
     font-size: var(--font-ui-medium);
+    white-space: nowrap;
 }
 
 .nova-dropdown-item:not(.is-mobile) {
@@ -3104,6 +3215,16 @@
     flex-shrink: 0;
 }
 
+/* Provider color coding */
+.nova-dropdown-item-dot[data-provider="claude"],
+.nova-dropdown-section-dot[data-provider="claude"] { background-color: #e17055; }
+.nova-dropdown-item-dot[data-provider="openai"],
+.nova-dropdown-section-dot[data-provider="openai"] { background-color: #10a37f; }
+.nova-dropdown-item-dot[data-provider="google"],
+.nova-dropdown-section-dot[data-provider="google"] { background-color: #4285f4; }
+.nova-dropdown-item-dot[data-provider="ollama"],
+.nova-dropdown-section-dot[data-provider="ollama"] { background-color: #ff6b35; }
+
 .nova-dropdown-item-text {
     flex: 1;
     font-weight: 500;
@@ -3114,6 +3235,44 @@
     width: 16px;
     height: 16px;
     color: var(--interactive-accent);
+    flex-shrink: 0;
+}
+
+/* Current model highlighting */
+.nova-dropdown-item.is-current-model {
+    background: var(--background-modifier-hover);
+}
+
+/* Model dropdown item styling */
+.nova-model-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+    padding: var(--size-2-2) var(--size-2-3);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: var(--font-ui-smaller);
+    white-space: nowrap;
+}
+
+.nova-model-dropdown-item:hover {
+    background: var(--background-modifier-border-hover);
+}
+
+.nova-model-dropdown-item.is-mobile {
+    padding: var(--size-2-3) var(--size-2-4);
+    min-height: 44px;
+}
+
+/* Provider color dot styling - CSS cannot use attr() for colors, need JavaScript */
+.nova-dropdown-item-dot[data-provider-color] {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     flex-shrink: 0;
 }
 
@@ -3317,7 +3476,8 @@
 }
 
 .nova-drop-zone-overlay.active {
-    opacity: 0.1;
+    opacity: 0.95;
+    background: rgba(var(--interactive-accent-rgb), 0.15);
 }
 
 /* Provider Manager Styles */
@@ -3470,24 +3630,35 @@
 .nova-context-indicator-dynamic {
     display: flex;
     position: relative;
-    padding: 8px 12px;
-    margin-bottom: 4px;
+    width: calc(100% - 2 * var(--size-4-3));
+    margin: 0 var(--size-4-3) 8px var(--size-4-3);
+    padding: 6px 10px;
     background: rgba(var(--interactive-accent-rgb), 0.1);
     border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
     border-radius: 6px;
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: var(--text-muted);
     transition: all 0.2s ease;
     cursor: pointer;
+    z-index: auto;
+}
+
+.nova-context-indicator-dynamic.drawer-open {
+    z-index: 1001;
 }
 
 .is-mobile .nova-context-indicator-dynamic {
-    padding: 12px 16px;
-    font-size: 0.9em;
+    padding: 8px 12px;
+    font-size: 0.8em;
 }
 
 .nova-context-indicator-dynamic:not(.show) {
-    display: none;
+    display: none !important;
+}
+
+.nova-context-indicator-dynamic.show {
+    display: flex !important;
+    visibility: visible !important;
 }
 
 .nova-context-summary {

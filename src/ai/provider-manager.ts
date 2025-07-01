@@ -251,8 +251,8 @@ export class AIProviderManager {
 		}
 
 		// Check if provider has getAvailableModels method
-		if ('getAvailableModels' in provider && typeof provider.getAvailableModels === 'function') {
-			return await (provider as any).getAvailableModels();
+		if (provider.getAvailableModels) {
+			return await provider.getAvailableModels();
 		}
 
 		// For providers without API model listing (like Ollama), return empty array
@@ -269,8 +269,8 @@ export class AIProviderManager {
 		}
 
 		// Check if provider has clearModelCache method
-		if ('clearModelCache' in provider && typeof provider.clearModelCache === 'function') {
-			(provider as any).clearModelCache();
+		if (provider.clearModelCache) {
+			provider.clearModelCache();
 		}
 	}
 

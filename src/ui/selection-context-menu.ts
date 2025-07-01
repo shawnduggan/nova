@@ -8,6 +8,7 @@ import NovaPlugin from '../../main';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
+import { NovaSidebarView } from './sidebar-view';
 import { StreamingManager, ActionType } from './streaming-manager';
 
 export interface SelectionAction {
@@ -265,7 +266,8 @@ export class SelectionContextMenu {
     private startSelectionAnimation(editor: Editor): void {
         try {
             // Find the editor container in the DOM
-            const editorContainer = (editor as any).cm?.dom || document.querySelector('.cm-editor');
+            const editorWithCM = editor as Editor & { cm?: { dom: Element } };
+            const editorContainer = editorWithCM.cm?.dom || document.querySelector('.cm-editor');
             if (editorContainer) {
                 editorContainer.classList.add('nova-selection-processing');
             }
@@ -329,7 +331,7 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const sidebarView = leaves[0].view as any;
+                const sidebarView = leaves[0].view as NovaSidebarView;
                 if (sidebarView?.chatRenderer) {
                     const actionDescription = this.getActionDescription(actionId, customInstruction);
                     const truncatedText = originalText.length > 50 
@@ -355,7 +357,7 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const sidebarView = leaves[0].view as any;
+                const sidebarView = leaves[0].view as NovaSidebarView;
                 if (sidebarView?.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
                     const message = `✗ Failed to ${actionName.replace('ed', '')} text: ${errorMessage}`;

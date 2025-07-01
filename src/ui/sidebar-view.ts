@@ -34,7 +34,7 @@ export class NovaSidebarView extends ItemView {
 	private inputHandler!: InputHandler;
 	private commandSystem!: CommandSystem;
 	private contextManager!: ContextManager;
-	private chatRenderer!: ChatRenderer;
+	public chatRenderer!: ChatRenderer;
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
 	
@@ -88,8 +88,8 @@ export class NovaSidebarView extends ItemView {
 		this.plugin = plugin;
 		
 		// Listen for provider configuration events
-		this.registerDomEvent(document, 'nova-provider-configured' as any, this.handleProviderConfigured.bind(this));
-		this.registerDomEvent(document, 'nova-provider-disconnected' as any, this.handleProviderDisconnected.bind(this));
+		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
+		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
 	}
 
 	getViewType() {
@@ -140,17 +140,12 @@ export class NovaSidebarView extends ItemView {
 		
 		// Left side: Title with Nova icon
 		const titleEl = topRowEl.createEl('h4', { cls: 'nova-header-title' });
-		titleEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: var(--icon-size); height: var(--icon-size);">
-			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-		</svg>Nova`;
+		
+		// Use setIcon for the Nova icon (simpler and more reliable)
+		const iconEl = titleEl.createSpan();
+		setIcon(iconEl, 'star');
+		
+		titleEl.createSpan({ text: ' Nova' });
 		
 		// Right side: Provider status and Clear button
 		const rightContainer = topRowEl.createDiv({ cls: 'nova-header-right-container' });
@@ -160,6 +155,7 @@ export class NovaSidebarView extends ItemView {
 		this.updatePrivacyIndicator(privacyIndicator);
 		
 		// Store reference for updates
+		// TODO: Replace with proper class property in future refactor
 		(this as any).privacyIndicator = privacyIndicator;
 		
 		// All users can switch providers freely
@@ -264,6 +260,7 @@ export class NovaSidebarView extends ItemView {
 
 	async onClose() {
 		// Clean up provider dropdown event listener
+		// TODO: Replace with proper class property in future refactor
 		if ((this as any).currentProviderDropdown?.cleanup) {
 			(this as any).currentProviderDropdown.cleanup();
 		}
@@ -686,7 +683,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Header
 		const headerEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-header nova-panel-header' });
-		headerEl.innerHTML = this.createInlineIcon('zap') + ' Commands';
+		const iconEl = headerEl.createSpan();
+		setIcon(iconEl, 'zap');
+		headerEl.createSpan({ text: ' Commands' });
 
 		// Commands list
 		commands.forEach(command => {
@@ -760,7 +759,9 @@ export class NovaSidebarView extends ItemView {
 		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview nova-context-preview-container' });
 
 		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text nova-preview-text' });
-		previewText.innerHTML = this.createInlineIcon('book-open') + ' Context will include: ';
+		const iconEl = previewText.createSpan();
+		setIcon(iconEl, 'book-open');
+		previewText.createSpan({ text: ' Context will include: ' });
 
 		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-list' });
 
@@ -943,14 +944,14 @@ export class NovaSidebarView extends ItemView {
 		const filenamePartEl = summaryTextEl.createSpan({ cls: 'nova-context-filename-part' });
 		// Create icon and text as separate elements for proper flex alignment
 		const iconSpan = filenamePartEl.createSpan({ cls: 'nova-context-icon-span' });
-		iconSpan.innerHTML = this.createInlineIcon('book-open');
+		setIcon(iconSpan, 'book-open');
 		
 		const textSpan = filenamePartEl.createSpan({ cls: 'nova-context-text-span' });
 		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
 		
 		// Mobile-friendly more menu indicator
 		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
-		expandIndicatorEl.innerHTML = this.createInlineIcon('more-horizontal', isMobile ? '16px' : '14px'); // More menu indicator
+		setIcon(expandIndicatorEl, 'more-horizontal'); // More menu indicator
 		if (isMobile) {
 			expandIndicatorEl.addClass('is-mobile');
 		}
@@ -972,7 +973,6 @@ export class NovaSidebarView extends ItemView {
 		// Expanded state - mobile-responsive overlay
 		const expandedEl = this.contextIndicator.createDiv({ cls: 'nova-context-expanded' });
 		expandedEl.addClass('nova-context-expanded');
-		expandedEl.style.display = 'none';
 		if (isMobile) {
 			expandedEl.addClass('is-mobile');
 		}
@@ -985,7 +985,9 @@ export class NovaSidebarView extends ItemView {
 		}
 		
 		const headerTitleEl = expandedHeaderEl.createSpan();
-		headerTitleEl.innerHTML = this.createInlineIcon('book-open') + ` Documents (${allDocs.length})`;
+		const titleIconEl = headerTitleEl.createSpan();
+		setIcon(titleIconEl, 'book-open');
+		headerTitleEl.createSpan({ text: ` Documents (${allDocs.length})` });
 		headerTitleEl.addClass('nova-context-header-title');
 		
 		// Clear all button using Obsidian trash icon
@@ -1028,14 +1030,14 @@ export class NovaSidebarView extends ItemView {
 				docItemEl.addClass('is-mobile');
 			}
 			if (index >= allDocs.length - 1) {
-				docItemEl.style.borderBottom = 'none';
+				docItemEl.addClass('last-item');
 			}
 			
 			const docInfoEl = docItemEl.createDiv({ cls: 'nova-context-doc-info' });
 			docInfoEl.addClass('nova-context-doc-info');
 			
 			const iconEl = docInfoEl.createSpan();
-			iconEl.innerHTML = this.createInlineIcon('file-text');
+			setIcon(iconEl, 'file-text');
 			iconEl.addClass('nova-context-doc-icon');
 			
 			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
@@ -1083,7 +1085,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Drawer always starts closed on file switch (transient state)
 		this.isDrawerOpen = false;
-		expandedEl.style.display = 'none';
+		expandedEl.removeClass('show');
 
 		// Click to expand management overlay
 		// Using class property to persist state across updates
@@ -1093,11 +1095,11 @@ export class NovaSidebarView extends ItemView {
 			this.isDrawerOpen = !this.isDrawerOpen;
 			
 			if (this.isDrawerOpen) {
-				expandedEl.style.display = 'block';
-				this.contextIndicator.style.zIndex = '1001';
+				expandedEl.addClass('show');
+				this.contextIndicator.addClass('drawer-open');
 			} else {
-				expandedEl.style.display = 'none';
-				this.contextIndicator.style.zIndex = 'auto';
+				expandedEl.removeClass('show');
+				this.contextIndicator.removeClass('drawer-open');
 			}
 		};
 		
@@ -1108,8 +1110,8 @@ export class NovaSidebarView extends ItemView {
 		this.contextDrawerCloseHandler = (e: Event) => {
 			if (this.isDrawerOpen && !this.contextIndicator.contains(e.target as Node)) {
 				this.isDrawerOpen = false;
-				expandedEl.style.display = 'none';
-				this.contextIndicator.style.zIndex = 'auto';
+				expandedEl.removeClass('show');
+				this.contextIndicator.removeClass('drawer-open');
 			}
 		};
 		
@@ -1239,6 +1241,7 @@ export class NovaSidebarView extends ItemView {
 		}
 		
 		// Disable send button during processing
+		// TODO: Add public getter method to InputHandler for sendButton access
 		const sendButton = (this.inputHandler as any).sendButton;
 		if (sendButton) sendButton.setDisabled(true);
 
@@ -1246,6 +1249,7 @@ export class NovaSidebarView extends ItemView {
 			// Store user message in conversation (will be restored via loadConversationHistory)
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
+				// TODO: Define proper type for metadata parameter instead of null as any
 				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null as any);
 				
 				// Add user message to UI immediately after persistence
@@ -1258,14 +1262,12 @@ export class NovaSidebarView extends ItemView {
 			
 			// Create animated nova burst
 			const novaContainer = loadingEl.createDiv({ cls: 'nova-burst-container' });
-			novaContainer.innerHTML = `
-				<div class="nova-burst">
-					<div class="nova-core"></div>
-					<div class="nova-ring nova-ring-1"></div>
-					<div class="nova-ring nova-ring-2"></div>
-					<div class="nova-ring nova-ring-3"></div>
-				</div>
-			`;
+			// Create animated nova burst using DOM API
+			const novaBurst = novaContainer.createDiv({ cls: 'nova-burst' });
+			novaBurst.createDiv({ cls: 'nova-core' });
+			novaBurst.createDiv({ cls: 'nova-ring nova-ring-1' });
+			novaBurst.createDiv({ cls: 'nova-ring nova-ring-2' });
+			novaBurst.createDiv({ cls: 'nova-ring nova-ring-3' });
 			
 			// Use AI to classify the user's intent first to get contextual phrase
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1398,7 +1400,8 @@ USER REQUEST: ${processedMessage}`;
 			this.addErrorMessage(displayMessage);
 		} finally {
 			// Re-enable send button
-			const sendButton = (this.inputHandler as any).sendButton;
+			// TODO: Add public getter method to InputHandler for sendButton access
+		const sendButton = (this.inputHandler as any).sendButton;
 			if (sendButton) sendButton.setDisabled(false);
 			// Refresh context indicator to show persistent documents
 			await this.refreshContext();
@@ -1408,6 +1411,7 @@ USER REQUEST: ${processedMessage}`;
 	async insertTextIntoActiveNote(text: string) {
 		const activeView = this.app.workspace.getActiveViewOfType(ItemView);
 		if (activeView && 'editor' in activeView) {
+			// TODO: Add proper type guard for MarkdownView with editor property
 			const editor = (activeView as any).editor;
 			if (editor) {
 				const cursor = editor.getCursor();
@@ -1983,6 +1987,7 @@ USER REQUEST: ${processedMessage}`;
 			await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt);
 			
 			if (activeFile) {
+				// TODO: Define proper type for metadata parameter instead of object as any
 				await this.plugin.conversationManager.addAssistantMessage(activeFile, 'AI response', { success: true, editType: 'none' } as any);
 			}
 		}
@@ -1997,6 +2002,7 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async updateSendButtonState(): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
+		// TODO: Add public getter method to InputHandler for sendButton access
 		const sendButton = (this.inputHandler as any).sendButton;
 		if (sendButton) sendButton.setDisabled(!currentProviderType);
 	}
@@ -2195,6 +2201,7 @@ USER REQUEST: ${processedMessage}`;
 		updateCurrentProvider();
 
 		// Store reference for cleanup and internal dropdown control
+		// TODO: Replace with proper class property and interface definition
 		(this as any).currentProviderDropdown = {
 			updateCurrentProvider,
 			closeDropdown: closeDropdownInternal,
@@ -2349,7 +2356,7 @@ USER REQUEST: ${processedMessage}`;
 				// Provider color dot in header
 				const headerDot = sectionHeader.createSpan();
 				headerDot.addClass('nova-dropdown-section-dot');
-				headerDot.style.background = providerColor;
+				headerDot.setAttribute('data-provider', providerType.toLowerCase());
 
 				sectionHeader.createSpan({ text: providerDisplayName });
 				hasAnyProviders = true;
@@ -2413,17 +2420,17 @@ USER REQUEST: ${processedMessage}`;
 	): void {
 		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
 		item.addClass('nova-dropdown-item');
-		if (isMobile) {
+		if (Platform.isMobile) {
 			item.addClass('is-mobile');
 		}
 		if (isCurrent) {
-			item.style.background = 'var(--background-modifier-hover)';
+			item.addClass('is-current-model');
 		}
 
 		// Provider color indicator (smaller dot)
 		const dot = item.createSpan();
 		dot.addClass('nova-dropdown-item-dot');
-		dot.style.background = providerColor;
+		dot.setAttribute('data-provider', providerType.toLowerCase());
 
 		// Model name only (no provider prefix)
 		const textSpan = item.createSpan({ text: modelDisplayName });
@@ -2433,7 +2440,6 @@ USER REQUEST: ${processedMessage}`;
 		if (isCurrent) {
 			const checkmark = item.createSpan({ text: '✓' });
 			checkmark.addClass('nova-dropdown-item-checkmark');
-			checkmark.style.color = providerColor;
 		}
 
 		// Click handler for single-click selection
@@ -2460,18 +2466,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 		});
 
-		// Hover effects
-		item.addEventListener('mouseenter', () => {
-			if (!isCurrent) {
-				item.style.background = 'var(--background-modifier-border-hover)';
-			}
-		});
-
-		item.addEventListener('mouseleave', () => {
-			if (!isCurrent) {
-				item.style.background = 'transparent';
-			}
-		});
+		// Hover effects are handled by CSS
 	}
 
 	/**
@@ -3032,7 +3027,8 @@ USER REQUEST: ${processedMessage}`;
 					this.chatRenderer.addWarningMessage("Current file is always in context and doesn't need to be added explicitly.", false);
 				} else {
 					// Check if already in persistent context (check both existing and newly added in this batch)
-					const exists = updatedPersistent.some(ref => ref.file.path === (file as TFile).path);
+					const filePath = file.path; // Store path to avoid null check issues in callback
+					const exists = updatedPersistent.some(ref => ref.file.path === filePath);
 					if (!exists) {
 						// Add to persistent context
 						updatedPersistent.push({
@@ -3169,6 +3165,7 @@ USER REQUEST: ${processedMessage}`;
 		}, 2000);
 		
 		// Store interval ID for cleanup
+		// TODO: Replace with WeakMap or proper state management for element data
 		(textEl as any).rotationInterval = rotationInterval;
 	}
 
@@ -3176,6 +3173,7 @@ USER REQUEST: ${processedMessage}`;
 	 * Stop phrase rotation animation and cleanup
 	 */
 	private stopThinkingPhraseRotation(textEl: HTMLElement): void {
+		// TODO: Replace with WeakMap or proper state management for element data
 		if ((textEl as any).rotationInterval) {
 			clearInterval((textEl as any).rotationInterval);
 			(textEl as any).rotationInterval = null;

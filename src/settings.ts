@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
+import { App, PluginSettingTab, Setting, Platform, setIcon } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
@@ -260,53 +260,36 @@ export class NovaSettingTab extends PluginSettingTab {
 		benefitsSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
-		benefitsContent.innerHTML = `
-			<p style="margin-bottom: 20px;">Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
-			
-			<div class="nova-benefits-list">
-				<div class="nova-benefit-item">
-					<span class="nova-benefit-icon">⚡</span>
-					<div class="nova-benefit-content">
-						<strong>Early Access</strong>
-						<span>Get new features 2-4 months before general release</span>
-					</div>
-				</div>
-				<div class="nova-benefit-item">
-					<span class="nova-benefit-icon">💬</span>
-					<div class="nova-benefit-content">
-						<strong>Priority Support</strong>
-						<span>Direct access to developers for feature requests and bug reports</span>
-					</div>
-				</div>
-				<div class="nova-benefit-item">
-					<span class="nova-benefit-icon">🗳️</span>
-					<div class="nova-benefit-content">
-						<strong>Vote on Features</strong>
-						<span>Help shape Nova's development and future direction</span>
-					</div>
-				</div>
-				<div class="nova-benefit-item">
-					<span class="nova-benefit-icon">🏆</span>
-					<div class="nova-benefit-content">
-						<strong>Supporter Badge</strong>
-						<span>Recognition in the Nova community (coming soon)</span>
-					</div>
-				</div>
-				<div class="nova-benefit-item">
-					<span class="nova-benefit-icon">❤️</span>
-					<div class="nova-benefit-content">
-						<strong>Open Source Support</strong>
-						<span>Directly fund continued development of Nova</span>
-					</div>
-				</div>
-			</div>
-			
-			<p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">Your support keeps Nova free and open source for everyone.</p>
-		`;
+		// Create benefits content using DOM API
+		const benefitsP = benefitsContent.createEl('p', { cls: 'nova-benefits-intro' });
+		benefitsP.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
+		
+		const benefitsList = benefitsContent.createDiv({ cls: 'nova-benefits-list' });
+		
+		// Helper function to create benefit items
+		const createBenefitItem = (icon: string, title: string, description: string) => {
+			const item = benefitsList.createDiv({ cls: 'nova-benefit-item' });
+			item.createSpan({ cls: 'nova-benefit-icon', text: icon });
+			const content = item.createDiv({ cls: 'nova-benefit-content' });
+			content.createEl('strong', { text: title });
+			content.createSpan({ text: description });
+		};
+		
+		createBenefitItem('⚡', 'Early Access', 'Get new features 2-4 months before general release');
+		createBenefitItem('💬', 'Priority Support', 'Direct access to developers for feature requests and bug reports');
+		createBenefitItem('🗳️', 'Vote on Features', 'Help shape Nova\'s development and future direction');
+		createBenefitItem('🏆', 'Supporter Badge', 'Recognition in the Nova community (coming soon)');
+		createBenefitItem('❤️', 'Open Source Support', 'Directly fund continued development of Nova');
+		
+		
+		// Add closing message
+		const closingP = benefitsContent.createEl('p', { cls: 'nova-benefits-closing' });
+		closingP.textContent = 'Your support keeps Nova free and open source for everyone.';
 		
 		// License settings section - styled like API keys
 		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
 		licenseSection.createEl('h3', { text: 'License Management' });
+		licenseSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		this.createSupernovaLicenseInput(licenseSection);
 	}
@@ -318,20 +301,30 @@ export class NovaSettingTab extends PluginSettingTab {
 		debugSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const infoEl = debugSection.createDiv({ cls: 'nova-debug-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<p>Debug settings for development and testing. These options help developers troubleshoot issues and test new features.</p>
-			</div>
-			<div class="nova-info-card">
-				<h4>⚠️ Developer Settings</h4>
-				<ul class="nova-debug-features">
-					<li><strong>Debug Mode</strong> - Enable detailed logging and development features</li>
-					<li><strong>Override Date</strong> - Test time-sensitive features with custom dates</li>
-					<li><strong>Force Supernova</strong> - Test Supernova-only features without a license</li>
-				</ul>
-				<p class="nova-debug-note">Only modify these settings if you understand their purpose.</p>
-			</div>
-		`;
+		// Create debug info using DOM API
+		const infoCard1 = infoEl.createDiv({ cls: 'nova-info-card' });
+		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
+		
+		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
+		infoCard2.createEl('h4', { text: '⚠️ Developer Settings' });
+		
+		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
+		const features = [
+			['Debug Mode', 'Enable detailed logging and development features'],
+			['Override Date', 'Test time-sensitive features with custom dates'],
+			['Force Supernova', 'Test Supernova-only features without a license']
+		];
+		
+		features.forEach(([name, desc]) => {
+			const li = featuresList.createEl('li');
+			li.createEl('strong', { text: name });
+			li.appendText(` - ${desc}`);
+		});
+		
+		infoCard2.createEl('p', { 
+			cls: 'nova-debug-note', 
+			text: 'Only modify these settings if you understand their purpose.' 
+		});
 		
 		this.createDebugSettings(debugSection);
 	}
@@ -343,23 +336,33 @@ export class NovaSettingTab extends PluginSettingTab {
 		privacySection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const infoEl = privacySection.createDiv({ cls: 'nova-privacy-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<h4>🔒 Your Privacy Matters</h4>
-				<p>Nova respects your privacy and gives you full control over how your data is handled. 
-				All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.</p>
-			</div>
-			<div class="nova-info-card">
-				<h4>📱 Mobile Support</h4>
-				<p>Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers.</p>
-				<ul class="nova-privacy-features">
-					<li><strong>Local-first</strong> - Ollama and desktop-only providers keep everything on your device</li>
-					<li><strong>Your choice</strong> - Enable mobile only when you need cross-device access</li>
-					<li><strong>Cross-platform editing</strong> - Selection-based editing works identically on mobile via Command Palette (Cmd+P)</li>
-					<li><strong>Same experience</strong> - Mobile provides the same editing capabilities as desktop</li>
-				</ul>
-			</div>
-		`;
+		
+		// Privacy info card
+		const privacyCard = infoEl.createDiv({ cls: 'nova-info-card' });
+		privacyCard.createEl('h4', { text: '🔒 Your Privacy Matters' });
+		const privacyText = privacyCard.createEl('p');
+		privacyText.textContent = 'Nova respects your privacy and gives you full control over how your data is handled. All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.';
+		
+		// Mobile support info card
+		const mobileCard = infoEl.createDiv({ cls: 'nova-info-card' });
+		mobileCard.createEl('h4', { text: '📱 Mobile Support' });
+		const mobileText = mobileCard.createEl('p');
+		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers.';
+		
+		// Features list
+		const featuresList = mobileCard.createEl('ul', { cls: 'nova-privacy-features' });
+		const features = [
+			{ title: 'Local-first', desc: ' - Ollama and desktop-only providers keep everything on your device' },
+			{ title: 'Your choice', desc: ' - Enable mobile only when you need cross-device access' },
+			{ title: 'Cross-platform editing', desc: ' - Selection-based editing works identically on mobile via Command Palette (Cmd+P)' },
+			{ title: 'Same experience', desc: ' - Mobile provides the same editing capabilities as desktop' }
+		];
+		
+		features.forEach(feature => {
+			const li = featuresList.createEl('li');
+			li.createEl('strong', { text: feature.title });
+			li.appendText(feature.desc);
+		});
 		
 		// Mobile Support Toggle
 		new Setting(privacySection)
@@ -421,10 +424,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				inputContainer.addClass('nova-input-container');
 				
 				const toggleBtn = inputContainer.createEl('button', { cls: 'nova-toggle-btn' });
-				toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-					<circle cx="12" cy="12" r="3"/>
-				</svg>`;
+				setIcon(toggleBtn, 'eye');
 
 				toggleBtn.addEventListener('click', (e) => {
 					e.preventDefault();
@@ -433,12 +433,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					if (isVisible) {
 						text.inputEl.type = 'text';
 						text.setValue(actualValue);
-						toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="m9.88 9.88a3 3 0 1 0 4.24 4.24"/>
-							<path d="m10.73 5.08a10.43 10.43 0 0 1 1.27-.08c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68"/>
-							<path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61"/>
-							<line x1="2" y1="2" x2="22" y2="22"/>
-						</svg>`;
+						setIcon(toggleBtn, 'eye-off');
 					} else {
 						text.inputEl.type = 'password';
 						if (actualValue && actualValue.length > 12) {
@@ -447,10 +442,7 @@ export class NovaSettingTab extends PluginSettingTab {
 						} else {
 							text.setValue(actualValue);
 						}
-						toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-							<circle cx="12" cy="12" r="3"/>
-						</svg>`;
+						setIcon(toggleBtn, 'eye');
 					}
 				});
 			}
@@ -799,12 +791,9 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Info about the new model
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card compact">
-				<p>Nova provides all features for free when you use your own AI provider API keys. 
-				Supernova supporters get early access to new features.</p>
-			</div>
-		`;
+		const infoCard = infoEl.createDiv({ cls: 'nova-info-card compact' });
+		const infoText = infoCard.createEl('p');
+		infoText.textContent = 'Nova provides all features for free when you use your own AI provider API keys. Supernova supporters get early access to new features.';
 
 		// Current Supernova status
 		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
@@ -813,25 +802,66 @@ export class NovaSettingTab extends PluginSettingTab {
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
 		const badge = this.getLicenseBadge(supernovaLicense);
 		const statusText = badge?.text || (isSupernova ? 'Supernova Supporter' : 'Nova User');
-		const statusIcon = badge ? badge.icon : (isSupernova ? `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #9333ea; filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));">
-			<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-			<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-			<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-			<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-		</svg>` : `<svg viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--text-normal);">
-			${NOVA_ICON_SVG}
-		</svg>`);
-		statusDisplay.innerHTML = `
-			<div class="nova-status-badge ${badge?.className || (isSupernova ? 'supernova' : 'nova')}" ${badge ? `style="border-color: ${badge.color}; color: ${badge.color};"` : ''}>
-				<span class="status-icon">${statusIcon}</span>
-				<span class="status-name">${statusText}</span>
-			</div>
-		`;
+		
+		// Create status badge element
+		const statusBadge = statusDisplay.createDiv({ 
+			cls: `nova-status-badge ${badge?.className || (isSupernova ? 'supernova' : 'nova')}` 
+		});
+		
+		// Set custom style if badge has colors
+		if (badge) {
+			statusBadge.style.borderColor = badge.color;
+			statusBadge.style.color = badge.color;
+		}
+		
+		// Create status icon
+		const statusIcon = statusBadge.createSpan({ cls: 'status-icon' });
+		if (badge && badge.icon) {
+			// For custom badge icons, still use innerHTML as they come from getLicenseBadge()
+			statusIcon.innerHTML = badge.icon;
+		} else if (isSupernova) {
+			// Create supernova SVG icon using DOM API
+			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('viewBox', '0 0 24 24');
+			svg.style.width = '14px';
+			svg.style.height = '14px';
+			svg.style.color = '#9333ea';
+			svg.style.filter = 'drop-shadow(0 0 4px rgba(147, 51, 234, 0.6))';
+			
+			// Create supernova paths
+			const elements = [
+				{ tag: 'circle', attrs: { cx: '12', cy: '12', r: '2.5', fill: 'currentColor' } },
+				{ tag: 'path', attrs: { d: 'M12 1L12 6', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M12 18L12 23', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M23 12L18 12', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M6 12L1 12', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M18.364 5.636L15.536 8.464', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M8.464 15.536L5.636 18.364', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M18.364 18.364L15.536 15.536', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
+				{ tag: 'path', attrs: { d: 'M8.464 8.464L5.636 5.636', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } }
+			];
+			
+			elements.forEach(el => {
+				const element = document.createElementNS('http://www.w3.org/2000/svg', el.tag);
+				Object.entries(el.attrs).forEach(([key, value]) => element.setAttribute(key, value));
+				svg.appendChild(element);
+			});
+			statusIcon.appendChild(svg);
+		} else {
+			// Create Nova icon using DOM API - parse NOVA_ICON_SVG constant
+			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('viewBox', '0 0 24 24');
+			svg.setAttribute('fill', 'none');
+			svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+			svg.style.width = '14px';
+			svg.style.height = '14px';
+			svg.style.color = 'var(--text-normal)';
+			svg.innerHTML = NOVA_ICON_SVG.replace(/<svg[^>]*>|<\/svg>/g, '');
+			statusIcon.appendChild(svg);
+		}
+		
+		// Create status name
+		statusBadge.createSpan({ cls: 'status-name', text: statusText });
 
 		// Supernova license status
 		if (supernovaLicense) {
@@ -839,12 +869,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
 				: 'Lifetime Support';
-			statusEl.innerHTML = `
-				<div class="license-info">
-					<span class="license-email">${supernovaLicense.email}</span>
-					<span class="license-expiry">${expiryText}</span>
-				</div>
-			`;
+			const licenseInfo = statusEl.createDiv({ cls: 'license-info' });
+			licenseInfo.createSpan({ cls: 'license-email', text: supernovaLicense.email });
+			licenseInfo.createSpan({ cls: 'license-expiry', text: expiryText });
 		}
 
 		// Supernova license key input using secure input pattern
@@ -927,18 +954,22 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createSupernovaInfo(container: HTMLElement) {
 		// Supernova supporter information
 		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
-		supernovaInfo.innerHTML = `
-			<div class="nova-info-card">
-				<h5>Become a Supernova Supporter</h5>
-				<p>Support Nova development and get early access to new features. All features eventually become free for everyone.</p>
-				<ul>
-					<li>Early access to new features (3-6 months before general release)</li>
-					<li>Priority support and feature requests</li>
-					<li>Supporter badge and recognition</li>
-					<li>Directly support open-source development</li>
-				</ul>
-			</div>
-		`;
+		const infoCard = supernovaInfo.createDiv({ cls: 'nova-info-card' });
+		infoCard.createEl('h5', { text: 'Become a Supernova Supporter' });
+		const description = infoCard.createEl('p');
+		description.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
+		
+		const featuresList = infoCard.createEl('ul');
+		const features = [
+			'Early access to new features (3-6 months before general release)',
+			'Priority support and feature requests',
+			'Supporter badge and recognition',
+			'Directly support open-source development'
+		];
+		
+		features.forEach(feature => {
+			featuresList.createEl('li', { text: feature });
+		});
 	}
 
 	private createDebugSettings(container: HTMLElement) {
@@ -1122,23 +1153,35 @@ export class NovaSettingTab extends PluginSettingTab {
 		apiKeysSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const infoEl = apiKeysSection.createDiv({ cls: 'nova-provider-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<p>Nova connects to AI providers using your own API keys. All providers are available to all users - 
-				just add your API keys below to get started.</p>
-				<p><strong>Model Selection:</strong> After connecting successfully, select models for any provider using the dropdown in the Nova sidebar.</p>
-			</div>
-			<div class="nova-info-card nova-model-guidance">
-				<h4>Recommended Defaults</h4>
-				<ul class="nova-model-recommendations">
-					<li><strong>Claude Sonnet 4</strong> - Latest generation with excellent instruction following for collaborative editing</li>
-					<li><strong>GPT-4.1 Mini</strong> - Current-generation model that outperforms GPT-4o while remaining cost-effective</li>
-					<li><strong>Gemini 2.5 Flash</strong> - Best price/performance with "thinking" capabilities and strong coding support</li>
-					<li><strong>Ollama (Local)</strong> - Complete privacy with local processing - requires setup but keeps all data on your device</li>
-				</ul>
-				<p class="nova-guidance-note">Cloud options offer modern AI capabilities without premium pricing, while local options provide complete privacy.</p>
-			</div>
-		`;
+		// Basic info card
+		const basicInfoCard = infoEl.createDiv({ cls: 'nova-info-card' });
+		const basicInfo1 = basicInfoCard.createEl('p');
+		basicInfo1.textContent = 'Nova connects to AI providers using your own API keys. All providers are available to all users - just add your API keys below to get started.';
+		
+		const basicInfo2 = basicInfoCard.createEl('p');
+		basicInfo2.createEl('strong', { text: 'Model Selection:' });
+		basicInfo2.appendText(' After connecting successfully, select models for any provider using the dropdown in the Nova sidebar.');
+		
+		// Model guidance card
+		const guidanceCard = infoEl.createDiv({ cls: 'nova-info-card nova-model-guidance' });
+		guidanceCard.createEl('h4', { text: 'Recommended Defaults' });
+		
+		const recommendationsList = guidanceCard.createEl('ul', { cls: 'nova-model-recommendations' });
+		const recommendations = [
+			{ model: 'Claude Sonnet 4', desc: ' - Latest generation with excellent instruction following for collaborative editing' },
+			{ model: 'GPT-4.1 Mini', desc: ' - Current-generation model that outperforms GPT-4o while remaining cost-effective' },
+			{ model: 'Gemini 2.5 Flash', desc: ' - Best price/performance with "thinking" capabilities and strong coding support' },
+			{ model: 'Ollama (Local)', desc: ' - Complete privacy with local processing - requires setup but keeps all data on your device' }
+		];
+		
+		recommendations.forEach(rec => {
+			const li = recommendationsList.createEl('li');
+			li.createEl('strong', { text: rec.model });
+			li.appendText(rec.desc);
+		});
+		
+		const guidanceNote = guidanceCard.createEl('p', { cls: 'nova-guidance-note' });
+		guidanceNote.textContent = 'Cloud options offer modern AI capabilities without premium pricing, while local options provide complete privacy.';
 
 		// Configuration Subsection (within API Keys section)
 		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
@@ -1311,13 +1354,10 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Info about platform settings
 		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
-		infoEl.innerHTML = `
-			<div class="nova-info-card">
-				<h4>🖥️ Platform Configuration</h4>
-				<p>Configure which AI provider to use as your primary provider on different platforms. 
-				Nova works seamlessly across desktop and mobile with all providers.</p>
-			</div>
-		`;
+		const infoCard = infoEl.createDiv({ cls: 'nova-info-card' });
+		infoCard.createEl('h4', { text: '🖥️ Platform Configuration' });
+		const infoText = infoCard.createEl('p');
+		infoText.textContent = 'Configure which AI provider to use as your primary provider on different platforms. Nova works seamlessly across desktop and mobile with all providers.';
 		
 		// Platform settings managed via sidebar dropdown now
 
@@ -1360,25 +1400,24 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Feature availability check
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const noticeEl = containerEl.createDiv({ cls: 'nova-feature-notice' });
-			noticeEl.innerHTML = `
-				<div style="padding: 16px; background: var(--background-modifier-hover); border-radius: 8px; border: 1px solid var(--background-modifier-border);">
-					<h4 style="margin: 0 0 8px 0; color: var(--text-normal);">Supernova Supporter Feature</h4>
-					<p style="margin: 0; color: var(--text-muted); font-size: 0.9em;">
-						Custom commands are currently available to Supernova supporters. 
-						They will be available to all users on <strong>October 1, 2025</strong>.
-					</p>
-				</div>
-			`;
+			const noticeDiv = noticeEl.createDiv({ cls: 'nova-feature-card' });
+			
+			const title = noticeDiv.createEl('h4', { cls: 'nova-feature-title' });
+			title.textContent = 'Supernova Supporter Feature';
+			
+			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
+			description.textContent = 'Custom commands are currently available to Supernova supporters. They will be available to all users on ';
+			description.createEl('strong', { text: 'October 1, 2025' });
+			description.appendText('.');
 			return;
 		}
 
 		// Description
 		const descEl = containerEl.createDiv({ cls: 'nova-command-description' });
-		descEl.innerHTML = `
-			<p style="color: var(--text-muted); margin-bottom: 16px;">
-				Create custom command shortcuts that insert predefined text templates when triggered with <code>:trigger</code>.
-			</p>
-		`;
+		const descP = descEl.createEl('p');
+		descP.textContent = 'Create custom command shortcuts that insert predefined text templates when triggered with ';
+		descP.createEl('code', { text: ':trigger' });
+		descP.appendText('.');
 
 		// Show Command Button setting (Supernova-only, Mobile-only)
 		new Setting(containerEl)
@@ -1426,12 +1465,11 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		if (commands.length === 0) {
 			const emptyEl = commandsList.createDiv({ cls: 'nova-commands-empty' });
-			emptyEl.innerHTML = `
-				<div style="text-align: center; padding: 24px; color: var(--text-muted);">
-					<p>No custom commands yet.</p>
-					<p style="font-size: 0.9em;">Create your first command to get started!</p>
-				</div>
-			`;
+			const emptyDiv = emptyEl.createDiv({ cls: 'nova-empty-container' });
+			
+			emptyDiv.createEl('p', { text: 'No custom commands yet.' });
+			const helpText = emptyDiv.createEl('p', { cls: 'nova-empty-help' });
+			helpText.textContent = 'Create your first command to get started!';
 			return;
 		}
 
@@ -1447,7 +1485,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			nameEl.textContent = command.name;
 
 			const triggerEl = infoEl.createDiv({ cls: 'nova-command-trigger' });
-			triggerEl.innerHTML = `<code>:${command.trigger}</code>`;
+			triggerEl.createEl('code', { text: `:${command.trigger}` });
 
 			// Actions
 			const actionsEl = headerEl.createDiv({ cls: 'nova-command-actions' });
@@ -1468,11 +1506,8 @@ export class NovaSettingTab extends PluginSettingTab {
 			}
 
 			const templateEl = commandEl.createDiv({ cls: 'nova-command-template' });
-			templateEl.innerHTML = `
-				<div style="background: var(--background-modifier-hover); padding: 8px; border-radius: 4px; font-family: var(--font-monospace); font-size: 0.8em; white-space: pre-wrap; max-height: 60px; overflow-y: auto;">
-					${command.template}
-				</div>
-			`;
+			const templateDiv = templateEl.createDiv({ cls: 'nova-template-container' });
+			templateDiv.textContent = command.template;
 		});
 	}
 
@@ -1543,16 +1578,18 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Nova logo and title
 		const headerDiv = welcomeSection.createDiv({ cls: 'nova-welcome-header' });
-		headerDiv.innerHTML = `
-			<div class="nova-welcome-logo">
-				${NOVA_ICON_SVG}
-			</div>
-			<div class="nova-welcome-content">
-				<h2>Welcome to Nova</h2>
-				<p class="nova-tagline">Your AI writing partner to make the writing process smoother</p>
-				<p class="nova-story">Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing</p>
-			</div>
-		`;
+		const logoDiv = headerDiv.createDiv({ cls: 'nova-welcome-logo' });
+		const logoSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		logoSvg.setAttribute('viewBox', '0 0 24 24');
+		logoSvg.setAttribute('fill', 'none');
+		logoSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+		logoSvg.innerHTML = NOVA_ICON_SVG.replace(/<svg[^>]*>|<\/svg>/g, '');
+		logoDiv.appendChild(logoSvg);
+		
+		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
+		contentDiv.createEl('h2', { text: 'Welcome to Nova' });
+		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'Your AI writing partner to make the writing process smoother' });
+		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing' });
 	}
 
 	private createQuickStartGuide(container: HTMLElement): void {
@@ -1560,57 +1597,62 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Selection-Based Editing
 		const selectionCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
-		selectionCard.innerHTML = `
-			<div class="nova-card-header">
-				<span class="nova-card-icon">🎯</span>
-				<h4>Selection-Based Editing</h4>
-			</div>
-			<div class="nova-card-content">
-				<ol>
-					<li>Select any text in your document</li>
-					<li>Right-click to open context menu</li>
-					<li>Choose Nova action (Improve Writing, Make Longer)</li>
-					<li>Watch AI transform text exactly in place</li>
-				</ol>
-				<div class="nova-tip">💡 Tip: Select any text in your document and right-click to see Nova actions</div>
-			</div>
-		`;
+		const selectionHeader = selectionCard.createDiv({ cls: 'nova-card-header' });
+		selectionHeader.createSpan({ cls: 'nova-card-icon', text: '🎯' });
+		selectionHeader.createEl('h4', { text: 'Selection-Based Editing' });
+		
+		const selectionContent = selectionCard.createDiv({ cls: 'nova-card-content' });
+		const selectionSteps = selectionContent.createEl('ol');
+		const steps = [
+			'Select any text in your document',
+			'Right-click to open context menu',
+			'Choose Nova action (Improve Writing, Make Longer)',
+			'Watch AI transform text exactly in place'
+		];
+		steps.forEach(step => selectionSteps.createEl('li', { text: step }));
+		
+		selectionContent.createDiv({ cls: 'nova-tip', text: '💡 Tip: Select any text in your document and right-click to see Nova actions' });
 
 		// Chat Commands
 		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-chat-card' });
-		chatCard.innerHTML = `
-			<div class="nova-card-header">
-				<span class="nova-card-icon">💬</span>
-				<h4>Chat-Based Targeting</h4>
-			</div>
-			<div class="nova-card-content">
-				<ol>
-					<li>Place cursor where you want content</li>
-					<li>Type command: "Add conclusion section"</li>
-					<li>Nova edits precisely at cursor location</li>
-				</ol>
-				<div class="nova-tip">📱 Works identically on desktop and mobile</div>
-			</div>
-		`;
+		const chatHeader = chatCard.createDiv({ cls: 'nova-card-header' });
+		chatHeader.createSpan({ cls: 'nova-card-icon', text: '💬' });
+		chatHeader.createEl('h4', { text: 'Chat-Based Targeting' });
+		
+		const chatContent = chatCard.createDiv({ cls: 'nova-card-content' });
+		const chatSteps = chatContent.createEl('ol');
+		const chatStepsList = [
+			'Place cursor where you want content',
+			'Type command: "Add conclusion section"',
+			'Nova edits precisely at cursor location'
+		];
+		chatStepsList.forEach(step => chatSteps.createEl('li', { text: step }));
+		
+		chatContent.createDiv({ cls: 'nova-tip', text: '📱 Works identically on desktop and mobile' });
 
 		// AI Provider Selection
 		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-provider-card' });
-		providerCard.innerHTML = `
-			<div class="nova-card-header">
-				<span class="nova-card-icon">🤖</span>
-				<h4>AI Provider Selection</h4>
-			</div>
-			<div class="nova-card-content">
-				<p>Choose the right AI for your task:</p>
-				<ul>
-					<li><strong>Claude</strong> - For complex reasoning and analysis</li>
-					<li><strong>OpenAI</strong> - For balanced performance and creativity</li>
-					<li><strong>Gemini</strong> - For fast responses and research</li>
-					<li><strong>Ollama</strong> - For local privacy and offline use 🔒</li>
-				</ul>
-				<div class="nova-tip">Configure providers in the AI Providers tab</div>
-			</div>
-		`;
+		const providerHeader = providerCard.createDiv({ cls: 'nova-card-header' });
+		providerHeader.createSpan({ cls: 'nova-card-icon', text: '🤖' });
+		providerHeader.createEl('h4', { text: 'AI Provider Selection' });
+		
+		const providerContent = providerCard.createDiv({ cls: 'nova-card-content' });
+		providerContent.createEl('p', { text: 'Choose the right AI for your task:' });
+		
+		const providerList = providerContent.createEl('ul');
+		const providers = [
+			{ name: 'Claude', desc: ' - For complex reasoning and analysis' },
+			{ name: 'OpenAI', desc: ' - For balanced performance and creativity' },
+			{ name: 'Gemini', desc: ' - For fast responses and research' },
+			{ name: 'Ollama', desc: ' - For local privacy and offline use 🔒' }
+		];
+		providers.forEach(provider => {
+			const li = providerList.createEl('li');
+			li.createEl('strong', { text: provider.name });
+			li.appendText(provider.desc);
+		});
+		
+		providerContent.createDiv({ cls: 'nova-tip', text: 'Configure providers in the AI Providers tab' });
 	}
 
 
@@ -1663,25 +1705,28 @@ export class NovaSettingTab extends PluginSettingTab {
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires ${supernovaLicense.expiresAt.toLocaleDateString()}`
 				: 'Lifetime License';
-			statusEl.innerHTML = `
-				<div class="nova-license-validated">
-					<div class="nova-license-header">
-						<span class="nova-license-checkmark">✓</span>
-						<span class="nova-license-title">${badge?.text || 'Valid Supernova License'}</span>
-						${badge ? `<span class="nova-license-badge ${badge.className}" style="background: ${badge.color};">${badge.icon}</span>` : ''}
-					</div>
-					<div class="nova-license-details">
-						<div class="nova-license-email">
-							<span class="nova-license-label">Licensed to:</span>
-							<span class="nova-license-value">${supernovaLicense.email}</span>
-						</div>
-						<div class="nova-license-expiry">
-							<span class="nova-license-label">Status:</span>
-							<span class="nova-license-value">${expiryText}</span>
-						</div>
-					</div>
-				</div>
-			`;
+			const validatedDiv = statusEl.createDiv({ cls: 'nova-license-validated' });
+			
+			// License header
+			const headerDiv = validatedDiv.createDiv({ cls: 'nova-license-header' });
+			headerDiv.createSpan({ cls: 'nova-license-checkmark', text: '✓' });
+			headerDiv.createSpan({ cls: 'nova-license-title', text: badge?.text || 'Valid Supernova License' });
+			
+			if (badge) {
+				const badgeSpan = headerDiv.createSpan({ cls: `nova-license-badge ${badge.className}`, text: badge.icon });
+				badgeSpan.style.background = badge.color;
+			}
+			
+			// License details
+			const detailsDiv = validatedDiv.createDiv({ cls: 'nova-license-details' });
+			
+			const emailDiv = detailsDiv.createDiv({ cls: 'nova-license-email' });
+			emailDiv.createSpan({ cls: 'nova-license-label', text: 'Licensed to:' });
+			emailDiv.createSpan({ cls: 'nova-license-value', text: supernovaLicense.email });
+			
+			const expiryDiv = detailsDiv.createDiv({ cls: 'nova-license-expiry' });
+			expiryDiv.createSpan({ cls: 'nova-license-label', text: 'Status:' });
+			expiryDiv.createSpan({ cls: 'nova-license-value', text: expiryText });
 		}
 
 		// License key input - styled like API keys
@@ -1758,23 +1803,32 @@ export class NovaSettingTab extends PluginSettingTab {
 			ctaSection.addClass('nova-cta-section-small');
 		}
 		
-		ctaSection.innerHTML = `
-			<div class="nova-supernova-cta">
-				<div class="nova-supernova-header">
-					<span class="nova-supernova-icon">${statusIcon}</span>
-					<div class="nova-supernova-info">
-						<h3>Supernova Support</h3>
-						<p>Status: <strong>${statusText}</strong></p>
-					</div>
-				</div>
-				<div class="nova-supernova-actions">
-					<button class="nova-supernova-btn primary" ${buttonAction === 'tab' ? 'data-tab="supernova"' : ''}>
-						${isSupernova ? (buttonAction === 'tab' ? 'Manage License' : 'Thank You for Supporting!') : 'Become a Supporter'}
-					</button>
-					${showLearnMore ? '<button class="nova-supernova-btn secondary" data-tab="supernova">Learn More</button>' : ''}
-				</div>
-			</div>
-		`;
+		const ctaDiv = ctaSection.createDiv({ cls: 'nova-supernova-cta' });
+		
+		// Header section
+		const headerDiv = ctaDiv.createDiv({ cls: 'nova-supernova-header' });
+		const iconSpan = headerDiv.createSpan({ cls: 'nova-supernova-icon' });
+		iconSpan.innerHTML = statusIcon; // statusIcon is a complex SVG string from statusIcon variable
+		
+		const infoDiv = headerDiv.createDiv({ cls: 'nova-supernova-info' });
+		infoDiv.createEl('h3', { text: 'Supernova Support' });
+		const statusP = infoDiv.createEl('p');
+		statusP.textContent = 'Status: ';
+		statusP.createEl('strong', { text: statusText });
+		
+		// Actions section
+		const actionsDiv = ctaDiv.createDiv({ cls: 'nova-supernova-actions' });
+		const primaryBtn = actionsDiv.createEl('button', { cls: 'nova-supernova-btn primary' });
+		if (buttonAction === 'tab') {
+			primaryBtn.setAttribute('data-tab', 'supernova');
+		}
+		primaryBtn.textContent = isSupernova ? (buttonAction === 'tab' ? 'Manage License' : 'Thank You for Supporting!') : 'Become a Supporter';
+		
+		if (showLearnMore) {
+			const secondaryBtn = actionsDiv.createEl('button', { cls: 'nova-supernova-btn secondary' });
+			secondaryBtn.setAttribute('data-tab', 'supernova');
+			secondaryBtn.textContent = 'Learn More';
+		}
 		
 		// Add click handlers if using tab navigation
 		if (buttonAction === 'tab') {
@@ -1791,33 +1845,42 @@ export class NovaSettingTab extends PluginSettingTab {
 		const navSection = container.createDiv({ cls: 'nova-navigation-section nova-nav-section' });
 		
 		const navCard = navSection.createDiv({ cls: 'nova-navigation-card' });
-		navCard.innerHTML = `
-			<div class="nova-card-header">
-				<span class="nova-card-icon">⚡</span>
-				<h4>Quick Start</h4>
-			</div>
-			<div class="nova-card-content">
-				<div class="nova-next-steps">
-					<div class="nova-next-step">
-						<span>1. Explore Privacy and General Settings</span>
-						<a href="#" class="nova-step-link" data-tab="general">→ Go to General tab</a>
-					</div>
-					<div class="nova-next-step">
-						<span>2. Configure AI providers</span>
-						<a href="#" class="nova-step-link" data-tab="providers">→ Go to AI Providers tab</a>
-					</div>
-					<div class="nova-next-step">
-						<span>3. Manage Supernova License</span>
-						<a href="#" class="nova-step-link" data-tab="supernova">→ Go to Supernova tab</a>
-					</div>
-					<div class="nova-next-step">
-						<span>4. Explore the User Guide</span>
-						<a href="https://novawriter.ai/guide.html" class="nova-step-link nova-external-link" target="_blank">→ Open User Guide ↗</a>
-					</div>
-				</div>
-				<div class="nova-tip">💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Nova: Open sidebar" to access Nova</div>
-			</div>
-		`;
+		// Header section
+		const headerDiv = navCard.createDiv({ cls: 'nova-card-header' });
+		headerDiv.createSpan({ cls: 'nova-card-icon', text: '⚡' });
+		headerDiv.createEl('h4', { text: 'Quick Start' });
+		
+		// Content section
+		const contentDiv = navCard.createDiv({ cls: 'nova-card-content' });
+		const stepsDiv = contentDiv.createDiv({ cls: 'nova-next-steps' });
+		
+		// Step items
+		const steps = [
+			{ text: '1. Explore Privacy and General Settings', link: '→ Go to General tab', tab: 'general' },
+			{ text: '2. Configure AI providers', link: '→ Go to AI Providers tab', tab: 'providers' },
+			{ text: '3. Manage Supernova License', link: '→ Go to Supernova tab', tab: 'supernova' },
+			{ text: '4. Explore the User Guide', link: '→ Open User Guide ↗', href: 'https://novawriter.ai/guide.html', external: true }
+		];
+		
+		steps.forEach(step => {
+			const stepDiv = stepsDiv.createDiv({ cls: 'nova-next-step' });
+			stepDiv.createSpan({ text: step.text });
+			
+			const linkEl = stepDiv.createEl('a', { 
+				cls: step.external ? 'nova-step-link nova-external-link' : 'nova-step-link',
+				text: step.link,
+				href: step.href || '#'
+			});
+			
+			if (step.tab) {
+				linkEl.setAttribute('data-tab', step.tab);
+			}
+			if (step.external) {
+				linkEl.setAttribute('target', '_blank');
+			}
+		});
+		
+		contentDiv.createDiv({ cls: 'nova-tip', text: '💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Nova: Open sidebar" to access Nova' });
 
 		// Add click handlers for navigation links
 		navCard.querySelectorAll('.nova-step-link').forEach(link => {

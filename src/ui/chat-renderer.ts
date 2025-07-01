@@ -1,4 +1,4 @@
-import { TFile } from 'obsidian';
+import { TFile, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 
 /**
@@ -36,12 +36,8 @@ export class ChatRenderer {
 		});
 
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		// Use innerHTML for system messages to support icons, textContent for others for security
-		if (role === 'system' && content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
+		// Safe rendering - avoid innerHTML for security
+		this.renderMessageContent(contentEl, content);
 
 		this.scrollToBottom(true);
 	}
@@ -57,11 +53,8 @@ export class ChatRenderer {
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${cssClass}` });
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 		
-		if (content.includes('<svg')) {
-			contentEl.innerHTML = content;
-		} else {
-			contentEl.textContent = content;
-		}
+		// Safe rendering - avoid innerHTML for security
+		this.renderMessageContent(contentEl, content);
 
 		// Save to conversation manager if requested
 		if (options.persist) {
@@ -83,6 +76,54 @@ export class ChatRenderer {
 			return `nova-pill-${options.variant}`;
 		} else {
 			return `nova-bubble-${options.variant}`;
+		}
+	}
+
+	/**
+	 * Safely render message content - parse icon messages and create DOM elements instead of using innerHTML
+	 */
+	private renderMessageContent(contentEl: HTMLElement, content: string): void {
+		// Check if this is an icon message created by createIconMessage
+		const iconMessagePattern = /<span style="[^"]*"><svg[^>]*>.*?<\/svg><span>([^<]*)<\/span><\/span>/;
+		const match = content.match(iconMessagePattern);
+		
+		if (match) {
+			// Extract icon and message from the HTML
+			const svgMatch = content.match(/<svg[^>]*viewBox="([^"]*)"[^>]*>(.*?)<\/svg>/);
+			const messageText = match[1];
+			
+			if (svgMatch) {
+				// Create a wrapper span
+				const wrapper = contentEl.createSpan();
+				wrapper.style.display = 'inline-flex';
+				wrapper.style.alignItems = 'center';
+				wrapper.style.gap = '6px';
+				
+				// Try to identify the icon and use setIcon if possible
+				const iconEl = wrapper.createSpan();
+				
+				// Map viewBox patterns to icon names (based on common patterns)
+				const viewBox = svgMatch[1];
+				let iconName = 'info'; // default fallback
+				
+				if (content.includes('stroke-width="2"') && content.includes('circle')) {
+					if (content.includes('path d="M22 11.08')) iconName = 'alert-circle';
+					else if (content.includes('path d="M22 12')) iconName = 'check-circle';
+					else if (content.includes('path d="M18 6')) iconName = 'x-circle';
+				}
+				
+				// Use Obsidian's setIcon for known icons
+				setIcon(iconEl, iconName);
+				
+				// Add the message text
+				wrapper.createSpan({ text: messageText });
+			} else {
+				// Fallback: just use the extracted text
+				contentEl.textContent = match[1];
+			}
+		} else {
+			// Regular text content (no SVG)
+			contentEl.textContent = content;
 		}
 	}
 
@@ -117,26 +158,16 @@ export class ChatRenderer {
 	addWelcomeMessage(message?: string): void {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 
-		const content = message || `
-			<div class="nova-welcome-content">
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="nova-welcome-icon">
-					<circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-					<path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-					<path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-					<path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-					<path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-					<path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-					<path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-					<path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-					<path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-				</svg>
-				<p class="nova-welcome-text">
-					Hi! I'm Nova, your AI writing partner. Select any text and right-click to transform it directly, or chat with me to add content exactly where your cursor is.
-				</p>
-			</div>
-		`;
-
-		welcomeEl.innerHTML = content;
+		// Create welcome content using DOM API instead of innerHTML
+		const contentDiv = welcomeEl.createDiv({ cls: 'nova-welcome-content' });
+		
+		// Add Nova icon
+		const iconDiv = contentDiv.createDiv({ cls: 'nova-welcome-icon' });
+		setIcon(iconDiv, 'star');
+		
+		// Add welcome text
+		const textP = contentDiv.createEl('p', { cls: 'nova-welcome-text' });
+		textP.textContent = "Hi! I'm Nova, your AI writing partner. Select any text and right-click to transform it directly, or chat with me to add content exactly where your cursor is.";
 
 		this.scrollToBottom(true);
 	}
@@ -176,11 +207,8 @@ export class ChatRenderer {
 				});
 				const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 				
-				if (message.content.includes('<svg')) {
-					contentEl.innerHTML = message.content;
-				} else {
-					contentEl.textContent = message.content;
-				}
+				// Safe rendering - avoid innerHTML for security
+				this.renderMessageContent(contentEl, message.content);
 			} else {
 				// Regular user/assistant messages
 				this.addMessage(message.role as 'user' | 'assistant' | 'system', message.content);

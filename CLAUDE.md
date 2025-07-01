@@ -28,7 +28,8 @@
 - ❌ **Do NOT begin coding until explicitly instructed to.**
 - ❌ **Do NOT make commits unless I tell you to.**
 - ❌ **Do NOT start new tasks without confirmation.**
-- ❌ **Do NOT assig styles via JavaScript or in HTML. You will use CSS.**
+- ❌ **Do NOT assign styles via JavaScript or in HTML. Sse CSS.**
+- ❌ **Do NOT use innerHTML, outerHTML or similar API's. Use the DOM API or the Obsidian helper functions.**
 - ❌ **Do NOT mention Claude, Generated with assistance, or Co-authored phrasing in commit messages.**
 
 > Your default mode is read-only and analytical. Only switch to write mode when prompted.
