@@ -439,42 +439,102 @@ export default class NovaPlugin extends Plugin {
 	private showMobileUpgradePrompt(): void {
 		const modal = document.createElement('div');
 		modal.className = 'modal nova-mobile-upgrade-modal';
-		modal.innerHTML = `
-			<div class="modal-container">
-				<div class="modal-bg"></div>
-				<div class="modal-content">
-					<div class="modal-header">
-						<h3>Nova SuperNova Required</h3>
-					</div>
-					<div class="modal-body">
-						<div class="nova-tier-badge core" style="margin-bottom: 1em;">
-							<span class="tier-icon">FREE</span>
-							<span class="tier-name">Core (Free)</span>
-						</div>
-						<p>Mobile access is available with Nova SuperNova.</p>
-						<p>Core tier is limited to desktop use only.</p>
-						<div class="nova-feature-list">
-							<h4>SuperNova includes:</h4>
-							<ul>
-								<li>Mobile device support</li>
-								<li>Multiple AI providers</li>
-								<li>In-chat provider switching</li>
-								<li>Advanced templates</li>
-								<li>Priority support</li>
-							</ul>
-						</div>
-					</div>
-					<div class="modal-footer">
-						<button class="mod-cta nova-upgrade-btn">Upgrade to SuperNova</button>
-						<button class="nova-close-btn">Close</button>
-					</div>
-				</div>
-			</div>
-		`;
+		
+		// Create modal structure using DOM API
+		const modalContainer = document.createElement('div');
+		modalContainer.className = 'modal-container';
+		
+		const modalBg = document.createElement('div');
+		modalBg.className = 'modal-bg';
+		
+		const modalContent = document.createElement('div');
+		modalContent.className = 'modal-content';
+		
+		// Modal header
+		const modalHeader = document.createElement('div');
+		modalHeader.className = 'modal-header';
+		const headerTitle = document.createElement('h3');
+		headerTitle.textContent = 'Nova SuperNova Required';
+		modalHeader.appendChild(headerTitle);
+		
+		// Modal body
+		const modalBody = document.createElement('div');
+		modalBody.className = 'modal-body';
+		
+		// Tier badge
+		const tierBadge = document.createElement('div');
+		tierBadge.className = 'nova-tier-badge core modal-spacing';
+		const tierIcon = document.createElement('span');
+		tierIcon.className = 'tier-icon';
+		tierIcon.textContent = 'FREE';
+		const tierName = document.createElement('span');
+		tierName.className = 'tier-name';
+		tierName.textContent = 'Core (Free)';
+		tierBadge.appendChild(tierIcon);
+		tierBadge.appendChild(tierName);
+		
+		// Body paragraphs
+		const p1 = document.createElement('p');
+		p1.textContent = 'Mobile access is available with Nova SuperNova.';
+		const p2 = document.createElement('p');
+		p2.textContent = 'Core tier is limited to desktop use only.';
+		
+		// Feature list
+		const featureList = document.createElement('div');
+		featureList.className = 'nova-feature-list';
+		const featureTitle = document.createElement('h4');
+		featureTitle.textContent = 'SuperNova includes:';
+		const featureUl = document.createElement('ul');
+		
+		const features = [
+			'Mobile device support',
+			'Multiple AI providers',
+			'In-chat provider switching',
+			'Advanced templates',
+			'Priority support'
+		];
+		
+		features.forEach(feature => {
+			const li = document.createElement('li');
+			li.textContent = feature;
+			featureUl.appendChild(li);
+		});
+		
+		featureList.appendChild(featureTitle);
+		featureList.appendChild(featureUl);
+		
+		// Assemble modal body
+		modalBody.appendChild(tierBadge);
+		modalBody.appendChild(p1);
+		modalBody.appendChild(p2);
+		modalBody.appendChild(featureList);
+		
+		// Modal footer
+		const modalFooter = document.createElement('div');
+		modalFooter.className = 'modal-footer';
+		const upgradeBtn = document.createElement('button');
+		upgradeBtn.className = 'mod-cta nova-upgrade-btn';
+		upgradeBtn.textContent = 'Upgrade to SuperNova';
+		const closeBtn = document.createElement('button');
+		closeBtn.className = 'nova-close-btn';
+		closeBtn.textContent = 'Close';
+		modalFooter.appendChild(upgradeBtn);
+		modalFooter.appendChild(closeBtn);
+		
+		// Assemble modal content
+		modalContent.appendChild(modalHeader);
+		modalContent.appendChild(modalBody);
+		modalContent.appendChild(modalFooter);
+		
+		// Assemble modal container
+		modalContainer.appendChild(modalBg);
+		modalContainer.appendChild(modalContent);
+		
+		// Assemble final modal
+		modal.appendChild(modalContainer);
 
-		const upgradeBtn = modal.querySelector('.nova-upgrade-btn') as HTMLButtonElement;
-		const closeBtn = modal.querySelector('.nova-close-btn') as HTMLButtonElement;
-		const modalBg = modal.querySelector('.modal-bg') as HTMLElement;
+		// Event handlers (elements already created above)
+		const modalBgElement = modalBg;
 
 		const closeModal = () => {
 			modal.remove();
@@ -486,7 +546,7 @@ export default class NovaPlugin extends Plugin {
 		});
 
 		closeBtn.addEventListener('click', closeModal);
-		modalBg.addEventListener('click', closeModal);
+		modalBgElement.addEventListener('click', closeModal);
 
 		document.body.appendChild(modal);
 

@@ -143,7 +143,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Use setIcon for the Nova icon (simpler and more reliable)
 		const iconEl = titleEl.createSpan();
-		setIcon(iconEl, 'star');
+		setIcon(iconEl, 'nova-star');
 		
 		titleEl.createSpan({ text: ' Nova' });
 		
