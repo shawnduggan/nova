@@ -11,7 +11,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src/ test/ --ext .ts",
-    "lint:fix": "eslint src/ test/ --ext .ts --fix"
+    "lint:fix": "eslint src/ test/ --ext .ts --fix",
+    "lint:obsidian": "eslint src/ --ext .ts --no-ignore --max-warnings 0",
+    "lint:security": "eslint src/ --ext .ts --no-ignore --rule 'no-restricted-properties: [error, {object: \"*\", property: \"innerHTML\"}, {object: \"*\", property: \"outerHTML\"}]'"
   },
   "keywords": [
     "obsidian",

@@ -61,13 +61,14 @@ export function getAvailableModels(providerType: string, settings?: any): ModelD
 				{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
 				{ value: 'gemini-2.5-flash-lite-preview-06-17', label: 'Gemini 2.5 Flash-Lite' }
 			];
-		case 'ollama':
+		case 'ollama': {
 			// Return the configured model from settings
 			const ollamaModel = settings?.aiProviders?.ollama?.model;
 			if (ollamaModel && ollamaModel.trim()) {
 				return [{ value: ollamaModel, label: ollamaModel }];
 			}
 			return [];
+		}
 		default:
 			return [];
 	}

@@ -94,10 +94,7 @@ export class ChatRenderer {
 			
 			if (svgMatch) {
 				// Create a wrapper span
-				const wrapper = contentEl.createSpan();
-				wrapper.style.display = 'inline-flex';
-				wrapper.style.alignItems = 'center';
-				wrapper.style.gap = '6px';
+				const wrapper = contentEl.createSpan({ cls: 'nova-icon-wrapper' });
 				
 				// Try to identify the icon and use setIcon if possible
 				const iconEl = wrapper.createSpan();

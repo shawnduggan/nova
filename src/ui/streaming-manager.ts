@@ -179,10 +179,10 @@ export class StreamingManager {
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
             
             // Create persistent notice (0 timeout = manual dismissal)
-            this.thinkingNotice = new Notice(`Nova: ${randomPhrase}.`, 0);
+            this.thinkingNotice = new Notice(`${randomPhrase}.`, 0);
             
             // Show initial state with 1 dot immediately
-            const initialNoticeText = `Nova: ${randomPhrase}.`;
+            const initialNoticeText = `${randomPhrase}.`;
             const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };
             const noticeEl = noticeWithEl.noticeEl;
             if (noticeEl) {
@@ -362,7 +362,7 @@ export class StreamingManager {
                 // Get current phrase and add dots
                 const currentPhrase = phrases[phraseIndex];
                 const dots = '.'.repeat(dotCount);
-                const noticeText = `Nova: ${currentPhrase}${dots}`;
+                const noticeText = `${currentPhrase}${dots}`;
                 
                 // Update notice text directly
                 const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };

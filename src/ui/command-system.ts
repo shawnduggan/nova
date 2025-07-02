@@ -81,21 +81,13 @@ export class CommandSystem {
 
 	private createCommandMenu(): void {
 		this.commandMenu = this.container.createDiv({ cls: 'nova-command-menu' });
-		this.commandMenu.style.cssText = `
-			position: absolute;
-			bottom: 100%;
-			right: 0;
-			background: var(--background-primary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: var(--radius-s);
-			box-shadow: var(--shadow-s);
-			min-width: 250px;
-			max-height: 300px;
-			overflow-y: auto;
-			z-index: 1000;
-			display: none;
-			padding: var(--size-2-2);
-		`;
+		// Position at bottom since we're in the bottom bar
+		this.commandMenu.setCssProperty('bottom', '100%');
+		this.commandMenu.setCssProperty('top', 'auto');
+		this.commandMenu.setCssProperty('right', '0');
+		this.commandMenu.setCssProperty('left', 'auto');
+		this.commandMenu.setCssProperty('min-width', '250px');
+		this.commandMenu.setCssProperty('padding', 'var(--size-2-2)');
 
 		// Commands available to all users
 		const commands = [
@@ -107,17 +99,15 @@ export class CommandSystem {
 			{ name: 'Continue Writing', description: 'Extend the current text', command: 'continue writing' }
 		];
 
-		const title = this.commandMenu.createEl('div', { text: 'Quick Commands' });
-		title.style.cssText = `
-			font-size: var(--font-ui-medium);
-			font-weight: 600;
-			margin-bottom: var(--size-2-3);
-			color: var(--text-normal);
-		`;
+		const title = this.commandMenu.createEl('div', { 
+			text: 'Quick Commands',
+			cls: 'nova-command-menu-title'
+		});
+		title.setCssProperty('font-size', 'var(--font-ui-medium)');
+		title.setCssProperty('margin-bottom', 'var(--size-2-3)');
 
 		commands.forEach(cmd => {
-			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-item' });
-			cmdEl.style.cssText = `
+			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
 				padding: var(--size-2-2) var(--size-2-3);
 				border-radius: var(--radius-xs);
 				cursor: pointer;
@@ -125,18 +115,16 @@ export class CommandSystem {
 				transition: background-color 0.1s;
 			`;
 
-			const nameEl = cmdEl.createEl('div', { text: cmd.name });
-			nameEl.style.cssText = `
-				font-weight: 500;
-				color: var(--text-normal);
-				margin-bottom: var(--size-2-1);
-			`;
+			const nameEl = cmdEl.createEl('div', { 
+				text: cmd.name,
+				cls: 'nova-command-name'
+			});
+			nameEl.setCssProperty('margin-bottom', 'var(--size-2-1)');
 
-			const descEl = cmdEl.createEl('div', { text: cmd.description });
-			descEl.style.cssText = `
-				font-size: var(--font-ui-smaller);
-				color: var(--text-muted);
-			`;
+			const descEl = cmdEl.createEl('div', { 
+				text: cmd.description,
+				cls: 'nova-command-desc'
+			});
 
 			cmdEl.addEventListener('click', () => {
 				this.textArea.setValue(cmd.command + ' ');
@@ -144,26 +132,20 @@ export class CommandSystem {
 				this.hideCommandMenu();
 			});
 
-			cmdEl.addEventListener('mouseenter', () => {
-				cmdEl.style.background = 'var(--background-modifier-hover)';
-			});
-
-			cmdEl.addEventListener('mouseleave', () => {
-				cmdEl.style.background = 'transparent';
-			});
+			// Hover effect handled by CSS
 		});
 	}
 
 	private showCommandMenu(): void {
 		if (this.commandMenu) {
-			this.commandMenu.style.display = 'block';
+			this.commandMenu.addClass('show');
 			this.isCommandMenuVisible = true;
 		}
 	}
 
 	hideCommandMenu(): void {
 		if (this.commandMenu) {
-			this.commandMenu.style.display = 'none';
+			this.commandMenu.removeClass('show');
 			this.isCommandMenuVisible = false;
 		}
 	}
@@ -216,33 +198,21 @@ export class CommandSystem {
 		if (filtered.length > 0) {
 			filtered.forEach((cmd, index) => {
 				const item = this.commandPicker.createDiv({ cls: 'nova-command-picker-item' });
-				item.style.cssText = `
-					padding: 8px 12px;
-					cursor: pointer;
-					border-bottom: 1px solid var(--background-modifier-border-hover);
-					transition: background-color 0.2s;
-				`;
 
-				const nameEl = item.createEl('div', { text: cmd.name });
-				nameEl.style.cssText = `
-					font-weight: 500;
-					color: var(--text-normal);
-					margin-bottom: 4px;
-				`;
+				const nameEl = item.createEl('div', { 
+					text: cmd.name,
+					cls: 'nova-command-picker-name'
+				});
 
-				const descEl = item.createEl('div', { text: cmd.description });
-				descEl.style.cssText = `
-					font-size: 0.85em;
-					color: var(--text-muted);
-					margin-bottom: 4px;
-				`;
+				const descEl = item.createEl('div', { 
+					text: cmd.description,
+					cls: 'nova-command-picker-desc'
+				});
 
-				const exampleEl = item.createEl('div', { text: `Example: ${cmd.example}` });
-				exampleEl.style.cssText = `
-					font-size: 0.8em;
-					color: var(--text-accent);
-					font-family: var(--font-monospace);
-				`;
+				const exampleEl = item.createEl('div', { 
+					text: `Example: ${cmd.example}`,
+					cls: 'nova-command-picker-example'
+				});
 
 				item.addEventListener('click', () => {
 					this.selectStructuredCommand(cmd.template);
@@ -256,14 +226,14 @@ export class CommandSystem {
 				this.commandPickerItems.push(item);
 			});
 
-			this.commandPicker.style.display = 'block';
+			this.commandPicker.addClass('show');
 		} else {
 			this.hideCommandPicker();
 		}
 	}
 
 	hideCommandPicker(): void {
-		this.commandPicker.style.display = 'none';
+		this.commandPicker.removeClass('show');
 		this.commandPickerItems = [];
 		this.selectedCommandIndex = -1;
 	}
@@ -313,9 +283,9 @@ export class CommandSystem {
 	private updateCommandPickerSelection(): void {
 		this.commandPickerItems.forEach((item, index) => {
 			if (index === this.selectedCommandIndex) {
-				item.style.background = 'var(--background-modifier-hover)';
+				item.addClass('selected');
 			} else {
-				item.style.background = 'transparent';
+				item.removeClass('selected');
 			}
 		});
 	}

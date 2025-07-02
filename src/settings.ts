@@ -811,23 +811,20 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Set custom style if badge has colors
 		if (badge) {
-			statusBadge.style.borderColor = badge.color;
-			statusBadge.style.color = badge.color;
+			statusBadge.addClass('nova-badge-custom');
+			statusBadge.setCssProperty('--badge-color', badge.color);
 		}
 		
 		// Create status icon
 		const statusIcon = statusBadge.createSpan({ cls: 'status-icon' });
 		if (badge && badge.icon) {
-			// For custom badge icons, still use innerHTML as they come from getLicenseBadge()
-			statusIcon.innerHTML = badge.icon;
+			// Badge icons are emoji strings, use textContent
+			statusIcon.textContent = badge.icon;
 		} else if (isSupernova) {
 			// Create supernova SVG icon using DOM API
 			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 			svg.setAttribute('viewBox', '0 0 24 24');
-			svg.style.width = '14px';
-			svg.style.height = '14px';
-			svg.style.color = '#9333ea';
-			svg.style.filter = 'drop-shadow(0 0 4px rgba(147, 51, 234, 0.6))';
+			svg.classList.add('nova-supernova-icon');
 			
 			// Create supernova paths
 			const elements = [
@@ -854,10 +851,15 @@ export class NovaSettingTab extends PluginSettingTab {
 			svg.setAttribute('viewBox', '0 0 24 24');
 			svg.setAttribute('fill', 'none');
 			svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-			svg.style.width = '14px';
-			svg.style.height = '14px';
-			svg.style.color = 'var(--text-normal)';
-			svg.innerHTML = NOVA_ICON_SVG.replace(/<svg[^>]*>|<\/svg>/g, '');
+			svg.classList.add('nova-icon');
+			// Parse the SVG string and copy its children to our SVG element
+			const parser = new DOMParser();
+			const parsedSvg = parser.parseFromString(NOVA_ICON_SVG, 'image/svg+xml');
+			const sourceElements = parsedSvg.documentElement.children;
+			for (let i = 0; i < sourceElements.length; i++) {
+				const clonedElement = sourceElements[i].cloneNode(true);
+				svg.appendChild(clonedElement);
+			}
 			statusIcon.appendChild(svg);
 		}
 		
@@ -1592,7 +1594,14 @@ export class NovaSettingTab extends PluginSettingTab {
 		logoSvg.setAttribute('viewBox', '0 0 24 24');
 		logoSvg.setAttribute('fill', 'none');
 		logoSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-		logoSvg.innerHTML = NOVA_ICON_SVG.replace(/<svg[^>]*>|<\/svg>/g, '');
+		// Parse the SVG string and copy its children to our SVG element
+		const parser = new DOMParser();
+		const parsedSvg = parser.parseFromString(NOVA_ICON_SVG, 'image/svg+xml');
+		const sourceElements = parsedSvg.documentElement.children;
+		for (let i = 0; i < sourceElements.length; i++) {
+			const clonedElement = sourceElements[i].cloneNode(true);
+			logoSvg.appendChild(clonedElement);
+		}
 		logoDiv.appendChild(logoSvg);
 		
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
@@ -1722,8 +1731,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			headerDiv.createSpan({ cls: 'nova-license-title', text: badge?.text || 'Valid Supernova License' });
 			
 			if (badge) {
-				const badgeSpan = headerDiv.createSpan({ cls: `nova-license-badge ${badge.className}`, text: badge.icon });
-				badgeSpan.style.background = badge.color;
+				const badgeSpan = headerDiv.createSpan({ cls: `nova-license-badge ${badge.className} nova-badge-custom`, text: badge.icon });
+				badgeSpan.setCssProperty('--badge-color', badge.color);
+				badgeSpan.setCssProperty('background', badge.color);
 			}
 			
 			// License details
@@ -1819,7 +1829,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Header section
 		const headerDiv = ctaDiv.createDiv({ cls: 'nova-supernova-header' });
 		const iconSpan = headerDiv.createSpan({ cls: 'nova-supernova-icon' });
-		iconSpan.innerHTML = statusIcon; // statusIcon is a complex SVG string from statusIcon variable
+		iconSpan.textContent = statusIcon; // statusIcon is an emoji string from badge.icon
 		
 		const infoDiv = headerDiv.createDiv({ cls: 'nova-supernova-info' });
 		infoDiv.createEl('h3', { text: 'Supernova Support' });
@@ -1891,7 +1901,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			}
 		});
 		
-		contentDiv.createDiv({ cls: 'nova-tip', text: '💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Nova: Open sidebar" to access Nova' });
+		contentDiv.createDiv({ cls: 'nova-tip', text: '💡 Tip: Press Cmd+P (Mac) or Ctrl+P (PC), then choose "Open sidebar" to access Nova' });
 
 		// Add click handlers for navigation links
 		navCard.querySelectorAll('.nova-step-link').forEach(link => {

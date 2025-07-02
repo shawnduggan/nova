@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
 import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
-import { EditCommand } from '../core/types';
+import { EditCommand, EditResult } from '../core/types';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { MultiDocContext } from './context-manager';
 import { getAvailableModels, getProviderTypeForModel } from '../ai/models';
@@ -62,6 +62,8 @@ export class NovaSidebarView extends ItemView {
 	private commandPicker!: HTMLElement;
 	private commandMenu!: HTMLElement;
 	private commandButton!: ButtonComponent;
+	private privacyIndicator?: HTMLElement;
+	private currentProviderDropdown?: { cleanup?: () => void };
 	
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
@@ -158,8 +160,7 @@ export class NovaSidebarView extends ItemView {
 		this.updatePrivacyIndicator(privacyIndicator);
 		
 		// Store reference for updates
-		// TODO: Replace with proper class property in future refactor
-		(this as any).privacyIndicator = privacyIndicator;
+		this.privacyIndicator = privacyIndicator;
 		
 		// All users can switch providers freely
 		await this.createProviderDropdown(rightContainer);
@@ -264,8 +265,8 @@ export class NovaSidebarView extends ItemView {
 	async onClose() {
 		// Clean up provider dropdown event listener
 		// TODO: Replace with proper class property in future refactor
-		if ((this as any).currentProviderDropdown?.cleanup) {
-			(this as any).currentProviderDropdown.cleanup();
+		if (this.currentProviderDropdown?.cleanup) {
+			this.currentProviderDropdown.cleanup();
 		}
 		
 		// Clean up wikilink autocomplete
@@ -614,7 +615,7 @@ export class NovaSidebarView extends ItemView {
 			SELECTION_ACTIONS.forEach(action => {
 				commands.push({
 					trigger: action.id,
-					name: `Nova: ${action.label}`,
+					name: action.label,
 					description: action.description
 				});
 			});
@@ -1245,15 +1246,15 @@ export class NovaSidebarView extends ItemView {
 		
 		// Disable send button during processing
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = (this.inputHandler as any).sendButton;
+		const sendButton = this.inputHandler.sendButtonComponent;
 		if (sendButton) sendButton.setDisabled(true);
 
 		try {
 			// Store user message in conversation (will be restored via loadConversationHistory)
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
-				// TODO: Define proper type for metadata parameter instead of null as any
-				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, null as any);
+				// No edit command for regular chat messages
+				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, undefined);
 				
 				// Add user message to UI immediately after persistence
 				this.chatRenderer.addMessage('user', messageText);
@@ -1404,7 +1405,7 @@ USER REQUEST: ${processedMessage}`;
 		} finally {
 			// Re-enable send button
 			// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = (this.inputHandler as any).sendButton;
+		const sendButton = this.inputHandler.sendButtonComponent;
 			if (sendButton) sendButton.setDisabled(false);
 			// Refresh context indicator to show persistent documents
 			await this.refreshContext();
@@ -1413,9 +1414,8 @@ USER REQUEST: ${processedMessage}`;
 
 	async insertTextIntoActiveNote(text: string) {
 		const activeView = this.app.workspace.getActiveViewOfType(ItemView);
-		if (activeView && 'editor' in activeView) {
-			// TODO: Add proper type guard for MarkdownView with editor property
-			const editor = (activeView as any).editor;
+		if (this.isMarkdownView(activeView)) {
+			const editor = activeView.editor;
 			if (editor) {
 				const cursor = editor.getCursor();
 				editor.replaceRange(text, cursor);
@@ -1990,8 +1990,9 @@ USER REQUEST: ${processedMessage}`;
 			await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt);
 			
 			if (activeFile) {
-				// TODO: Define proper type for metadata parameter instead of object as any
-				await this.plugin.conversationManager.addAssistantMessage(activeFile, 'AI response', { success: true, editType: 'none' } as any);
+				// Create proper EditResult for successful chat response
+				const result: EditResult = { success: true, editType: 'insert' };
+				await this.plugin.conversationManager.addAssistantMessage(activeFile, 'AI response', result);
 			}
 		}
 	}
@@ -2006,7 +2007,7 @@ USER REQUEST: ${processedMessage}`;
 	private async updateSendButtonState(): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = (this.inputHandler as any).sendButton;
+		const sendButton = this.inputHandler.sendButtonComponent;
 		if (sendButton) sendButton.setDisabled(!currentProviderType);
 	}
 
@@ -2168,8 +2169,13 @@ USER REQUEST: ${processedMessage}`;
 		// Toggle dropdown
 		const toggleDropdown = () => {
 			isDropdownOpen = !isDropdownOpen;
-			dropdownMenu.style.display = isDropdownOpen ? 'block' : 'none';
-			dropdownArrow.style.transform = isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+			if (isDropdownOpen) {
+				dropdownMenu.removeClass('hidden');
+				dropdownArrow.addClass('rotated');
+			} else {
+				dropdownMenu.addClass('hidden');
+				dropdownArrow.removeClass('rotated');
+			}
 			
 			if (isDropdownOpen) {
 				this.populateProviderDropdown(dropdownMenu);
@@ -2180,16 +2186,16 @@ USER REQUEST: ${processedMessage}`;
 		const closeDropdown: EventListener = (event: Event) => {
 			if (!dropdownContainer.contains(event.target as Node)) {
 				isDropdownOpen = false;
-				dropdownMenu.style.display = 'none';
-				dropdownArrow.style.transform = 'rotate(0deg)';
+				dropdownMenu.addClass('hidden');
+				dropdownArrow.removeClass('rotated');
 			}
 		};
 
 		// Close dropdown helper function for internal use
 		const closeDropdownInternal = () => {
 			isDropdownOpen = false;
-			dropdownMenu.style.display = 'none';
-			dropdownArrow.style.transform = 'rotate(0deg)';
+			dropdownMenu.addClass('hidden');
+			dropdownArrow.removeClass('rotated');
 		};
 
 		providerButton.addEventListener('click', (e) => {
@@ -2650,7 +2656,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If dropdown is currently open, refresh the available models
 		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
-		if (dropdownMenu && dropdownMenu.style.display !== 'none') {
+		if (dropdownMenu && !dropdownMenu.hasClass('hidden')) {
 			this.populateProviderDropdown(dropdownMenu);
 		}
 	}
@@ -2699,7 +2705,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// If dropdown is currently open, refresh the available models
 		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
-		if (dropdownMenu && dropdownMenu.style.display !== 'none') {
+		if (dropdownMenu && !dropdownMenu.hasClass('hidden')) {
 			this.populateProviderDropdown(dropdownMenu);
 		}
 	}
@@ -3196,6 +3202,13 @@ USER REQUEST: ${processedMessage}`;
 			clearInterval((textEl as any).rotationInterval);
 			(textEl as any).rotationInterval = null;
 		}
+	}
+
+	/**
+	 * Type guard to check if a view is a MarkdownView with editor property
+	 */
+	private isMarkdownView(view: ItemView | null): view is ItemView & { editor: any } {
+		return view !== null && 'editor' in view && view.editor !== undefined;
 	}
 
 }

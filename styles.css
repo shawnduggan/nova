@@ -3768,3 +3768,156 @@
     --explode-x: 0px;
     --explode-y: 0px;
 }
+
+/* Icon wrapper for inline SVG icons */
+.nova-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Auto-growing textarea */
+.nova-textarea-auto {
+    min-height: 38px;
+    max-height: 200px;
+    resize: none;
+}
+
+/* Badge styles for dynamic colors */
+.nova-badge-custom {
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--badge-color);
+    color: var(--badge-color);
+}
+
+/* Supernova icon styles */
+.nova-supernova-icon {
+    width: 14px;
+    height: 14px;
+    color: #9333ea;
+    filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));
+}
+
+/* Nova icon styles */
+.nova-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-normal);
+}
+
+/* Command system styles */
+.nova-command-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nova-command-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* Command menu styles */
+.nova-command-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: none;
+}
+
+.nova-command-menu.show {
+    display: block;
+}
+
+.nova-command-menu-title {
+    padding: 10px 12px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--background-modifier-border);
+    font-size: var(--font-ui-small);
+}
+
+.nova-command-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nova-command-menu-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-command-name {
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.nova-command-desc {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.nova-command-example {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Command picker styles */
+.nova-command-picker {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+    display: none;
+}
+
+.nova-command-picker.show {
+    display: block;
+}
+
+.nova-command-picker-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--background-modifier-border-hover);
+    transition: background-color 0.2s;
+}
+
+.nova-command-picker-item:hover,
+.nova-command-picker-item.selected {
+    background: var(--background-modifier-hover);
+}
+
+.nova-command-picker-name {
+    font-weight: 500;
+    color: var(--text-normal);
+    margin-bottom: 4px;
+}
+
+.nova-command-picker-desc {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.nova-command-picker-example {
+    font-size: 0.8em;
+    color: var(--text-faint);
+    font-style: italic;
+}

@@ -43,6 +43,10 @@ export class InputHandler {
 		}
 	}
 
+	get sendButtonComponent(): ButtonComponent {
+		return this.sendButton;
+	}
+
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
 		
@@ -80,8 +84,9 @@ export class InputHandler {
 		// Auto-grow functionality
 		this.autoGrowTextarea = () => {
 			const textarea = this.textArea.inputEl;
-			textarea.style.height = 'auto';
-			textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+			textarea.addClass('nova-textarea-auto');
+			// Set height using CSS custom property for better theme compatibility
+			textarea.setCssProperty('height', Math.min(textarea.scrollHeight, 200) + 'px');
 		};
 
 		// Add input event listener for auto-grow

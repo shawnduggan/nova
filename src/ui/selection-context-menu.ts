@@ -109,7 +109,7 @@ export class SelectionContextMenu {
         SELECTION_ACTIONS.forEach(action => {
             menu.addItem((item: MenuItem) => {
                 item
-                    .setTitle(`Nova: ${action.label}`)
+                    .setTitle(action.label)
                     .setIcon(action.icon || 'edit')
                     .onClick(() => {
                         this.handleSelectionAction(action.id, editor, selectedText);
@@ -227,12 +227,12 @@ export class SelectionContextMenu {
             
             if (result.success) {
                 const actionName = this.getActionDisplayName(actionId);
-                new Notice(`Nova: Text ${actionName} successfully`, 2000);
+                new Notice(`Text ${actionName} successfully`, 2000);
                 
                 // Add success message to chat
                 this.addSuccessChatMessage(actionId, selectedText, customInstruction);
             } else {
-                new Notice(`Nova: ${result.error || 'Failed to process text'}`, 3000);
+                new Notice(`${result.error || 'Failed to process text'}`, 3000);
                 // Add failure message to chat
                 this.addFailureChatMessage(actionId, result.error || 'Failed to process text');
                 

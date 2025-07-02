@@ -142,7 +142,7 @@ export class GoogleProvider implements AIProvider {
 		
 		// Check if we hit the token limit before generating content
 		if (data.candidates[0].finishReason === 'MAX_TOKENS' && 
-		    (!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0)) {
+			(!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0)) {
 			throw new Error('API hit token limit before generating any content. Please increase "Default Max Tokens" in settings.');
 		}
 		
