@@ -20,6 +20,7 @@ import { SelectionContextMenu } from './src/ui/selection-context-menu';
 import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
+import { Logger } from './src/utils/logger';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -113,7 +114,7 @@ export default class NovaPlugin extends Plugin {
 			// Initialize command implementations
 			this.addCommandHandler = new AddCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.editCommandHandler = new EditCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
-			this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+			this.deleteCommandHandler = new DeleteCommand(this.app, this.documentEngine);
 			this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.metadataCommandHandler = new MetadataCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
@@ -125,7 +126,7 @@ export default class NovaPlugin extends Plugin {
 
 			// Note: Wikilink autocomplete is now handled directly in sidebar view
 
-			const ribbonIcon = this.addRibbonIcon('nova-star', 'Nova AI', (evt: MouseEvent) => {
+			const ribbonIcon = this.addRibbonIcon('nova-star', 'Nova AI', (_evt: MouseEvent) => {
 				this.activateView();
 			});
 
@@ -188,6 +189,7 @@ export default class NovaPlugin extends Plugin {
 			this.settingTab = new NovaSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
 		} catch (error) {
+			Logger.error('Failed to initialize Nova plugin:', error);
 		}
 	}
 
@@ -223,7 +225,7 @@ export default class NovaPlugin extends Plugin {
 					this.settings.aiProviders.google.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.google.apiKey);
 				}
 			} catch (error) {
-				console.error('❌ Failed to decrypt API keys:', error);
+				Logger.error('Failed to decrypt API keys:', error);
 			}
 		}
 		
@@ -235,7 +237,7 @@ export default class NovaPlugin extends Plugin {
 					this.settings.licensing.supernovaLicenseKey = await CryptoService.decryptValue(this.settings.licensing.supernovaLicenseKey);
 				}
 			} catch (error) {
-				console.error('❌ Failed to decrypt license keys:', error);
+				Logger.error('Failed to decrypt license keys:', error);
 			}
 		}
 		
@@ -255,7 +257,7 @@ export default class NovaPlugin extends Plugin {
 		const result = { ...target };
 		
 		for (const key in source) {
-			if (source.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(source, key)) {
 				if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
 					result[key] = this.deepMerge(target[key] || {}, source[key]);
 				} else {
@@ -306,7 +308,7 @@ export default class NovaPlugin extends Plugin {
 					settingsToSave.aiProviders.google.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.google.apiKey);
 				}
 			} catch (error) {
-				console.error('❌ Failed to encrypt API keys:', error);
+				Logger.error('Failed to encrypt API keys:', error);
 				// Fall back to saving without encryption if encryption fails
 			}
 		}
@@ -319,7 +321,7 @@ export default class NovaPlugin extends Plugin {
 					settingsToSave.licensing.supernovaLicenseKey = await CryptoService.encryptValue(settingsToSave.licensing.supernovaLicenseKey);
 				}
 			} catch (error) {
-				console.error('❌ Failed to encrypt license keys:', error);
+				Logger.error('Failed to encrypt license keys:', error);
 				// Fall back to saving without encryption if encryption fails
 			}
 		}
@@ -344,7 +346,7 @@ export default class NovaPlugin extends Plugin {
 			const actualModel = readBack?.platformSettings?.[currentPlatform]?.selectedModel;
 			
 			if (expectedModel !== actualModel) {
-				console.error('❌ Save verification STILL failed after retry!', {
+				Logger.error('Save verification failed after retry!', {
 					expected: expectedModel,
 					actual: actualModel,
 					platform: currentPlatform
@@ -357,13 +359,13 @@ export default class NovaPlugin extends Plugin {
 				const finalCheck = await this.loadData();
 				const finalActual = finalCheck?.platformSettings?.[currentPlatform]?.selectedModel;
 				if (expectedModel !== finalActual) {
-					console.error('❌ Forced save also failed!', { finalActual });
+					Logger.error('Forced save also failed!', { finalActual });
 				}
 			}
 			
 			this.aiProviderManager?.updateSettings(this.settings);
 		} catch (error) {
-			console.error('❌ Error during save operation:', error);
+			Logger.error('Error during save operation:', error);
 			throw error;
 		}
 	}
@@ -402,7 +404,7 @@ export default class NovaPlugin extends Plugin {
 
 			await this.selectionContextMenu.handleSelectionAction(actionId, editor, selectedText);
 		} catch (error) {
-			console.error('Error executing Nova selection command:', error);
+			Logger.error('Error executing Nova selection command:', error);
 			new Notice('Failed to execute Nova action. Please try again.', 3000);
 		}
 	}
@@ -421,7 +423,7 @@ export default class NovaPlugin extends Plugin {
 			// Call handleSelectionAction with tone action and the specific tone
 			await this.selectionContextMenu.handleSelectionAction('tone', editor, selectedText, toneId);
 		} catch (error) {
-			console.error('Error executing Nova tone command:', error);
+			Logger.error('Error executing Nova tone command:', error);
 			new Notice('Failed to execute Nova action. Please try again.', 3000);
 		}
 	}

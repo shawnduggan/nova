@@ -1,4 +1,5 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
+import { Logger } from '../../utils/logger';
 
 export class GoogleProvider implements AIProvider {
 	name = 'Google (Gemini)';
@@ -111,7 +112,7 @@ export class GoogleProvider implements AIProvider {
 			}
 			
 			// Log detailed error for debugging
-			console.error('Google API Error Details:', {
+			Logger.error('Google API Error Details:', {
 				status: response.status,
 				statusText: response.statusText,
 				errorText: errorText,
@@ -158,7 +159,7 @@ export class GoogleProvider implements AIProvider {
 			
 			// Make sure we have actual text content
 			if (!text || text.trim().length === 0) {
-				console.error('Google API returned empty text content');
+				Logger.error('Google API returned empty text content');
 				throw new Error('Google API returned empty text content');
 			}
 			

@@ -36,7 +36,8 @@ describe('Tag Operations', () => {
     });
 
     describe('Direct tag operations', () => {
-        const mockFile = { path: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', basename: 'test' };
+        const mockFile: TFile = mockFileData as TFile;
 
         it('should add tags without duplicates', async () => {
             const documentContext = {
@@ -160,7 +161,8 @@ describe('Tag Operations', () => {
     });
 
     describe('AI-powered tag operations', () => {
-        const mockFile = { path: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', basename: 'test' };
+        const mockFile: TFile = mockFileData as TFile;
 
         beforeEach(() => {
             mockContextBuilder.buildPrompt.mockReturnValue({
@@ -328,7 +330,8 @@ describe('Tag Operations', () => {
     });
 
     describe('Tag Space Normalization', () => {
-        const mockFile = { path: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', basename: 'test' };
+        const mockFile: TFile = mockFileData as TFile;
 
         beforeEach(() => {
             mockDocumentEngine.getDocumentContext.mockResolvedValue({

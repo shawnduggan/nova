@@ -5,6 +5,7 @@
 
 import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
+import { Logger } from '../../utils/logger';
 import { ContextBuilder } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand, EditResult, DocumentContext } from '../types';
@@ -158,7 +159,7 @@ export class MetadataCommand {
             const updates = this.parsePropertyUpdates(aiResponse);
             if (!updates || Object.keys(updates).length === 0) {
                 // Log for debugging
-                console.error('Failed to parse metadata updates. AI response:', aiResponse);
+                Logger.error('Failed to parse metadata updates. AI response:', aiResponse);
                 return {
                     success: false,
                     error: 'No property updates found in AI response',
@@ -508,7 +509,7 @@ export class MetadataCommand {
             let message = '';
             
             switch (action) {
-                case 'add':
+                case 'add': {
                     // Add new tags without duplicates
                     const normalizedCurrentTags = currentTags.map(t => this.normalizeTagValue(t));
                     const tagsToAdd = newTags.filter(tag => 
@@ -519,8 +520,9 @@ export class MetadataCommand {
                         ? `Added ${tagsToAdd.length} tag${tagsToAdd.length !== 1 ? 's' : ''}: ${tagsToAdd.join(', ')}`
                         : 'No new tags to add (duplicates filtered)';
                     break;
+                }
                     
-                case 'remove':
+                case 'remove': {
                     // Remove specified tags
                     const beforeCount = currentTags.length;
                     updatedTags = currentTags.filter(tag => 
@@ -531,6 +533,7 @@ export class MetadataCommand {
                         ? `Removed ${removedCount} tag${removedCount !== 1 ? 's' : ''}`
                         : 'No tags found to remove';
                     break;
+                }
                     
                 case 'set':
                 case 'update':
@@ -847,10 +850,10 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             }
             
             // If we still can't parse, log the response for debugging
-            console.error('Failed to parse AI tag response:', cleanResponse);
+            Logger.error('Failed to parse AI tag response:', cleanResponse);
             return null;
         } catch (error) {
-            console.error('Error parsing AI tag response:', error, 'Response was:', response);
+            Logger.error('Error parsing AI tag response:', error, 'Response was:', response);
             return null;
         }
     }

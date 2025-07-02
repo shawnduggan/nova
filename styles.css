@@ -2661,6 +2661,11 @@
     margin-bottom: var(--size-4-2);
 }
 
+.nova-welcome-icon svg {
+    width: 32px !important;
+    height: 32px !important;
+}
+
 .nova-welcome-text {
     margin: 0;
     margin-left: var(--size-2-3);

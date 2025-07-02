@@ -18,7 +18,10 @@
   ],
   "globals": {
     "AsyncGenerator": "readonly",
-    "NodeJS": "readonly"
+    "NodeJS": "readonly",
+    "EventListener": "readonly",
+    "DocumentEventMap": "readonly",
+    "HTMLElementTagNameMap": "readonly"
   },
   "rules": {
     "@typescript-eslint/no-unused-vars": [

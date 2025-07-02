@@ -152,7 +152,7 @@ export class ChatRenderer {
 		this.addStatusMessage(content, { type, variant: 'warning', persist });
 	}
 
-	addWelcomeMessage(message?: string): void {
+	addWelcomeMessage(_message?: string): void {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 
 		// Create welcome content using DOM API instead of innerHTML
@@ -160,7 +160,7 @@ export class ChatRenderer {
 		
 		// Add Nova icon
 		const iconDiv = contentDiv.createDiv({ cls: 'nova-welcome-icon' });
-		setIcon(iconDiv, 'star');
+		setIcon(iconDiv, 'nova-star');
 		
 		// Add welcome text
 		const textP = contentDiv.createEl('p', { cls: 'nova-welcome-text' });

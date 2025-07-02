@@ -8,7 +8,6 @@ import { DocumentEngine } from '../document-engine';
 import { ContextBuilder } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
-import { StreamingManager } from '../../ui/streaming-manager';
 
 export interface StreamingCallback {
     (chunk: string, isComplete: boolean): void;

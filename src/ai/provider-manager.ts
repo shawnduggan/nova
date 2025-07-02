@@ -96,7 +96,7 @@ export class AIProviderManager {
 		return null;
 	}
 
-	async generateText(prompt: string, options?: AIGenerationOptions): Promise<string> {
+	async generateText(prompt: string, _options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
@@ -111,7 +111,7 @@ export class AIProviderManager {
 		return provider.generateText(prompt, enhancedOptions);
 	}
 
-	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
+	async *generateTextStream(prompt: string, _options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
@@ -126,7 +126,7 @@ export class AIProviderManager {
 		yield* provider.generateTextStream(prompt, enhancedOptions);
 	}
 
-	async chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string> {
+	async chatCompletion(messages: AIMessage[], _options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
@@ -141,7 +141,7 @@ export class AIProviderManager {
 		return provider.chatCompletion(messages, enhancedOptions);
 	}
 
-	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
+	async *chatCompletionStream(messages: AIMessage[], _options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
@@ -188,7 +188,7 @@ export class AIProviderManager {
 		return this.getSelectedModel();
 	}
 
-	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
+	async complete(systemPrompt: string, userPrompt: string, _options?: AIGenerationOptions): Promise<string> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
@@ -231,7 +231,7 @@ export class AIProviderManager {
 		return availabilityMap;
 	}
 
-	isProviderAllowed(providerType: ProviderType): boolean {
+	isProviderAllowed(_providerType: ProviderType): boolean {
 		// All providers are allowed
 		return true;
 	}

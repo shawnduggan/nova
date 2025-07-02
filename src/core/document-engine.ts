@@ -3,8 +3,8 @@
  * Handles all document manipulation and editor interactions
  */
 
-import { App, Editor, MarkdownView, TFile, EditorPosition, Notice } from 'obsidian';
-import { DocumentContext, HeadingInfo, EditResult, EditOptions, DocumentSection, EditCommand } from './types';
+import { App, Editor, MarkdownView, TFile, EditorPosition } from 'obsidian';
+import { DocumentContext, HeadingInfo, EditResult, EditOptions, EditCommand } from './types';
 import { ConversationManager, DataStore } from './conversation-manager';
 
 export class DocumentEngine {

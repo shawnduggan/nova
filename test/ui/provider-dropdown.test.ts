@@ -24,10 +24,20 @@ describe('Provider Dropdown Performance', () => {
 			platformSettings: {
 				desktop: { selectedModel: 'claude-3-5-sonnet-20241022' },
 				mobile: { selectedModel: 'claude-3-5-sonnet-20241022' }
+			},
+			general: {
+				defaultTemperature: 0.7,
+				defaultMaxTokens: 1000,
+				autoSave: true
+			},
+			licensing: {
+				supernovaLicenseKey: '',
+				debugSettings: { enabled: false }
 			}
-		} as NovaSettings;
+		};
+		const mockSettingsTyped: NovaSettings = mockSettings;
 
-		providerManager = new AIProviderManager(mockSettings);
+		providerManager = new AIProviderManager(mockSettingsTyped);
 		await providerManager.initialize();
 	});
 

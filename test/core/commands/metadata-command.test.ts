@@ -14,6 +14,12 @@ jest.mock('../../../src/core/document-engine');
 jest.mock('../../../src/core/context-builder');
 jest.mock('../../../src/ai/provider-manager');
 
+// Helper function to create properly typed mock files
+function createMockFile(props: Partial<TFile>): TFile {
+    const mockFile: TFile = props as TFile;
+    return mockFile;
+}
+
 describe('MetadataCommand', () => {
     let metadataCommand: MetadataCommand;
     let mockApp: jest.Mocked<App>;
@@ -44,7 +50,7 @@ describe('MetadataCommand', () => {
         };
 
         const mockDocumentContext: DocumentContext = {
-            file: { path: 'test.md', basename: 'test' } as TFile,
+            file: createMockFile({ path: 'test.md', basename: 'test' }),
             filename: 'test',
             content: '# Test Content\nSome content here.',
             headings: [],

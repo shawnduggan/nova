@@ -10,6 +10,7 @@ import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
 import { NovaSidebarView } from './sidebar-view';
 import { StreamingManager, ActionType } from './streaming-manager';
+import { Logger } from '../utils/logger';
 
 export interface SelectionAction {
     id: string;
@@ -138,7 +139,7 @@ export class SelectionContextMenu {
             // Execute the selection edit command for other actions or direct tone/custom calls
             await this.executeSelectionEdit(actionId, editor, selectedText, customInstruction);
         } catch (error) {
-            console.error('Error executing Nova selection action:', error);
+            Logger.error('Error executing Nova selection action:', error);
             new Notice('Failed to execute Nova action. Please try again.', 3000);
         }
     }
@@ -240,7 +241,7 @@ export class SelectionContextMenu {
                 this.restoreOriginalText(editor);
             }
         } catch (error) {
-            console.error('Error in streaming selection edit:', error);
+            Logger.error('Error in streaming selection edit:', error);
             new Notice('Failed to execute Nova action. Please try again.', 3000);
             
             // Restore original text on complete failure
@@ -255,7 +256,7 @@ export class SelectionContextMenu {
     /**
      * Restore original text if streaming fails completely
      */
-    private restoreOriginalText(editor: Editor): void {
+    private restoreOriginalText(_editor: Editor): void {
         // The StreamingManager now handles text restoration
         // This is kept for compatibility but most restoration is handled by the unified system
     }
@@ -281,7 +282,7 @@ export class SelectionContextMenu {
                 };
             }
         } catch (error) {
-            console.warn('Failed to start selection animation:', error);
+            Logger.warn('Failed to start selection animation:', error);
         }
     }
 
@@ -299,7 +300,7 @@ export class SelectionContextMenu {
 
             this.animatedSelection = null;
         } catch (error) {
-            console.warn('Failed to stop selection animation:', error);
+            Logger.warn('Failed to stop selection animation:', error);
         }
     }
 
@@ -345,7 +346,7 @@ export class SelectionContextMenu {
                 }
             }
         } catch (error) {
-            console.warn('Failed to add success chat message:', error);
+            Logger.warn('Failed to add success chat message:', error);
         }
     }
 
@@ -367,7 +368,7 @@ export class SelectionContextMenu {
                 }
             }
         } catch (error) {
-            console.warn('Failed to add error chat message:', error);
+            Logger.warn('Failed to add error chat message:', error);
         }
     }
 

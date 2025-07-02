@@ -183,7 +183,7 @@ TASK: Condense the text to essential points
                 userPrompt = `Make this text shorter and more concise:\n\n${selectedText}`;
                 break;
 
-            case 'tone':
+            case 'tone': {
                 const toneMap: Record<string, string> = {
                     'formal': 'professional and structured, suitable for business or academic contexts',
                     'casual': 'relaxed and conversational, suitable for informal communication',
@@ -199,6 +199,7 @@ TASK: Change the tone to be ${toneDescription}
 - Maintain appropriate formality level for the chosen tone`;
                 userPrompt = `Rewrite this text in a ${customInstruction || 'formal'} tone:\n\n${selectedText}`;
                 break;
+            }
 
             case 'custom':
                 specificPrompt = `

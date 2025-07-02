@@ -1,7 +1,7 @@
-import { App, Platform, TFile, Notice, CachedMetadata } from 'obsidian';
+import { App, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
-import { ConversationData } from '../core/types';
-import { calculateContextUsage, ContextUsage, estimateTokens as calculateTokens } from '../core/context-calculator';
+import { calculateContextUsage, ContextUsage } from '../core/context-calculator';
+import { Logger } from '../utils/logger';
 
 export interface DocumentReference {
 	/** The file being referenced */
@@ -234,7 +234,7 @@ export class ContextManager {
 		}
 	}
 
-	private updateContextIndicator(context: MultiDocContext): void {
+	private updateContextIndicator(_context: MultiDocContext): void {
 		// Context indicator UI is now fully managed by sidebar-view.ts
 		// This method is kept for compatibility but does nothing
 		// The sidebar-view.ts updateContextIndicator() method handles all display logic
@@ -484,7 +484,7 @@ export class ContextManager {
 				try {
 					// Validate context document structure
 					if (!contextDoc || !contextDoc.path || typeof contextDoc.path !== 'string') {
-						console.warn('Invalid context document structure:', contextDoc);
+						Logger.warn('Invalid context document structure:', contextDoc);
 						continue;
 					}
 					
@@ -507,7 +507,7 @@ export class ContextManager {
 					}
 				} catch (docError) {
 					// Skip corrupted individual context documents
-					console.warn('Error processing context document, skipping:', docError);
+					Logger.warn('Error processing context document, skipping:', docError);
 				}
 			}
 			
@@ -527,7 +527,7 @@ export class ContextManager {
 			
 		} catch (error) {
 			// Graceful fallback on restoration errors
-			console.warn('Failed to restore context from conversation:', error);
+			Logger.warn('Failed to restore context from conversation:', error);
 			// Ensure clean state on error
 			this.persistentContext.delete(file.path);
 		}
@@ -546,7 +546,7 @@ export class ContextManager {
 			}
 		} catch (error) {
 			// Graceful fallback if cleanup fails
-			console.warn('Failed to cleanup missing files from conversation:', error);
+			Logger.warn('Failed to cleanup missing files from conversation:', error);
 		}
 	}
 
@@ -586,7 +586,7 @@ export class ContextManager {
 			}
 		} catch (error) {
 			// Graceful fallback if notice or chat message fails
-			console.warn('Failed to show missing files notification:', error);
+			Logger.warn('Failed to show missing files notification:', error);
 		}
 	}
 
@@ -869,14 +869,14 @@ export class ContextManager {
 							model = currentModel;
 						}
 					} catch (error) {
-						console.warn('Failed to get current model:', error);
+						Logger.warn('Failed to get current model:', error);
 					}
 				}
 			}
 			
 			// If no provider or model configured, return minimal context usage
 			if (!providerType || !model) {
-				return {
+				const fallbackUsage: ContextUsage = {
 					totalTokens: 0,
 					contextLimit: 32000, // Generic fallback context size
 					usagePercentage: 0,
@@ -886,7 +886,8 @@ export class ContextManager {
 						currentInput: 0,
 						recentResponse: 0
 					}
-				} as ContextUsage;
+				};
+				return fallbackUsage;
 			}
 			
 			// Get conversation history for current file
@@ -899,7 +900,7 @@ export class ContextManager {
 			}
 			
 		} catch (error) {
-			console.warn('Error during context calculation setup, using defaults:', error);
+			Logger.warn('Error during context calculation setup, using defaults:', error);
 		}
 		
 		// Always calculate context usage with fallback values

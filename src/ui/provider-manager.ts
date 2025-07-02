@@ -166,22 +166,26 @@ export class ProviderManager {
 		
 		// Find the model in the appropriate provider's model list
 		switch (providerType) {
-			case 'claude':
+			case 'claude': {
 				const claudeModels = getAvailableModels('claude', settings);
 				const claudeModel = claudeModels.find(m => m.value === selectedModelId);
 				return claudeModel?.label || selectedModelId;
-			case 'openai':
+			}
+			case 'openai': {
 				const openaiModels = getAvailableModels('openai', settings);
 				const openaiModel = openaiModels.find(m => m.value === selectedModelId);
 				return openaiModel?.label || selectedModelId;
-			case 'google':
+			}
+			case 'google': {
 				const googleModels = getAvailableModels('google', settings);
 				const googleModel = googleModels.find(m => m.value === selectedModelId);
 				return googleModel?.label || selectedModelId;
-			case 'ollama':
+			}
+			case 'ollama': {
 				// Ollama uses different logic
 				const ollamaModel = settings.aiProviders?.ollama?.model;
 				return ollamaModel || 'Not configured';
+			}
 			default:
 				return 'Unknown Provider';
 		}

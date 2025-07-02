@@ -3,6 +3,8 @@
  * Handles both license validation (HMAC-SHA256) and API key encryption (AES-GCM)
  */
 
+import { Logger } from '../utils/logger';
+
 export class CryptoService {
     // Master secret for key derivation - shared with license generator
     private static readonly MASTER_SECRET = 'nova-license-signing-key-2025';
@@ -87,7 +89,7 @@ export class CryptoService {
             // Convert to base64 and add prefix to identify encrypted values
             return 'encrypted:' + this.base64Encode(String.fromCharCode(...combined));
         } catch (error) {
-            console.error('Failed to encrypt value:', error);
+            Logger.error('Failed to encrypt value:', error);
             return value; // Return original value if encryption fails
         }
     }
@@ -125,7 +127,7 @@ export class CryptoService {
             const decoder = new TextDecoder();
             return decoder.decode(decrypted);
         } catch (error) {
-            console.error('Failed to decrypt value:', error);
+            Logger.error('Failed to decrypt value:', error);
             // Return the original value without the prefix if decryption fails
             return encryptedValue.startsWith('encrypted:') 
                 ? encryptedValue.substring('encrypted:'.length) 

@@ -60,9 +60,7 @@ Content for section two.`,
 
         deleteCommand = new DeleteCommand(
             mockApp as any,
-            mockDocumentEngine,
-            mockContextBuilder,
-            mockProviderManager
+            mockDocumentEngine
         );
 
         // Setup default mocks

@@ -61,7 +61,7 @@ export class Editor {
         this.content = this.content + replacement;
     }
     
-    replaceRange(replacement: string, from: EditorPosition, to?: EditorPosition): void {
+    replaceRange(replacement: string, _from: EditorPosition, _to?: EditorPosition): void {
         // Simplified replacement logic
         this.content = replacement;
     }
@@ -79,7 +79,7 @@ export class Editor {
         return this.lineCount() - 1;
     }
     
-    getCursor(from?: string): EditorPosition {
+    getCursor(_from?: string): EditorPosition {
         return this.cursor;
     }
     
@@ -87,7 +87,7 @@ export class Editor {
         this.selection = { from, to };
     }
     
-    scrollIntoView(range: any, center?: boolean): void {
+    scrollIntoView(_range: any, _center?: boolean): void {
         // Mock implementation
     }
 }
@@ -116,37 +116,37 @@ export class App {
         this.lastEvent = null;
     }
     
-    loadLocalStorage(key: string): string | null {
+    loadLocalStorage(_key: string): string | null {
         return null;
     }
     
-    saveLocalStorage(key: string, value: string): void {
+    saveLocalStorage(_key: string, _value: string): void {
         // Mock implementation
     }
     
-    async loadData(key: string): Promise<any> {
+    async loadData(_key: string): Promise<any> {
         return null;
     }
     
-    async saveData(key: string, data: any): Promise<void> {
+    async saveData(_key: string, _data: any): Promise<void> {
         // Mock implementation
     }
 }
 
 export class Vault {
-    async read(file: TFile): Promise<string> {
+    async read(_file: TFile): Promise<string> {
         return 'mock file content';
     }
     
-    async modify(file: TFile, content: string): Promise<void> {
+    async modify(_file: TFile, _content: string): Promise<void> {
         // Mock modify
     }
     
-    async create(path: string, content: string): Promise<TFile> {
+    async create(path: string, _content: string): Promise<TFile> {
         return new TFile(path);
     }
     
-    async delete(file: TFile): Promise<void> {
+    async delete(_file: TFile): Promise<void> {
         // Mock delete
     }
     
@@ -163,11 +163,11 @@ export class Workspace {
         return this.activeEditor?.file || null;
     }
     
-    getActiveViewOfType<T>(type: any): T | null {
+    getActiveViewOfType<T>(_type: any): T | null {
         return null;
     }
     
-    getLeavesOfType(type: string): any[] {
+    getLeavesOfType(_type: string): any[] {
         return [];
     }
     
@@ -197,7 +197,7 @@ export class Workspace {
 }
 
 export class MetadataCache {
-    getFileCache(file: TFile): any {
+    getFileCache(_file: TFile): any {
         return {
             headings: [
                 { heading: 'Test Heading', level: 1, position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 13, offset: 13 } } },
@@ -264,7 +264,7 @@ export class ItemView {
     containerEl: ExtendedHTMLElement;
     private _children: ExtendedHTMLElement[] = [];
     
-    constructor(leaf: any) {
+    constructor(_leaf: any) {
         this.app = new App();
         this.containerEl = this.createExtendedElement('div') as ExtendedHTMLElement;
         
@@ -299,7 +299,7 @@ export class ItemView {
     getDisplayText(): string { return ''; }
     getIcon(): string { return ''; }
     
-    registerEvent(event: any): void {
+    registerEvent(_event: any): void {
         // Mock implementation
     }
     
@@ -333,15 +333,15 @@ export class Plugin {
         return {};
     }
     
-    async saveData(data: any): Promise<void> {}
+    async saveData(_data: any): Promise<void> {}
     
-    registerView(type: string, viewCreator: any): void {}
+    registerView(_type: string, _viewCreator: any): void {}
     
-    addCommand(command: any): void {}
+    addCommand(_command: any): void {}
     
-    addRibbonIcon(icon: string, title: string, callback: any): void {}
+    addRibbonIcon(_icon: string, _title: string, _callback: any): void {}
     
-    addSettingTab(tab: any): void {}
+    addSettingTab(_tab: any): void {}
     
     async onload(): Promise<void> {}
     
@@ -382,11 +382,11 @@ export class Setting {
         containerEl.appendChild(this.settingEl);
     }
     
-    setName(name: string): this {
+    setName(_name: string): this {
         return this;
     }
     
-    setDesc(desc: string): this {
+    setDesc(_desc: string): this {
         return this;
     }
     
@@ -494,7 +494,7 @@ export class Setting {
 }
 
 export class Notice {
-    constructor(message: string, timeout?: number) {
+    constructor(_message: string, _timeout?: number) {
         // Mock implementation
     }
 }
@@ -508,7 +508,7 @@ export class WorkspaceLeaf {
         return { type: 'test-view' };
     }
     
-    setViewState(state: any): void {
+    setViewState(_state: any): void {
         // Mock implementation
     }
 }
@@ -628,11 +628,11 @@ export class FuzzySuggestModal<T> extends Modal {
         return String(item);
     }
 
-    onChooseItem(item: T): void {
+    onChooseItem(_item: T): void {
         // Override in subclasses
     }
 
-    renderSuggestion(match: any, el: HTMLElement): void {
+    renderSuggestion(_match: any, _el: HTMLElement): void {
         // Override in subclasses
     }
 

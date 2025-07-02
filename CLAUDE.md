@@ -48,21 +48,13 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-### UI Icon Issues
-
-**LOW Welcome text icon**: The icon in the welcome text has reverted to using 'star' when it should use 'nova-star' for consistency.
-
-### UI Alignment Issues
-
-**MEDIUM Supernova CTA icon alignment**: License type icon in reusable Supernova CTA blocks needs better vertical centering with content to its right. Margin spacing added but vertical alignment still needs refinement.
-
-### License Management UI Issues
-
-**CRITICAL License management section broken**: The license management section no longer renders the license key input box and button. The section above it that shows when a license is validated is also not rendering properly.
-
+_No known issues currently._
 
 ## 📋 Current Tasks
 
-### Obsidian Review Issues (CRITICAL - In Progress)
+
+### Future Enhancements 
+
+**MEDIUM User-configurable log levels**: Add setting in plugin settings tab to allow users to adjust logging verbosity (Debug, Info, Warn, Error). Currently hardcoded to INFO level. Would help with troubleshooting and support, and allow users to reduce logging overhead if needed.
 
 **LOW Add slider setting for scroll speed**: Maybe on the General settings tab.

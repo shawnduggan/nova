@@ -53,7 +53,7 @@ describe('Selection Context Menu Unified System', () => {
             }
         };
 
-        const getActionDescription = (actionId: string, customInstruction?: string) => {
+        const getActionDescription = (actionId: string, _customInstruction?: string) => {
             switch (actionId) {
                 case 'improve': return 'Improved';
                 case 'fix-grammar': return 'Fixed grammar in';
@@ -109,7 +109,7 @@ describe('Selection Context Menu Unified System', () => {
     });
 
     test('should truncate long original text', () => {
-        const addSuccessChatMessage = (actionId: string, originalText: string, customInstruction?: string) => {
+        const addSuccessChatMessage = (actionId: string, originalText: string, _customInstruction?: string) => {
             const leaves = mockApp.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
                 const sidebarView = leaves[0].view;
@@ -138,7 +138,7 @@ describe('Selection Context Menu Unified System', () => {
         // No sidebar available
         mockApp.workspace.getLeavesOfType.mockReturnValue([]);
 
-        const addSuccessChatMessage = (actionId: string, originalText: string, customInstruction?: string) => {
+        const addSuccessChatMessage = (_actionId: string, _originalText: string, _customInstruction?: string) => {
             try {
                 const leaves = mockApp.workspace.getLeavesOfType('nova-sidebar');
                 if (leaves.length > 0) {

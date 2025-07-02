@@ -82,12 +82,14 @@ export class CommandSystem {
 	private createCommandMenu(): void {
 		this.commandMenu = this.container.createDiv({ cls: 'nova-command-menu' });
 		// Position at bottom since we're in the bottom bar
-		this.commandMenu.setCssProperty('bottom', '100%');
-		this.commandMenu.setCssProperty('top', 'auto');
-		this.commandMenu.setCssProperty('right', '0');
-		this.commandMenu.setCssProperty('left', 'auto');
-		this.commandMenu.setCssProperty('min-width', '250px');
-		this.commandMenu.setCssProperty('padding', 'var(--size-2-2)');
+		this.commandMenu.setCssProps({
+			'bottom': '100%',
+			'top': 'auto',
+			'right': '0',
+			'left': 'auto',
+			'min-width': '250px',
+			'padding': 'var(--size-2-2)'
+		});
 
 		// Commands available to all users
 		const commands = [
@@ -103,22 +105,26 @@ export class CommandSystem {
 			text: 'Quick Commands',
 			cls: 'nova-command-menu-title'
 		});
-		title.setCssProperty('font-size', 'var(--font-ui-medium)');
-		title.setCssProperty('margin-bottom', 'var(--size-2-3)');
+		title.setCssProps({
+			'font-size': 'var(--font-ui-medium)',
+			'margin-bottom': 'var(--size-2-3)'
+		});
 
 		commands.forEach(cmd => {
 			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
-			cmdEl.setCssProperty('padding', 'var(--size-2-2) var(--size-2-3)');
-			cmdEl.setCssProperty('border-radius', 'var(--radius-xs)');
-			cmdEl.setCssProperty('cursor', 'pointer');
-			cmdEl.setCssProperty('margin-bottom', 'var(--size-2-1)');
-			cmdEl.setCssProperty('transition', 'background-color 0.1s');
+			cmdEl.setCssProps({
+				'padding': 'var(--size-2-2) var(--size-2-3)',
+				'border-radius': 'var(--radius-xs)',
+				'cursor': 'pointer',
+				'margin-bottom': 'var(--size-2-1)',
+				'transition': 'background-color 0.1s'
+			});
 
 			const nameEl = cmdEl.createEl('div', { 
 				text: cmd.name,
 				cls: 'nova-command-name'
 			});
-			nameEl.setCssProperty('margin-bottom', 'var(--size-2-1)');
+			nameEl.setCssProps({ 'margin-bottom': 'var(--size-2-1)' });
 
 			const descEl = cmdEl.createEl('div', { 
 				text: cmd.description,

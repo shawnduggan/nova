@@ -73,9 +73,10 @@ describe('AIProviderManager', () => {
                 supernovaLicenseKey: '',
                 debugSettings: { enabled: false }
             }
-        } as NovaSettings;
+        };
+        const mockSettingsTyped: NovaSettings = mockSettings;
 
-        manager = new AIProviderManager(mockSettings, featureManager);
+        manager = new AIProviderManager(mockSettingsTyped, featureManager);
     });
 
     describe('complete method', () => {

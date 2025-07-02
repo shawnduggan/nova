@@ -3,7 +3,7 @@
  * Provides consistent UX with core Obsidian features
  */
 
-import { App, FuzzySuggestModal, FuzzyMatch } from 'obsidian';
+import { App, FuzzySuggestModal } from 'obsidian';
 
 export interface ToneOption {
     id: string;
@@ -66,7 +66,7 @@ export class ToneSelectionModal extends FuzzySuggestModal<ToneOption> {
         return `${tone.label} - ${tone.description}`;
     }
 
-    onChooseItem(tone: ToneOption, evt: MouseEvent | KeyboardEvent): void {
+    onChooseItem(tone: ToneOption, _evt: MouseEvent | KeyboardEvent): void {
         this.onSelect(tone.id);
     }
 

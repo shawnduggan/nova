@@ -8,6 +8,7 @@ import { ClaudeProvider } from './ai/providers/claude';
 import { OpenAIProvider } from './ai/providers/openai';
 import { GoogleProvider } from './ai/providers/google';
 import { OllamaProvider } from './ai/providers/ollama';
+import { Logger } from './utils/logger';
 
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -486,7 +487,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				}
 			}
 		} catch (error) {
-			console.error('Error creating provider status indicator:', error);
+			Logger.error('Error creating provider status indicator:', error);
 			// Fallback: create a simple status indicator
 			const statusEl = statusContainer.createDiv({ cls: 'nova-provider-status untested' });
 			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
@@ -512,7 +513,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				lastChecked: null
 			};
 		} catch (error) {
-			console.error(`Error getting provider status for ${provider}:`, error);
+			Logger.error(`Error getting provider status for ${provider}:`, error);
 			return {
 				state: 'not-configured',
 				message: 'Status unavailable',
@@ -613,7 +614,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			}));
 			
 		} catch (error: any) {
-			console.error(`Connection test failed for ${provider}:`, error);
+			Logger.error(`Connection test failed for ${provider}:`, error);
 			let errorMessage = 'Connection failed';
 			
 			if (error.message === 'Connection timeout') {
@@ -812,7 +813,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Set custom style if badge has colors
 		if (badge) {
 			statusBadge.addClass('nova-badge-custom');
-			statusBadge.setCssProperty('--badge-color', badge.color);
+			statusBadge.setCssProps({ '--badge-color': badge.color });
 		}
 		
 		// Create status icon
@@ -1732,8 +1733,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			
 			if (badge) {
 				const badgeSpan = headerDiv.createSpan({ cls: `nova-license-badge ${badge.className} nova-badge-custom`, text: badge.icon });
-				badgeSpan.setCssProperty('--badge-color', badge.color);
-				badgeSpan.setCssProperty('background', badge.color);
+				badgeSpan.setCssProps({
+					'--badge-color': badge.color,
+					'background': badge.color
+				});
 			}
 			
 			// License details

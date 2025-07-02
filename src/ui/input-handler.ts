@@ -1,8 +1,9 @@
-import { ButtonComponent, TextAreaComponent, Platform, Notice } from 'obsidian';
+import { ButtonComponent, TextAreaComponent, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { CommandSystem } from './command-system';
 import { ContextManager } from './context-manager';
+import { Logger } from '../utils/logger';
 
 /**
  * Handles textarea input, auto-grow, send button, and input events
@@ -68,7 +69,7 @@ export class InputHandler {
 		return this.textArea;
 	}
 
-	createInputInterface(chatContainer: HTMLElement): void {
+	createInputInterface(_chatContainer: HTMLElement): void {
 		this.container = this.container.createDiv({ cls: 'nova-input-container nova-input-wrapper' });
 
 		this.inputRow = this.container.createDiv({ cls: 'nova-input-row nova-input-flex-row' });
@@ -85,8 +86,9 @@ export class InputHandler {
 		this.autoGrowTextarea = () => {
 			const textarea = this.textArea.inputEl;
 			textarea.addClass('nova-textarea-auto');
-			// Set height using CSS custom property for better theme compatibility
-			textarea.setCssProperty('height', Math.min(textarea.scrollHeight, 200) + 'px');
+			// Use data attribute for CSS-based height management
+			const height = Math.min(textarea.scrollHeight, 200);
+			textarea.setAttribute('data-height', height.toString());
 		};
 
 		// Add input event listener for auto-grow
@@ -377,7 +379,7 @@ export class InputHandler {
 						}
 					}
 				} catch (error) {
-					console.warn('Failed to parse Obsidian URL:', urlString, error);
+					Logger.warn('Failed to parse Obsidian URL:', urlString, error);
 				}
 			}
 		}

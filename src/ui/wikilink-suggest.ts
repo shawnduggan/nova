@@ -11,7 +11,7 @@ export class NovaWikilinkAutocomplete {
     private sidebarView: any; // Reference to NovaSidebarView
     private lastTriggerPos: number = -1;
 
-    constructor(app: App, textArea: HTMLTextAreaElement, container?: HTMLElement) {
+    constructor(app: App, textArea: HTMLTextAreaElement, _container?: HTMLElement) {
         this.app = app;
         this.textArea = textArea;
         this.setupEventListeners();

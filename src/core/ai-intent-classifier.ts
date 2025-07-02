@@ -4,6 +4,7 @@
  */
 
 import { AIProviderManager } from '../ai/provider-manager';
+import { Logger } from '../utils/logger';
 import { IntentDetector, IntentClassification } from './intent-detector';
 
 export type UserIntent = 'CHAT' | 'METADATA' | 'CONTENT';
@@ -50,7 +51,7 @@ export class AIIntentClassifier {
             return this.enhancedFallbackClassification(trimmedInput, fastResult);
 
         } catch (error) {
-            console.error('Error in classifyIntent:', error);
+            Logger.error('Error in classifyIntent:', error);
             // Ultimate fallback to safe default
             return 'CHAT';
         }
@@ -116,7 +117,7 @@ export class AIIntentClassifier {
             return { intent: 'CHAT', confidence: 0.5 };
 
         } catch (error) {
-            console.warn('Error in fastClassification:', error);
+            Logger.warn('Error in fastClassification:', error);
             // Fallback to safe default
             return { intent: 'CHAT', confidence: 0.3 };
         }
@@ -186,7 +187,7 @@ export class AIIntentClassifier {
 
             return false;
         } catch (error) {
-            console.warn('Error in isDirectEditingCommand:', error);
+            Logger.warn('Error in isDirectEditingCommand:', error);
             return false;
         }
     }
@@ -194,7 +195,7 @@ export class AIIntentClassifier {
     /**
      * Enhanced fallback classification for ambiguous cases
      */
-    private enhancedFallbackClassification(userInput: string, fastResult: { intent: UserIntent; confidence: number }): UserIntent {
+    private enhancedFallbackClassification(userInput: string, _fastResult: { intent: UserIntent; confidence: number }): UserIntent {
         const lowerInput = userInput.toLowerCase().trim();
 
         // Check for subtle editing patterns that fast classification might miss

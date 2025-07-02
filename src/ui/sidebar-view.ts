@@ -1881,7 +1881,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Show subtle indicator for consultation vs editing mode
 	 */
-	showModeIndicator(mode: 'consultation' | 'editing'): void {
+	showModeIndicator(_mode: 'consultation' | 'editing'): void {
 		// For now, this is a no-op placeholder
 		// Future enhancement: show subtle UI indicator
 	}
@@ -1903,7 +1903,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Track intent usage for analytics (placeholder for future enhancement)
 	 */
-	trackIntentUsage(intent: 'consultation' | 'editing', input: string): void {
+	trackIntentUsage(_intent: 'consultation' | 'editing', _input: string): void {
 		// For now, this is a no-op placeholder
 		// Future enhancement: collect analytics data
 	}
@@ -1933,11 +1933,12 @@ USER REQUEST: ${processedMessage}`;
 			case 'CONTENT':
 				await this.handleEditingRequest(input);
 				break;
-			case 'METADATA':
+			case 'METADATA': {
 				// Handle metadata commands through existing flow
 				const parsedCommand = this.plugin.commandParser.parseCommand(input);
 				await this.executeCommand(parsedCommand);
 				break;
+			}
 		}
 	}
 
@@ -2425,7 +2426,7 @@ USER REQUEST: ${processedMessage}`;
 		modelDisplayName: string,
 		providerColor: string,
 		isCurrent: boolean,
-		currentModel: string
+		_currentModel: string
 	): void {
 		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
 		item.addClass('nova-dropdown-item');
@@ -2639,7 +2640,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider configuration events
 	 */
-	private handleProviderConfigured = async (event: Event) => {
+	private handleProviderConfigured = async (_event: Event) => {
 		// Update current provider display text
 		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
 			try {
@@ -3207,8 +3208,8 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Type guard to check if a view is a MarkdownView with editor property
 	 */
-	private isMarkdownView(view: ItemView | null): view is ItemView & { editor: any } {
-		return view !== null && 'editor' in view && view.editor !== undefined;
+	private isMarkdownView(view: ItemView | null): view is MarkdownView {
+		return view instanceof MarkdownView && view.editor !== undefined;
 	}
 
 }

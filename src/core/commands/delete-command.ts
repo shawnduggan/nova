@@ -5,16 +5,12 @@
 
 import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
-import { ContextBuilder } from '../context-builder';
-import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
 
 export class DeleteCommand {
     constructor(
         private app: App,
-        private documentEngine: DocumentEngine,
-        private contextBuilder: ContextBuilder,
-        private providerManager: AIProviderManager
+        private documentEngine: DocumentEngine
     ) {}
 
     /**

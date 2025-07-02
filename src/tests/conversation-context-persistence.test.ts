@@ -1,11 +1,6 @@
 import { ConversationData, ContextDocumentRef } from '../core/types';
 import { ConversationManager, DataStore } from '../core/conversation-manager';
-import { TFile } from 'obsidian';
-
-// Extend global to include Notice for proper TypeScript typing
-declare global {
-  var Notice: any;
-}
+import { TFile, Notice } from 'obsidian';
 
 // Mock DataStore implementation
 class MockDataStore implements DataStore {
@@ -28,7 +23,8 @@ describe('Context Persistence - Storage Layer', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -91,7 +87,8 @@ describe('Context Persistence - Serialization', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -220,7 +217,8 @@ describe('Context Persistence - Save Integration', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -290,7 +288,8 @@ describe('Context Persistence - Restoration', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -363,7 +362,8 @@ describe('Context Persistence - File Validation', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -439,7 +439,8 @@ describe('Context Persistence - Error Recovery', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -553,11 +554,12 @@ describe('Context Persistence - UI Feedback', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
         
         // Mock the Notice constructor
         mockNoticeConstructor = jest.fn();
-        global.Notice = mockNoticeConstructor;
+        (global as any).Notice = mockNoticeConstructor;
         
         // Mock sidebar view with addWarningMessage method
         mockSidebarView = {
@@ -669,7 +671,6 @@ describe('Context Persistence - UI Feedback', () => {
     test('should show both notice and chat message for missing files', () => {
         // Test the enhanced notification system that shows both Notice and chat message
         const mockNotice = jest.fn();
-        global.Notice = mockNotice;
         
         const mockAddWarningMessage = jest.fn();
         const mockSidebarView = {
@@ -677,7 +678,7 @@ describe('Context Persistence - UI Feedback', () => {
         };
         
         // Create a mock ContextManager-like function to test the notification logic
-        const showMissingFilesNotice = (missingFiles: string[], sidebarView: any) => {
+        const showMissingFilesNotice = (missingFiles: string[], sidebarView: any, NoticeConstructor: any) => {
             if (missingFiles.length === 0) return;
             
             let noticeMessage: string;
@@ -700,7 +701,7 @@ describe('Context Persistence - UI Feedback', () => {
             }
             
             // Show Notice
-            new Notice(noticeMessage, 5000);
+            new NoticeConstructor(noticeMessage, 5000);
             
             // Add chat message
             if (sidebarView && typeof sidebarView.addWarningMessage === 'function') {
@@ -709,7 +710,7 @@ describe('Context Persistence - UI Feedback', () => {
         };
         
         // Test single missing file
-        showMissingFilesNotice(['missing-doc.md'], mockSidebarView);
+        showMissingFilesNotice(['missing-doc.md'], mockSidebarView, mockNotice);
         
         expect(mockNotice).toHaveBeenCalledWith('⚠️ Context file no longer available: missing-doc.md', 5000);
         expect(mockAddWarningMessage).toHaveBeenCalledWith('Context file no longer available: missing-doc.md');
@@ -719,7 +720,7 @@ describe('Context Persistence - UI Feedback', () => {
         mockAddWarningMessage.mockClear();
         
         // Test multiple missing files
-        showMissingFilesNotice(['doc1.md', 'doc2.md', 'doc3.md'], mockSidebarView);
+        showMissingFilesNotice(['doc1.md', 'doc2.md', 'doc3.md'], mockSidebarView, mockNotice);
         
         expect(mockNotice).toHaveBeenCalledWith('⚠️ 3 context files no longer available: doc1.md, doc2.md, doc3.md', 5000);
         expect(mockAddWarningMessage).toHaveBeenCalledWith('3 context files no longer available: doc1.md, doc2.md, doc3.md');
@@ -734,7 +735,8 @@ describe('Context Persistence - Integration Testing', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        mockFile = { path: 'test.md', name: 'test.md', basename: 'test' } as TFile;
+        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
+        mockFile = mockFileData as TFile;
     });
     
     afterEach(() => {
@@ -870,8 +872,10 @@ describe('Context Persistence - Integration Testing', () => {
     
     test('should handle multiple files with mixed operations', async () => {
         // Complex workflow with multiple operations
-        const file1 = { path: 'file1.md', name: 'file1.md', basename: 'file1' } as TFile;
-        const file2 = { path: 'file2.md', name: 'file2.md', basename: 'file2' } as TFile;
+        const file1Data = { path: 'file1.md', name: 'file1.md', basename: 'file1' };
+        const file1: TFile = file1Data as TFile;
+        const file2Data = { path: 'file2.md', name: 'file2.md', basename: 'file2' };
+        const file2: TFile = file2Data as TFile;
         
         // Add context to multiple files
         await conversationManager.addContextDocument(file1, 'shared-doc.md');

@@ -71,7 +71,7 @@ export class ContextBuilder {
     /**
      * Build system prompt based on action type
      */
-    private buildSystemPrompt(action: EditCommand['action'], config: PromptConfig): string {
+    private buildSystemPrompt(action: EditCommand['action'], _config: PromptConfig): string {
         const basePrompt = `You are Nova, an AI writing partner that helps users edit documents at their cursor position. You work with Markdown documents in Obsidian.
 
 IMPORTANT GUIDELINES:
@@ -186,7 +186,7 @@ ACTION: UPDATE METADATA
                 }
                 return `\nNo text currently selected.\n`;
 
-            case 'cursor':
+            case 'cursor': {
                 if (documentContext.surroundingLines) {
                     const context = `\nCURSOR CONTEXT:\n`;
                     const before = documentContext.surroundingLines.before.join('\n');
@@ -194,6 +194,7 @@ ACTION: UPDATE METADATA
                     return context + `Before cursor:\n${before}\n\nAfter cursor:\n${after}\n`;
                 }
                 return `\nCursor position context not available.\n`;
+            }
 
             case 'document':
                 return `\nTargeting entire document.\n`;
