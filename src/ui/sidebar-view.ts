@@ -2429,7 +2429,6 @@ USER REQUEST: ${processedMessage}`;
 		_currentModel: string
 	): void {
 		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
-		item.addClass('nova-dropdown-item');
 		if (Platform.isMobile) {
 			item.addClass('is-mobile');
 		}

@@ -79,8 +79,6 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
-**HIGH Model dropdown on mobile has no padding on the items.**: Should mimic the same padding as desktop, but adjusted for mobile.
-
 **HIGH Hover effect on buttons is just a red square**: When hovering over the clear conversation history, delete all context files, or any single delete file button, instead of the translucent subtle red shading, its a solid red square which is quite offputting.
 
 ## 📋 Current Tasks
