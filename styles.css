@@ -2777,7 +2777,7 @@
 /* Desktop hover for clear button */
 @media (hover: hover) {
     .nova-clear-button:hover {
-        background: var(--background-modifier-error);
+        background: rgba(220, 38, 38, 0.1);
         border-color: var(--text-error);
         color: var(--text-error);
     }
@@ -2810,7 +2810,7 @@
 /* Desktop hover for context clear button */
 @media (hover: hover) {
     .nova-context-clear-all-btn:hover {
-        background: var(--background-modifier-error);
+        background: rgba(220, 38, 38, 0.1);
         border-color: var(--text-error);
         color: var(--text-error);
     }
@@ -3041,7 +3041,7 @@
 }
 
 .nova-context-remove-btn:hover {
-    background: var(--background-modifier-error);
+    background: rgba(220, 38, 38, 0.1);
     color: var(--text-error);
 }
 
