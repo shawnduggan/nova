@@ -1577,6 +1577,9 @@
 .nova-supernova-icon {
     font-size: 2em;
     line-height: 1;
+    margin-right: 12px;
+    align-self: flex-start;
+    margin-top: 2px;
 }
 
 .nova-supernova-info h3 {

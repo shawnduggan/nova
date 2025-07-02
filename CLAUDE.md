@@ -48,13 +48,17 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
+### UI Icon Issues
+
+**LOW Welcome text icon**: The icon in the welcome text has reverted to using 'star' when it should use 'nova-star' for consistency.
+
 ### UI Alignment Issues
 
-**MEDIUM Sidebar header alignment**: Header SVG and Nova title are not vertically centered on the same row as the dropdown in sidebar-view.js. The elements need proper vertical alignment.
+**MEDIUM Supernova CTA icon alignment**: License type icon in reusable Supernova CTA blocks needs better vertical centering with content to its right. Margin spacing added but vertical alignment still needs refinement.
 
-**LOW Privacy indicator badge spacing**: Privacy indicator badges appear squished and need more internal padding for better visual appearance in sidebar-view.js.
+### License Management UI Issues
 
-**MEDIUM Supernova CTA icon alignment**: License type icon in reusable Supernova CTA blocks needs vertical centering with other content and requires right margin/padding. Affects multiple settings tabs.
+**CRITICAL License management section broken**: The license management section no longer renders the license key input box and button. The section above it that shows when a license is validated is also not rendering properly.
 
 
 ## 📋 Current Tasks
