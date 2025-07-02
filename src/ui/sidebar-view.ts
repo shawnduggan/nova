@@ -90,6 +90,9 @@ export class NovaSidebarView extends ItemView {
 		// Listen for provider configuration events
 		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
 		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
+		
+		// Listen for license update events
+		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
 	}
 
 	getViewType() {
@@ -2698,6 +2701,21 @@ USER REQUEST: ${processedMessage}`;
 		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
 		if (dropdownMenu && dropdownMenu.style.display !== 'none') {
 			this.populateProviderDropdown(dropdownMenu);
+		}
+	}
+
+	/**
+	 * Handle license update events
+	 */
+	private handleLicenseUpdated = async (event: Event) => {
+		const customEvent = event as CustomEvent;
+		const { hasLicense, licenseKey, action } = customEvent.detail;
+		
+		// Refresh Supernova UI when license status changes
+		try {
+			this.refreshSupernovaUI();
+		} catch (error) {
+			console.error('❌ Failed to refresh Supernova UI after license update:', error);
 		}
 	}
 

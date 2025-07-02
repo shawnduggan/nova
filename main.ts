@@ -77,21 +77,15 @@ export default class NovaPlugin extends Plugin {
 				await this.featureManager.updateSupernovaLicense(this.settings.licensing.supernovaLicenseKey);
 			}
 
-			// Refresh Supernova UI after license validation to handle expired licenses
-			this.app.workspace.onLayoutReady(async () => {
-				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-				if (leaves.length > 0) {
-					const sidebarView = leaves[0].view as NovaSidebarView;
-					sidebarView.refreshSupernovaUI();
-					// Update provider dropdown display to reflect loaded settings
-					if ((sidebarView as any).currentProviderDropdown?.updateCurrentProvider) {
-						try {
-							(sidebarView as any).currentProviderDropdown.updateCurrentProvider();
-						} catch (error) {
-							console.error('❌ Failed to update provider dropdown on startup:', error);
-						}
-					}
-				}
+			// Dispatch license update event to refresh Supernova UI after startup
+			this.app.workspace.onLayoutReady(() => {
+				document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+					detail: { 
+						hasLicense: this.featureManager.isSupernovaSupporter(),
+						licenseKey: this.settings.licensing.supernovaLicenseKey,
+						action: 'startup'
+					} 
+				}));
 			});
 
 			// Note: Mobile access restrictions are now handled in sidebar UI

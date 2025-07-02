@@ -118,6 +118,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Create content container (only once)  
 		this.contentContainer = containerEl.createDiv({ cls: 'nova-tab-content' });
+		// Use async initialization for tab content
 		this.updateTabContent();
 	}
 
@@ -888,12 +889,14 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (this.plugin.featureManager) {
 					await this.plugin.featureManager.updateSupernovaLicense(value || null);
 					
-					// Refresh sidebar to update feature availability
-					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-					if (leaves.length > 0) {
-						const sidebarView = leaves[0].view as NovaSidebarView;
-						sidebarView.refreshSupernovaUI();
-					}
+					// Fire event for sidebar to update Supernova features
+					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+						detail: { 
+							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
+							licenseKey: value,
+							action: 'change'
+						} 
+					}));
 					
 					// Refresh the content to show updated status
 					this.updateTabContent();
@@ -928,12 +931,14 @@ export class NovaSettingTab extends PluginSettingTab {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
 								}
 								
-								// Refresh sidebar to update feature availability
-								const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-								if (leaves.length > 0) {
-									const sidebarView = leaves[0].view as NovaSidebarView;
-									sidebarView.refreshSupernovaUI();
-								}
+								// Dispatch license update event
+								document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+									detail: { 
+										hasLicense: isSupernova,
+										licenseKey: licenseKey,
+										action: 'validate'
+									} 
+								}));
 								
 								// Refresh content 
 								this.updateTabContent();
@@ -1029,12 +1034,14 @@ export class NovaSettingTab extends PluginSettingTab {
 							// Confetti animation removed
 						}
 						
-						// Refresh sidebar to update feature availability
-						const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-						if (leaves.length > 0) {
-							const sidebarView = leaves[0].view as NovaSidebarView;
-							sidebarView.refreshSupernovaUI();
-						}
+						// Dispatch license update event
+						document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+							detail: { 
+								hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
+								licenseKey: this.plugin.settings.licensing.supernovaLicenseKey,
+								action: 'debug-toggle'
+							} 
+						}));
 						
 						// Refresh content to show updated feature status
 						this.updateTabContent();
@@ -1068,12 +1075,14 @@ export class NovaSettingTab extends PluginSettingTab {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
 
-						// Refresh sidebar
-						const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-						if (leaves.length > 0) {
-							const sidebarView = leaves[0].view as NovaSidebarView;
-							sidebarView.refreshSupernovaUI();
-						}
+						// Dispatch license update event
+						document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+							detail: { 
+								hasLicense: false,
+								licenseKey: '',
+								action: 'clear'
+							} 
+						}));
 
 						// Show success message
 						this.showLicenseMessage('All licenses cleared successfully.', 'success');
@@ -1743,12 +1752,14 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (this.plugin.featureManager) {
 					await this.plugin.featureManager.updateSupernovaLicense(value || null);
 					
-					// Refresh sidebar to update feature availability
-					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-					if (leaves.length > 0) {
-						const sidebarView = leaves[0].view as NovaSidebarView;
-						sidebarView.refreshSupernovaUI();
-					}
+					// Fire event for sidebar to update Supernova features
+					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+						detail: { 
+							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
+							licenseKey: value,
+							action: 'change'
+						} 
+					}));
 					
 					// Refresh the content to show updated status
 					this.updateTabContent();

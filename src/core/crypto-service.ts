@@ -4,13 +4,8 @@
  */
 
 export class CryptoService {
-    // Fixed encryption key for API keys - ensures cross-device compatibility
-    private static readonly API_KEY_ENCRYPTION_DATA = new Uint8Array([
-        0x4e, 0x6f, 0x76, 0x61, 0x2d, 0x41, 0x49, 0x2d,
-        0x45, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x69,
-        0x6f, 0x6e, 0x2d, 0x4b, 0x65, 0x79, 0x2d, 0x46,
-        0x6f, 0x72, 0x2d, 0x41, 0x50, 0x49, 0x2d, 0x4b
-    ]);
+    // Master secret for key derivation - shared with license generator
+    private static readonly MASTER_SECRET = 'nova-license-signing-key-2025';
 
     /**
      * Safe base64 decode that handles both browser and Node.js environments
@@ -35,13 +30,27 @@ export class CryptoService {
     }
 
     /**
-     * Get the encryption key for API key AES-GCM encryption
+     * Derive encryption key using PBKDF2 for API key AES-GCM encryption
      */
-    private static async getApiKeyEncryptionKey(): Promise<CryptoKey> {
-        return await crypto.subtle.importKey(
+    private static async getEncryptionKey(): Promise<CryptoKey> {
+        const encoder = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey(
             'raw',
-            this.API_KEY_ENCRYPTION_DATA,
-            { name: 'AES-GCM' },
+            encoder.encode(this.MASTER_SECRET),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+        );
+        
+        return crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: encoder.encode('nova-api-keys-salt'),
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
             false,
             ['encrypt', 'decrypt']
         );
@@ -56,7 +65,7 @@ export class CryptoService {
         }
 
         try {
-            const key = await this.getApiKeyEncryptionKey();
+            const key = await this.getEncryptionKey();
             const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
             const encoder = new TextEncoder();
             const data = encoder.encode(value);
@@ -92,7 +101,7 @@ export class CryptoService {
         }
 
         try {
-            const key = await this.getApiKeyEncryptionKey();
+            const key = await this.getEncryptionKey();
             const base64Data = encryptedValue.substring('encrypted:'.length);
             
             // Decode base64
