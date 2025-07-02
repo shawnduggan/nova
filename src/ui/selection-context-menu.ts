@@ -110,13 +110,16 @@ export class SelectionContextMenu {
         SELECTION_ACTIONS.forEach(action => {
             menu.addItem((item: MenuItem) => {
                 item
-                    .setTitle(action.label)
+                    .setTitle('Nova: ' + action.label)
                     .setIcon(action.icon || 'edit')
                     .onClick(() => {
                         this.handleSelectionAction(action.id, editor, selectedText);
                     });
             });
         });
+        
+        // Add separator after Nova items for visual clarity
+        menu.addSeparator();
     }
 
 
