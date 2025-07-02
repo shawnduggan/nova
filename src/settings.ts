@@ -94,7 +94,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			forceSupernova: false
 		}
 	}
-};;
+};
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;

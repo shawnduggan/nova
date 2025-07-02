@@ -400,7 +400,7 @@ describe('Context Persistence - File Validation', () => {
         await conversationManager.addContextDocument(mockFile, 'will-be-deleted.md');
         
         // Verify both are saved
-        let context = await conversationManager.getContextDocuments(mockFile);
+        const context = await conversationManager.getContextDocuments(mockFile);
         expect(context).toHaveLength(2);
         
         // Simulate one file being deleted by creating new manager

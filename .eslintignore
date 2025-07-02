@@ -1,0 +1,18 @@
+# Build outputs
+main.js
+*.d.ts
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Configuration files
+jest.config.js
+esbuild.config.mjs
+version-bump.mjs
+
+# Generated files
+data.json
+manifest.json
+versions.json

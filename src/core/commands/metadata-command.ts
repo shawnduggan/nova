@@ -223,7 +223,7 @@ export class MetadataCommand {
                 const match = line.match(/^[-\s]*([^:]+):\s*(.+)$/);
                 if (match) {
                     let key = match[1].trim();
-                    let valueString = match[2].trim();
+                    const valueString = match[2].trim();
                     
                     // Remove quotes from key if present
                     if ((key.startsWith('"') && key.endsWith('"')) || 
@@ -713,7 +713,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
         const lines = content.split('\n');
         
         if (lines.length > 0 && lines[0] === '---') {
-            let inFrontmatter = true;
+            const inFrontmatter = true;
             for (let i = 1; i < lines.length && inFrontmatter; i++) {
                 if (lines[i] === '---') {
                     break;
@@ -780,7 +780,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             for (const pattern of patterns) {
                 const match = cleanResponse.match(pattern);
                 if (match) {
-                    let tagString = match[1];
+                    const tagString = match[1];
                     let tags: string[] = [];
                     
                     // Handle bullet lists

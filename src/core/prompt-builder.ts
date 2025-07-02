@@ -288,7 +288,7 @@ ${userPrompt}`;
             // Prompt validation issues - graceful fallback
             
             // Try to fix common issues
-            let optimizedPrompt = { ...prompt };
+            const optimizedPrompt = { ...prompt };
             
             // Truncate if too long
             const tokenCount = this.estimateTokenCount(prompt);

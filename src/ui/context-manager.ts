@@ -726,7 +726,7 @@ export class ContextManager {
 	 */
 	private async getFullDocumentContext(file: TFile, includeContent: boolean = true, maxLines: number = 50): Promise<string | null> {
 		try {
-			let contextParts: string[] = [];
+			const contextParts: string[] = [];
 			
 			// Add document header
 			contextParts.push(`## Document: ${file.basename}`);
@@ -968,8 +968,8 @@ export class ContextManager {
 	} {
 		const docCount = context.persistentDocs.length;
 		
-		let className = 'nova-context-indicator';
-		let tooltip = `Context: ${docCount} document${docCount !== 1 ? 's' : ''}, ~${context.tokenCount} tokens (files only)`;
+		const className = 'nova-context-indicator';
+		const tooltip = `Context: ${docCount} document${docCount !== 1 ? 's' : ''}, ~${context.tokenCount} tokens (files only)`;
 		
 		const text = `${docCount} docs`;
 		
