@@ -5,7 +5,8 @@
 Nova is the first AI that edits **exactly where you want** — not where it hopes.
 
 🪄  **Select text → Right-click → Transform in place**  
-🎯  **Type "add conclusion here" → AI writes at your cursor**
+🎯  **Type "add conclusion here" → AI writes at your cursor**  
+🧠  **Intelligent intention detection** → Chat knows when to edit vs. respond
 
 No copy-paste chaos. No more hunting for where the AI put your edits. Just surgical precision with magical streaming.
 
@@ -54,11 +55,13 @@ No copy-paste chaos. No more hunting for where the AI put your edits. Just surgi
 - Choose from Improve, Expand, Condense, Tone Adjustments, or Custom
 - Edits appear exactly where you expect — never somewhere random
 
-### **💬 Context-Aware Chat Editing**
+### **💬 Context-Aware Chat with Intention Detection**
 
 - Type a command like _"Add a summary here"_ — Nova inserts directly at your cursor
+- Ask questions like _"What should I write about?"_ — Nova responds conversationally
+- Intelligent AI automatically determines edit vs. chat intent
 - Drag .md files into chat to add multi-document context
-- Combine chat and editing seamlessly
+- Reference documents with `[[Document Name]]` syntax
 
 ### **🤖 AI Provider Flexibility**
 
@@ -70,6 +73,8 @@ No copy-paste chaos. No more hunting for where the AI put your edits. Just surgi
 
 - Uses Obsidian's native modals, file pickers, and command palette
 - Works identically on desktop and mobile
+- AI-powered tag management with smart suggestions
+- Protected system fields (creation dates, IDs) for data safety
 - No analytics; offline license validation; your data stays yours
 
 ---
@@ -81,6 +86,7 @@ No copy-paste chaos. No more hunting for where the AI put your edits. Just surgi
 - Select methodology paragraph → "Change Tone to Academic"
 - Chat: _"Add literature review using [[Research Notes]]"_
 - Cursor: Place at section end → Chat: _"Summarize findings here"_
+- Tag management: _"Add suggested tags"_ → AI analyzes content for relevant tags
 
 ### **Creative Writing**
 
@@ -91,6 +97,7 @@ No copy-paste chaos. No more hunting for where the AI put your edits. Just surgi
 
 - Select API explanation → "Improve Writing" → Crystal clear docs
 - Chat: _"Add error handling examples from [[API Guidelines]]"_
+- Metadata: _"Clean up tags"_ → Optimizes document organization automatically
 
 ---
 
@@ -107,7 +114,9 @@ Nova is **free forever** with no feature walls. Built by writers, for writers.
 _Supporting sustainable, community-driven development_
 
 
-**[Become a Supernova →](https://novawriter.ai/plans.html)**
+**$29/year or $199 lifetime**
+
+**[Become a Supernova →](https://github.com/sponsors/shawnduggan)**
 
 ---
 
@@ -122,7 +131,7 @@ _Supporting sustainable, community-driven development_
 
 ### **Why It's Reliable**
 
-- 400+ comprehensive tests including security and performance
+- 500+ comprehensive tests including security and performance
 - API resilience with automatic retry logic
 - Zero memory leaks with proper cleanup
 - Cross-platform consistency
@@ -135,7 +144,7 @@ _Supporting sustainable, community-driven development_
 
 **Stop hoping AI gets it right. Start telling it exactly where to go.**
 
-**[Install Nova Now →](https://obsidian.md/plugins?id=nova)**
+**[Install Nova Now →](obsidian://show-plugin?id=nova)**
 _2-minute setup • Works immediately • Free forever_
 
 ---
