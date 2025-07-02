@@ -1969,15 +1969,17 @@
 .nova-provider-button {
     display: flex;
     align-items: center;
-    gap: 2px; /* Reduced gap */
-    padding: 2px 6px; /* Much smaller padding */
-    font-size: 0.65em; /* Much smaller text */
+    gap: 4px; /* Increased gap for better alignment */
+    padding: 4px 8px; /* Increased padding for better visual balance */
+    font-size: 0.75em; /* Slightly larger text for better readability */
     color: var(--text-muted);
     background: var(--background-modifier-hover);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-xs);
     cursor: pointer;
     transition: background-color 0.2s ease;
+    height: 24px; /* Consistent height with other header elements */
+    box-sizing: border-box; /* Ensure padding is included in height */
 }
 
 .nova-provider-button:hover {
@@ -2019,8 +2021,9 @@
     display: flex;
     align-items: center;
     gap: var(--size-2-3);
-    font-size: 0.9em; /* Increased from 0.85em for better readability */
+    font-size: 0.85em; /* Slightly larger than provider button for better readability */
     transition: background-color 0.2s ease;
+    min-height: 32px; /* Comfortable height for dropdown items */
 }
 
 /* Mobile touch target enhancements */
@@ -2048,8 +2051,8 @@
 .nova-status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 3px; /* Reduced gap */
-    padding: 1px 6px; /* Much smaller padding */
+    gap: 4px; /* Increased gap for better spacing */
+    padding: 3px 8px; /* Increased padding for better visual appearance */
     border-radius: 8px; /* Smaller radius */
     font-size: calc(var(--font-text-size) * 0.70); /* 70% of document font size */
     font-weight: 400; /* Less prominent */
@@ -2059,7 +2062,7 @@
 /* Mobile typography improvements */
 .is-mobile .nova-status-pill {
     font-size: calc(var(--font-text-size) * 0.85); /* 85% of document font size */
-    padding: 2px 6px; /* Minimal padding */
+    padding: 4px 8px; /* Consistent padding with desktop */
 }
 
 .nova-status-pill.local {
@@ -2713,14 +2716,20 @@
 
 .nova-header-title {
     margin: 0;
+    padding: 0; /* Remove any default padding */
     font-size: var(--font-ui-medium);
+    font-weight: normal; /* Reset font weight to match other elements */
     display: flex;
     align-items: center;
     gap: var(--size-2-2);
     color: var(--interactive-accent);
+    line-height: 1; /* Use tight line height for better alignment */
+    min-height: 24px; /* Ensure consistent height for alignment */
 }
 
 .nova-header-title svg {
+    width: 16px; /* Explicit icon size */
+    height: 16px; /* Explicit icon size */ 
     vertical-align: middle;
     flex-shrink: 0;
 }
@@ -2729,6 +2738,7 @@
     display: flex;
     align-items: center;
     gap: var(--size-2-3);
+    min-height: 24px; /* Match title height for consistent alignment */
 }
 
 .nova-clear-button {
@@ -2742,10 +2752,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Remove fixed height to allow proper sizing */
 }
 
 .nova-clear-button:not(.is-mobile) {
-    padding: 4px 8px;
+    padding: 6px 10px; /* Increased padding for better desktop button size */
+    min-height: 28px; /* Minimum comfortable size for desktop */
 }
 
 .is-mobile .nova-clear-button {
@@ -3210,13 +3222,13 @@
     background: none;
     width: 100%;
     text-align: left;
-    font-size: var(--font-ui-medium);
+    font-size: 0.85em; /* Match other dropdown items for consistency */
     white-space: nowrap;
 }
 
 .nova-dropdown-item:not(.is-mobile) {
     padding: var(--size-2-2) var(--size-2-3);
-    min-height: auto;
+    min-height: 32px; /* Consistent height with provider dropdown items */
 }
 
 .is-mobile .nova-dropdown-item {

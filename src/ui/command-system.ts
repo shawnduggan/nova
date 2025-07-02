@@ -108,12 +108,11 @@ export class CommandSystem {
 
 		commands.forEach(cmd => {
 			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
-				padding: var(--size-2-2) var(--size-2-3);
-				border-radius: var(--radius-xs);
-				cursor: pointer;
-				margin-bottom: var(--size-2-1);
-				transition: background-color 0.1s;
-			`;
+			cmdEl.setCssProperty('padding', 'var(--size-2-2) var(--size-2-3)');
+			cmdEl.setCssProperty('border-radius', 'var(--radius-xs)');
+			cmdEl.setCssProperty('cursor', 'pointer');
+			cmdEl.setCssProperty('margin-bottom', 'var(--size-2-1)');
+			cmdEl.setCssProperty('transition', 'background-color 0.1s');
 
 			const nameEl = cmdEl.createEl('div', { 
 				text: cmd.name,

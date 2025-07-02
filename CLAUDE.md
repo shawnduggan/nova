@@ -48,6 +48,14 @@
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
+### UI Alignment Issues
+
+**MEDIUM Sidebar header alignment**: Header SVG and Nova title are not vertically centered on the same row as the dropdown in sidebar-view.js. The elements need proper vertical alignment.
+
+**LOW Privacy indicator badge spacing**: Privacy indicator badges appear squished and need more internal padding for better visual appearance in sidebar-view.js.
+
+**MEDIUM Supernova CTA icon alignment**: License type icon in reusable Supernova CTA blocks needs vertical centering with other content and requires right margin/padding. Affects multiple settings tabs.
+
 
 ## 📋 Current Tasks
 
