@@ -997,6 +997,15 @@ export class NovaSettingTab extends PluginSettingTab {
 						this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 					}
 					
+					// Dispatch event to update UI components
+					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+						detail: { 
+							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
+							licenseKey: this.plugin.settings.licensing.supernovaLicenseKey,
+							action: 'debug-mode-toggle'
+						} 
+					}));
+					
 					// Refresh display to show/hide debug options
 					this.display();
 				}));
@@ -1015,6 +1024,15 @@ export class NovaSettingTab extends PluginSettingTab {
 						if (this.plugin.featureManager) {
 							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 						}
+						
+						// Dispatch event to update UI components
+						document.dispatchEvent(new CustomEvent('nova-license-updated', { 
+							detail: { 
+								hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
+								licenseKey: this.plugin.settings.licensing.supernovaLicenseKey,
+								action: 'debug-date-override'
+							} 
+						}));
 						
 						// Don't refresh display on every keystroke - just update the feature manager
 					}));

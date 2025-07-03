@@ -162,16 +162,16 @@ export class CommandSystem {
 		
 		const input = this.textArea.getValue();
 		
-		// Check if commands feature is enabled before handling triggers
-		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.hideCommandPicker();
-			return;
-		}
-		
-		// Handle different triggers
+		// Check for triggers first (fast), then check permissions (slow)
 		if (input.startsWith(':')) {
-			// Custom command trigger - show structured commands
-			this.showStructuredCommandPicker(input);
+			// Custom command trigger detected - check if feature is enabled
+			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
+			
+			if (featureEnabled) {
+				this.showStructuredCommandPicker(input);
+			} else {
+				this.hideCommandPicker();
+			}
 		} else {
 			// No triggers active - hide command picker
 			this.hideCommandPicker();
@@ -311,7 +311,7 @@ export class CommandSystem {
 	 * Get structured commands for ":" trigger
 	 */
 	private getStructuredCommands(): StructuredCommand[] {
-		return [
+		const commands = [
 			{
 				name: 'Add Content',
 				description: 'Add new content at cursor position',
@@ -369,6 +369,7 @@ export class CommandSystem {
 				keywords: ['frontmatter', 'properties', 'tags']
 			}
 		];
+		return commands;
 	}
 
 	/**

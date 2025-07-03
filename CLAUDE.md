@@ -7,6 +7,14 @@
 - ✅ **Stable Contracts** – Changes must not break existing provider, UI, or state interfaces.
 - ✅ **Performance-Aware** – Avoid unnecessary DOM updates or state recalculations. Profile when needed.
 
+## 📚 Required Context & Strategic Documentation
+
+**Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/09-Projects/Nova/Core Docs/ to understand our positioning.
+
+**Strategic Focus:** Nova solves "where did AI put that?" by letting users control exactly where edits happen - select text to transform it, place cursor to create content exactly there.
+
+**Notify me when significant changes might affect the Core Docs:** New features, architecture changes, competitive positioning shifts, or major technical debt resolution.
+
 ## 🧱 Architecture Constraints
 
 - ✅ Use **event-driven communication**:
@@ -81,9 +89,18 @@
 
 ## 📋 Current Tasks
 
+### Recent Completions
+
+**Fixed Commands feature debug license override bug**: Commands feature (`:` trigger) was not working for Supernova users even with debug date overrides. Root cause was in `FeatureManager.getIsSupernova()` where debug settings with `forceSupernova: false` was overriding real Supernova license status. Modified logic in `src/licensing/feature-manager.ts:94-101` to only override when `forceSupernova` is explicitly `true`, otherwise respects real license status. Commands feature now works properly for Supernova users with debug date overrides.
 
 ### Future Enhancements 
 
 **MEDIUM User-configurable log levels**: Add setting in plugin settings tab to allow users to adjust logging verbosity (Debug, Info, Warn, Error). Currently hardcoded to INFO level. Would help with troubleshooting and support, and allow users to reduce logging overhead if needed.
 
+**LOW Make return key hit enter on custom Tell Nova modal**: Currently hitting enter doesn't do anything. I want it to submit the form.
+
 **LOW Add slider setting for scroll speed**: Maybe on the General settings tab.
+
+**LOW Mobile Model Dropdown has no padding**: The provider names do, but the model names don't. We've tried to fix this a few times with no luck.
+
+**LOW Consolidate input trigger detection**: Currently wikilinks (`[[`) and commands (`:`) use separate input listeners. Should consolidate into unified trigger detection system in InputHandler for better performance and cleaner architecture.

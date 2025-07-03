@@ -77,7 +77,7 @@ export class FeatureManager {
 	 * Get current date (can be overridden in debug mode)
 	 */
 	private getCurrentDate(): Date {
-		if (this.debugSettings.enabled && this.debugSettings.overrideDate) {
+		if (this.debugSettings.enabled && this.debugSettings.overrideDate && this.debugSettings.overrideDate.trim() !== '') {
 			return new Date(this.debugSettings.overrideDate);
 		}
 		return new Date();
@@ -87,9 +87,10 @@ export class FeatureManager {
 	 * Get Supernova status (can be overridden in debug mode)
 	 */
 	private getIsSupernova(): boolean {
-		// Only allow debug overrides in development and test builds
-		if (this.debugSettings.enabled && this.debugSettings.forceSupernova !== undefined && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
-			return this.debugSettings.forceSupernova;
+		// Only allow debug overrides to force Supernova=true in development and test builds
+		// Never override a real license to false - always fall back to real license status
+		if (this.debugSettings.enabled && this.debugSettings.forceSupernova === true && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
+			return true;
 		}
 		return this.isSupernova;
 	}
@@ -150,6 +151,16 @@ export class FeatureManager {
 	 * Only handles time-gated features - everything else just works without checking
 	 */
 	isFeatureEnabled(featureKey: string): boolean {
+		// When debug mode is enabled, check feature availability on demand
+		// to ensure debug settings changes take effect immediately
+		if (this.debugSettings.enabled) {
+			const config = SUPERNOVA_FEATURES[featureKey];
+			if (config) {
+				return this.isTimeGatedFeatureEnabled(featureKey, config);
+			}
+		}
+		
+		// When debug mode is disabled, use cached values for performance
 		const feature = this.features.get(featureKey);
 		return feature?.enabled ?? false;
 	}
