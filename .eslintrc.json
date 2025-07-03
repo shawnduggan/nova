@@ -86,6 +86,19 @@
     "*.d.ts",
     "node_modules/",
     "dist/",
-    "build/"
+    "build/",
+    "test/**/*.ts",
+    "test/**/*.js",
+    "src/tests/**/*.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["test/**/*.ts", "test/**/*.js", "src/tests/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "no-console": "off"
+      }
+    }
   ]
 }

@@ -13,6 +13,7 @@ import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
 import { formatContextUsage, getRemainingContextPercentage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
+import { Logger } from '../utils/logger';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -1137,7 +1138,7 @@ export class NovaSidebarView extends ItemView {
 				this.updateTokenDisplay();
 			} catch (error) {
 				// Handle context build failures gracefully
-				console.warn('Failed to refresh context:', error);
+				Logger.warn('Failed to refresh context:', error);
 				this.currentContext = null;
 				this.updateContextIndicator();
 				this.updateTokenDisplay();
@@ -1623,7 +1624,7 @@ USER REQUEST: ${processedMessage}`;
 			
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
-			console.error('Conversation loading error:', error);
+			Logger.error('Conversation loading error:', error);
 			// Failed to load conversation history - graceful fallback
 			// Show welcome message on error
 			this.addWelcomeMessage();
@@ -2160,7 +2161,7 @@ USER REQUEST: ${processedMessage}`;
 					providerName.setText('Select Model');
 				}
 			} catch (error) {
-				console.error('Error updating model display:', error);
+				Logger.error('Error updating model display:', error);
 				providerName.setText('Select Model');
 			}
 		};
@@ -2288,22 +2289,22 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Save settings asynchronously (don't block UI)
 			this.plugin.saveSettings().catch(error => {
-				console.error('Error saving model selection:', error);
+				Logger.error('Error saving model selection:', error);
 				this.addErrorMessage('Failed to save model selection');
 			});
 			
 			// ADD THIS: Refresh privacy indicator and other status elements
 			this.refreshProviderStatus().catch(error => {
-				console.error('Error refreshing provider status:', error);
+				Logger.error('Error refreshing provider status:', error);
 			});
 			
 			// Refresh context to update token count display for new provider
 			this.refreshContext().catch(error => {
-				console.error('Error refreshing context after model switch:', error);
+				Logger.error('Error refreshing context after model switch:', error);
 			});
 			
 		} catch (error) {
-			console.error('Error switching model:', error);
+			Logger.error('Error switching model:', error);
 			this.addErrorMessage('Failed to switch model');
 		}
 	}
@@ -2406,7 +2407,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 
 		} catch (error) {
-			console.error('Error populating provider dropdown:', error);
+			Logger.error('Error populating provider dropdown:', error);
 			dropdownMenu.empty();
 			const errorItem = dropdownMenu.createDiv();
 			errorItem.addClass('nova-dropdown-error');
@@ -2468,7 +2469,7 @@ USER REQUEST: ${processedMessage}`;
 						(this as any).currentProviderDropdown.updateCurrentProvider();
 					}
 				} catch (error) {
-					console.error('Error switching provider/model:', error);
+					Logger.error('Error switching provider/model:', error);
 				}
 			}
 		});
@@ -2582,7 +2583,7 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Debug logging for "II" issue
 			if (modelDisplayName === "II" || modelDisplayName.match(/^I+$/)) {
-				console.warn('Invalid model display name detected:', {
+				Logger.warn('Invalid model display name detected:', {
 					providerType,
 					currentModel,
 					modelDisplayName,
@@ -2643,7 +2644,7 @@ USER REQUEST: ${processedMessage}`;
 			try {
 				(this as any).currentProviderDropdown.updateCurrentProvider();
 			} catch (error) {
-				console.error('❌ Failed to update provider display after configuration:', error);
+				Logger.error('❌ Failed to update provider display after configuration:', error);
 			}
 		}
 		
@@ -2692,7 +2693,7 @@ USER REQUEST: ${processedMessage}`;
 			try {
 				(this as any).currentProviderDropdown.updateCurrentProvider();
 			} catch (error) {
-				console.error('❌ Failed to update provider display after disconnection:', error);
+				Logger.error('❌ Failed to update provider display after disconnection:', error);
 			}
 		}
 		
@@ -2719,7 +2720,7 @@ USER REQUEST: ${processedMessage}`;
 		try {
 			this.refreshSupernovaUI();
 		} catch (error) {
-			console.error('❌ Failed to refresh Supernova UI after license update:', error);
+			Logger.error('❌ Failed to refresh Supernova UI after license update:', error);
 		}
 	}
 
@@ -2820,7 +2821,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 
 		} catch (error) {
-			console.error('Error in streaming add command:', error);
+			Logger.error('Error in streaming add command:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -2880,7 +2881,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 
 		} catch (error) {
-			console.error('Error in streaming edit command:', error);
+			Logger.error('Error in streaming edit command:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -2940,7 +2941,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 
 		} catch (error) {
-			console.error('Error in streaming rewrite command:', error);
+			Logger.error('Error in streaming rewrite command:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -3000,7 +3001,7 @@ USER REQUEST: ${processedMessage}`;
 			}
 
 		} catch (error) {
-			console.error('Error in streaming grammar command:', error);
+			Logger.error('Error in streaming grammar command:', error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'

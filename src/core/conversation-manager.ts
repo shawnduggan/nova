@@ -5,6 +5,7 @@
 
 import { TFile } from 'obsidian';
 import { ConversationData, ConversationMessage, EditCommand, EditResult, EditAction, ContextDocumentRef } from './types';
+import { Logger } from '../utils/logger';
 
 export interface DataStore {
     loadData(key: string): Promise<any>;
@@ -42,13 +43,13 @@ export class ConversationManager {
                         this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
                     } catch (error) {
                         // Skip corrupted individual conversations
-                        console.warn(`Skipped corrupted conversation for file: ${conversation?.filePath || 'unknown'}`, error);
+                        Logger.warn(`Skipped corrupted conversation for file: ${conversation?.filePath || 'unknown'}`, error);
                     }
                 }
             }
         } catch (error) {
             // Failed to load conversation data - graceful fallback
-            console.error('❌ ConversationManager.loadConversations: Load failed:', error);
+            Logger.error('ConversationManager.loadConversations: Load failed:', error);
         }
     }
 
@@ -120,7 +121,7 @@ export class ConversationManager {
             const conversationsArray = Array.from(this.conversations.values());
             await this.dataStore.saveData(this.storageKey, conversationsArray);
         } catch (error) {
-            console.error('❌ ConversationManager.saveConversations: Save failed:', error);
+            Logger.error('ConversationManager.saveConversations: Save failed:', error);
         }
     }
 

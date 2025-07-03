@@ -1,3 +1,5 @@
+import { Logger } from '../utils/logger';
+
 export interface IntentClassification {
     type: 'consultation' | 'editing' | 'ambiguous';
     confidence: number;
@@ -74,7 +76,7 @@ export class IntentDetector {
                 }
             }
         } catch (error) {
-            console.warn('Pattern matching error in IntentDetector:', error);
+            Logger.warn('Pattern matching error in IntentDetector:', error);
             return {
                 type: 'ambiguous',
                 confidence: 0.3,

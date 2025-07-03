@@ -4,6 +4,7 @@
  */
 
 import { Editor, Notice } from 'obsidian';
+import { Logger } from '../utils/logger';
 
 export interface StreamingOptions {
     onChunk?: (chunk: string, isComplete: boolean) => void;
@@ -193,7 +194,7 @@ export class StreamingManager {
             this.startNoticeDotsAnimation(actionType);
             
         } catch (error) {
-            console.warn('Failed to create thinking notice:', error);
+            Logger.warn('Failed to create thinking notice:', error);
         }
     }
 
@@ -265,7 +266,7 @@ export class StreamingManager {
                         to: position
                     }, true); // true enables smooth animation
                     
-                    console.debug('Magical scroll: smooth scroll to line', position.line);
+                    Logger.debug('Magical scroll: smooth scroll to line', position.line);
                 } else {
                     // Instant scroll for performance when configured
                     editor.scrollIntoView({
@@ -273,11 +274,11 @@ export class StreamingManager {
                         to: position
                     }, false);
                     
-                    console.debug('Magical scroll: instant scroll to line', position.line);
+                    Logger.debug('Magical scroll: instant scroll to line', position.line);
                 }
             } catch (error) {
                 // Make failures visible during development
-                console.warn('Magical scroll failed:', error);
+                Logger.warn('Magical scroll failed:', error);
             }
         };
         
@@ -337,7 +338,7 @@ export class StreamingManager {
                 }
             }
         } catch (error) {
-            console.warn('Error updating streaming text:', error);
+            Logger.warn('Error updating streaming text:', error);
             this.cleanup();
             
             // Trigger error callback
@@ -379,7 +380,7 @@ export class StreamingManager {
                 }
                 
             } catch (error) {
-                console.warn('Error in notice dots animation:', error);
+                Logger.warn('Error in notice dots animation:', error);
                 this.stopDotsAnimation();
             }
         }, 400);

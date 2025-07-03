@@ -6,6 +6,7 @@
 import { Editor, EditorPosition, Notice } from 'obsidian';
 import NovaPlugin from '../../../main';
 import { AIProvider } from '../../ai/types';
+import { Logger } from '../../utils/logger';
 
 export interface SelectionEditResult {
     success: boolean;
@@ -55,7 +56,7 @@ export class SelectionEditCommand {
             };
 
         } catch (error) {
-            console.error('Selection edit command error:', error);
+            Logger.error('Selection edit command error:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -125,7 +126,7 @@ export class SelectionEditCommand {
             };
 
         } catch (error) {
-            console.error('Selection edit streaming error:', error);
+            Logger.error('Selection edit streaming error:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred'

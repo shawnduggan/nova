@@ -6,6 +6,7 @@
 import { App, Editor, MarkdownView, TFile, EditorPosition } from 'obsidian';
 import { DocumentContext, HeadingInfo, EditResult, EditOptions, EditCommand } from './types';
 import { ConversationManager, DataStore } from './conversation-manager';
+import { Logger } from '../utils/logger';
 
 export class DocumentEngine {
     private conversationManager: ConversationManager | null = null;
@@ -524,7 +525,7 @@ export class DocumentEngine {
             };
 
         } catch (error) {
-            console.error('Error replacing selection:', error);
+            Logger.error('Error replacing selection:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',

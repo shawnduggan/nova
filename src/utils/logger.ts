@@ -3,6 +3,8 @@
  * Provides consistent logging with appropriate prefixes and levels
  */
 
+/* eslint-disable no-console */
+
 export enum LogLevel {
     DEBUG = 0,
     INFO = 1,
