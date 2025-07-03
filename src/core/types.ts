@@ -2,7 +2,7 @@
  * Core types for Nova document engine
  */
 
-import { Editor, EditorPosition, TFile } from 'obsidian';
+import { EditorPosition, TFile } from 'obsidian';
 
 /**
  * Supported edit actions for document manipulation

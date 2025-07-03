@@ -1,6 +1,5 @@
 import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
-import { EditCommand } from '../core/types';
 
 interface StructuredCommand {
 	name: string;

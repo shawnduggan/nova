@@ -1,5 +1,5 @@
 import { LicenseValidator } from './license-validator';
-import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings, SupernovaValidationResult } from './types';
+import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings } from './types';
 import { SUPERNOVA_FEATURES, TimeGatedFeature } from './feature-config';
 
 export class FeatureManager {

@@ -1,8 +1,7 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TextAreaComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
 import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
 import { EditCommand, EditResult } from '../core/types';
-import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { MultiDocContext } from './context-manager';
 import { getAvailableModels, getProviderTypeForModel } from '../ai/models';
 import { ProviderType } from '../ai/types';
@@ -2714,7 +2713,7 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private handleLicenseUpdated = async (event: Event) => {
 		const customEvent = event as CustomEvent;
-		const { hasLicense, licenseKey, action } = customEvent.detail;
+		const { _hasLicense, _licenseKey, _action } = customEvent.detail;
 		
 		// Refresh Supernova UI when license status changes
 		try {

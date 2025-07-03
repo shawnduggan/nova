@@ -1,5 +1,5 @@
 import { Platform } from 'obsidian';
-import { AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse, AIProviderSettings } from './types';
+import { AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse } from './types';
 import { ClaudeProvider } from './providers/claude';
 import { OpenAIProvider } from './providers/openai';
 import { GoogleProvider } from './providers/google';

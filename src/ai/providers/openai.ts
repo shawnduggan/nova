@@ -214,7 +214,7 @@ export class OpenAIProvider implements AIProvider {
 				throw new Error(`API request failed: ${response.statusText}`);
 			}
 
-			const data = await response.json();
+			await response.json(); // Validate response format
 			
 			// Return hardcoded current models
 			const models = [

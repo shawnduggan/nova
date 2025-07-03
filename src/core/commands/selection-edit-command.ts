@@ -5,7 +5,6 @@
 
 import { Editor, EditorPosition, Notice } from 'obsidian';
 import NovaPlugin from '../../../main';
-import { AIProvider } from '../../ai/types';
 import { Logger } from '../../utils/logger';
 
 export interface SelectionEditResult {

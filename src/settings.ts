@@ -3,7 +3,6 @@ import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
 import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
-import { getAvailableModels } from './ai/models';
 import { ClaudeProvider } from './ai/providers/claude';
 import { OpenAIProvider } from './ai/providers/openai';
 import { GoogleProvider } from './ai/providers/google';
@@ -467,7 +466,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			const statusEl = statusContainer.createDiv({ cls: `nova-provider-status ${status.state}` });
 			
 			// Status dot
-			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
+			statusEl.createSpan({ cls: 'nova-status-dot' });
 			
 			// Status text
 			const text = statusEl.createSpan({ cls: 'nova-status-text' });
@@ -490,7 +489,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			Logger.error('Error creating provider status indicator:', error);
 			// Fallback: create a simple status indicator
 			const statusEl = statusContainer.createDiv({ cls: 'nova-provider-status untested' });
-			const dot = statusEl.createSpan({ cls: 'nova-status-dot' });
+			statusEl.createSpan({ cls: 'nova-status-dot' });
 			const text = statusEl.createSpan({ cls: 'nova-status-text' });
 			text.textContent = 'Status unknown';
 		}

@@ -30,7 +30,7 @@ export class ChatRenderer {
 		
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 
-		const roleEl = messageEl.createEl('div', { 
+		messageEl.createEl('div', { 
 			text: role === 'user' ? 'You' : role === 'system' ? 'System' : 'Nova',
 			cls: 'nova-message-role'
 		});
@@ -100,7 +100,7 @@ export class ChatRenderer {
 				const iconEl = wrapper.createSpan();
 				
 				// Map viewBox patterns to icon names (based on common patterns)
-				const viewBox = svgMatch[1];
+				svgMatch[1]; // viewBox - used for pattern matching below
 				let iconName = 'info'; // default fallback
 				
 				if (content.includes('stroke-width="2"') && content.includes('circle')) {

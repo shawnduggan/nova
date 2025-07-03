@@ -5,7 +5,7 @@
 
 import { AIProviderManager } from '../ai/provider-manager';
 import { Logger } from '../utils/logger';
-import { IntentDetector, IntentClassification } from './intent-detector';
+import { IntentDetector } from './intent-detector';
 
 export type UserIntent = 'CHAT' | 'METADATA' | 'CONTENT';
 
@@ -21,7 +21,7 @@ export class AIIntentClassifier {
     /**
      * Classify user input into one of three intents
      */
-    async classifyIntent(userInput: string, hasSelection: boolean = false): Promise<UserIntent> {
+    async classifyIntent(userInput: string, _hasSelection: boolean = false): Promise<UserIntent> {
         try {
             // Input validation
             if (!userInput || typeof userInput !== 'string') {
