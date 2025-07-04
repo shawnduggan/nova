@@ -1,152 +1,170 @@
-# Nova – Your AI Writing Partner for Obsidian
+# Nova – Your Writing Partner That Actually Understands Where Ideas Belong
 
-**Tired of AI that guesses where to edit your documents?**
+**The first AI that transforms your thoughts exactly where you think them.**
 
-Nova is the first AI that edits **exactly where you want** — not where it hopes.
+Stop fighting with AI about where your edits should go. Nova reads your mind through your cursor – select any text, and watch it transform in place with streaming magic that turns writing into thinking out loud.
 
-🪄  **Select text → Right-click → Transform in place**  
-🎯  **Type "add conclusion here" → AI writes at your cursor**  
-🧠  **Intelligent intention detection** → Chat knows when to edit vs. respond
+✨ For writers who refuse to compromise on precision  
+🎯 Every edit lands exactly where you intend  
+🔒 Your thoughts stay yours — local AI or your own keys, your own rules  
+🆓 Every writing feature free forever
 
-No copy-paste chaos. No more hunting for where the AI put your edits. Just surgical precision with magical streaming.
-
-✨  Works on desktop and mobile  
-🔒  Local AI or your own API keys  
-🆓  Free forever — no feature gates or subscriptions
+Nova isn’t just an AI assistant — it’s invisible writing infrastructure. It vanishes so your ideas can flow.
 
 ---
 
-## 🚀  Get Started in 2 Minutes
+## The Writing Problem Everyone Accepts (But Shouldn’t)
 
-1. **Install:** Obsidian → Community Plugins → Search "Nova" → Install
-2. **Quick Setup:** Nova Settings → Add your Claude/OpenAI API key _(or install Ollama for local AI)_
-3. **Transform Text:** Select any text → Right-click → "Improve Writing"
-4. **Watch Magic:** Smooth streaming transformation exactly where you selected ✨
+Every writer knows this frustration:
 
----
+**You**: “Make this paragraph more academic”  
+**AI**: Edits something, somewhere, maybe the right thing  
+**You**: “Wait, where did it put that? Let me hunt through the response…”
 
-## 🎯  The Nova Difference
+This isn’t writing. This is wrestling with technology.
 
-### **Surgical Precision**
-
-- **Other AI tools:** "Edit this" → _guesses where to put changes_
-- **Nova:** Select text → Transform exactly in place
-
-### **Zero Copy-Paste Workflow**
-
-- Chat at cursor position → AI writes exactly there
-- Multi-document context with drag-and-drop
-- Native Obsidian integration (feels built-in)
-
-### **The Workflow Revolution**
-
-**Before Nova:** Copy prompt → Switch to ChatGPT → Hope it edits the right part → Copy back → Find where it goes → Fix formatting
-
-**With Nova:** Select text → Right-click → Watch it transform in place ✨
+Nova solves the problem every other AI tool ignores: you shouldn’t have to guess where your edits will land.
 
 ---
 
-## ✨  What Nova Does
+## How Nova Changes Everything
 
-### **🎯 Selection & Cursor-Based Editing**
+### Select. Transform. Continue.
 
-- Right-click any selected text (desktop) or use Command Palette (mobile)
-- Place your cursor and type natural language in chat (e.g. _"Add summary below"_)
-- Choose from Improve, Expand, Condense, Tone Adjustments, or Custom
-- Edits appear exactly where you expect — never somewhere random
+Your new writing workflow is impossibly simple:
 
-### **💬 Context-Aware Chat with Intention Detection**
+1. Select any text in your document  
+2. Right-click → Choose your transformation  
+3. Watch it change exactly in place with streaming magic  
+4. Keep writing like the AI was never there
 
-- Type a command like _"Add a summary here"_ — Nova inserts directly at your cursor
-- Ask questions like _"What should I write about?"_ — Nova responds conversationally
-- Intelligent AI automatically determines edit vs. chat intent
-- Drag .md files into chat to add multi-document context
-- Reference documents with `[[Document Name]]` syntax
+No chat windows. No copy-paste chaos. No hunting for edits.
 
-### **🤖 AI Provider Flexibility**
+Just pure writing flow.
 
-- **Local AI:** Ollama, LM Studio, self-hosted endpoints
-- **Cloud AI:** Claude, OpenAI, Gemini — using your API keys
-- Switch providers mid-conversation without losing context
+Prefer to write from scratch? Just place your cursor and say what you want.  
+Nova understands your intent and writes exactly where you're thinking — no chatbox, no distractions.
 
-### **📁 Native Obsidian Integration**
+### Writing That Feels Like Thinking
 
-- Uses Obsidian's native modals, file pickers, and command palette
-- Works identically on desktop and mobile
-- AI-powered tag management with smart suggestions
-- Protected system fields (creation dates, IDs) for data safety
-- No analytics; offline license validation; your data stays yours
+**Before Nova**: Interrupt your flow → Copy text → Switch to AI → Hope it understands → Copy result back → Find where it goes → Fix formatting → Resume writing (if you can remember what you were thinking)  
+**With Nova**: Highlight text → Watch it improve in real-time → Continue your thought
+
+The difference isn’t just smoother — it’s transformational.
 
 ---
 
-## 🧪 Real Workflows
+## Built for Writers Who Take Their Craft Seriously
 
-### **Academic Writing**
+### Academic Writers
 
-- Select methodology paragraph → "Change Tone to Academic"
-- Chat: _"Add literature review using [[Research Notes]]"_
-- Cursor: Place at section end → Chat: _"Summarize findings here"_
-- Tag management: _"Add suggested tags"_ → AI analyzes content for relevant tags
+Transform research notes into publication-ready content. Select a rough methodology section, right-click “Academic Tone,” and watch it become scholarly prose without losing your insights.
 
-### **Creative Writing**
+### Creative Writers
 
-- Select character description → "Make Longer" → Rich backstory appears
-- Chat: _"Create dialogue showing tension between these characters"_
+Turn character sketches into vivid descriptions. Transform dialogue to match character voice. Expand scenes without losing narrative flow.
 
-### **Technical Documentation**
+### Business Writers
 
-- Select API explanation → "Improve Writing" → Crystal clear docs
-- Chat: _"Add error handling examples from [[API Guidelines]]"_
-- Metadata: _"Clean up tags"_ → Optimizes document organization automatically
+Convert meeting rambles into executive summaries. Transform technical explanations for different audiences. Polish proposals while preserving your strategy.
+
+### Personal Knowledge Builders
+
+Turn fleeting thoughts into structured insights. Transform reading notes into learning synthesis. Build your second brain with writing that matches your thinking.
 
 ---
 
-## 🌟 Join the Nova Community
+## The Magic Behind the Simplicity
 
-Nova is **free forever** with no feature walls. Built by writers, for writers.
+### Surgical Precision
 
-**Love precision editing?** Become a Supernova supporter and get:
+Nova doesn’t guess where you want edits. You select exactly what needs work, and that’s exactly what transforms. Revolutionary selection-based editing means 100% accuracy, every time.
 
-- Early access to new precision features
-- Direct input on development priorities
-- Priority support from the creator
+### Streaming Consciousness
 
-_Supporting sustainable, community-driven development_
+Watch your ideas evolve in real-time. Nova streams transformations letter-by-letter, so you see your thoughts taking shape. It feels less like using AI and more like thinking with enhanced clarity.
 
+### Context That Understands Documents
 
-**$29/year or $199 lifetime**
+Nova knows about document structure, headings, and flow. Chat with cursor precision: “Add a methodology section here” and Nova writes exactly at your cursor with perfect formatting.
 
-**[Become a Supernova →](https://github.com/sponsors/shawnduggan)**
+### Writing Craft Infrastructure
 
----
+Commands become your personal writing tools. Create `/verse-study` for biblical analysis. Build `/character-profile` for fiction development. Transform Nova into your domain-specific writing partner.
 
-## 📄 Technical Details
-
-### **Requirements**
-
-- **License:** AGPL-3.0 — transparent and community-safe
-- **Obsidian:** v1.0.0 or later
-- **Platforms:** Windows, macOS, Linux, iOS, Android
-- **AI Setup:** Local (Ollama) or API key required (Claude, OpenAI, Gemini)
-
-### **Why It's Reliable**
-
-- 500+ comprehensive tests including security and performance
-- API resilience with automatic retry logic
-- Zero memory leaks with proper cleanup
-- Cross-platform consistency
+This isn’t just AI assistance. It’s writing craft amplification.
 
 ---
 
-## 🔮 Ready to End AI Guesswork?
+## Privacy That Matches Your Principles
 
-**Ready to end AI guesswork?**
+**Local AI First**: Use Ollama or LM Studio – your documents never leave your computer. Perfect for sensitive research, confidential writing, or simply preferring complete privacy.
 
-**Stop hoping AI gets it right. Start telling it exactly where to go.**
+**Your Keys, Your Control**: Cloud AI uses YOUR keys – Claude, OpenAI, Gemini. Nova never sees your content, never stores your conversations.
 
-**[Install Nova Now →](obsidian://show-plugin?id=nova)**
-_2-minute setup • Works immediately • Free forever_
+**Zero Analytics**: No tracking, no usage analytics, no “telemetry.” What you write stays between you and your chosen AI provider.
+
+*Privacy-first writing for people who chose Obsidian for the same reason.*
+
+---
+
+## Free Forever. No Feature Gates. No Tracking. No Catch.
+
+Everything works with your own keys — Nova doesn’t hold your writing hostage.
+
+Every precision feature works with your own API keys:
+
+- Selection-based transformations with streaming magic  
+- Chat commands with cursor targeting  
+- Multi-document context and references  
+- All AI providers (local and cloud)  
+- Cross-platform writing (desktop and mobile)  
+- Complete privacy control
+
+Support development if Nova transforms your writing:
+
+- Early access to advanced writing features  
+- Priority support and feature requests  
+- Community of serious writers  
+- Sustainable development without venture capital
+
+*Philosophy: Every writer deserves precision. Support only if it changes how you write.*
+
+---
+
+## Ready to Transform How You Write?
+
+Install Nova in 2 minutes:
+
+1. Obsidian → Community Plugins → Search “Nova” → Install  
+2. Add your API key (or setup local AI)  
+3. Select any text → Right-click → Experience the magic
+
+🎥 Want to see it in action?  
+Search “Nova” in Community Plugins and try “Improve Writing” on any note — it’ll click instantly.
+
+📘 Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
+
+Your writing will never feel the same.
+
+---
+
+## Where Nova Is Headed
+
+Nova started with the radical idea that AI should edit where you tell it to, not where it guesses. But this is just the beginning.
+
+🌠 Coming to Supernova Supporters
+
+- 🧠 **Command System** – Type `/coach` and get instant writing feedback. Define custom commands, fuzzy search, and personal writing tools.  
+- 🎯 **Writing Modes** – Instantly shift tone (e.g. blog → academic) based on context — no prompt engineering required.  
+- 🎨 **Style Mirroring** – AI that writes like *you*, not like ChatGPT. Your tone, your voice, your vocabulary.  
+- 🚀 **Smart Autocomplete** – Finish your thoughts before you finish typing. Like GitHub Copilot for prose.
+
+These aren’t just features — they’re building blocks for the future of AI-powered writing infrastructure.  
+Supernova supporters get early access, influence the roadmap, and help shape what writing with AI becomes next.
 
 ---
 
 **Built with ❤️ in Halifax, Nova Scotia 🇨🇦**
+
+*For writers who believe their ideas deserve better than guesswork.*

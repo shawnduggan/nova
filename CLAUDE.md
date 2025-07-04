@@ -9,7 +9,7 @@
 
 ## 📚 Required Context & Strategic Documentation
 
-**Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/09-Projects/Nova/Core Docs/ to understand our positioning.
+**Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/09-Projects/Nova/Core Docs/ to understand Nova.
 
 **Strategic Focus:** Nova solves "where did AI put that?" by letting users control exactly where edits happen - select text to transform it, place cursor to create content exactly there.
 
