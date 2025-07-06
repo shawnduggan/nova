@@ -67,9 +67,9 @@ export class ContextManager {
 	createContextPreview(): HTMLElement {
 		const previewContainer = this.container.createDiv({ cls: 'nova-context-preview' });
 
-		const previewLabel = previewContainer.createSpan({ text: 'Context: ', cls: 'nova-preview-label' });
+		previewContainer.createSpan({ text: 'Context: ', cls: 'nova-preview-label' });
 
-		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-files' });
+		previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-files' });
 
 		return previewContainer;
 	}
@@ -142,7 +142,7 @@ export class ContextManager {
 
 		try {
 			// Parse current message
-			const { cleanedMessage, references } = this.parseMessage(message, currentFile.path);
+			const { references } = this.parseMessage(message, currentFile.path);
 
 			// Get existing persistent context for this conversation
 			const existingPersistent = this.persistentContext.get(currentFile.path) || [];

@@ -907,7 +907,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 
 		// Add validation button separately
-		const validateSetting = new Setting(licenseContainer)
+		new Setting(licenseContainer)
 			.setDesc('Validate your Supernova license key')
 			.addButton(button => {
 				button.setButtonText('Validate License')
@@ -1731,7 +1731,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createSupernovaLicenseInput(container: HTMLElement): void {
 		// Current Supernova status
-		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
+		// const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
 		const supernovaLicense = this.plugin.featureManager?.getSupernovaLicense();
 		
 		// Status display

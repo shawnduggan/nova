@@ -1,6 +1,7 @@
 import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
 import { DebugSettings } from '../../src/licensing/types';
+import { SUPERNOVA_FEATURES } from '../../src/licensing/feature-config';
 
 describe('FeatureManager', () => {
 	let featureManager: FeatureManager;
@@ -24,7 +25,9 @@ describe('FeatureManager', () => {
 			expect(commandsAccess.allowed).toBe(false);
 			expect(commandsAccess.isSupernovaFeature).toBe(true);
 			expect(commandsAccess.reason).toContain('early access for Supernova supporters');
-			expect(commandsAccess.availableDate).toEqual(new Date('2025-09-30'));
+			// Test that availableDate exists and is a valid date, not a specific date
+			expect(commandsAccess.availableDate).toBeInstanceOf(Date);
+			expect(commandsAccess.availableDate?.getTime()).toBeGreaterThan(Date.now());
 		});
 	});
 
@@ -166,16 +169,106 @@ describe('FeatureManager', () => {
 	});
 
 
+	describe('Configuration Validation', () => {
+		test('all time-gated features should have valid date formats', () => {
+			Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
+				// Check that dates are parseable
+				const supernovaDate = new Date(config.supernovaDate);
+				const generalDate = new Date(config.generalDate);
+				
+				expect(supernovaDate.toString()).not.toBe('Invalid Date');
+				expect(generalDate.toString()).not.toBe('Invalid Date');
+			});
+		});
+
+		test('supernova dates should come before general availability dates', () => {
+			Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
+				const supernovaDate = new Date(config.supernovaDate);
+				const generalDate = new Date(config.generalDate);
+				
+				expect(supernovaDate.getTime()).toBeLessThan(generalDate.getTime());
+			});
+		});
+
+		test('all features should have descriptions', () => {
+			Object.entries(SUPERNOVA_FEATURES).forEach(([key, config]) => {
+				expect(config.description).toBeTruthy();
+				expect(config.description.length).toBeGreaterThan(0);
+			});
+		});
+	});
+
+	describe('Time-Gating Logic', () => {
+		test('features should be disabled before supernova date for non-supporters', () => {
+			// Get any feature from config
+			const [featureKey, config] = Object.entries(SUPERNOVA_FEATURES)[0];
+			const supernovaDate = new Date(config.supernovaDate);
+			
+			// Set date to 1 day before supernova date
+			supernovaDate.setDate(supernovaDate.getDate() - 1);
+			const overrideDate = supernovaDate.toISOString().split('T')[0];
+
+			const debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: overrideDate,
+				forceSupernova: false
+			};
+			featureManager.updateDebugSettings(debugSettings);
+
+			expect(featureManager.isFeatureEnabled(featureKey)).toBe(false);
+		});
+
+		test('features should be enabled between supernova and general dates for supporters only', async () => {
+			// Get any feature from config
+			const [featureKey, config] = Object.entries(SUPERNOVA_FEATURES)[0];
+			
+			// Set up Supernova supporter
+			const license = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
+			await featureManager.updateSupernovaLicense(license);
+			
+			// Set date between supernova and general dates
+			const supernovaDate = new Date(config.supernovaDate);
+			const generalDate = new Date(config.generalDate);
+			const midDate = new Date((supernovaDate.getTime() + generalDate.getTime()) / 2);
+			const overrideDate = midDate.toISOString().split('T')[0];
+
+			// Test with Supernova supporter
+			let debugSettings: DebugSettings = {
+				enabled: true,
+				overrideDate: overrideDate,
+				forceSupernova: true
+			};
+			featureManager.updateDebugSettings(debugSettings);
+			expect(featureManager.isFeatureEnabled(featureKey)).toBe(true);
+
+			// Test without Supernova supporter
+			debugSettings = {
+				enabled: true,
+				overrideDate: overrideDate,
+				forceSupernova: false
+			};
+			featureManager.updateDebugSettings(debugSettings);
+			await featureManager.updateSupernovaLicense(null);
+			expect(featureManager.isFeatureEnabled(featureKey)).toBe(false);
+		});
+	});
+
 	describe('Time-Based Feature Release', () => {
 		test('should properly handle feature dates with Supernova supporter', async () => {
 			// Set up as Supernova supporter
 			const catalystLicense = await licenseValidator.createTestSupernovaLicense('test@example.com', 'lifetime');
 			await featureManager.updateSupernovaLicense(catalystLicense);
 
-			// Use debug mode to simulate being at the Supernova release date
+			// Get the actual Supernova date from config and add 1 day
+			const commandsConfig = SUPERNOVA_FEATURES['commands'];
+			const supernovaDate = new Date(commandsConfig.supernovaDate);
+			supernovaDate.setDate(supernovaDate.getDate() + 1);
+			const overrideDate = supernovaDate.toISOString().split('T')[0];
+
+			// Use debug mode to simulate being after the Supernova release date
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-08-01', // After commands Supernova date (2025-07-31)
+				overrideDate: overrideDate,
 				forceSupernova: true
 			};
 			featureManager.updateDebugSettings(debugSettings);
@@ -185,10 +278,16 @@ describe('FeatureManager', () => {
 		});
 
 		test('should handle general availability dates correctly', () => {
+			// Get the actual general date from config and add 1 day
+			const commandsConfig = SUPERNOVA_FEATURES['commands'];
+			const generalDate = new Date(commandsConfig.generalDate);
+			generalDate.setDate(generalDate.getDate() + 1);
+			const overrideDate = generalDate.toISOString().split('T')[0];
+
 			// Use debug mode to simulate being past general availability
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-10-01', // Past all general availability dates
+				overrideDate: overrideDate,
 				forceSupernova: false
 			};
 			featureManager.updateDebugSettings(debugSettings);

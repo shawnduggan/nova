@@ -26,7 +26,7 @@ export class Logger {
     /**
      * Log debug information (development only)
      */
-    static debug(message: string, ...args: any[]): void {
+    static debug(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.DEBUG) {
             console.debug(`${Logger.PREFIX} ${message}`, ...args);
         }
@@ -35,7 +35,7 @@ export class Logger {
     /**
      * Log general information
      */
-    static info(message: string, ...args: any[]): void {
+    static info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
             console.log(`${Logger.PREFIX} ${message}`, ...args);
         }
@@ -44,7 +44,7 @@ export class Logger {
     /**
      * Log warnings
      */
-    static warn(message: string, ...args: any[]): void {
+    static warn(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.WARN) {
             console.warn(`${Logger.PREFIX} ${message}`, ...args);
         }
@@ -53,7 +53,7 @@ export class Logger {
     /**
      * Log errors
      */
-    static error(message: string, ...args: any[]): void {
+    static error(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.ERROR) {
             console.error(`${Logger.PREFIX} ${message}`, ...args);
         }
@@ -77,25 +77,25 @@ export class ScopedLogger {
         this.prefix = `[Nova:${component}]`;
     }
 
-    debug(message: string, ...args: any[]): void {
+    debug(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.DEBUG) {
             console.debug(`${this.prefix} ${message}`, ...args);
         }
     }
 
-    info(message: string, ...args: any[]): void {
+    info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
             console.log(`${this.prefix} ${message}`, ...args);
         }
     }
 
-    warn(message: string, ...args: any[]): void {
+    warn(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.WARN) {
             console.warn(`${this.prefix} ${message}`, ...args);
         }
     }
 
-    error(message: string, ...args: any[]): void {
+    error(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.ERROR) {
             console.error(`${this.prefix} ${message}`, ...args);
         }

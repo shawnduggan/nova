@@ -125,7 +125,7 @@ export class CommandSystem {
 			});
 			nameEl.setCssProps({ 'margin-bottom': 'var(--size-2-1)' });
 
-			const descEl = cmdEl.createEl('div', { 
+			cmdEl.createEl('div', { 
 				text: cmd.description,
 				cls: 'nova-command-desc'
 			});
@@ -203,17 +203,17 @@ export class CommandSystem {
 			filtered.forEach((cmd, index) => {
 				const item = this.commandPicker.createDiv({ cls: 'nova-command-picker-item' });
 
-				const nameEl = item.createEl('div', { 
+				item.createEl('div', { 
 					text: cmd.name,
 					cls: 'nova-command-picker-name'
 				});
 
-				const descEl = item.createEl('div', { 
+				item.createEl('div', { 
 					text: cmd.description,
 					cls: 'nova-command-picker-desc'
 				});
 
-				const exampleEl = item.createEl('div', { 
+				item.createEl('div', { 
 					text: `Example: ${cmd.example}`,
 					cls: 'nova-command-picker-example'
 				});

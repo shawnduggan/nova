@@ -22,7 +22,7 @@ export class ProviderManager {
 		this.statusDot = this.statusContainer.createDiv({ cls: 'nova-provider-status-dot' });
 
 		// Provider name
-		const nameElement = this.statusContainer.createSpan();
+		this.statusContainer.createSpan();
 
 		// Dropdown
 		this.dropdown = new DropdownComponent(this.statusContainer);

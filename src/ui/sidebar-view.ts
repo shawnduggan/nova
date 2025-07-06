@@ -765,7 +765,7 @@ export class NovaSidebarView extends ItemView {
 		setIcon(iconEl, 'book-open');
 		previewText.createSpan({ text: ' Context will include: ' });
 
-		const previewList = previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-list' });
+		previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-list' });
 
 		return previewContainer;
 	}
@@ -1685,7 +1685,7 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Calculate basic stats
 			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
-			const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
+			// const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
 			
 			// Update stats display in header
 			const headerEl = this.containerEl.querySelector('.nova-header');
@@ -1756,7 +1756,7 @@ USER REQUEST: ${processedMessage}`;
 		} else {
 			// No total context usage available - show minimal info without warnings
 			const currentTokens = this.currentContext?.tokenCount || 0;
-			remainingPercent = 100; // Don't calculate percentage without proper context limits
+			// remainingPercent = 100; // Don't calculate percentage without proper context limits
 			displayText = currentTokens > 0 ? `${currentTokens} tokens` : '0% left';
 			tooltipText = `File context: ${currentTokens} tokens (total context calculation unavailable)`;
 			warningLevel = 'safe'; // No warnings when calculation unavailable
@@ -1832,7 +1832,7 @@ USER REQUEST: ${processedMessage}`;
 					// Create a custom left-aligned message for document insights
 					const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-assistant nova-insights' });
 
-					const roleEl = messageEl.createEl('div', { 
+					messageEl.createEl('div', { 
 						text: 'Nova',
 						cls: 'nova-message-role'
 					});
@@ -2713,7 +2713,7 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private handleLicenseUpdated = async (event: Event) => {
 		const customEvent = event as CustomEvent;
-		const { _hasLicense, _licenseKey, _action } = customEvent.detail;
+		// const { _hasLicense, _licenseKey, _action } = customEvent.detail;
 		
 		// Refresh Supernova UI when license status changes
 		try {
@@ -3084,7 +3084,7 @@ USER REQUEST: ${processedMessage}`;
 		await this.refreshContext();
 		
 		// Show a single comprehensive notification for better UX
-		const totalFiles = filenames.length;
+		// const totalFiles = filenames.length;
 		const messages: string[] = [];
 		
 		if (addedFiles.length > 0) {
