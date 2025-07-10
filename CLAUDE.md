@@ -89,18 +89,22 @@
 
 ## 📋 Current Tasks
 
+
 ### Recent Completions
 
-**Fixed Commands feature debug license override bug**: Commands feature (`:` trigger) was not working for Supernova users even with debug date overrides. Root cause was in `FeatureManager.getIsSupernova()` where debug settings with `forceSupernova: false` was overriding real Supernova license status. Modified logic in `src/licensing/feature-manager.ts:94-101` to only override when `forceSupernova` is explicitly `true`, otherwise respects real license status. Commands feature now works properly for Supernova users with debug date overrides.
 
-### Future Enhancements 
+### Future Enhancements
 
-**MEDIUM User-configurable log levels**: Add setting in plugin settings tab to allow users to adjust logging verbosity (Debug, Info, Warn, Error). Currently hardcoded to INFO level. Would help with troubleshooting and support, and allow users to reduce logging overhead if needed.
+**MEDIUM Make return key hit enter on custom Tell Nova modal**: Currently hitting enter doesn't do anything. I want it to submit the form.
 
-**LOW Make return key hit enter on custom Tell Nova modal**: Currently hitting enter doesn't do anything. I want it to submit the form.
+**LOW Remove privacy indicator on mobile view**: It doesn't provide value on mobile - all models are cloud
+
+**MEDIUM Mobile Model Dropdown has no padding**: The provider names do, but the model names don't. We've tried to fix this a few times with no luck.
+
+**LOW Consolidate input trigger detection**: Currently wikilinks (`[[`) and commands (`:`) use separate input listeners. Should consolidate into unified trigger detection system in InputHandler for better performance and cleaner architecture.
+
+### Someday Maybe
 
 **LOW Add slider setting for scroll speed**: Maybe on the General settings tab.
 
-**LOW Mobile Model Dropdown has no padding**: The provider names do, but the model names don't. We've tried to fix this a few times with no luck.
-
-**LOW Consolidate input trigger detection**: Currently wikilinks (`[[`) and commands (`:`) use separate input listeners. Should consolidate into unified trigger detection system in InputHandler for better performance and cleaner architecture.
+**MEDIUM User-configurable log levels**: Add setting in plugin settings tab to allow users to adjust logging verbosity (Debug, Info, Warn, Error). Currently hardcoded to INFO level. Would help with troubleshooting and support, and allow users to reduce logging overhead if needed.
