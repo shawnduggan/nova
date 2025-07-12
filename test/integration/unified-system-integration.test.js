@@ -10,7 +10,7 @@ describe('Unified Message System Integration', () => {
 
     beforeEach(() => {
         // Reset DOM
-        document.body.innerHTML = '';
+        document.body.textContent = '';
         
         // Create chat container with Obsidian extended methods
         chatContainer = document.createElement('div');
@@ -19,7 +19,9 @@ describe('Unified Message System Integration', () => {
         
         // Add Obsidian extended methods to container
         chatContainer.empty = function() {
-            this.innerHTML = '';
+            while (this.firstChild) {
+                this.removeChild(this.firstChild);
+            }
         };
         
         chatContainer.createEl = function(tag, attrs) {
@@ -35,7 +37,11 @@ describe('Unified Message System Integration', () => {
             // Add Obsidian extended methods to created elements
             el.createEl = chatContainer.createEl.bind(el);
             el.createDiv = chatContainer.createDiv.bind(el);
-            el.empty = function() { this.innerHTML = ''; };
+            el.empty = function() { 
+                while (this.firstChild) {
+                    this.removeChild(this.firstChild);
+                }
+            };
             
             this.appendChild(el);
             return el;
@@ -101,8 +107,8 @@ describe('Unified Message System Integration', () => {
     });
 
     afterEach(() => {
-        document.head.innerHTML = '';
-        document.body.innerHTML = '';
+        document.head.textContent = '';
+        document.body.textContent = '';
     });
 
     test('complete flow: short success message with persistence and restoration', async () => {
@@ -139,7 +145,9 @@ describe('Unified Message System Integration', () => {
         ]);
         
         // Clear current messages and restore
-        chatContainer.innerHTML = '';
+        while (chatContainer.firstChild) {
+            chatContainer.removeChild(chatContainer.firstChild);
+        }
         await chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
         
         // Verify restoration maintains styling
@@ -182,7 +190,9 @@ describe('Unified Message System Integration', () => {
             }
         ]);
         
-        chatContainer.innerHTML = '';
+        while (chatContainer.firstChild) {
+            chatContainer.removeChild(chatContainer.firstChild);
+        }
         await chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
         
         // Verify restoration maintains bubble styling
@@ -257,7 +267,9 @@ describe('Unified Message System Integration', () => {
         const chatMessage = chatContainer.querySelector('.nova-message');
         
         // Clear and add message through unified system directly
-        chatContainer.innerHTML = '';
+        while (chatContainer.firstChild) {
+            chatContainer.removeChild(chatContainer.firstChild);
+        }
         chatRenderer.addStatusMessage('✓ Done', {
             type: 'pill',
             variant: 'success',

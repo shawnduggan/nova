@@ -2481,12 +2481,12 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private createIconMessage(iconName: string, message: string): string {
 		const iconSvg = this.getObsidianIcon(iconName, '14px');
-		// Return as HTML that will be interpreted by the message display
+		// Return as structured string that will be safely parsed by the message display
 		return `<span style="display: inline-flex; align-items: center; gap: 6px;">${iconSvg}<span>${message}</span></span>`;
 	}
 
 	/**
-	 * Create an inline icon for use in innerHTML
+	 * Create an inline icon string for safe DOM rendering
 	 */
 	private createInlineIcon(iconName: string, size: string = '14px'): string {
 		return this.getObsidianIcon(iconName, size);

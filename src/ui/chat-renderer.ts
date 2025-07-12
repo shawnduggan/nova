@@ -36,7 +36,7 @@ export class ChatRenderer {
 		});
 
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
-		// Safe rendering - avoid innerHTML for security
+		// Safe rendering using DOM API
 		this.renderMessageContent(contentEl, content);
 
 		this.scrollToBottom(true);
@@ -53,7 +53,7 @@ export class ChatRenderer {
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${cssClass}` });
 		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 		
-		// Safe rendering - avoid innerHTML for security
+		// Safe rendering using DOM API
 		this.renderMessageContent(contentEl, content);
 
 		// Save to conversation manager if requested
@@ -80,7 +80,7 @@ export class ChatRenderer {
 	}
 
 	/**
-	 * Safely render message content - parse icon messages and create DOM elements instead of using innerHTML
+	 * Safely render message content - parse icon messages and create DOM elements using secure DOM APIs
 	 */
 	private renderMessageContent(contentEl: HTMLElement, content: string): void {
 		// Check if this is an icon message created by createIconMessage
@@ -155,7 +155,7 @@ export class ChatRenderer {
 	addWelcomeMessage(_message?: string): void {
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 
-		// Create welcome content using DOM API instead of innerHTML
+		// Create welcome content using DOM API
 		const contentDiv = welcomeEl.createDiv({ cls: 'nova-welcome-content' });
 		
 		// Add Nova icon
@@ -204,7 +204,7 @@ export class ChatRenderer {
 				});
 				const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
 				
-				// Safe rendering - avoid innerHTML for security
+				// Safe rendering using DOM API
 				this.renderMessageContent(contentEl, message.content);
 			} else {
 				// Regular user/assistant messages

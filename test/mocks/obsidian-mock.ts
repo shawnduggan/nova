@@ -215,7 +215,9 @@ export class MetadataCache {
 // Extend HTMLElement to add Obsidian-specific methods
 class ExtendedHTMLElement extends HTMLElement {
     empty(): void {
-        this.innerHTML = '';
+        while (this.firstChild) {
+            this.removeChild(this.firstChild);
+        }
     }
     
     createEl<T extends keyof HTMLElementTagNameMap>(

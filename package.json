@@ -1,7 +1,7 @@
 {
   "name": "nova",
-  "version": "1.0.0",
-  "description": "AI writing partner that directly edits documents",
+  "version": "1.0.2",
+  "description": "Your AI writing partner that edits exactly where you want - select text and transform, or chat at cursor position.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
