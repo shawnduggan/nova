@@ -9,6 +9,6 @@ Nova eliminates the copy-paste mess with streaming edits that appear exactly whe
 
 ✅ Works on desktop and mobile  
 🔒 Local or cloud AI with your own keys  
-🆓 Free forever — no feature gates, no subscriptions
+🆓 Core features free forever — supporters get early access to new features
 
 [See full setup and features →](https://github.com/shawnduggan/nova)

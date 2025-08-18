@@ -7,7 +7,7 @@ Stop fighting with AI about where your edits should go. Nova reads your mind thr
 ✨ For writers who refuse to compromise on precision  
 🎯 Every edit lands exactly where you intend  
 🔒 Your thoughts stay yours — local AI or your own keys, your own rules  
-🆓 Every writing feature free forever
+🆓 Every writing feature becomes free forever, with paid supporters receiving early access to new features
 
 Nova isn’t just an AI assistant — it’s invisible writing infrastructure. It vanishes so your ideas can flow.
 
@@ -108,11 +108,11 @@ This isn’t just AI assistance. It’s writing craft amplification.
 
 ---
 
-## Free Forever. No Feature Gates. No Tracking. No Catch.
+## Core Features Free Forever. No Tracking. No Catch.
 
-Everything works with your own keys — Nova doesn’t hold your writing hostage.
+Everything works with your own keys — Nova doesn't hold your writing hostage.
 
-Every precision feature works with your own API keys:
+Every core writing feature works with your own API keys:
 
 - Selection-based transformations with streaming magic  
 - Chat commands with cursor targeting  
@@ -123,12 +123,13 @@ Every precision feature works with your own API keys:
 
 Support development if Nova transforms your writing:
 
-- Early access to advanced writing features  
+- Early access to new features (3-6 months before general release)
+- Mobile access during early access period
 - Priority support and feature requests  
 - Community of serious writers  
 - Sustainable development without venture capital
 
-*Philosophy: Every writer deserves precision. Support only if it changes how you write.*
+*Philosophy: Thoughtful tools for the modern writer. Features graduate to free tier after testing period. Support only if it changes how you write.*
 
 ---
 
@@ -153,15 +154,15 @@ Your writing will never feel the same.
 
 Nova started with the radical idea that AI should edit where you tell it to, not where it guesses. But this is just the beginning.
 
-🌠 Coming to Supernova Supporters
+🌠 Early Access for Supernova Supporters
 
 - 🧠 **Command System** – Type `/coach` and get instant writing feedback. Define custom commands, fuzzy search, and personal writing tools.  
 - 🎯 **Writing Modes** – Instantly shift tone (e.g. blog → academic) based on context — no prompt engineering required.  
 - 🎨 **Style Mirroring** – AI that writes like *you*, not like ChatGPT. Your tone, your voice, your vocabulary.  
 - 🚀 **Smart Autocomplete** – Finish your thoughts before you finish typing. Like GitHub Copilot for prose.
 
-These aren’t just features — they’re building blocks for the future of AI-powered writing infrastructure.  
-Supernova supporters get early access, influence the roadmap, and help shape what writing with AI becomes next.
+These aren't just features — they're building blocks for the future of AI-powered writing infrastructure.  
+Supernova supporters get 3-6 months early access to test and refine features before they graduate to the free tier. Help shape what writing with AI becomes next.
 
 ---
 

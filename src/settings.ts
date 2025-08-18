@@ -211,25 +211,11 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createGeneralTabContent(container: HTMLElement): void {
-		// Show supporter CTA only if not already a supporter
-		this.createSupernovaCTA(container, { 
-			showOnlyIfNotSupporter: true,
-			buttonAction: 'tab',
-			showLearnMore: false
-		});
-		
 		this.createGeneralSettings(container);
 		this.createPrivacySettings(container);
 	}
 
 	private createProvidersTabContent(container: HTMLElement): void {
-		// Show supporter CTA only if not already a supporter
-		this.createSupernovaCTA(container, { 
-			showOnlyIfNotSupporter: true,
-			buttonAction: 'tab',
-			showLearnMore: false
-		});
-		
 		this.createProviderSettings(container);
 	}
 

@@ -89,6 +89,28 @@
 
 ## 📋 Current Tasks
 
+### CRITICAL - Obsidian Plugin Compliance Fixes (PR #6955 Feedback)
+
+**Phase 1: REQUIRED - Monetization & Disclosures**
+- **COMPLETED**: Update README.md with clear SuperNova pricing disclosure - Updated messaging to clarify early access model and graduation to free tier
+- **COMPLETED**: Fix README-browser.md "Free forever" claims to reflect freemium model - Updated to match main README messaging
+- **COMPLETED**: Remove SuperNova ads from General settings tab - Removed createSupernovaCTA call from createGeneralTabContent
+- **COMPLETED**: Remove SuperNova ads from Providers settings tab - Removed createSupernovaCTA call from createProvidersTabContent
+
+**Phase 2: REQUIRED - API Compliance**
+- **PENDING**: Replace fetch() with requestUrl() in google-provider.ts (3 instances) - Next: Import requestUrl and update first fetch call
+- **PENDING**: Replace fetch() with requestUrl() in openai-provider.ts (3 instances) - Next: Import requestUrl and update streaming logic
+- **PENDING**: Replace fetch() with requestUrl() in ollama-provider.ts (5 instances) - Next: Import requestUrl and update completion calls
+- **PENDING**: Remove inline styles from SVG icons in sidebar-view.ts (13 instances) - Next: Create CSS classes for icon sizing
+
+**Phase 3: OPTIONAL - Type Safety Improvements** 
+- **PENDING**: Reduce `any` usage in sidebar-view.ts (15+ instances) - Next: Create interface for sidebar view properties
+- **PENDING**: Add proper types to conversation-manager.ts sanitization methods - Next: Define sanitization parameter types
+- **PENDING**: Fix type safety in metadata-command.ts (20+ instances) - Next: Create interfaces for property updates
+
+**Quality Assurance Requirements:**
+After each task: Run `npm run build`, `npm test`, check ESLint status (0 errors required)
+Final: Comprehensive testing of all providers, UI components, and core functionality
 
 ### Recent Completions
 
