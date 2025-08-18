@@ -1,5 +1,6 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
+import { requestUrl } from 'obsidian';
 
 export class GoogleProvider implements AIProvider {
 	name = 'Google (Gemini)';
@@ -74,7 +75,8 @@ export class GoogleProvider implements AIProvider {
 			};
 		}
 
-		const response = await fetch(url, {
+		const response = await requestUrl({
+			url: url,
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -82,8 +84,8 @@ export class GoogleProvider implements AIProvider {
 			body: JSON.stringify(requestBody)
 		});
 
-		if (!response.ok) {
-			const errorText = await response.text();
+		if (response.status !== 200) {
+			const errorText = response.text;
 			let errorMessage = '';
 			
 			try {
@@ -91,7 +93,7 @@ export class GoogleProvider implements AIProvider {
 				if (errorData.error) {
 					// Format as [CODE]: message
 					const code = errorData.error.code || response.status;
-					const message = errorData.error.message || errorData.error.status || response.statusText;
+					const message = errorData.error.message || errorData.error.status;
 					errorMessage = `[${code}]: ${message}`;
 					
 					// Add specific guidance for common errors
@@ -108,13 +110,12 @@ export class GoogleProvider implements AIProvider {
 					errorMessage = `[${response.status}]: ${errorText}`;
 				}
 			} catch (e) {
-				errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
+				errorMessage = `[${response.status}]: ${errorText}`;
 			}
 			
 			// Log detailed error for debugging
 			Logger.error('Google API Error Details:', {
 				status: response.status,
-				statusText: response.statusText,
 				errorText: errorText,
 				requestBody: requestBody,
 				model: model,
@@ -124,7 +125,7 @@ export class GoogleProvider implements AIProvider {
 			throw new Error(`Google API error ${errorMessage}`);
 		}
 
-		const data = await response.json();
+		const data = response.json;
 		
 		
 		// Check if response has valid structure
@@ -176,120 +177,18 @@ export class GoogleProvider implements AIProvider {
 	}
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
-		if (!this.config.apiKey) {
-			throw new Error('Google API key not configured');
+		// Get the full response from Google, then simulate streaming with consistent chunking
+		const result = await this.chatCompletion(messages, options);
+		
+		// Split result into smaller chunks for consistent typewriter effect
+		const chunkSize = 3; // Characters per chunk
+		for (let i = 0; i < result.length; i += chunkSize) {
+			const chunk = result.slice(i, i + chunkSize);
+			yield { content: chunk, done: false };
+			// Small delay between chunks to create smooth typewriter effect
+			await new Promise(resolve => setTimeout(resolve, 20));
 		}
-
-		// Use a newer model by default if no model is specified
-		const model = options?.model || this.config.model || 'gemini-2.0-flash';
-		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
-
-		const response = await fetch(url, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				contents: this.formatMessagesForGemini(messages),
-				generationConfig: {
-					temperature: options?.temperature || this.generalSettings.defaultTemperature,
-				maxOutputTokens: options?.maxTokens || this.generalSettings.defaultMaxTokens
-				},
-				...(options?.systemPrompt && options.systemPrompt.trim() ? {
-					systemInstruction: {
-						parts: [{ text: options.systemPrompt }]
-					}
-				} : {})
-			})
-		});
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			let errorMessage = '';
-			
-			try {
-				const errorData = JSON.parse(errorText);
-				if (errorData.error) {
-					const code = errorData.error.code || response.status;
-					const message = errorData.error.message || errorData.error.status || response.statusText;
-					errorMessage = `[${code}]: ${message}`;
-				} else {
-					errorMessage = `[${response.status}]: ${errorText}`;
-				}
-			} catch (e) {
-				errorMessage = `[${response.status}]: ${errorText || response.statusText}`;
-			}
-			
-			throw new Error(`Google API error ${errorMessage}`);
-		}
-
-		const reader = response.body?.getReader();
-		if (!reader) {
-			throw new Error('Failed to get response reader');
-		}
-
-		const decoder = new TextDecoder();
-		let buffer = '';
-		let jsonBuffer = '';
-		let braceCount = 0;
-		let inJson = false;
-
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				buffer += decoder.decode(value, { stream: true });
-				
-				// Process character by character to properly parse the streaming JSON
-				for (let i = 0; i < buffer.length; i++) {
-					const char = buffer[i];
-					
-					if (char === '{') {
-						if (!inJson) {
-							inJson = true;
-							jsonBuffer = '';
-						}
-						braceCount++;
-						jsonBuffer += char;
-					} else if (char === '}') {
-						jsonBuffer += char;
-						braceCount--;
-						
-						if (braceCount === 0 && inJson) {
-							// We have a complete JSON object
-							try {
-								const parsed = JSON.parse(jsonBuffer);
-								const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-								if (text) {
-									// Split text into smaller chunks for typewriter effect
-									const chunkSize = 3; // Characters per chunk
-									for (let i = 0; i < text.length; i += chunkSize) {
-										const chunk = text.slice(i, i + chunkSize);
-										yield { content: chunk, done: false };
-										// Small delay between chunks to create smooth typewriter effect
-										await new Promise(resolve => setTimeout(resolve, 20));
-									}
-								}
-							} catch (e) {
-								// Skip malformed JSON
-							}
-							
-							inJson = false;
-							jsonBuffer = '';
-						}
-					} else if (inJson) {
-						jsonBuffer += char;
-					}
-				}
-				
-				// Clear the processed buffer
-				buffer = '';
-			}
-		} finally {
-			reader.releaseLock();
-		}
-
+		
 		yield { content: '', done: true };
 	}
 
@@ -309,18 +208,19 @@ export class GoogleProvider implements AIProvider {
 		try {
 			const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.config.apiKey}`;
 			
-			const response = await fetch(url, {
+			const response = await requestUrl({
+				url: url,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
 
-			if (!response.ok) {
-				throw new Error(`API request failed: ${response.statusText}`);
+			if (response.status !== 200) {
+				throw new Error(`API request failed: ${response.status}`);
 			}
 
-			await response.json(); // Validate response format
+			response.json; // Validate response format
 			
 			// Return hardcoded current models
 			const models = [

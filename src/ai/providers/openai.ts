@@ -1,4 +1,5 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
+import { requestUrl } from 'obsidian';
 
 export class OpenAIProvider implements AIProvider {
 	name = 'OpenAI';
@@ -55,7 +56,8 @@ export class OpenAIProvider implements AIProvider {
 
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
-				const response = await fetch(endpoint, {
+				const response = await requestUrl({
+					url: endpoint,
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -64,8 +66,8 @@ export class OpenAIProvider implements AIProvider {
 					body: requestBody
 				});
 
-				if (response.ok) {
-					const data = await response.json();
+				if (response.status === 200) {
+					const data = response.json;
 					return data.choices[0].message.content;
 				}
 
@@ -77,11 +79,14 @@ export class OpenAIProvider implements AIProvider {
 				}
 
 				// For all other errors or final attempt, throw error
-				throw new Error(`OpenAI API error: ${response.statusText}`);
+				throw new Error(`OpenAI API error: ${response.status} - ${response.text}`);
 
 			} catch (error) {
 				// Network errors - retry if not final attempt
-				if (attempt < maxRetries && error instanceof Error && error.message.includes('fetch')) {
+				if (attempt < maxRetries && error instanceof Error && (
+					error.message.includes('Network error') || 
+					error.message.includes('Failed to connect')
+				)) {
 					const delay = baseDelay * Math.pow(2, attempt);
 					await new Promise(resolve => setTimeout(resolve, delay));
 					continue;
@@ -105,84 +110,18 @@ export class OpenAIProvider implements AIProvider {
 	}
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
-		if (!this.config.apiKey) {
-			throw new Error('OpenAI API key not configured');
+		// Get the full response from OpenAI, then simulate streaming with consistent chunking
+		const result = await this.chatCompletion(messages, options);
+		
+		// Split result into smaller chunks for consistent typewriter effect
+		const chunkSize = 3; // Characters per chunk
+		for (let i = 0; i < result.length; i += chunkSize) {
+			const chunk = result.slice(i, i + chunkSize);
+			yield { content: chunk, done: false };
+			// Small delay between chunks to create smooth typewriter effect
+			await new Promise(resolve => setTimeout(resolve, 20));
 		}
-
-		const requestMessages = [...messages];
-		if (options?.systemPrompt) {
-			requestMessages.unshift({ role: 'system', content: options.systemPrompt });
-		}
-
-		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
-		const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
-		const response = await fetch(endpoint, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${this.config.apiKey}`
-			},
-			body: JSON.stringify({
-				model: options?.model || this.config.model || 'gpt-3.5-turbo',
-				messages: requestMessages,
-				max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
-			temperature: options?.temperature || this.generalSettings.defaultTemperature,
-				stream: true
-			})
-		});
-
-		if (!response.ok) {
-			throw new Error(`OpenAI API error: ${response.statusText}`);
-		}
-
-		const reader = response.body?.getReader();
-		if (!reader) {
-			throw new Error('Failed to get response reader');
-		}
-
-		const decoder = new TextDecoder();
-		let buffer = '';
-
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split('\n');
-				buffer = lines.pop() || '';
-
-				for (const line of lines) {
-					if (line.startsWith('data: ')) {
-						const data = line.slice(6);
-						if (data === '[DONE]') {
-							yield { content: '', done: true };
-							return;
-						}
-
-						try {
-							const parsed = JSON.parse(data);
-							const content = parsed.choices?.[0]?.delta?.content;
-							if (content) {
-								// Split content into smaller chunks for consistent typewriter effect
-								const chunkSize = 3; // Characters per chunk
-								for (let i = 0; i < content.length; i += chunkSize) {
-									const chunk = content.slice(i, i + chunkSize);
-									yield { content: chunk, done: false };
-									// Small delay between chunks to create smooth typewriter effect
-									await new Promise(resolve => setTimeout(resolve, 20));
-								}
-							}
-						} catch (e) {
-							// Skip malformed JSON
-						}
-					}
-				}
-			}
-		} finally {
-			reader.releaseLock();
-		}
-
+		
 		yield { content: '', done: true };
 	}
 
@@ -203,18 +142,19 @@ export class OpenAIProvider implements AIProvider {
 			const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
 			const endpoint = baseUrl.endsWith('/models') ? baseUrl : `${baseUrl}/models`;
 			
-			const response = await fetch(endpoint, {
+			const response = await requestUrl({
+				url: endpoint,
 				method: 'GET',
 				headers: {
 					'Authorization': `Bearer ${this.config.apiKey}`
 				}
 			});
 
-			if (!response.ok) {
-				throw new Error(`API request failed: ${response.statusText}`);
+			if (response.status !== 200) {
+				throw new Error(`API request failed: ${response.status}`);
 			}
 
-			await response.json(); // Validate response format
+			response.json; // Validate response format
 			
 			// Return hardcoded current models
 			const models = [

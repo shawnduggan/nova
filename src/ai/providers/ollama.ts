@@ -1,4 +1,5 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
+import { requestUrl } from 'obsidian';
 
 export class OllamaProvider implements AIProvider {
 	name = 'Ollama (Local)';
@@ -19,11 +20,12 @@ export class OllamaProvider implements AIProvider {
 		
 		try {
 			const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-			const response = await fetch(`${baseUrl}/api/tags`, {
+			const response = await requestUrl({
+				url: `${baseUrl}/api/tags`,
 				method: 'GET',
 				headers: { 'Content-Type': 'application/json' }
 			});
-			return response.ok;
+			return response.status === 200;
 		} catch {
 			return false;
 		}
@@ -36,7 +38,8 @@ export class OllamaProvider implements AIProvider {
 			throw new Error('Ollama model must be specified');
 		}
 
-		const response = await fetch(`${baseUrl}/api/generate`, {
+		const response = await requestUrl({
+			url: `${baseUrl}/api/generate`,
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -50,80 +53,27 @@ export class OllamaProvider implements AIProvider {
 			})
 		});
 
-		if (!response.ok) {
-			throw new Error(`Ollama API error: ${response.statusText}`);
+		if (response.status !== 200) {
+			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 
-		const data = await response.json();
+		const data = response.json;
 		return data.response;
 	}
 
 	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
-		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model;
-		if (!model) {
-			throw new Error('Ollama model must be specified');
+		// Get the full response from Ollama, then simulate streaming with consistent chunking
+		const result = await this.generateText(prompt, options);
+		
+		// Split result into smaller chunks for consistent typewriter effect
+		const chunkSize = 3; // Characters per chunk
+		for (let i = 0; i < result.length; i += chunkSize) {
+			const chunk = result.slice(i, i + chunkSize);
+			yield { content: chunk, done: false };
+			// Small delay between chunks to create smooth typewriter effect
+			await new Promise(resolve => setTimeout(resolve, 20));
 		}
-
-		const response = await fetch(`${baseUrl}/api/generate`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				model,
-				prompt,
-				stream: true,
-				options: {
-					temperature: options?.temperature || this.generalSettings.defaultTemperature,
-					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
-				}
-			})
-		});
-
-		if (!response.ok) {
-			throw new Error(`Ollama API error: ${response.statusText}`);
-		}
-
-		const reader = response.body?.getReader();
-		if (!reader) {
-			throw new Error('Failed to get response reader');
-		}
-
-		const decoder = new TextDecoder();
-
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				const lines = decoder.decode(value).split('\n');
-				for (const line of lines) {
-					if (line.trim()) {
-						try {
-							const parsed = JSON.parse(line);
-							if (parsed.response) {
-								// Split text into smaller chunks for consistent typewriter effect
-								const chunkSize = 3; // Characters per chunk
-								for (let i = 0; i < parsed.response.length; i += chunkSize) {
-									const chunk = parsed.response.slice(i, i + chunkSize);
-									yield { content: chunk, done: false };
-									// Small delay between chunks to create smooth typewriter effect
-									await new Promise(resolve => setTimeout(resolve, 20));
-								}
-							}
-							if (parsed.done) {
-								yield { content: '', done: true };
-								return;
-							}
-						} catch (e) {
-							// Skip malformed JSON
-						}
-					}
-				}
-			}
-		} finally {
-			reader.releaseLock();
-		}
-
+		
 		yield { content: '', done: true };
 	}
 
@@ -134,7 +84,8 @@ export class OllamaProvider implements AIProvider {
 			throw new Error('Ollama model must be specified');
 		}
 
-		const response = await fetch(`${baseUrl}/api/chat`, {
+		const response = await requestUrl({
+			url: `${baseUrl}/api/chat`,
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -151,11 +102,11 @@ export class OllamaProvider implements AIProvider {
 			})
 		});
 
-		if (!response.ok) {
-			throw new Error(`Ollama API error: ${response.statusText}`);
+		if (response.status !== 200) {
+			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 
-		const data = await response.json();
+		const data = response.json;
 		return data.message.content;
 	}
 
@@ -168,74 +119,18 @@ export class OllamaProvider implements AIProvider {
 	}
 
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
-		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
-		const model = options?.model || this.config.model;
-		if (!model) {
-			throw new Error('Ollama model must be specified');
+		// Get the full response from Ollama, then simulate streaming with consistent chunking
+		const result = await this.chatCompletion(messages, options);
+		
+		// Split result into smaller chunks for consistent typewriter effect
+		const chunkSize = 3; // Characters per chunk
+		for (let i = 0; i < result.length; i += chunkSize) {
+			const chunk = result.slice(i, i + chunkSize);
+			yield { content: chunk, done: false };
+			// Small delay between chunks to create smooth typewriter effect
+			await new Promise(resolve => setTimeout(resolve, 20));
 		}
-
-		const response = await fetch(`${baseUrl}/api/chat`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				model,
-				messages: messages.map(msg => ({
-					role: msg.role,
-					content: msg.content
-				})),
-				stream: true,
-				options: {
-					temperature: options?.temperature || this.generalSettings.defaultTemperature,
-					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
-				}
-			})
-		});
-
-		if (!response.ok) {
-			throw new Error(`Ollama API error: ${response.statusText}`);
-		}
-
-		const reader = response.body?.getReader();
-		if (!reader) {
-			throw new Error('Failed to get response reader');
-		}
-
-		const decoder = new TextDecoder();
-
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				const lines = decoder.decode(value).split('\n');
-				for (const line of lines) {
-					if (line.trim()) {
-						try {
-							const parsed = JSON.parse(line);
-							if (parsed.message?.content) {
-								// Split text into smaller chunks for consistent typewriter effect
-								const chunkSize = 3; // Characters per chunk
-								for (let i = 0; i < parsed.message.content.length; i += chunkSize) {
-									const chunk = parsed.message.content.slice(i, i + chunkSize);
-									yield { content: chunk, done: false };
-									// Small delay between chunks to create smooth typewriter effect
-									await new Promise(resolve => setTimeout(resolve, 20));
-								}
-							}
-							if (parsed.done) {
-								yield { content: '', done: true };
-								return;
-							}
-						} catch (e) {
-							// Skip malformed JSON
-						}
-					}
-				}
-			}
-		} finally {
-			reader.releaseLock();
-		}
-
+		
 		yield { content: '', done: true };
 	}
 }
