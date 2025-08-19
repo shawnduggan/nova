@@ -105,7 +105,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #8 Command ID includes plugin name - Remove 'nova-' prefix from command IDs; Obsidian handles conflicts
 - **COMPLETED**: #9 Top-level heading in settings - Remove "Nova Settings" heading in settings tab
 - **COMPLETED**: #10 "Settings" in section headings - Remove word "settings" from settings section headings
-- **PENDING**: #11 Improper heading format - Use `new Setting(containerEl).setName('name').setHeading()` for section headings
+- **COMPLETED**: #11 Improper heading format - Use `new Setting(containerEl).setName('name').setHeading()` for section headings
 - **PENDING**: #12 Incorrect text casing - Use sentence case in UI instead of title case
 - **COMPLETED**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
 - **COMPLETED**: #14 Using fetch instead of requestUrl - Use Obsidian's requestUrl function for CORS handling
@@ -143,6 +143,14 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #11 - Convert section headings to proper Obsidian Setting API format
+- Replaced 6 section headings from raw HTML createEl('h3') to proper Setting API format
+- Updated: Debug, Privacy & Platform, Core, Configure Your API Keys, Platform, and Custom Commands sections
+- Used `new Setting(containerEl).setName('heading').setHeading()` format as required by Obsidian
+- Preserved informational headings in info cards as DOM elements (appropriate usage)
+- Maintained proper visual hierarchy and spacing throughout settings interface
+- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
 
 **COMPLETED**: Task #10 & #13 - Remove "Settings" and "Configuration" from section headings
 - Updated all section headings to remove redundant "Settings" terminology: "Core Settings" → "Core", "Privacy & Platform Settings" → "Privacy & Platform", "Debug Settings" → "Debug", etc.

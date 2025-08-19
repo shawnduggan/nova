@@ -286,8 +286,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createDebugTabContent(container: HTMLElement): void {
 		// Debug Settings Section
 		const debugSection = container.createDiv({ cls: 'nova-debug-section' });
-		debugSection.createEl('h3', { text: 'Debug' });
-		debugSection.createEl('hr', { cls: 'nova-section-divider' });
+		new Setting(debugSection)
+			.setName('Debug')
+			.setHeading();
 		
 		const infoEl = debugSection.createDiv({ cls: 'nova-debug-info' });
 		// Create debug info using DOM API
@@ -321,8 +322,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createPrivacySettings(container: HTMLElement): void {
 		// Privacy & Platform Section
 		const privacySection = container.createDiv({ cls: 'nova-privacy-section' });
-		privacySection.createEl('h3', { text: 'Privacy & Platform' });
-		privacySection.createEl('hr', { cls: 'nova-section-divider' });
+		new Setting(privacySection)
+			.setName('Privacy & Platform')
+			.setHeading();
 		
 		const infoEl = privacySection.createDiv({ cls: 'nova-privacy-info' });
 		
@@ -1123,7 +1125,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createGeneralSettings(containerEl = this.containerEl) {
 		// Core Settings section with clean header
 		const coreSection = containerEl.createDiv({ cls: 'nova-core-settings-section' });
-		coreSection.createEl('h3', { text: 'Core' });
+		new Setting(coreSection)
+			.setName('Core')
+			.setHeading();
 		
 		// Section spacing handled by CSS class
 
@@ -1166,8 +1170,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createProviderSettings(containerEl = this.containerEl) {
 		// Configure Your API Keys Section
 		const apiKeysSection = containerEl.createDiv({ cls: 'nova-api-keys-section' });
-		apiKeysSection.createEl('h3', { text: 'Configure Your API Keys' });
-		apiKeysSection.createEl('hr', { cls: 'nova-section-divider' });
+		new Setting(apiKeysSection)
+			.setName('Configure Your API Keys')
+			.setHeading();
 		
 		const infoEl = apiKeysSection.createDiv({ cls: 'nova-provider-info' });
 		// Basic info card
@@ -1367,7 +1372,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createPlatformSettings(containerEl = this.containerEl) {
-		containerEl.createEl('h3', { text: 'Platform' });
+		new Setting(containerEl)
+			.setName('Platform')
+			.setHeading();
 		
 		// Info about platform settings
 		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
@@ -1412,7 +1419,9 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createCommandSettings(containerEl = this.containerEl) {
-		containerEl.createEl('h3', { text: 'Custom Commands' });
+		new Setting(containerEl)
+			.setName('Custom Commands')
+			.setHeading();
 
 		// Feature availability check
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
