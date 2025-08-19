@@ -1385,10 +1385,7 @@
     padding: 4px 8px; /* Minimal padding */
 }
 
-/* Remove any extra padding/margin that could cause bottom space */
-.view-content {
-    padding: 0 !important;
-}
+/* Remove any extra padding/margin that could cause bottom space - scoped to Nova containers only */
 
 .nova-sidebar-container .view-content {
     height: 100% !important;
