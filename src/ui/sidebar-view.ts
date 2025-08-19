@@ -319,11 +319,8 @@ export class NovaSidebarView extends ItemView {
 		});
 		this.documentEventListeners = [];
 		
-		// Clean up context drawer close handler
-		if (this.contextDrawerCloseHandler) {
-			document.removeEventListener('click', this.contextDrawerCloseHandler);
-			this.contextDrawerCloseHandler = null;
-		}
+		// Context drawer close handler cleanup is now handled automatically by registerDomEvent
+		this.contextDrawerCloseHandler = null;
 	}
 	
 	/**
@@ -888,10 +885,8 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Clean up the previous close handler to prevent accumulation
-		if (this.contextDrawerCloseHandler) {
-			document.removeEventListener('click', this.contextDrawerCloseHandler);
-			this.contextDrawerCloseHandler = null;
-		}
+		// Note: removeEventListener is now handled automatically by registerDomEvent
+		this.contextDrawerCloseHandler = null;
 
 		this.contextIndicator.empty();
 		
@@ -1117,8 +1112,8 @@ export class NovaSidebarView extends ItemView {
 			}
 		};
 		
-		// Use direct addEventListener instead of addTrackedEventListener to avoid conflicts
-		document.addEventListener('click', this.contextDrawerCloseHandler);
+		// Register document event listener for proper cleanup
+		this.registerDomEvent(document, 'click', this.contextDrawerCloseHandler);
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -3160,13 +3155,13 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private startThinkingPhraseRotation(textEl: HTMLElement, command?: EditCommand, messageText?: string): void {
 		// Change phrase every 2 seconds during processing
-		const rotationInterval = setInterval(() => {
+		const rotationInterval = this.registerInterval(window.setInterval(() => {
 			const newPhrase = this.getContextualThinkingPhrase(command, messageText);
 			textEl.textContent = newPhrase;
-		}, 2000);
+		}, 2000));
 		
 		// Store interval ID for cleanup
-		// TODO: Replace with WeakMap or proper state management for element data
+		// Note: registerInterval handles automatic cleanup, but we still store for manual cleanup if needed
 		(textEl as any).rotationInterval = rotationInterval;
 	}
 

@@ -196,6 +196,7 @@ export default class NovaPlugin extends Plugin {
 	onunload() {
 		this.aiProviderManager?.cleanup();
 		this.conversationManager?.cleanup();
+		this.settingTab?.cleanup();
 	}
 
 	async loadSettings() {

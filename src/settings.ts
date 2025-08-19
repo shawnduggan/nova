@@ -101,10 +101,19 @@ export class NovaSettingTab extends PluginSettingTab {
 	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
 	private tabContainer: HTMLElement | null = null;
 	private contentContainer: HTMLElement | null = null;
+	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
 
 	constructor(app: App, plugin: NovaPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	/**
+	 * Register event listener for cleanup tracking
+	 */
+	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
+		element.addEventListener(event, handler);
+		this.eventListeners.push({element, event, handler});
 	}
 
 	display(): void {
@@ -144,7 +153,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			});
 			tabEl.dataset.tabId = tab.id;
 			
-			tabEl.addEventListener('click', () => {
+			this.registerEventListener(tabEl, 'click', () => {
 				this.switchTab(tab.id as 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug');
 			});
 		});
@@ -407,7 +416,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				const toggleBtn = inputContainer.createEl('button', { cls: 'nova-toggle-btn' });
 				setIcon(toggleBtn, 'eye');
 
-				toggleBtn.addEventListener('click', (e) => {
+				this.registerEventListener(toggleBtn, 'click', (e: Event) => {
 					e.preventDefault();
 					isVisible = !isVisible;
 					
@@ -1854,7 +1863,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Add click handlers if using tab navigation
 		if (buttonAction === 'tab') {
 			ctaSection.querySelectorAll('[data-tab="supernova"]').forEach(button => {
-				button.addEventListener('click', (e) => {
+				this.registerEventListener(button as HTMLElement, 'click', (e: Event) => {
 					e.preventDefault();
 					this.switchTab('supernova');
 				});
@@ -1905,7 +1914,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Add click handlers for navigation links
 		navCard.querySelectorAll('.nova-step-link').forEach(link => {
-			link.addEventListener('click', (e) => {
+			this.registerEventListener(link as HTMLElement, 'click', (e: Event) => {
 				// Only prevent default for internal navigation links, not external links
 				if (!(e.target as HTMLElement).classList.contains('nova-external-link')) {
 					e.preventDefault();
@@ -1915,5 +1924,15 @@ export class NovaSettingTab extends PluginSettingTab {
 				// External links will use default browser behavior (target="_blank")
 			});
 		});
+	}
+
+	/**
+	 * Clean up event listeners when settings tab is closed
+	 */
+	cleanup(): void {
+		this.eventListeners.forEach(({element, event, handler}) => {
+			element.removeEventListener(event, handler);
+		});
+		this.eventListeners = [];
 	}
 }

@@ -8,6 +8,7 @@ import { App, Modal, Setting } from 'obsidian';
 export class CustomInstructionModal extends Modal {
     private instruction: string = '';
     private onSubmit: (instruction: string) => void;
+    private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
     private onCancel: () => void;
 
     constructor(
@@ -18,6 +19,14 @@ export class CustomInstructionModal extends Modal {
         super(app);
         this.onSubmit = onSubmit;
         this.onCancel = onCancel;
+    }
+
+    /**
+     * Register event listener for cleanup tracking
+     */
+    private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
+        element.addEventListener(event, handler);
+        this.eventListeners.push({element, event, handler});
     }
 
     onOpen() {
@@ -53,8 +62,9 @@ export class CustomInstructionModal extends Modal {
                 setTimeout(() => text.inputEl.focus(), 50);
                 
                 // Handle Ctrl/Cmd+Enter to submit
-                text.inputEl.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                this.registerEventListener(text.inputEl, 'keydown', (e: Event) => {
+                    const keyEvent = e as KeyboardEvent;
+                    if (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || keyEvent.metaKey)) {
                         e.preventDefault();
                         this.submit();
                     }
@@ -95,6 +105,12 @@ export class CustomInstructionModal extends Modal {
     }
 
     onClose() {
+        // Clean up event listeners
+        this.eventListeners.forEach(({element, event, handler}) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
         const { contentEl } = this;
         contentEl.empty();
     }

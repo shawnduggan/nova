@@ -10,6 +10,7 @@ export class NovaWikilinkAutocomplete {
     private textArea: HTMLTextAreaElement;
     private sidebarView: any; // Reference to NovaSidebarView
     private lastTriggerPos: number = -1;
+    private inputHandler!: (event: Event) => void;
 
     constructor(app: App, textArea: HTMLTextAreaElement, _container?: HTMLElement) {
         this.app = app;
@@ -22,7 +23,8 @@ export class NovaWikilinkAutocomplete {
     }
 
     private setupEventListeners(): void {
-        this.textArea.addEventListener('input', this.handleInput.bind(this));
+        this.inputHandler = this.handleInput.bind(this);
+        this.textArea.addEventListener('input', this.inputHandler);
     }
 
     private handleInput(): void {
@@ -90,7 +92,10 @@ export class NovaWikilinkAutocomplete {
     }
 
     destroy(): void {
-        // No cleanup needed for native modal
+        // Clean up event listener
+        if (this.inputHandler) {
+            this.textArea.removeEventListener('input', this.inputHandler);
+        }
     }
 }
 

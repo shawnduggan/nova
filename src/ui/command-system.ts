@@ -24,11 +24,20 @@ export class CommandSystem {
 	private selectedCommandIndex: number = -1;
 	private commandMenu!: HTMLElement;
 	private isCommandMenuVisible: boolean = false;
+	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
 
 	constructor(plugin: NovaPlugin, container: HTMLElement, textArea: TextAreaComponent) {
 		this.plugin = plugin;
 		this.container = container;
 		this.textArea = textArea;
+	}
+
+	/**
+	 * Register event listener for cleanup tracking
+	 */
+	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
+		element.addEventListener(event, handler);
+		this.eventListeners.push({element, event, handler});
 	}
 
 	createCommandButton(inputRow: HTMLElement): ButtonComponent {
@@ -130,7 +139,7 @@ export class CommandSystem {
 				cls: 'nova-command-desc'
 			});
 
-			cmdEl.addEventListener('click', () => {
+			this.registerEventListener(cmdEl, 'click', () => {
 				this.textArea.setValue(cmd.command + ' ');
 				this.textArea.inputEl.focus();
 				this.hideCommandMenu();
@@ -218,11 +227,11 @@ export class CommandSystem {
 					cls: 'nova-command-picker-example'
 				});
 
-				item.addEventListener('click', () => {
+				this.registerEventListener(item, 'click', () => {
 					this.selectStructuredCommand(cmd.template);
 				});
 
-				item.addEventListener('mouseenter', () => {
+				this.registerEventListener(item, 'mouseenter', () => {
 					this.selectedCommandIndex = index;
 					this.updateCommandPickerSelection();
 				});
@@ -396,6 +405,12 @@ export class CommandSystem {
 	}
 
 	cleanup(): void {
+		// Clean up all tracked event listeners
+		this.eventListeners.forEach(({element, event, handler}) => {
+			element.removeEventListener(event, handler);
+		});
+		this.eventListeners = [];
+
 		if (this.commandMenu) {
 			this.commandMenu.remove();
 		}
