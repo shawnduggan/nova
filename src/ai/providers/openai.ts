@@ -43,12 +43,24 @@ export class OpenAIProvider implements AIProvider {
 		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
 		const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
 		
-		const requestBody = JSON.stringify({
-			model: options?.model || this.config.model || 'gpt-3.5-turbo',
+		// Build request body with model-specific parameters
+		const modelName = options?.model || this.config.model || 'gpt-3.5-turbo';
+		const isModernModel = modelName.startsWith('gpt-5') || modelName.startsWith('gpt-4o') || modelName.startsWith('gpt-4.1');
+
+		const requestBodyObj: any = {
+			model: modelName,
 			messages: requestMessages,
-			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
 			temperature: options?.temperature || this.generalSettings.defaultTemperature
-		});
+		};
+
+		// Use correct parameter name based on model
+		if (isModernModel) {
+			requestBodyObj.max_completion_tokens = options?.maxTokens || this.generalSettings.defaultMaxTokens;
+		} else {
+			requestBodyObj.max_tokens = options?.maxTokens || this.generalSettings.defaultMaxTokens;
+		}
+
+		const requestBody = JSON.stringify(requestBodyObj);
 
 		// Retry logic for 500-level errors
 		const maxRetries = 3;
@@ -79,7 +91,19 @@ export class OpenAIProvider implements AIProvider {
 				}
 
 				// For all other errors or final attempt, throw error
-				throw new Error(`OpenAI API error: ${response.status} - ${response.text}`);
+				
+				// Try to parse error message if JSON
+				let errorMessage = `${response.status}`;
+				try {
+					const errorData = JSON.parse(response.text);
+					if (errorData.error) {
+						errorMessage = `${response.status}: ${errorData.error.message || errorData.error.type || response.text}`;
+					}
+				} catch {
+					errorMessage = `${response.status}: ${response.text}`;
+				}
+				
+				throw new Error(`OpenAI API error: ${errorMessage}`);
 
 			} catch (error) {
 				// Network errors - retry if not final attempt

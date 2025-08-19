@@ -224,12 +224,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		this.createWelcomeSection(container);
 		this.createNavigationHelp(container);
 		this.createQuickStartGuide(container);
-		this.createSupernovaCTA(container, {
-			buttonAction: 'tab',
-			showLearnMore: true,
-			marginTop: '32px',
-			marginBottom: '32px'
-		});
 	}
 
 	private createSupernovaTabContent(container: HTMLElement): void {

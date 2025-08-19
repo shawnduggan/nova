@@ -1,5 +1,6 @@
 import { requestUrl } from 'obsidian';
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
+import { Logger } from '../../utils/logger';
 
 export class ClaudeProvider implements AIProvider {
 	name = 'Claude (Anthropic)';
@@ -79,6 +80,16 @@ export class ClaudeProvider implements AIProvider {
 				throw new Error(`Claude API error: ${response.status} - ${response.text}`);
 
 			} catch (error) {
+				// Log full details for debugging 400 errors from requestUrl exceptions
+				if (error instanceof Error && error.message.includes('status 400')) {
+					Logger.error('Claude API 400 Error - Request Details:', {
+						requestBody: JSON.parse(requestBody),
+						errorMessage: error.message,
+						attempt: attempt + 1,
+						maxRetries: maxRetries + 1
+					});
+				}
+				
 				// Network/connection errors - retry if not final attempt
 				if (attempt < maxRetries && error instanceof Error && (
 					error.message.includes('Network error') || 

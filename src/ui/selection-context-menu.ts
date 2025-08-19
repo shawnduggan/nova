@@ -364,7 +364,15 @@ export class SelectionContextMenu {
                 const sidebarView = leaves[0].view as NovaSidebarView;
                 if (sidebarView?.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
-                    const message = `✗ Failed to ${actionName.replace('ed', '')} text: ${errorMessage}`;
+                    // Convert past tense to infinitive form properly
+                    let verbForm = actionName;
+                    if (actionName === 'condensed') verbForm = 'condense';
+                    else if (actionName === 'improved') verbForm = 'improve';
+                    else if (actionName === 'expanded') verbForm = 'expand';
+                    else if (actionName === 'transformed') verbForm = 'transform';
+                    else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
+                    
+                    const message = `✗ Failed to ${verbForm} text: ${errorMessage}`;
                     
                     // Use unified system with persistence
                     sidebarView.chatRenderer.addErrorMessage(message, true);

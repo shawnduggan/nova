@@ -45,8 +45,8 @@ export class SelectionEditCommand {
 
             loadingNotice.hide();
 
-            // Clean up AI response (remove any explanation text)
-            const transformedText = this.cleanAIResponse(response);
+            // Use response directly without cleaning
+            const transformedText = response.trim();
 
             return {
                 success: true,
@@ -97,10 +97,9 @@ export class SelectionEditCommand {
                 
                 fullResponse += chunk.content;
                 
-                // Only call onChunk if we have content or if it's the final chunk
+                // Pass through all chunks without modification
                 if (fullResponse.trim().length > 0 || chunk.done) {
-                    const cleanedChunk = this.cleanAIResponse(fullResponse);
-                    onChunk(cleanedChunk, chunk.done);
+                    onChunk(fullResponse, chunk.done);
                 }
                 
                 if (chunk.done) {
@@ -109,8 +108,7 @@ export class SelectionEditCommand {
             }
 
             // Check if we actually got a response
-            const finalText = this.cleanAIResponse(fullResponse);
-            if (!finalText.trim()) {
+            if (!fullResponse.trim()) {
                 return {
                     success: false,
                     error: 'AI provider returned empty response',
@@ -120,7 +118,7 @@ export class SelectionEditCommand {
 
             return {
                 success: true,
-                transformedText: finalText,
+                transformedText: fullResponse.trim(),
                 originalRange: selectionRange
             };
 
@@ -144,10 +142,18 @@ export class SelectionEditCommand {
 
 CRITICAL RULES:
 - Provide ONLY the transformed text, no explanations or meta-commentary
+- Start your response immediately with the first word of the transformed text
+- Do NOT add any introductory phrases like "Here's the...", "The following is...", "Here's a longer version...", etc.
+- Do NOT add any concluding phrases or explanations after the transformed text
 - Maintain the original meaning unless specifically asked to change it
 - Preserve the original format (markdown, structure, etc.) unless instructed otherwise
-- Do not add introductory phrases like "Here's the improved text:" or similar
-- Return only the content that should replace the selected text`;
+- Return only the content that should replace the selected text
+
+EXAMPLES:
+❌ WRONG: "Here's the improved text: Your original text but improved."
+✅ CORRECT: "Your original text but improved."
+❌ WRONG: "Here's a shorter version: Condensed text."
+✅ CORRECT: "Condensed text."`;
 
         let specificPrompt = '';
         let userPrompt = '';
@@ -224,32 +230,4 @@ TASK: General text improvement
         };
     }
 
-    /**
-     * Clean AI response to extract only the transformed text
-     */
-    private cleanAIResponse(response: string): string {
-        // Remove common AI response patterns
-        let cleaned = response.trim();
-        
-        // Remove introductory phrases
-        const introPatterns = [
-            /^Here's the improved text:?\s*/i,
-            /^Here's the rewritten text:?\s*/i,
-            /^Here's the transformed text:?\s*/i,
-            /^Improved version:?\s*/i,
-            /^Rewritten:?\s*/i,
-            /^Result:?\s*/i,
-            /^Output:?\s*/i
-        ];
-
-        for (const pattern of introPatterns) {
-            cleaned = cleaned.replace(pattern, '');
-        }
-
-        // Remove trailing explanations (text after "---" or similar patterns)
-        cleaned = cleaned.split(/\n\s*---+\s*/).shift() || cleaned;
-        cleaned = cleaned.split(/\n\s*\*\*?Explanation\*?\*?:/i).shift() || cleaned;
-        
-        return cleaned.trim();
-    }
 }

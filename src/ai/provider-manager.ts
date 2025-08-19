@@ -7,6 +7,7 @@ import { OllamaProvider } from './providers/ollama';
 import { NovaSettings } from '../settings';
 import { FeatureManager } from '../licensing/feature-manager';
 import { getProviderTypeForModel } from './models';
+import { getModelMaxOutputTokens } from './context-limits';
 
 export class AIProviderManager {
 	private providers: Map<ProviderType, AIProvider> = new Map();
@@ -102,10 +103,11 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		// Always use global settings
+		// Always use global settings with model-specific token limits
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
-			maxTokens: this.getDefaultMaxTokens()
+			maxTokens: this.getModelSpecificMaxTokens(),
+			model: this.getSelectedModel()
 		};
 		
 		return provider.generateText(prompt, enhancedOptions);
@@ -117,10 +119,11 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		// Always use global settings
+		// Always use global settings with model-specific token limits
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
-			maxTokens: this.getDefaultMaxTokens()
+			maxTokens: this.getModelSpecificMaxTokens(),
+			model: this.getSelectedModel()
 		};
 		
 		yield* provider.generateTextStream(prompt, enhancedOptions);
@@ -132,10 +135,11 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		// Always use global settings
+		// Always use global settings with model-specific token limits
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
-			maxTokens: this.getDefaultMaxTokens()
+			maxTokens: this.getModelSpecificMaxTokens(),
+			model: this.getSelectedModel()
 		};
 		
 		return provider.chatCompletion(messages, enhancedOptions);
@@ -147,10 +151,11 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		// Always use global settings
+		// Always use global settings with model-specific token limits
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
-			maxTokens: this.getDefaultMaxTokens()
+			maxTokens: this.getModelSpecificMaxTokens(),
+			model: this.getSelectedModel()
 		};
 		
 		yield* provider.chatCompletionStream(messages, enhancedOptions);
@@ -194,10 +199,11 @@ export class AIProviderManager {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
 		
-		// Always use global settings
+		// Always use global settings with model-specific token limits
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
-			maxTokens: this.getDefaultMaxTokens()
+			maxTokens: this.getModelSpecificMaxTokens(),
+			model: this.getSelectedModel()
 		};
 		
 		return provider.complete(systemPrompt, userPrompt, enhancedOptions);
@@ -282,6 +288,23 @@ export class AIProviderManager {
 	 * Get the default max tokens from settings
 	 */
 	getDefaultMaxTokens(): number {
+		return this.settings.general.defaultMaxTokens;
+	}
+
+	/**
+	 * Get model-specific max output tokens, falling back to user setting if no model-specific limit
+	 */
+	getModelSpecificMaxTokens(): number {
+		const selectedModel = this.getSelectedModel();
+		const providerType = this.getProviderForModel(selectedModel);
+		
+		if (providerType && providerType !== 'none') {
+			const modelLimit = getModelMaxOutputTokens(providerType, selectedModel);
+			// Use the smaller of model limit or user setting
+			return Math.min(modelLimit, this.settings.general.defaultMaxTokens);
+		}
+		
+		// Fallback to user setting
 		return this.settings.general.defaultMaxTokens;
 	}
 
