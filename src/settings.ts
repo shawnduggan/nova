@@ -119,7 +119,6 @@ export class NovaSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl('h2', { text: 'Nova Settings' });
 
 		// Create tab navigation container (only once)
 		this.tabContainer = containerEl.createDiv({ cls: 'nova-tab-container' });
