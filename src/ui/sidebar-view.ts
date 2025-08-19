@@ -2113,28 +2113,6 @@ USER REQUEST: ${processedMessage}`;
 		// Dropdown menu (initially hidden)
 		const dropdownMenu = dropdownContainer.createDiv({ cls: 'nova-provider-dropdown-menu' });
 		dropdownMenu.addClass('nova-dropdown-menu', 'hidden');
-		
-		// Add webkit scrollbar styling for better cross-browser support
-		const scrollbarStyle = document.createElement('style');
-		scrollbarStyle.textContent = `
-			.nova-provider-dropdown-menu::-webkit-scrollbar {
-				width: 6px;
-			}
-			.nova-provider-dropdown-menu::-webkit-scrollbar-track {
-				background: transparent;
-			}
-			.nova-provider-dropdown-menu::-webkit-scrollbar-thumb {
-				background: var(--background-modifier-border);
-				border-radius: 3px;
-			}
-			.nova-provider-dropdown-menu::-webkit-scrollbar-thumb:hover {
-				background: var(--background-modifier-border-hover);
-			}
-		`;
-		if (!document.querySelector('.nova-scrollbar-style')) {
-			scrollbarStyle.className = 'nova-scrollbar-style';
-			document.head.appendChild(scrollbarStyle);
-		}
 
 		let isDropdownOpen = false;
 

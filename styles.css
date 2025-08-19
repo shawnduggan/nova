@@ -2008,6 +2008,24 @@
     overflow-y: auto;
 }
 
+/* Webkit scrollbar styling for provider dropdown */
+.nova-provider-dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nova-provider-dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nova-provider-dropdown-menu::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
+    border-radius: 3px;
+}
+
+.nova-provider-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--background-modifier-border-hover);
+}
+
 .is-mobile .nova-provider-dropdown-menu {
     min-width: 200px; /* Narrower on mobile */
     max-width: calc(100vw - 32px); /* Prevent extending beyond screen */

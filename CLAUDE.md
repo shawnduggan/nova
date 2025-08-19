@@ -98,7 +98,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #1 Payment/ads disclosure - Payment requirements and static ads clearly indicated in README
 - **COMPLETED**: #2 Incorrect minAppVersion - Update from "0.15.0" to latest public build for newer APIs used
 - **COMPLETED**: #3 Core styling override - Don't overwrite `.view-content` core styling, add plugin-specific class/data attribute
-- **PENDING**: #4 Style tag memory leak - Remove style tags appended on view load, use styles.css instead
+- **COMPLETED**: #4 Style tag memory leak - Remove style tags appended on view load, use styles.css instead
 - **PENDING**: #5 Inline styles in JavaScript - Move all inline styles and JS style assignments to CSS for theme compatibility
 - **PENDING**: #6 Unregistered event listeners - Register multiple event listeners and intervals for cleanup on plugin unload
 - **PENDING**: #7 Using vault.modify instead of Editor API - Use Editor interface to preserve cursor, selections, undo/redo
