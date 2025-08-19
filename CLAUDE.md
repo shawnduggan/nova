@@ -102,7 +102,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #5 Inline styles in JavaScript - Move all inline styles and JS style assignments to CSS for theme compatibility
 - **COMPLETED**: #6 Unregistered event listeners - Register multiple event listeners and intervals for cleanup on plugin unload
 - **COMPLETED**: #7 Using vault.modify instead of Editor API - Use Editor interface to preserve cursor, selections, undo/redo
-- **PENDING**: #8 Command ID includes plugin name - Remove 'nova-' prefix from command IDs; Obsidian handles conflicts
+- **COMPLETED**: #8 Command ID includes plugin name - Remove 'nova-' prefix from command IDs; Obsidian handles conflicts
 - **PENDING**: #9 Top-level heading in settings - Remove "Nova Settings" heading in settings tab
 - **PENDING**: #10 "Settings" in section headings - Remove word "settings" from settings section headings
 - **PENDING**: #11 Improper heading format - Use `new Setting(containerEl).setName('name').setHeading()` for section headings
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #8 - Command ID compliance by removing plugin name prefixes
+- Removed 'nova-' prefix from command IDs: improve-writing, make-longer, make-shorter, and all tone commands
+- Updated dynamic tone command registration to use clean IDs without redundant plugin prefix
+- Kept 'open-nova-sidebar' as appropriate (describes Nova's sidebar, not redundant prefix)
+- Verified no hardcoded references to old command IDs exist in codebase
+- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
 
 **COMPLETED**: Task #7 - Editor API implementation to replace vault.modify usage
 - Replaced all vault.modify() calls with proper Editor API usage in document-engine.ts and metadata-command.ts

@@ -132,7 +132,7 @@ export default class NovaPlugin extends Plugin {
 
 			// Register selection-based commands
 			this.addCommand({
-				id: 'nova-improve-writing',
+				id: 'improve-writing',
 				name: 'Improve Writing',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('improve', editor);
@@ -140,7 +140,7 @@ export default class NovaPlugin extends Plugin {
 			});
 
 			this.addCommand({
-				id: 'nova-make-longer',
+				id: 'make-longer',
 				name: 'Make Longer',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('longer', editor);
@@ -148,7 +148,7 @@ export default class NovaPlugin extends Plugin {
 			});
 
 			this.addCommand({
-				id: 'nova-make-shorter',
+				id: 'make-shorter',
 				name: 'Make Shorter',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('shorter', editor);
@@ -158,7 +158,7 @@ export default class NovaPlugin extends Plugin {
 			// Individual tone commands
 			TONE_OPTIONS.forEach(tone => {
 				this.addCommand({
-					id: `nova-make-${tone.id}`,
+					id: `make-${tone.id}`,
 					name: `Make ${tone.label}`,
 					editorCallback: async (editor: Editor) => {
 						await this.handleToneCommand(tone.id, editor);
