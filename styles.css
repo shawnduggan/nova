@@ -3826,6 +3826,49 @@
     color: var(--text-normal);
 }
 
+/* Dynamic icon sizing classes for inline SVG icons */
+.nova-inline-icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.nova-inline-icon.size-12px {
+    width: 12px;
+    height: 12px;
+}
+
+.nova-inline-icon.size-14px {
+    width: 14px;
+    height: 14px;
+}
+
+.nova-inline-icon.size-16px {
+    width: 16px;
+    height: 16px;
+}
+
+.nova-inline-icon.size-18px {
+    width: 18px;
+    height: 18px;
+}
+
+.nova-inline-icon.size-20px {
+    width: 20px;
+    height: 20px;
+}
+
+.nova-inline-icon.size-24px {
+    width: 24px;
+    height: 24px;
+}
+
+/* Inline message with icon wrapper */
+.nova-inline-message {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* Command system styles */
 .nova-command-item {
     padding: 8px 12px;

@@ -101,7 +101,7 @@
 - **COMPLETED**: Replace fetch() with requestUrl() in google-provider.ts (3 instances) - Updated all fetch calls and adapted streaming to use simulated chunking, all tests passed
 - **COMPLETED**: Replace fetch() with requestUrl() in openai-provider.ts (3 instances) - Updated all fetch calls and adapted streaming to use simulated chunking, all tests passed
 - **COMPLETED**: Replace fetch() with requestUrl() in ollama-provider.ts (5 instances) - Updated all fetch calls and adapted streaming to use simulated chunking, all tests passed
-- **PENDING**: Remove inline styles from SVG icons in sidebar-view.ts (13 instances) - Next: Create CSS classes for icon sizing
+- **COMPLETED**: Remove inline styles from SVG icons in sidebar-view.ts (14 instances) - Replaced inline styles with CSS classes for dynamic icon sizing, all tests passed
 
 **Phase 3: OPTIONAL - Type Safety Improvements** 
 - **PENDING**: Reduce `any` usage in sidebar-view.ts (15+ instances) - Next: Create interface for sidebar view properties
