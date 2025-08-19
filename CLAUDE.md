@@ -104,10 +104,10 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #7 Using vault.modify instead of Editor API - Use Editor interface to preserve cursor, selections, undo/redo
 - **COMPLETED**: #8 Command ID includes plugin name - Remove 'nova-' prefix from command IDs; Obsidian handles conflicts
 - **COMPLETED**: #9 Top-level heading in settings - Remove "Nova Settings" heading in settings tab
-- **PENDING**: #10 "Settings" in section headings - Remove word "settings" from settings section headings
+- **COMPLETED**: #10 "Settings" in section headings - Remove word "settings" from settings section headings
 - **PENDING**: #11 Improper heading format - Use `new Setting(containerEl).setName('name').setHeading()` for section headings
 - **PENDING**: #12 Incorrect text casing - Use sentence case in UI instead of title case
-- **PENDING**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
+- **COMPLETED**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
 - **COMPLETED**: #14 Using fetch instead of requestUrl - Use Obsidian's requestUrl function for CORS handling
 - **PENDING**: #15 DeferredView handling - Properly handle deferred views introduced in v1.7.2
 - **PENDING**: #16 Custom SVG icons - Use addIcon and setIcon instead of creating SVG elements manually
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #10 & #13 - Remove "Settings" and "Configuration" from section headings
+- Updated all section headings to remove redundant "Settings" terminology: "Core Settings" → "Core", "Privacy & Platform Settings" → "Privacy & Platform", "Debug Settings" → "Debug", etc.
+- Replaced "Configuration" headings with "Setup" for clearer, non-redundant language
+- Updated navigation help text to remove redundant "Settings" references
+- Maintained clear, descriptive section names without unnecessary verbosity
+- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
 
 **COMPLETED**: Task #9 - Remove "Nova Settings" heading from settings tab
 - Removed redundant top-level "Nova Settings" heading from settings.ts display() method

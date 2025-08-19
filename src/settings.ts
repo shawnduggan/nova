@@ -286,7 +286,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createDebugTabContent(container: HTMLElement): void {
 		// Debug Settings Section
 		const debugSection = container.createDiv({ cls: 'nova-debug-section' });
-		debugSection.createEl('h3', { text: 'Debug Settings' });
+		debugSection.createEl('h3', { text: 'Debug' });
 		debugSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const infoEl = debugSection.createDiv({ cls: 'nova-debug-info' });
@@ -295,7 +295,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
 		
 		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard2.createEl('h4', { text: '⚠️ Developer Settings' });
+		infoCard2.createEl('h4', { text: '⚠️ Developer Options' });
 		
 		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
 		const features = [
@@ -321,7 +321,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createPrivacySettings(container: HTMLElement): void {
 		// Privacy & Platform Section
 		const privacySection = container.createDiv({ cls: 'nova-privacy-section' });
-		privacySection.createEl('h3', { text: 'Privacy & Platform Settings' });
+		privacySection.createEl('h3', { text: 'Privacy & Platform' });
 		privacySection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const infoEl = privacySection.createDiv({ cls: 'nova-privacy-info' });
@@ -969,7 +969,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createDebugSettings(container: HTMLElement) {
 		const debugContainer = container.createDiv({ cls: 'nova-debug-section' });
-		debugContainer.createEl('h4', { text: 'Development Settings' });
+		debugContainer.createEl('h4', { text: 'Development Options' });
 
 		new Setting(debugContainer)
 			.setName('Debug Mode')
@@ -1123,7 +1123,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createGeneralSettings(containerEl = this.containerEl) {
 		// Core Settings section with clean header
 		const coreSection = containerEl.createDiv({ cls: 'nova-core-settings-section' });
-		coreSection.createEl('h3', { text: 'Core Settings' });
+		coreSection.createEl('h3', { text: 'Core' });
 		
 		// Section spacing handled by CSS class
 
@@ -1202,7 +1202,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Configuration Subsection (within API Keys section)
 		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
-		configSection.createEl('h4', { text: 'Configuration' });
+		configSection.createEl('h4', { text: 'Setup' });
 		configSection.createEl('hr', { cls: 'nova-section-divider' });
 
 		// Show all providers - no restrictions
@@ -1367,12 +1367,12 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createPlatformSettings(containerEl = this.containerEl) {
-		containerEl.createEl('h3', { text: 'Platform Settings' });
+		containerEl.createEl('h3', { text: 'Platform' });
 		
 		// Info about platform settings
 		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
 		const infoCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard.createEl('h4', { text: '🖥️ Platform Configuration' });
+		infoCard.createEl('h4', { text: '🖥️ Platform Setup' });
 		const infoText = infoCard.createEl('p');
 		infoText.textContent = 'Configure which AI provider to use as your primary provider on different platforms. Nova works seamlessly across desktop and mobile with all providers.';
 		
@@ -1885,7 +1885,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Step items
 		const steps = [
-			{ text: '1. Explore Privacy and General Settings', link: '→ Go to General tab', tab: 'general' },
+			{ text: '1. Explore Privacy and General', link: '→ Go to General tab', tab: 'general' },
 			{ text: '2. Configure AI providers', link: '→ Go to AI Providers tab', tab: 'providers' },
 			{ text: '3. Manage Supernova License', link: '→ Go to Supernova tab', tab: 'supernova' },
 			{ text: '4. Explore the User Guide', link: '→ Open User Guide ↗', href: 'https://novawriter.ai/guide.html', external: true }
