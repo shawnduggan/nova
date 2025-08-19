@@ -227,10 +227,10 @@ export class DocumentEngine {
                 appliedAt = { line: lastLine, ch: lastLineLength };
                 
                 const currentContent = editor.getValue();
-                const newContent = currentContent + (currentContent.endsWith('\n') ? '' : '\n') + content;
+                const contentToInsert = (currentContent.endsWith('\n') ? '' : '\n') + content;
                 
-                // Use vault.modify for undo/redo support
-                await this.app.vault.modify(file, newContent);
+                // Use editor interface to preserve cursor, selections, undo/redo
+                editor.replaceRange(contentToInsert, appliedAt);
             } else {
                 // Insert at specific position
                 appliedAt = position;
@@ -348,18 +348,19 @@ export class DocumentEngine {
      * Replace the entire document content
      */
     async setDocumentContent(content: string): Promise<EditResult> {
-        const file = this.getActiveFile();
+        const editor = this.getActiveEditor();
         
-        if (!file) {
+        if (!editor) {
             return {
                 success: false,
-                error: 'No active file',
+                error: 'No active editor',
                 editType: 'replace'
             };
         }
 
         try {
-            await this.app.vault.modify(file, content);
+            // Use editor interface to preserve cursor, selections, undo/redo
+            editor.setValue(content);
             
             return {
                 success: true,

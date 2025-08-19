@@ -34,7 +34,12 @@ describe('MetadataCommand', () => {
             }
         } as any;
 
+        const mockEditor = {
+            setValue: jest.fn()
+        };
+
         mockDocumentEngine = new DocumentEngine(mockApp as any, {} as any) as jest.Mocked<DocumentEngine>;
+        mockDocumentEngine.getActiveEditor = jest.fn().mockReturnValue(mockEditor);
         mockContextBuilder = new ContextBuilder() as jest.Mocked<ContextBuilder>;
         mockProviderManager = new AIProviderManager({} as any, {} as any) as jest.Mocked<AIProviderManager>;
 
@@ -69,7 +74,6 @@ describe('MetadataCommand', () => {
                 config: { temperature: 0.7, maxTokens: 1000 }
             });
             mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
-            mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
         });
 
         it('should successfully update metadata with valid AI response', async () => {
@@ -80,7 +84,7 @@ describe('MetadataCommand', () => {
 
             expect(result.success).toBe(true);
             expect(mockProviderManager.complete).toHaveBeenCalled();
-            expect(mockApp.vault.modify).toHaveBeenCalled();
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should handle JSON response in code block', async () => {

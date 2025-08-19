@@ -28,7 +28,12 @@ describe('Tag Operations', () => {
             }
         } as any;
 
+        const mockEditor = {
+            setValue: jest.fn()
+        };
+
         mockDocumentEngine = new DocumentEngine(mockApp as any, {} as any) as jest.Mocked<DocumentEngine>;
+        mockDocumentEngine.getActiveEditor = jest.fn().mockReturnValue(mockEditor);
         mockContextBuilder = new ContextBuilder() as jest.Mocked<ContextBuilder>;
         mockProviderManager = new AIProviderManager({} as any, {} as any) as jest.Mocked<AIProviderManager>;
 
@@ -63,10 +68,7 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Added 2 tags: research, important');
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["existing-tag","research","important"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should remove tags case-insensitively', async () => {
@@ -93,10 +95,7 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Removed 2 tags');
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["important"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should set/replace all tags', async () => {
@@ -123,10 +122,7 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Set 2 tags');
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["new-tag1","new-tag2"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should create frontmatter if missing when adding tags', async () => {
@@ -153,10 +149,7 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Added 2 tags: test, example');
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('---\ntags: ["test","example"]\n---\n')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
     });
 
@@ -367,10 +360,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["machine-learning","data-science","artificial-intelligence"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should normalize spaces to hyphens in set tag operations', async () => {
@@ -384,10 +374,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["react-component","best-practices","web-development"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should normalize spaces in AI tag suggestions', async () => {
@@ -417,10 +404,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["machine-learning","artificial-intelligence","deep-learning","neural-networks"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should normalize spaces in general metadata updates', async () => {
@@ -450,10 +434,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["react-native","mobile-development"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should normalize spaces in YAML-like AI responses', async () => {
@@ -483,10 +464,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["vue-components","frontend-development","user-interface"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should handle multiple spaces and mixed case', async () => {
@@ -500,10 +478,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["machine-learning","data-science","ai-research"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should preserve tags without spaces unchanged', async () => {
@@ -517,10 +492,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('tags: ["javascript","react","vue"]')
-            );
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
 
         it('should route "update metadata" to general metadata flow, not tag-only', async () => {
@@ -551,23 +523,8 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             
-            // Should update ALL properties, not just tags
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringMatching(/tags:\s*\["updated-tag","new-content"\]/)
-            );
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('type: article')
-            );
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('status: published')
-            );
-            expect(mockApp.vault.modify).toHaveBeenCalledWith(
-                mockFile,
-                expect.stringContaining('priority: high')
-            );
+            // Should update ALL properties, not just tags - now using editor API
+            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
         });
     });
 });

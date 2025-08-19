@@ -170,8 +170,16 @@ export class MetadataCommand {
             // Update or create frontmatter
             const updatedContent = this.updateFrontmatter(documentContext.content, updates);
             
-            // Write the updated content back to the file directly
-            await this.app.vault.modify(documentContext.file, updatedContent);
+            // Use editor interface to preserve cursor, selections, undo/redo
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+                return {
+                    success: false,
+                    error: 'No active editor',
+                    editType: 'replace'
+                };
+            }
+            editor.setValue(updatedContent);
             
             // Generate success message based on updates
             const successMessage = this.generateSuccessMessage(updates);
@@ -546,7 +554,17 @@ export class MetadataCommand {
             // Update content
             const updates = { tags: updatedTags };
             const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
-            await this.app.vault.modify(documentContext.file, updatedContent);
+            
+            // Use editor interface to preserve cursor, selections, undo/redo
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+                return {
+                    success: false,
+                    error: 'No active editor',
+                    editType: 'replace'
+                };
+            }
+            editor.setValue(updatedContent);
             
             return {
                 success: true,
@@ -676,7 +694,17 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             // Update tags
             const updates = { tags: parsed.tags };
             const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
-            await this.app.vault.modify(documentContext.file, updatedContent);
+            
+            // Use editor interface to preserve cursor, selections, undo/redo
+            const editor = this.documentEngine.getActiveEditor();
+            if (!editor) {
+                return {
+                    success: false,
+                    error: 'No active editor',
+                    editType: 'replace'
+                };
+            }
+            editor.setValue(updatedContent);
             
             // Generate appropriate message
             let message = '';

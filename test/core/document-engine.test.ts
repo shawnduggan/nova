@@ -140,7 +140,6 @@ describe('DocumentEngine', () => {
 
     describe('applyEdit', () => {
         beforeEach(() => {
-            app.vault.modify = jest.fn().mockResolvedValue(undefined);
             mockEditor.replaceRange = jest.fn();
             mockEditor.replaceSelection = jest.fn();
             mockEditor.lastLine = jest.fn().mockReturnValue(10);
@@ -177,9 +176,9 @@ describe('DocumentEngine', () => {
             
             expect(result.success).toBe(true);
             expect(result.editType).toBe('append');
-            expect(app.vault.modify).toHaveBeenCalledWith(
-                mockFile, 
-                'existing content\nappended text'
+            expect(mockEditor.replaceRange).toHaveBeenCalledWith(
+                '\nappended text',
+                { line: 10, ch: 17 }
             );
         });
 
@@ -284,33 +283,36 @@ describe('DocumentEngine', () => {
     });
 
     describe('setDocumentContent', () => {
-        it('should replace entire document using vault.modify', async () => {
-            app.vault.modify = jest.fn().mockResolvedValue(undefined);
+        it('should replace entire document using editor.setValue', async () => {
+            mockEditor.setValue = jest.fn();
             
             const newContent = '# New Document\n\nCompletely new content';
             const result = await engine.setDocumentContent(newContent);
             
             expect(result.success).toBe(true);
             expect(result.editType).toBe('replace');
-            expect(app.vault.modify).toHaveBeenCalledWith(mockFile, newContent);
+            expect(mockEditor.setValue).toHaveBeenCalledWith(newContent);
         });
 
-        it('should return error when no file', async () => {
-            app.workspace.getActiveFile = jest.fn().mockReturnValue(null);
+        it('should return error when no editor', async () => {
+            // Mock getActiveEditor to return null
+            jest.spyOn(engine, 'getActiveEditor').mockReturnValue(null);
             
             const result = await engine.setDocumentContent('content');
             
             expect(result.success).toBe(false);
-            expect(result.error).toContain('No active file');
+            expect(result.error).toContain('No active editor');
         });
 
-        it('should handle vault.modify errors', async () => {
-            app.vault.modify = jest.fn().mockRejectedValue(new Error('Vault error'));
+        it('should handle editor.setValue errors', async () => {
+            mockEditor.setValue = jest.fn().mockImplementation(() => {
+                throw new Error('Editor error');
+            });
             
             const result = await engine.setDocumentContent('content');
             
             expect(result.success).toBe(false);
-            expect(result.error).toBe('Vault error');
+            expect(result.error).toBe('Editor error');
         });
     });
 });
