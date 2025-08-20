@@ -851,14 +851,8 @@ export class NovaSidebarView extends ItemView {
 		}
 		
 		if (!file || !(file instanceof TFile)) {
-			// Search by basename
-			const files = this.app.vault.getMarkdownFiles();
-			file = files.find(f => 
-				f.basename === nameOrPath || 
-				f.name === nameOrPath ||
-				f.path.endsWith('/' + nameOrPath) ||
-				f.path.endsWith('/' + nameOrPath + '.md')
-			) || null;
+			// Use MetadataCache for efficient linkpath resolution instead of iterating all files
+			file = this.app.metadataCache.getFirstLinkpathDest(nameOrPath, '');
 		}
 		
 		return file instanceof TFile ? file : null;
@@ -2989,16 +2983,14 @@ USER REQUEST: ${processedMessage}`;
 		
 		
 		for (const filename of filenames) {
-			// Find the file by name
+			// Find the file by name efficiently
 			let file = this.app.vault.getAbstractFileByPath(filename);
 			if (!file || !(file instanceof TFile)) {
 				file = this.app.vault.getAbstractFileByPath(filename + '.md');
 			}
 			if (!file || !(file instanceof TFile)) {
-				const files = this.app.vault.getMarkdownFiles();
-				file = files.find(
-					(f) => f.basename === filename || f.name === filename || f.path.endsWith('/' + filename) || f.path.endsWith('/' + filename + '.md')
-				) || null;
+				// Use MetadataCache for efficient linkpath resolution instead of iterating all files
+				file = this.app.metadataCache.getFirstLinkpathDest(filename, '');
 			}
 			
 			if (file instanceof TFile) {

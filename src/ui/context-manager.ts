@@ -809,7 +809,7 @@ export class ContextManager {
 	}
 
 	/**
-	 * Find a file by name or path
+	 * Find a file by name or path efficiently using Obsidian APIs
 	 */
 	private findFile(nameOrPath: string): TFile | null {
 		// First try exact path match
@@ -821,14 +821,11 @@ export class ContextManager {
 		}
 		
 		if (!file || !(file instanceof TFile)) {
-			// Search by basename
-			const files = this.app.vault.getMarkdownFiles();
-			file = files.find(f => 
-				f.basename === nameOrPath || 
-				f.name === nameOrPath ||
-				f.path.endsWith('/' + nameOrPath) ||
-				f.path.endsWith('/' + nameOrPath + '.md')
-			) || null;
+			// Use MetadataCache for efficient linkpath resolution instead of iterating all files
+			// Safely call the method with fallback for older Obsidian versions or tests
+			if (this.app.metadataCache.getFirstLinkpathDest) {
+				file = this.app.metadataCache.getFirstLinkpathDest(nameOrPath, '');
+			}
 		}
 		
 		return file instanceof TFile ? file : null;

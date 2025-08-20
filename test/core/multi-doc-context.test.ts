@@ -47,6 +47,14 @@ const createMockApp = (): App => {
 					date: '2025-01-01'
 				} : {}
 			};
+		}),
+		getFirstLinkpathDest: jest.fn((linkpath: string, _sourcePath: string) => {
+			// Find file by basename or exact path
+			return mockFiles.find(f => 
+				f.basename === linkpath || 
+				f.path === linkpath || 
+				f.path === linkpath + '.md'
+			) || null;
 		})
 	};
 

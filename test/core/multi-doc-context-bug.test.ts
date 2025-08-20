@@ -46,7 +46,13 @@ describe('ContextManager - Context-Only Bug', () => {
                 links: [],
                 tags: [],
                 frontmatter: {}
-            }))
+            })),
+            getFirstLinkpathDest: jest.fn((linkpath: string, _sourcePath: string) => {
+                // Find file by basename or exact path
+                if (linkpath === 'context' || linkpath === 'context.md') return contextFile;
+                if (linkpath === 'test' || linkpath === 'test.md') return testFile;
+                return null;
+            })
         };
         
         app = {
@@ -140,6 +146,14 @@ describe('ContextManager - Context-Only Bug', () => {
         });
         
         (app.vault as any).getMarkdownFiles = jest.fn(() => [testFile, contextFile, contextFile2]);
+        
+        // Update metadataCache mock to include the second context file
+        (app.metadataCache as any).getFirstLinkpathDest = jest.fn((linkpath: string, _sourcePath: string) => {
+            if (linkpath === 'context' || linkpath === 'context.md') return contextFile;
+            if (linkpath === 'context2' || linkpath === 'context2.md') return contextFile2;
+            if (linkpath === 'test' || linkpath === 'test.md') return testFile;
+            return null;
+        });
         
         const message = '[[context]] [[context2]]';
         const context = await handler.buildContext(message, testFile);

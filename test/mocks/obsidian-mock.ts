@@ -210,6 +210,11 @@ export class MetadataCache {
             frontmatter: null
         };
     }
+    
+    getFirstLinkpathDest(_linkpath: string, _sourcePath: string): TFile | null {
+        // Mock implementation - return a test file
+        return new TFile('test.md');
+    }
 }
 
 // Extend HTMLElement to add Obsidian-specific methods
