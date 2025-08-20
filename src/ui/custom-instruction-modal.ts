@@ -61,12 +61,19 @@ export class CustomInstructionModal extends Modal {
                 // Focus on the text area
                 setTimeout(() => text.inputEl.focus(), 50);
                 
-                // Handle Ctrl/Cmd+Enter to submit
+                // Handle Enter key submissions
                 this.registerEventListener(text.inputEl, 'keydown', (e: Event) => {
                     const keyEvent = e as KeyboardEvent;
-                    if (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || keyEvent.metaKey)) {
-                        e.preventDefault();
-                        this.submit();
+                    if (keyEvent.key === 'Enter') {
+                        if (keyEvent.shiftKey) {
+                            // Allow default behavior for new line
+                            return;
+                        }
+                        // Submit on plain Enter or Ctrl/Cmd+Enter
+                        if (!keyEvent.shiftKey) {
+                            e.preventDefault();
+                            this.submit();
+                        }
                     }
                 });
                 
@@ -82,6 +89,10 @@ export class CustomInstructionModal extends Modal {
         if (control instanceof HTMLElement) {
             control.classList.add('nova-full-width-control');
         }
+
+        // Add keyboard shortcut hint
+        new Setting(contentEl)
+            .setDesc('Press Enter to submit • Shift+Enter for new line');
 
         // Buttons using Setting component
         new Setting(contentEl)

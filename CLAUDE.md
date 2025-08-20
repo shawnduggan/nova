@@ -144,6 +144,16 @@ Phase 1 completion required before plugin can be approved for Community Plugin s
 
 ### Recent Completions
 
+**COMPLETED**: Make return key hit enter on custom Tell Nova modal
+- Added Enter key submission functionality to CustomInstructionModal in custom-instruction-modal.ts
+- Enter key now submits the form (standard form behavior)
+- Shift+Enter allows adding new lines in textarea
+- Ctrl/Cmd+Enter continues to work as alternative submit method
+- Added user-friendly keyboard shortcut hint using Obsidian's Setting API: "Press Enter to submit • Shift+Enter for new line"
+- Uses proper .setDesc() method for theme-compliant description text that inherits correct colors and typography
+- All 491 tests pass, build succeeds with 0 errors, 0 ESLint errors
+- Significantly improves user experience with intuitive keyboard interaction
+
 **COMPLETED**: Task #28 - Custom dropdown implementation replaced with Obsidian's DropdownComponent API
 - Replaced complex custom dropdown in sidebar-view.ts (200+ lines) with simple DropdownComponent implementation
 - Removed populateProviderDropdown and createModelDropdownItem methods with manual DOM manipulation
@@ -291,8 +301,6 @@ Phase 1 completion required before plugin can be approved for Community Plugin s
 - All 476 tests pass, build succeeds with 0 errors, prevents memory leaks on plugin reload
 
 ### Future Enhancements
-
-**MEDIUM Make return key hit enter on custom Tell Nova modal**: Currently hitting enter doesn't do anything. I want it to submit the form.
 
 **LOW Remove privacy indicator on mobile view**: It doesn't provide value on mobile - all models are cloud
 
