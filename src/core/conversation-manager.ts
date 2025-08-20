@@ -10,6 +10,7 @@ import { Logger } from '../utils/logger';
 export interface DataStore {
     loadData(key: string): Promise<any>;
     saveData(key: string, data: any): Promise<void>;
+    registerInterval(intervalId: number): number;
 }
 
 export class ConversationManager {
@@ -435,9 +436,9 @@ export class ConversationManager {
      */
     private startPeriodicCleanup(): void {
         // Clean up every 24 hours
-        this.cleanupInterval = window.setInterval(() => {
+        this.cleanupInterval = this.dataStore.registerInterval(window.setInterval(() => {
             this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000); // 7 days
-        }, 24 * 60 * 60 * 1000);
+        }, 24 * 60 * 60 * 1000));
     }
 
     /**

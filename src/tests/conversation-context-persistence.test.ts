@@ -13,6 +13,11 @@ class MockDataStore implements DataStore {
     async saveData(key: string, data: any): Promise<void> {
         this.data.set(key, data);
     }
+
+    registerInterval(intervalId: number): number {
+        // In tests, we don't need to actually register the interval
+        return intervalId;
+    }
 }
 
 describe('Context Persistence - Storage Layer', () => {

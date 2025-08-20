@@ -5,6 +5,7 @@
 
 import { Editor, Notice } from 'obsidian';
 import { Logger } from '../utils/logger';
+import type NovaPlugin from '../../main';
 
 export interface StreamingOptions {
     onChunk?: (chunk: string, isComplete: boolean) => void;
@@ -17,12 +18,17 @@ export interface StreamingOptions {
 export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
 
 export class StreamingManager {
+    private plugin: NovaPlugin;
     private dotsAnimationInterval: number | null = null;
     private thinkingNotice: Notice | null = null;
     private currentStreamingEndPos: any = null;
     private streamingStartPos: any = null;
     private originalPosition: any = null;
     private scrollThrottleTimeout: number | null = null;
+
+    constructor(plugin: NovaPlugin) {
+        this.plugin = plugin;
+    }
     
     // Magical scroll configuration
     private static readonly SCROLL_THROTTLE_MS = 16; // 60fps for smooth experience
@@ -356,7 +362,7 @@ export class StreamingManager {
         let phraseIndex = 0;
         let dotCount = 1;
         
-        this.dotsAnimationInterval = window.setInterval(() => {
+        this.dotsAnimationInterval = this.plugin.registerInterval(window.setInterval(() => {
             try {
                 if (!this.thinkingNotice) return;
                 
@@ -383,7 +389,7 @@ export class StreamingManager {
                 Logger.warn('Error in notice dots animation:', error);
                 this.stopDotsAnimation();
             }
-        }, 400);
+        }, 400));
     }
 
     /**

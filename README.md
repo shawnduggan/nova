@@ -130,6 +130,12 @@ Support development if Nova transforms your writing:
 
 *Philosophy: Thoughtful tools for the modern writer. All features graduate to free tier after Supernova early access period. Support only if it changes how you write.*
 
+### Payment & Early Access
+
+**Nova is free to use** with all core features included. **Some advanced features require payment for early access** during the Supernova supporter period (3-6 months) before graduating to the free tier.
+
+**Plugin includes promotional messages** for Supernova support within the settings interface, clearly separated in a dedicated "Supernova" tab.
+
 ---
 
 ## Ready to Transform How You Write?

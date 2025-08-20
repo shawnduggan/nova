@@ -359,7 +359,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Initialize context manager and streaming manager
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
-		this.streamingManager = new StreamingManager();
+		this.streamingManager = new StreamingManager(this.plugin);
 		
 		// Get reference to plugin's selection context menu (will set callback later)
 		this.selectionContextMenu = this.plugin.selectionContextMenu;
@@ -1889,20 +1889,11 @@ USER REQUEST: ${processedMessage}`;
 		// Parse command using existing parser
 		const parsedCommand = this.plugin.commandParser.parseCommand(input);
 		
-		// Record intent for internal state management
-		this.recordIntentForState('editing', input);
 		
 		// Execute command using existing system
 		return await this.executeCommand(parsedCommand);
 	}
 
-	/**
-	 * Record intent for internal state management (currently a no-op)
-	 */
-	recordIntentForState(_intent: 'consultation' | 'editing', _input: string): void {
-		// No-op method for potential future state management
-		// Currently unused - ready for UI state tracking if needed
-	}
 
 	/**
 	 * Handle ambiguous requests by routing to chosen handler

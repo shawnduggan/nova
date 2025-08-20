@@ -1053,6 +1053,8 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private showLicenseMessage(message: string, type: 'success' | 'error') {
+		// Uses DOM elements instead of Notice API per Obsidian compliance guidelines:
+		// "Use proper UI elements, not Notice API for license messages"
 		// Create or update message element
 		const existingMessage = this.containerEl.querySelector('.nova-license-message');
 		if (existingMessage) {
@@ -1558,7 +1560,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		setIcon(logoDiv, 'nova-star');
 		
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
-		contentDiv.createEl('h2', { text: 'Welcome to Nova' });
+		// Remove redundant top-level heading as context is already clear in settings tab
 		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'Your AI writing partner to make the writing process smoother' });
 		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing' });
 	}

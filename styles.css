@@ -1291,7 +1291,7 @@
 }
 
 /* Mobile-specific hover states (lighter touch feedback) */
-.is-mobile .nova-provider-dropdown-item:active,
+/* Mobile dropdown item styling removed - using native DropdownComponent */
 .is-mobile .nova-tab:active,
 .is-mobile button:active {
     background: var(--background-modifier-active) !important;
@@ -1949,77 +1949,7 @@
 
 /* Mobile-specific provider button sizing */
 
-.nova-provider-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 250px;
-    background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-    box-shadow: var(--shadow-s);
-    z-index: 1000;
-    overflow: hidden;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-/* Webkit scrollbar styling for provider dropdown */
-.nova-provider-dropdown-menu::-webkit-scrollbar {
-    width: 6px;
-}
-
-.nova-provider-dropdown-menu::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.nova-provider-dropdown-menu::-webkit-scrollbar-thumb {
-    background: var(--background-modifier-border);
-    border-radius: 3px;
-}
-
-.nova-provider-dropdown-menu::-webkit-scrollbar-thumb:hover {
-    background: var(--background-modifier-border-hover);
-}
-
-.is-mobile .nova-provider-dropdown-menu {
-    min-width: 200px; /* Narrower on mobile */
-    max-width: calc(100vw - 32px); /* Prevent extending beyond screen */
-    right: 0; /* Align to right edge of container instead of left */
-    left: auto; /* Override left alignment */
-}
-
-.nova-provider-dropdown-item {
-    padding: var(--size-2-3) var(--size-4-3);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-3);
-    font-size: 0.85em; /* Slightly larger than provider button for better readability */
-    transition: background-color 0.2s ease;
-    min-height: 32px; /* Comfortable height for dropdown items */
-}
-
-/* Mobile touch target enhancements */
-.is-mobile .nova-provider-dropdown-item {
-    min-height: 44px;
-    padding: 12px var(--size-4-3);
-    font-size: 0.9em;
-}
-
-.nova-provider-dropdown-item:hover {
-    background: var(--background-modifier-border-hover);
-}
-
-.nova-provider-dropdown-item:first-child {
-    border-top-left-radius: var(--radius-s);
-    border-top-right-radius: var(--radius-s);
-}
-
-.nova-provider-dropdown-item:last-child {
-    border-bottom-left-radius: var(--radius-s);
-    border-bottom-right-radius: var(--radius-s);
-}
+/* Custom dropdown styles removed - now using native DropdownComponent */
 
 /* Privacy Status Pill Styles */
 .nova-status-pill {
@@ -2287,10 +2217,7 @@
 }
 
 
-/* Improved dropdown menu spacing */
-.is-mobile .nova-provider-dropdown-menu {
-    margin-top: 8px; /* Space between button and dropdown */
-}
+/* Mobile dropdown spacing removed - using native DropdownComponent */
 
 /* Better spacing for status pills */
 .is-mobile .nova-status-pill {
@@ -3061,13 +2988,7 @@
     line-height: 1;
 }
 
-/* Provider Dropdown Styles */
-.nova-provider-dropdown-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-}
+/* Duplicate container definition removed - kept definition above */
 
 
 

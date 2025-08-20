@@ -69,8 +69,9 @@ describe('Streaming Completion Updates', () => {
         sidebar = new NovaSidebarView(mockLeaf, plugin);
         (sidebar as any).app = app;
         
-        // Initialize streamingManager
-        (sidebar as any).streamingManager = new StreamingManager();
+        // Initialize streamingManager with mock plugin
+        const mockPlugin = { registerInterval: (id: number) => id };
+        (sidebar as any).streamingManager = new StreamingManager(mockPlugin as any);
     });
 
     it('should update document stats after streaming completes', async () => {
@@ -84,7 +85,8 @@ describe('Streaming Completion Updates', () => {
         const updateDocumentStatsSpy = jest.spyOn(sidebar as any, 'updateDocumentStats');
 
         // Simulate streaming completion
-        const streamingManager = new StreamingManager();
+        const mockPlugin = { registerInterval: (id: number) => id };
+        const streamingManager = new StreamingManager(mockPlugin as any);
         const { updateStream } = streamingManager.startStreaming(mockEditor, { line: 0, ch: 0 }, undefined, {
             onComplete: () => {
                 // This should trigger document stats update
@@ -105,7 +107,8 @@ describe('Streaming Completion Updates', () => {
         const refreshContextSpy = jest.spyOn(sidebar as any, 'refreshContext').mockResolvedValue(undefined);
 
         // Simulate streaming with completion callback
-        const streamingManager = new StreamingManager();
+        const mockPlugin = { registerInterval: (id: number) => id };
+        const streamingManager = new StreamingManager(mockPlugin as any);
         const { updateStream } = streamingManager.startStreaming(mockEditor, { line: 0, ch: 0 }, undefined, {
             onComplete: () => {
                 // This should trigger context refresh
@@ -183,7 +186,8 @@ describe('Magical Scroll Functionality', () => {
             defaultTextHeight: 20
         };
 
-        streamingManager = new StreamingManager();
+        const mockPlugin = { registerInterval: (id: number) => id };
+        streamingManager = new StreamingManager(mockPlugin as any);
     });
 
     it('should enable magical scroll by default', async () => {

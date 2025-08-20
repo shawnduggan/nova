@@ -62,7 +62,7 @@ export class SelectionContextMenu {
         private plugin: NovaPlugin
     ) {
         this.selectionEditCommand = new SelectionEditCommand(plugin);
-        this.streamingManager = new StreamingManager();
+        this.streamingManager = new StreamingManager(plugin);
     }
 
     /**

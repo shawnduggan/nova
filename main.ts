@@ -115,7 +115,8 @@ export default class NovaPlugin extends Plugin {
 			// Initialize conversation manager and document engine
 			const dataStore = {
 				loadData: (key: string) => this.loadDataWithKey(key),
-				saveData: (key: string, data: any) => this.saveDataWithKey(key, data)
+				saveData: (key: string, data: any) => this.saveDataWithKey(key, data),
+				registerInterval: (intervalId: number) => this.registerInterval(intervalId)
 			};
 			this.conversationManager = new ConversationManager(dataStore);
 			this.documentEngine = new DocumentEngine(this.app, dataStore);
@@ -189,7 +190,7 @@ export default class NovaPlugin extends Plugin {
 			});
 
 			this.addCommand({
-				id: 'open-nova-sidebar',
+				id: 'open-sidebar',
 				name: 'Open sidebar',
 				callback: () => {
 					this.activateView();

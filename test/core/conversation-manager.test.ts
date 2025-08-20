@@ -21,7 +21,8 @@ describe('ConversationManager', () => {
             saveData: jest.fn().mockImplementation((key, data) => {
                 savedData = data;
                 return Promise.resolve();
-            })
+            }),
+            registerInterval: jest.fn().mockImplementation((id) => id)
         };
         
         mockFile = new TFile('test-document.md');
@@ -52,7 +53,8 @@ describe('ConversationManager', () => {
 
             const mockDataStoreWithData = {
                 loadData: jest.fn().mockResolvedValue(existingConversations),
-                saveData: jest.fn().mockResolvedValue(undefined)
+                saveData: jest.fn().mockResolvedValue(undefined),
+                registerInterval: jest.fn().mockImplementation((id) => id)
             };
             
             const newManager = new ConversationManager(mockDataStoreWithData);
