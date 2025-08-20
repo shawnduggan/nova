@@ -344,42 +344,7 @@ export default class NovaPlugin extends Plugin {
 		}
 		
 		try {
-			// Force save multiple times to ensure it persists
 			await this.saveData(settingsToSave);
-			
-			// Add delay and try again
-			await new Promise(resolve => setTimeout(resolve, 200));
-			await this.saveData(settingsToSave);
-			
-			// Add another delay and verify
-			await new Promise(resolve => setTimeout(resolve, 200));
-			
-			// Verify the save by reading it back
-			const readBack = await this.loadData();
-			
-			// Check if the save actually worked
-			const currentPlatform = Platform.isMobile ? 'mobile' : 'desktop';
-			const expectedModel = this.settings.platformSettings[currentPlatform].selectedModel;
-			const actualModel = readBack?.platformSettings?.[currentPlatform]?.selectedModel;
-			
-			if (expectedModel !== actualModel) {
-				Logger.error('Save verification failed after retry!', {
-					expected: expectedModel,
-					actual: actualModel,
-					platform: currentPlatform
-				});
-				
-				// Try one more time with manual file write
-				await this.saveData(settingsToSave);
-				await new Promise(resolve => setTimeout(resolve, 300));
-				
-				const finalCheck = await this.loadData();
-				const finalActual = finalCheck?.platformSettings?.[currentPlatform]?.selectedModel;
-				if (expectedModel !== finalActual) {
-					Logger.error('Forced save also failed!', { finalActual });
-				}
-			}
-			
 			this.aiProviderManager?.updateSettings(this.settings);
 		} catch (error) {
 			Logger.error('Error during save operation:', error);
