@@ -25,6 +25,11 @@ describe('ContextManager - Context-Only Bug', () => {
                 if (path === 'context.md') return contextFile;
                 return null;
             }),
+            getFileByPath: jest.fn((path: string) => {
+                if (path === 'test.md') return testFile;
+                if (path === 'context.md') return contextFile;
+                return null;
+            }),
             getMarkdownFiles: jest.fn(() => [testFile, contextFile]),
             read: jest.fn((file: TFile) => {
                 if (file.path === 'test.md') return Promise.resolve('Current document content');
@@ -133,6 +138,12 @@ describe('ContextManager - Context-Only Bug', () => {
             if (path === 'context2.md') return contextFile2;
             return null;
         });
+        (app.vault as any).getFileByPath = jest.fn((path: string) => {
+            if (path === 'test.md') return testFile;
+            if (path === 'context.md') return contextFile;
+            if (path === 'context2.md') return contextFile2;
+            return null;
+        });
         
         (app.vault as any).read = jest.fn((file: TFile) => {
             if (file.path === 'test.md') return Promise.resolve('Current document content');
@@ -174,6 +185,10 @@ describe('ContextManager - Context-Only Bug', () => {
         
         // "Remove" the context file by making it return null
         (app.vault as any).getAbstractFileByPath = jest.fn((path: string) => {
+            if (path === 'context.md') return null;
+            return path === 'test.md' ? testFile : null;
+        });
+        (app.vault as any).getFileByPath = jest.fn((path: string) => {
             if (path === 'context.md') return null;
             return path === 'test.md' ? testFile : null;
         });

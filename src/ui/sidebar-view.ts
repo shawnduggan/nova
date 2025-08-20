@@ -843,14 +843,14 @@ export class NovaSidebarView extends ItemView {
 
 	private findFileByName(nameOrPath: string): TFile | null {
 		// First try exact path match
-		let file = this.app.vault.getAbstractFileByPath(nameOrPath);
+		let file = this.app.vault.getFileByPath(nameOrPath);
 		
-		if (!file || !(file instanceof TFile)) {
+		if (!file) {
 			// Try with .md extension
-			file = this.app.vault.getAbstractFileByPath(nameOrPath + '.md');
+			file = this.app.vault.getFileByPath(nameOrPath + '.md');
 		}
 		
-		if (!file || !(file instanceof TFile)) {
+		if (!file) {
 			// Use MetadataCache for efficient linkpath resolution instead of iterating all files
 			file = this.app.metadataCache.getFirstLinkpathDest(nameOrPath, '');
 		}
@@ -2984,11 +2984,11 @@ USER REQUEST: ${processedMessage}`;
 		
 		for (const filename of filenames) {
 			// Find the file by name efficiently
-			let file = this.app.vault.getAbstractFileByPath(filename);
-			if (!file || !(file instanceof TFile)) {
-				file = this.app.vault.getAbstractFileByPath(filename + '.md');
+			let file = this.app.vault.getFileByPath(filename);
+			if (!file) {
+				file = this.app.vault.getFileByPath(filename + '.md');
 			}
-			if (!file || !(file instanceof TFile)) {
+			if (!file) {
 				// Use MetadataCache for efficient linkpath resolution instead of iterating all files
 				file = this.app.metadataCache.getFirstLinkpathDest(filename, '');
 			}

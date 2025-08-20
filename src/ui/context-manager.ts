@@ -167,7 +167,7 @@ export class ContextManager {
 			
 			// Filter out any stale file references (files that no longer exist)
 			const allPersistentDocs = rawPersistentDocs.filter(docRef => {
-				if (!docRef?.file || !this.app.vault.getAbstractFileByPath(docRef.file.path)) {
+				if (!docRef?.file || !this.app.vault.getFileByPath(docRef.file.path)) {
 					return false;
 				}
 				return true;
@@ -344,9 +344,9 @@ export class ContextManager {
 		this.persistentContext.set(this.currentFilePath, updated);
 		
 		// Save to conversation manager for persistence
-		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
+		const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
 		
-		if (currentFile instanceof TFile && this.plugin.conversationManager) {
+		if (currentFile && this.plugin.conversationManager) {
 			await this.plugin.conversationManager.addContextDocument(currentFile, file.path);
 		}
 		
@@ -371,8 +371,8 @@ export class ContextManager {
 		}
 		
 		// Save to conversation manager for persistence
-		const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
-		if (currentFile instanceof TFile && this.plugin.conversationManager) {
+		const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
+		if (currentFile && this.plugin.conversationManager) {
 			await this.plugin.conversationManager.removeContextDocument(currentFile, file.path);
 		}
 		
@@ -414,8 +414,8 @@ export class ContextManager {
 			
 			// Add current file tokens
 			try {
-				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
-				if (currentFile instanceof TFile) {
+				const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
+				if (currentFile) {
 					const currentContent = await this.app.vault.read(currentFile);
 					totalTokens += Math.ceil(currentContent.length / 4);
 				}
@@ -489,9 +489,9 @@ export class ContextManager {
 					}
 					
 					// Find the actual file in the vault
-					const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+					const contextFile = this.app.vault.getFileByPath(contextDoc.path);
 					
-					if (contextFile && contextFile.path && contextFile instanceof TFile) {
+					if (contextFile && contextFile.path) {
 						// File exists - add to valid documents
 						validDocumentRefs.push({
 							file: contextFile,
@@ -608,7 +608,7 @@ export class ContextManager {
 			const missingFiles: string[] = [];
 
 			for (const contextDoc of savedContextDocs) {
-				const contextFile = this.app.vault.getAbstractFileByPath(contextDoc.path);
+				const contextFile = this.app.vault.getFileByPath(contextDoc.path);
 				
 				if (contextFile && contextFile.path) {
 					validFiles.push(contextDoc.path);
@@ -633,8 +633,8 @@ export class ContextManager {
 	 */
 	private async schedulePersistenceUpdate(conversationFilePath: string, references: DocumentReference[]): Promise<void> {
 		// Run async save in background
-		const conversationFile = this.app.vault.getAbstractFileByPath(conversationFilePath);
-		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
+		const conversationFile = this.app.vault.getFileByPath(conversationFilePath);
+		if (conversationFile && this.plugin.conversationManager) {
 			// Convert DocumentReferences to ContextDocumentRefs
 			const contextRefs = references.map(ref => ({
 				path: ref.file.path,
@@ -786,7 +786,7 @@ export class ContextManager {
 			const { file, property } = docRef;
 			
 			// Validate that the file still exists in the vault
-			if (!file || !this.app.vault.getAbstractFileByPath(file.path)) {
+			if (!file || !this.app.vault.getFileByPath(file.path)) {
 				// File no longer exists - graceful fallback
 				return null;
 			}
@@ -813,14 +813,14 @@ export class ContextManager {
 	 */
 	private findFile(nameOrPath: string): TFile | null {
 		// First try exact path match
-		let file = this.app.vault.getAbstractFileByPath(nameOrPath);
+		let file = this.app.vault.getFileByPath(nameOrPath);
 		
-		if (!file || !(file instanceof TFile)) {
+		if (!file) {
 			// Try with .md extension
-			file = this.app.vault.getAbstractFileByPath(nameOrPath + '.md');
+			file = this.app.vault.getFileByPath(nameOrPath + '.md');
 		}
 		
-		if (!file || !(file instanceof TFile)) {
+		if (!file) {
 			// Use MetadataCache for efficient linkpath resolution instead of iterating all files
 			// Safely call the method with fallback for older Obsidian versions or tests
 			if (this.app.metadataCache.getFirstLinkpathDest) {
@@ -828,7 +828,7 @@ export class ContextManager {
 			}
 		}
 		
-		return file instanceof TFile ? file : null;
+		return file;
 	}
 
 	/**
@@ -889,8 +889,8 @@ export class ContextManager {
 			
 			// Get conversation history for current file
 			if (this.currentFilePath && this.plugin.conversationManager) {
-				const currentFile = this.app.vault.getAbstractFileByPath(this.currentFilePath);
-				if (currentFile instanceof TFile) {
+				const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
+				if (currentFile) {
 					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
 					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
 				}
@@ -923,8 +923,8 @@ export class ContextManager {
 		this.persistentContext.delete(filePath);
 		
 		// Also clear from conversation manager
-		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
-		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
+		const conversationFile = this.app.vault.getFileByPath(filePath);
+		if (conversationFile && this.plugin.conversationManager) {
 			await this.plugin.conversationManager.clearContextDocuments(conversationFile);
 		}
 	}
@@ -950,8 +950,8 @@ export class ContextManager {
 		}
 		
 		// Also remove from conversation manager
-		const conversationFile = this.app.vault.getAbstractFileByPath(filePath);
-		if (conversationFile instanceof TFile && this.plugin.conversationManager) {
+		const conversationFile = this.app.vault.getFileByPath(filePath);
+		if (conversationFile && this.plugin.conversationManager) {
 			await this.plugin.conversationManager.removeContextDocument(conversationFile, docToRemove);
 		}
 	}

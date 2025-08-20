@@ -20,6 +20,9 @@ const createMockApp = (): App => {
 		getAbstractFileByPath: jest.fn((path: string) => {
 			return mockFiles.find(f => f.path === path) || null;
 		}),
+		getFileByPath: jest.fn((path: string) => {
+			return mockFiles.find(f => f.path === path) || null;
+		}),
 		getMarkdownFiles: jest.fn(() => mockFiles),
 		read: jest.fn((file: TFile) => {
 			const content: Record<string, string> = {

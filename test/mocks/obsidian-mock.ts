@@ -153,6 +153,10 @@ export class Vault {
     getAbstractFileByPath(path: string): TFile | null {
         return new TFile(path);
     }
+    
+    getFileByPath(path: string): TFile | null {
+        return new TFile(path);
+    }
 }
 
 export class Workspace {

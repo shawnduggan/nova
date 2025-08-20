@@ -44,6 +44,16 @@ describe('Intent Detection Integration', () => {
         intentClassifier = mockPlugin.aiIntentClassifier;
         intentDetector = new IntentDetector();
 
+        // Mock chatRenderer to prevent initialization errors
+        sidebarView.chatRenderer = {
+            addErrorMessage: jest.fn(),
+            addSuccessMessage: jest.fn(),
+            addWelcomeMessage: jest.fn(),
+            addMessage: jest.fn(),
+            addWarningMessage: jest.fn(),
+            loadConversationHistory: jest.fn()
+        } as any;
+
         // Mock handler methods
         sidebarView.displayChatResponse = jest.fn();
         sidebarView.showModeIndicator = jest.fn();
