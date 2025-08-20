@@ -368,6 +368,25 @@ Never mark compliance tasks complete without systematic verification.
 
 ### Recent Completions
 
+**COMPLETED**: Fix special characters in tags for Obsidian compatibility
+- Enhanced normalizeTagValue method to handle apostrophes, periods, and special characters that break Obsidian tag functionality
+- Removes invalid characters while preserving valid ones: letters, numbers, underscore, hyphen, forward slash
+- Real-world examples: "mi'kmaq" → "mikmaq", "don't" → "dont", "user.guide" → "user-guide", "C++" → "c"
+- Comprehensive test coverage with 30+ test cases including edge cases and real-world scenarios
+- Collapses multiple hyphens and removes leading/trailing hyphens for clean tag formatting
+- All 34 test suites pass with 0 errors, build succeeds with 0 errors
+- Resolves issue where AI-generated tags with special characters would be invalid in Obsidian
+- Ensures all Nova-generated tags are properly recognized by Obsidian's tag system
+
+**COMPLETED**: Fix metadata update to create frontmatter when none exists
+- Modified updateFrontmatter method to create frontmatter for documents without existing frontmatter
+- AI-determined tags and properties now properly added to documents that lack frontmatter
+- Preserves existing behavior for documents that already have frontmatter
+- Tags are replaced (not merged) to reflect current document state as determined by AI analysis
+- Updated tests to reflect correct behavior for frontmatter creation
+- All 34 test suites pass with 0 errors, build succeeds with 0 errors
+- Resolves issue where "update metadata" command would fail silently on documents without existing frontmatter
+
 **COMPLETED**: Make return key hit enter on custom Tell Nova modal
 - Added Enter key submission functionality to CustomInstructionModal in custom-instruction-modal.ts
 - Enter key now submits the form (standard form behavior)
