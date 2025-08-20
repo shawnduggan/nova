@@ -104,8 +104,6 @@ export default class NovaPlugin extends Plugin {
 				}));
 			});
 
-			// Note: Mobile access restrictions are now handled in sidebar UI
-			// This allows Core mobile users to see the upgrade interface rather than a broken plugin
 
 			// Register Nova custom icons with Obsidian
 			addIcon('nova-star', NOVA_ICON_SVG);
@@ -411,126 +409,6 @@ export default class NovaPlugin extends Plugin {
 	}
 
 
-	/**
-	 * Show upgrade prompt for Core tier mobile users
-	 */
-	private showMobileUpgradePrompt(): void {
-		const modal = document.createElement('div');
-		modal.className = 'modal nova-mobile-upgrade-modal';
-		
-		// Create modal structure using DOM API
-		const modalContainer = document.createElement('div');
-		modalContainer.className = 'modal-container';
-		
-		const modalBg = document.createElement('div');
-		modalBg.className = 'modal-bg';
-		
-		const modalContent = document.createElement('div');
-		modalContent.className = 'modal-content';
-		
-		// Modal header
-		const modalHeader = document.createElement('div');
-		modalHeader.className = 'modal-header';
-		const headerTitle = document.createElement('h3');
-		headerTitle.textContent = 'Nova SuperNova Required';
-		modalHeader.appendChild(headerTitle);
-		
-		// Modal body
-		const modalBody = document.createElement('div');
-		modalBody.className = 'modal-body';
-		
-		// Tier badge
-		const tierBadge = document.createElement('div');
-		tierBadge.className = 'nova-tier-badge core modal-spacing';
-		const tierIcon = document.createElement('span');
-		tierIcon.className = 'tier-icon';
-		tierIcon.textContent = 'FREE';
-		const tierName = document.createElement('span');
-		tierName.className = 'tier-name';
-		tierName.textContent = 'Core (Free)';
-		tierBadge.appendChild(tierIcon);
-		tierBadge.appendChild(tierName);
-		
-		// Body paragraphs
-		const p1 = document.createElement('p');
-		p1.textContent = 'Mobile access is available with Nova SuperNova.';
-		const p2 = document.createElement('p');
-		p2.textContent = 'Core tier is limited to desktop use only.';
-		
-		// Feature list
-		const featureList = document.createElement('div');
-		featureList.className = 'nova-feature-list';
-		const featureTitle = document.createElement('h4');
-		featureTitle.textContent = 'SuperNova includes:';
-		const featureUl = document.createElement('ul');
-		
-		const features = [
-			'Mobile device support',
-			'Multiple AI providers',
-			'In-chat provider switching',
-			'Advanced templates',
-			'Priority support'
-		];
-		
-		features.forEach(feature => {
-			const li = document.createElement('li');
-			li.textContent = feature;
-			featureUl.appendChild(li);
-		});
-		
-		featureList.appendChild(featureTitle);
-		featureList.appendChild(featureUl);
-		
-		// Assemble modal body
-		modalBody.appendChild(tierBadge);
-		modalBody.appendChild(p1);
-		modalBody.appendChild(p2);
-		modalBody.appendChild(featureList);
-		
-		// Modal footer
-		const modalFooter = document.createElement('div');
-		modalFooter.className = 'modal-footer';
-		const upgradeBtn = document.createElement('button');
-		upgradeBtn.className = 'mod-cta nova-upgrade-btn';
-		upgradeBtn.textContent = 'Upgrade to SuperNova';
-		const closeBtn = document.createElement('button');
-		closeBtn.className = 'nova-close-btn';
-		closeBtn.textContent = 'Close';
-		modalFooter.appendChild(upgradeBtn);
-		modalFooter.appendChild(closeBtn);
-		
-		// Assemble modal content
-		modalContent.appendChild(modalHeader);
-		modalContent.appendChild(modalBody);
-		modalContent.appendChild(modalFooter);
-		
-		// Assemble modal container
-		modalContainer.appendChild(modalBg);
-		modalContainer.appendChild(modalContent);
-		
-		// Assemble final modal
-		modal.appendChild(modalContainer);
-
-		// Event handlers (elements already created above)
-		const modalBgElement = modalBg;
-
-		const closeModal = () => {
-			modal.remove();
-		};
-
-		upgradeBtn.addEventListener('click', () => {
-			window.open('https://novawriter.ai/upgrade', '_blank');
-			closeModal();
-		});
-
-		closeBtn.addEventListener('click', closeModal);
-		modalBgElement.addEventListener('click', closeModal);
-
-		document.body.appendChild(modal);
-
-		// Show notice as well
-		new Notice('Nova mobile access requires SuperNova license', 8000);
-	}
 
 	// DataStore interface implementation for ConversationManager
 	async loadDataWithKey(key: string): Promise<any> {

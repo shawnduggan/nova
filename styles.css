@@ -1393,11 +1393,6 @@
     margin: 0 !important;
 }
 
-/* Mobile Upgrade Modal */
-.nova-mobile-upgrade-modal .modal-content {
-    max-width: 500px;
-    width: 90%;
-}
 
 .nova-feature-list {
     margin-top: 1em;
@@ -1435,13 +1430,6 @@
     background: var(--background-modifier-border-hover);
 }
 
-/* Mobile Upgrade Interface */
-.nova-mobile-upgrade {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
 
 /* Getting Started Tab Styles */
 .nova-welcome-section {
@@ -1861,15 +1849,6 @@
 }
 
 
-.nova-mobile-upgrade-content {
-    flex: 1;
-    overflow-y: auto;
-    background: var(--background-secondary);
-    padding: 2em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .nova-upgrade-container {
     text-align: center;
@@ -2405,10 +2384,6 @@
         height: 14px;
     }
     
-    .nova-mobile-upgrade-modal .modal-content {
-        width: 95%;
-        margin: 1em;
-    }
     
     .nova-feature-list {
         padding: 0.8em;
