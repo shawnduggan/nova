@@ -65,14 +65,14 @@ describe('Editing Handler Integration', () => {
             });
         });
 
-        it('should track intent for analytics', async () => {
+        it('should record intent for state management', async () => {
             const executeCommandSpy = jest.spyOn(sidebarView as any, 'executeCommand').mockResolvedValue('Edit completed');
-            const trackUsageSpy = jest.spyOn(sidebarView, 'trackIntentUsage');
+            const recordStateSpy = jest.spyOn(sidebarView, 'recordIntentForState');
 
             await sidebarView.handleEditingRequest('Fix the grammar here');
             
-            // Verify intent tracking
-            expect(trackUsageSpy).toHaveBeenCalledWith('editing', 'Fix the grammar here');
+            // Verify intent state recording
+            expect(recordStateSpy).toHaveBeenCalledWith('editing', 'Fix the grammar here');
         });
 
         it('should handle editing patterns correctly', async () => {

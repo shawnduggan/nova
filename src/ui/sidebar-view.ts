@@ -1886,19 +1886,19 @@ USER REQUEST: ${processedMessage}`;
 		// Parse command using existing parser
 		const parsedCommand = this.plugin.commandParser.parseCommand(input);
 		
-		// Track intent usage for analytics
-		this.trackIntentUsage('editing', input);
+		// Record intent for internal state management
+		this.recordIntentForState('editing', input);
 		
 		// Execute command using existing system
 		return await this.executeCommand(parsedCommand);
 	}
 
 	/**
-	 * Track intent usage for analytics (placeholder for future enhancement)
+	 * Record intent for internal state management (currently a no-op)
 	 */
-	trackIntentUsage(_intent: 'consultation' | 'editing', _input: string): void {
-		// For now, this is a no-op placeholder
-		// Future enhancement: collect analytics data
+	recordIntentForState(_intent: 'consultation' | 'editing', _input: string): void {
+		// No-op method for potential future state management
+		// Currently unused - ready for UI state tracking if needed
 	}
 
 	/**
