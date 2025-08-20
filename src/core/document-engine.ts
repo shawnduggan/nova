@@ -112,8 +112,8 @@ export class DocumentEngine {
         const selectedText = this.getSelectedText();
         const cursorPosition = this.getCursorPosition();
         
-        // Extract headings from the document
-        const headings = this.extractHeadings(content);
+        // Extract headings from the document using MetadataCache
+        const headings = this.extractHeadings(file);
         
         // Get surrounding lines for context
         const surroundingLines = cursorPosition ? 
@@ -132,35 +132,26 @@ export class DocumentEngine {
     }
 
     /**
-     * Extract headings from document content
+     * Extract headings from document using MetadataCache instead of regex
      */
-    private extractHeadings(content: string): HeadingInfo[] {
-        const lines = content.split('\n');
-        const headings: HeadingInfo[] = [];
-        let charCount = 0;
+    private extractHeadings(file: TFile): HeadingInfo[] {
+        const cache = this.app.metadataCache.getFileCache(file);
+        
+        // Return empty array if no cache or headings
+        if (!cache || !cache.headings) {
+            return [];
+        }
 
-        lines.forEach((line, index) => {
-            const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-            if (headingMatch) {
-                const level = headingMatch[1].length;
-                const text = headingMatch[2];
-                
-                headings.push({
-                    text,
-                    level,
-                    line: index,
-                    position: {
-                        start: charCount,
-                        end: charCount + line.length
-                    }
-                });
+        // Transform Obsidian's heading format to Nova's HeadingInfo interface
+        return cache.headings.map(heading => ({
+            text: heading.heading,
+            level: heading.level,
+            line: heading.position.start.line,
+            position: {
+                start: heading.position.start.offset,
+                end: heading.position.end.offset
             }
-            
-            // Add line length + newline character
-            charCount += line.length + 1;
-        });
-
-        return headings;
+        }));
     }
 
     /**

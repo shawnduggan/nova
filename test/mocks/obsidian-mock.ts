@@ -204,8 +204,7 @@ export class MetadataCache {
     getFileCache(_file: TFile): any {
         return {
             headings: [
-                { heading: 'Test Heading', level: 1, position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 13, offset: 13 } } },
-                { heading: 'Subheading', level: 2, position: { start: { line: 5, col: 0, offset: 50 }, end: { line: 5, col: 12, offset: 62 } } }
+                { heading: 'Test Document', level: 1, position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 15, offset: 15 } } }
             ],
             sections: [],
             links: [],
