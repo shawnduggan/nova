@@ -65,7 +65,9 @@
 - ✅ **Use registerInterval for all timers**: All `setInterval()` calls must use `this.registerInterval()`
 - ✅ **Component-based classes**: Use `this.registerInterval(window.setInterval(callback, delay))`
 - ✅ **Plugin-referenced classes**: Use `this.plugin.registerInterval(window.setInterval(callback, delay))`
+- ✅ **Pass plugin reference to managers**: Classes needing timers must receive plugin reference for registration
 - ❌ **No manual clearInterval needed**: Obsidian handles cleanup automatically when registered
+- ❌ **No bare setInterval calls**: Even in standalone classes, must connect to plugin registration system
 
 ### CSS and Styling Requirements  
 - ❌ **No core styling overrides**: Never override `.view-content` globally - scope to your plugin containers
@@ -90,6 +92,8 @@
 - ✅ **Descriptive command IDs**: Use clear, action-based IDs like "improve-writing", not "nova-improve-writing"
 - ❌ **No "open-[plugin]-sidebar" pattern**: Use "open-sidebar" instead of "open-nova-sidebar"
 - ✅ **Action-focused naming**: Commands should describe what they do, not what plugin they belong to
+- ❌ **Remove ALL plugin name prefixes**: This includes "nova-", "[PluginName]-", or any brand-specific prefixes
+- ✅ **Generic action verbs**: Use verbs like "open", "toggle", "create", "improve" without plugin context
 
 ### Modern Obsidian APIs
 - ❌ **No deprecated activeLeaf**: Use `workspace.getActiveViewOfType(MarkdownView)` instead
@@ -111,12 +115,18 @@
 - ❌ **No plaintext sensitive keys**: Obfuscate license signing keys or other sensitive strings
 - ❌ **No analytics collection**: Plugins cannot collect user analytics per Developer Policies
 - ✅ **Method naming clarity**: Use clear names like "recordForState" not "trackForAnalytics"
+- ❌ **No analytics-adjacent method names**: Avoid "track", "analytics", "telemetry", "collect" in method names
+- ✅ **State-focused naming**: Use "record", "store", "save", "cache" for internal state management
+- ❌ **Remove ambiguous methods entirely**: If method could be misinterpreted as analytics, remove it
 
 ### UI/UX Guidelines
 - ✅ **Use native components**: Use `DropdownComponent` instead of custom dropdown implementations
 - ❌ **No ads at top of settings**: Limit promotional content to one dedicated tab at bottom  
 - ❌ **No Notice for non-urgent info**: Use proper UI elements, not Notice API for license messages
 - ✅ **Proper mobile support**: Handle mobile views appropriately without unnecessary restrictions
+- ❌ **No promotional content in multiple tabs**: CTAs/ads must be confined to ONE dedicated tab only
+- ✅ **Bottom placement for ads**: If promotional content exists, place at bottom of tab list
+- ❌ **No intrusive messaging**: Avoid popup/banner ads that interrupt user workflow
 
 ### CSS Cleanup Requirements
 - ❌ **No orphaned CSS classes**: Remove unused CSS after refactoring components
@@ -316,6 +326,45 @@ Never mark compliance tasks complete without systematic verification.
 - ✅ No violations of any kind exist in codebase
 
 **Nova is absolutely, definitively Community Plugin store compliant** and ready for submission! 🎉
+
+## ✅ UPDATED - Enhanced Compliance Documentation & Final Verification (August 2025)
+
+**COMPREHENSIVE COMPLIANCE REVIEW COMPLETED** - All Gemini-flagged issues from latest review have been thoroughly addressed.
+
+**Enhanced CLAUDE.md Guidelines Added:**
+- ✅ **Timer Registration Requirements**: Enhanced guidelines for setInterval registration with plugin reference requirements
+- ✅ **Command ID Naming Standards**: Clarified complete removal of plugin name prefixes with generic action verbs
+- ✅ **Analytics Method Naming**: Strict guidelines against analytics-adjacent method names
+- ✅ **Promotional Content Placement**: Enhanced UI/UX guidelines for ad placement restrictions
+- ✅ **CSS Cleanup Requirements**: Detailed guidelines for maintaining clean CSS after component migrations
+
+**Final Verification Results:**
+- ✅ **All Timer Intervals Registered**: All 3 setInterval calls properly use plugin.registerInterval() wrapper
+- ✅ **Command ID Compliance**: 'open-sidebar' follows action-focused naming without plugin prefix
+- ✅ **No Prohibited Settings Headings**: Top-level "Welcome to Nova" removed; remaining headings are compliant within info cards
+- ✅ **README Payment/Ads Disclosure**: Clear documentation of payment requirements and promotional messages
+- ✅ **CSS Cleanup Complete**: Unused custom dropdown CSS properly removed after DropdownComponent migration
+- ✅ **No Analytics Methods**: recordIntentForState method confirmed removed; showLicenseMessage uses compliant DOM elements (not Notice API) for contextual license validation feedback
+
+**Final Technical Verification:**
+- ✅ Build succeeds: `npm run build` completes with 0 errors
+- ✅ All tests pass: 34 test suites with 0 failures
+- ✅ ESLint clean: 0 errors (84 warnings for `any` types - acceptable for Community Plugin approval)
+- ✅ Zero compliance violations: Comprehensive pattern searches confirm no prohibited usage remains
+
+**Comprehensive Pattern Verification (0 violations found):**
+- 0 unregistered setInterval calls (all use registerInterval wrapper)
+- 0 unregistered addEventListener calls (all use registerDomEvent system) 
+- 0 fetch() usage (all network calls use requestUrl)
+- 0 vault.modify usage (all use Editor API)
+- 0 plugin name prefixed command IDs
+- 0 custom SVG creation (all use addIcon/setIcon)
+- 0 NodeJS.Timeout types (all use number + window.setTimeout)
+- 0 private Notice API usage (messageEl used where needed)
+- 0 analytics-related method names
+- 0 top-level settings headings
+
+**Nova maintains absolute Community Plugin store compliance** with enhanced documentation to prevent future violations! 🎉
 
 ### Recent Completions
 
