@@ -1,4 +1,4 @@
-import { ButtonComponent, TextAreaComponent, Notice } from 'obsidian';
+import { ButtonComponent, TextAreaComponent, Notice, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
 import { CommandSystem } from './command-system';
@@ -275,33 +275,8 @@ export class InputHandler {
 			const icon = document.createElement('div');
 			icon.className = 'nova-drop-icon-svg';
 			
-			// Create SVG element for plus icon
-			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			svg.setAttribute('width', '24');
-			svg.setAttribute('height', '24');
-			svg.setAttribute('viewBox', '0 0 24 24');
-			svg.setAttribute('fill', 'none');
-			svg.setAttribute('stroke', 'currentColor');
-			svg.setAttribute('stroke-width', '2');
-			svg.setAttribute('stroke-linecap', 'round');
-			svg.setAttribute('stroke-linejoin', 'round');
-			
-			// Create lines for plus icon
-			const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line1.setAttribute('x1', '12');
-			line1.setAttribute('y1', '5');
-			line1.setAttribute('x2', '12');
-			line1.setAttribute('y2', '19');
-			
-			const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-			line2.setAttribute('x1', '5');
-			line2.setAttribute('y1', '12');
-			line2.setAttribute('x2', '19');
-			line2.setAttribute('y2', '12');
-			
-			svg.appendChild(line1);
-			svg.appendChild(line2);
-			icon.appendChild(svg);
+			// Use Obsidian's built-in plus icon
+			setIcon(icon, 'plus');
 
 			iconContainer.appendChild(icon);
 			this.dropZoneOverlay.appendChild(iconContainer);

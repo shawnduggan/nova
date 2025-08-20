@@ -110,7 +110,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
 - **COMPLETED**: #14 Using fetch instead of requestUrl - Use Obsidian's requestUrl function for CORS handling
 - **COMPLETED**: #15 DeferredView handling - Properly handle deferred views introduced in v1.7.2
-- **PENDING**: #16 Custom SVG icons - Use addIcon and setIcon instead of creating SVG elements manually
+- **COMPLETED**: #16 Custom SVG icons - Use addIcon and setIcon instead of creating SVG elements manually
 - **COMPLETED**: #17 Ad placement - Don't show ads at top of every settings tab; limit to one tab at bottom
 - **COMPLETED**: #29 Analytics collection - Remove analytics collection per Developer Policies
 
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #16 - Custom SVG icons replaced with proper Obsidian icon API
+- Registered Nova custom icons (nova-star, nova-supernova) using addIcon() in main.ts
+- Replaced all manual SVG creation with setIcon() calls in settings.ts, sidebar-view.ts, input-handler.ts
+- Updated icon system to use Obsidian's built-in icons: zap→zap, refresh-cw→sync, book-open→book-open, more-horizontal→more-horizontal, x-circle→cross-in-box
+- Eliminated all document.createElementNS() SVG creation, innerHTML SVG strings, and custom SVG fallbacks
+- All 481 tests pass, build succeeds with 0 errors, fully compliant with Obsidian plugin guidelines
 
 **COMPLETED**: Task #15 & #20 - DeferredView handling and deprecated activeLeaf fixed
 - Replaced deprecated `activeLeaf` property usage with proper `getActiveViewOfType(MarkdownView)` API

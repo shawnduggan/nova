@@ -9,23 +9,6 @@ import { GoogleProvider } from './ai/providers/google';
 import { OllamaProvider } from './ai/providers/ollama';
 import { Logger } from './utils/logger';
 
-const NOVA_ICON_SVG = `
-<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Central star core -->
-  <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-  
-  <!-- Primary rays (4 main directions) -->
-  <path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-  <path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-  <path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-  <path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-  
-  <!-- Secondary rays (diagonals) -->
-  <path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-</svg>`;
 
 export interface CustomCommand {
 	id: string;
@@ -811,46 +794,13 @@ export class NovaSettingTab extends PluginSettingTab {
 			// Badge icons are emoji strings, use textContent
 			statusIcon.textContent = badge.icon;
 		} else if (isSupernova) {
-			// Create supernova SVG icon using DOM API
-			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			svg.setAttribute('viewBox', '0 0 24 24');
-			svg.classList.add('nova-supernova-icon');
-			
-			// Create supernova paths
-			const elements = [
-				{ tag: 'circle', attrs: { cx: '12', cy: '12', r: '2.5', fill: 'currentColor' } },
-				{ tag: 'path', attrs: { d: 'M12 1L12 6', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M12 18L12 23', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M23 12L18 12', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M6 12L1 12', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M18.364 5.636L15.536 8.464', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M8.464 15.536L5.636 18.364', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M18.364 18.364L15.536 15.536', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } },
-				{ tag: 'path', attrs: { d: 'M8.464 8.464L5.636 5.636', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' } }
-			];
-			
-			elements.forEach(el => {
-				const element = document.createElementNS('http://www.w3.org/2000/svg', el.tag);
-				Object.entries(el.attrs).forEach(([key, value]) => element.setAttribute(key, value));
-				svg.appendChild(element);
-			});
-			statusIcon.appendChild(svg);
+			// Use Obsidian's registered supernova icon
+			statusIcon.classList.add('nova-supernova-icon');
+			setIcon(statusIcon, 'nova-supernova');
 		} else {
-			// Create Nova icon using DOM API - parse NOVA_ICON_SVG constant
-			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-			svg.setAttribute('viewBox', '0 0 24 24');
-			svg.setAttribute('fill', 'none');
-			svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-			svg.classList.add('nova-icon');
-			// Parse the SVG string and copy its children to our SVG element
-			const parser = new DOMParser();
-			const parsedSvg = parser.parseFromString(NOVA_ICON_SVG, 'image/svg+xml');
-			const sourceElements = parsedSvg.documentElement.children;
-			for (let i = 0; i < sourceElements.length; i++) {
-				const clonedElement = sourceElements[i].cloneNode(true);
-				svg.appendChild(clonedElement);
-			}
-			statusIcon.appendChild(svg);
+			// Use Obsidian's registered Nova icon
+			statusIcon.classList.add('nova-icon');
+			setIcon(statusIcon, 'nova-star');
 		}
 		
 		// Create status name
@@ -1605,19 +1555,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Nova logo and title
 		const headerDiv = welcomeSection.createDiv({ cls: 'nova-welcome-header' });
 		const logoDiv = headerDiv.createDiv({ cls: 'nova-welcome-logo' });
-		const logoSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-		logoSvg.setAttribute('viewBox', '0 0 24 24');
-		logoSvg.setAttribute('fill', 'none');
-		logoSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-		// Parse the SVG string and copy its children to our SVG element
-		const parser = new DOMParser();
-		const parsedSvg = parser.parseFromString(NOVA_ICON_SVG, 'image/svg+xml');
-		const sourceElements = parsedSvg.documentElement.children;
-		for (let i = 0; i < sourceElements.length; i++) {
-			const clonedElement = sourceElements[i].cloneNode(true);
-			logoSvg.appendChild(clonedElement);
-		}
-		logoDiv.appendChild(logoSvg);
+		// Use Obsidian's registered Nova icon for welcome logo
+		setIcon(logoDiv, 'nova-star');
 		
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
 		contentDiv.createEl('h2', { text: 'Welcome to Nova' });

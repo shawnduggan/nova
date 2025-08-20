@@ -22,6 +22,7 @@ import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
 import { Logger } from './src/utils/logger';
 
+// Nova icon - main plugin icon
 const NOVA_ICON_SVG = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Central star core -->
@@ -34,6 +35,20 @@ const NOVA_ICON_SVG = `
   <path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
   
   <!-- Secondary rays (diagonals) -->
+  <path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`;
+
+// Supernova icon - enhanced version for pro users  
+const SUPERNOVA_ICON_SVG = `
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+  <path d="M12 1L12 6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M12 18L12 23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M23 12L18 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M6 12L1 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
   <path d="M18.364 5.636L15.536 8.464" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
   <path d="M8.464 15.536L5.636 18.364" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
   <path d="M18.364 18.364L15.536 15.536" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -92,8 +107,9 @@ export default class NovaPlugin extends Plugin {
 			// Note: Mobile access restrictions are now handled in sidebar UI
 			// This allows Core mobile users to see the upgrade interface rather than a broken plugin
 
-			// Register custom icon
+			// Register Nova custom icons with Obsidian
 			addIcon('nova-star', NOVA_ICON_SVG);
+			addIcon('nova-supernova', SUPERNOVA_ICON_SVG);
 
 			this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
 			await this.aiProviderManager.initialize();

@@ -2491,65 +2491,30 @@ USER REQUEST: ${processedMessage}`;
 	 * Get Obsidian-style icon SVG
 	 */
 	private getObsidianIcon(iconName: string, size: string = '14px'): string {
-		const sizeClass = `nova-inline-icon size-${size}`;
-		const icons: Record<string, string> = {
-			'zap': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'refresh-cw': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M3 12A9 9 0 0 0 21 12A9 9 0 0 0 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M21 12L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M21 12L17 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'edit': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M11 4H4A2 2 0 0 0 2 6V20A2 2 0 0 0 4 22H18A2 2 0 0 0 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M18.5 2.5A2.12 2.12 0 0 1 21 5L12 14L8 15L9 11L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'help-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-				<path d="M9.09 9A3 3 0 0 1 12 6A3 3 0 0 1 15 9C15 10.5 12 11 12 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<circle cx="12" cy="17" r="1" fill="currentColor"/>
-			</svg>`,
-			'book-open': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M2 3H8A4 4 0 0 1 12 7A4 4 0 0 1 16 3H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M2 3V19A2 2 0 0 0 4 21H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M22 3V19A2 2 0 0 1 20 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M12 7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'more-horizontal': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<circle cx="12" cy="12" r="1" fill="currentColor"/>
-				<circle cx="19" cy="12" r="1" fill="currentColor"/>
-				<circle cx="5" cy="12" r="1" fill="currentColor"/>
-			</svg>`,
-			'file-text': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'x': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'check-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-				<path d="M9 12L11 14L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'x-circle': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-				<path d="M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`,
-			'trash-2': `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="${sizeClass}">
-				<path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M8 6V4A2 2 0 0 1 10 2H14A2 2 0 0 1 16 4V6M19 6V20A2 2 0 0 1 17 22H7A2 2 0 0 1 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M10 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>`
+		// Create a temporary container to use setIcon and extract the SVG
+		const tempContainer = document.createElement('div');
+		tempContainer.className = `nova-inline-icon size-${size}`;
+		
+		// Map ALL icons to Obsidian's built-in icons - no custom SVG fallbacks
+		const obsidianIconMap: Record<string, string> = {
+			'edit': 'edit',
+			'help-circle': 'help-circle', 
+			'file-text': 'file-text',
+			'x': 'cross',
+			'trash-2': 'trash',
+			'check-circle': 'check-circle',
+			'alert-circle': 'alert-circle',
+			'zap': 'zap', // Use Obsidian's built-in zap icon
+			'refresh-cw': 'sync', // Map to Obsidian's sync icon
+			'book-open': 'book-open', // Use Obsidian's built-in book-open
+			'more-horizontal': 'more-horizontal', // Use Obsidian's built-in
+			'x-circle': 'cross-in-box' // Map to closest Obsidian equivalent
 		};
 		
-		return icons[iconName] || icons['help-circle']; // Fallback to help-circle if icon not found
+		// Use Obsidian's built-in icons for everything
+		const obsidianIconName = obsidianIconMap[iconName] || 'help-circle'; // Default fallback
+		setIcon(tempContainer, obsidianIconName);
+		return tempContainer.innerHTML;
 	}
 
 	/**
