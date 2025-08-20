@@ -109,7 +109,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #12 Incorrect text casing - Use sentence case in UI instead of title case
 - **COMPLETED**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
 - **COMPLETED**: #14 Using fetch instead of requestUrl - Use Obsidian's requestUrl function for CORS handling
-- **PENDING**: #15 DeferredView handling - Properly handle deferred views introduced in v1.7.2
+- **COMPLETED**: #15 DeferredView handling - Properly handle deferred views introduced in v1.7.2
 - **PENDING**: #16 Custom SVG icons - Use addIcon and setIcon instead of creating SVG elements manually
 - **COMPLETED**: #17 Ad placement - Don't show ads at top of every settings tab; limit to one tab at bottom
 - **COMPLETED**: #29 Analytics collection - Remove analytics collection per Developer Policies
@@ -118,7 +118,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 
 - **PENDING**: #18 Iterating all files inefficiently - Avoid getMarkdownFiles() to find files by path
 - **PENDING**: #19 File path resolution - Use Vault.getFileByPath instead of multiple getAbstractFileByPath attempts
-- **PENDING**: #20 Deprecated activeLeaf - Use Workspace.getActiveViewOfType or getLeaf instead
+- **COMPLETED**: #20 Deprecated activeLeaf - Use Workspace.getActiveViewOfType or getLeaf instead
 - **PENDING**: #21 Unnecessary multiple saves - Remove redundant saveData() calls
 - **PENDING**: #22 Unobfuscated license key - Properly obfuscate license signing key as claimed
 - **PENDING**: #23 Incorrect heading regex - Use MetadataCache instead of regex with false positives
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #15 & #20 - DeferredView handling and deprecated activeLeaf fixed
+- Replaced deprecated `activeLeaf` property usage with proper `getActiveViewOfType(MarkdownView)` API
+- Added proper deferred view handling for Obsidian v1.7.2+ with `isDeferred` and `loadIfDeferred` checks
+- Improved active file detection with graceful fallbacks: active view → deferred view loading → any markdown file
+- Enhanced `loadConversationForActiveFile()` method to handle all view states properly
+- All 481 tests pass, build succeeds with 0 errors, addresses Obsidian compliance requirements
 
 **COMPLETED**: Task #29 - Analytics collection references removed
 - Renamed misleading `trackIntentUsage` method to `recordIntentForState` for clarity

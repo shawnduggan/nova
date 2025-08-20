@@ -1531,18 +1531,40 @@ USER REQUEST: ${processedMessage}`;
 		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
 		this.currentFileLoadOperation = operationId;
 		
-		// If no active file, try to find the currently active leaf's file
+		// If no active file, try to find the currently active view's file
 		let targetFile = activeFile;
 		if (!targetFile) {
-			const activeLeaf = this.app.workspace.activeLeaf;
-			if (activeLeaf && activeLeaf.view instanceof MarkdownView) {
-				targetFile = activeLeaf.view.file;
+			// Use recommended API for getting active markdown view
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView && activeView.file) {
+				targetFile = activeView.file;
 			} else {
-				// Fall back to any open markdown file only if no active leaf
-				const leaves = this.app.workspace.getLeavesOfType('markdown');
-				if (leaves.length > 0) {
-					const view = leaves[0].view as MarkdownView;
-					targetFile = view.file;
+				// Handle potentially deferred views (introduced in v1.7.2)
+				const activeLeaf = this.app.workspace.activeLeaf;
+				if (activeLeaf && activeLeaf.view?.getViewType() === 'markdown') {
+					// Check if leaf is deferred and load if needed
+					if ('isDeferred' in activeLeaf && activeLeaf.isDeferred && 'loadIfDeferred' in activeLeaf) {
+						try {
+							await (activeLeaf as any).loadIfDeferred();
+						} catch (error) {
+							// Continue with fallback if deferred loading fails
+						}
+					}
+					const view = activeLeaf.view as MarkdownView;
+					if (view && view.file) {
+						targetFile = view.file;
+					}
+				}
+				
+				// Final fallback: any open markdown file
+				if (!targetFile) {
+					const leaves = this.app.workspace.getLeavesOfType('markdown');
+					if (leaves.length > 0) {
+						const view = leaves[0].view as MarkdownView;
+						if (view && view.file) {
+							targetFile = view.file;
+						}
+					}
 				}
 			}
 		}
