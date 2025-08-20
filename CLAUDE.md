@@ -128,7 +128,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 **Phase 3: RECOMMENDED - UI/UX Guidelines**
 
 - **COMPLETED**: #27 License messages as notices - Use appropriate UI for license messages instead of notices
-- **PENDING**: #28 Custom dropdown implementation - Use DropdownComponent instead of custom dropdown
+- **COMPLETED**: #28 Custom dropdown implementation - Use DropdownComponent instead of custom dropdown
 
 **Phase 4: OPTIONAL - Code Quality**
 
@@ -143,6 +143,19 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #28 - Custom dropdown implementation replaced with Obsidian's DropdownComponent API
+- Replaced complex custom dropdown in sidebar-view.ts (200+ lines) with simple DropdownComponent implementation
+- Removed populateProviderDropdown and createModelDropdownItem methods with manual DOM manipulation
+- Updated provider switching logic to use DropdownComponent's onChange callback
+- Used native HTML optgroups to maintain provider grouping in dropdown
+- Eliminated custom click handling, state management, and event listeners for dropdown behavior
+- Added professional button styling with background, border, padding, and hover/focus states
+- Implemented custom dropdown arrow with SVG icon and theme-aware colors (#333 light, #ccc dark)
+- Enhanced visual appearance with proper spacing, transitions, and mobile responsiveness
+- Cleaned up all unused CSS classes and broken styles from old custom dropdown implementation
+- All 491 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #28
+- Provider switching functionality preserved with proper native select behavior and improved UX
 
 **COMPLETED**: Task #27 - License messages as notices replaced with appropriate UI components and dead code cleanup
 - Removed inappropriate `new Notice()` usage for mobile license upgrade message in main.ts:532

@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition, DropdownComponent } from 'obsidian';
 import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
 import { EditCommand, EditResult } from '../core/types';
@@ -37,6 +37,7 @@ export class NovaSidebarView extends ItemView {
 	public chatRenderer!: ChatRenderer;
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
+	private providerDropdown: DropdownComponent | null = null;
 	
 	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
@@ -63,7 +64,6 @@ export class NovaSidebarView extends ItemView {
 	private commandMenu!: HTMLElement;
 	private commandButton!: ButtonComponent;
 	private privacyIndicator?: HTMLElement;
-	private currentProviderDropdown?: { cleanup?: () => void };
 	
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
@@ -264,10 +264,8 @@ export class NovaSidebarView extends ItemView {
 
 	async onClose() {
 		// Clean up provider dropdown event listener
-		// TODO: Replace with proper class property in future refactor
-		if (this.currentProviderDropdown?.cleanup) {
-			this.currentProviderDropdown.cleanup();
-		}
+		// Cleanup dropdown component (handled by Obsidian)
+		this.providerDropdown = null;
 		
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
@@ -2093,117 +2091,128 @@ USER REQUEST: ${processedMessage}`;
 		// Update send button state
 		this.updateSendButtonState();
 
-		// Update dropdown provider name if it exists
-		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
-			await (this as any).currentProviderDropdown.updateCurrentProvider();
+		// Update provider dropdown display
+		await this.refreshProviderDropdown();
+	}
+
+	/**
+	 * Create provider dropdown using Obsidian's DropdownComponent API
+	 */
+	private async createProviderDropdown(container: HTMLElement): Promise<void> {
+		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
+		
+		// Create dropdown using Obsidian's DropdownComponent
+		this.providerDropdown = new DropdownComponent(dropdownContainer);
+		this.providerDropdown.selectEl.addClass('nova-provider-dropdown-select');
+		
+		// Populate options and set current selection
+		await this.updateProviderOptions();
+		
+		// Handle provider/model changes
+		this.providerDropdown.onChange(async (value) => {
+			await this.switchProviderModel(value);
+		});
+	}
+
+	/**
+	 * Update provider dropdown options with optgroups
+	 */
+	private async updateProviderOptions(): Promise<void> {
+		if (!this.providerDropdown) return;
+
+		const currentProvider = await this.plugin.aiProviderManager.getCurrentProviderType();
+		const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+		
+		// Clear existing options
+		this.providerDropdown.selectEl.empty();
+		
+		// Get all providers with availability status
+		const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
+		
+		for (const [providerType, isAvailable] of providerAvailability) {
+			if (providerType === 'none' || !isAvailable) continue;
+			
+			// Check if provider has API key configured
+			const providers = this.plugin.settings.aiProviders as Record<string, any>;
+			const hasApiKey = providers[providerType]?.apiKey;
+			if (!hasApiKey && providerType !== 'ollama') continue;
+			
+			// Check if provider is connected
+			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const providerStatus = providerConfig?.status;
+			if (!providerStatus || providerStatus.state !== 'connected') continue;
+			
+			const models = this.getAvailableModels(providerType);
+			const providerDisplayName = this.getProviderDisplayName(providerType);
+			
+			// Skip providers with no models (except Ollama)
+			if (models.length === 0 && providerType !== 'ollama') continue;
+			
+			// Create optgroup for this provider
+			const group = this.providerDropdown.selectEl.createEl('optgroup');
+			group.label = providerDisplayName;
+			
+			if (models.length === 0) {
+				// Provider without specific models (like Ollama)
+				const option = group.createEl('option');
+				option.value = `${providerType}-${providers[providerType]?.model || providerDisplayName}`;
+				option.textContent = providers[providerType]?.model || providerDisplayName;
+			} else {
+				// Provider with specific models
+				for (const model of models) {
+					const option = group.createEl('option');
+					option.value = `${providerType}-${model.value}`;
+					option.textContent = model.label;
+				}
+			}
+		}
+		
+		// Set current selection based on provider and model
+		if (currentProvider && currentModel) {
+			const currentKey = `${currentProvider}-${currentModel}`;
+			this.providerDropdown.setValue(currentKey);
 		}
 	}
 
 	/**
-	 * Create provider dropdown for all users with their own API keys
+	 * Switch provider and model based on dropdown selection
 	 */
-	private async createProviderDropdown(container: HTMLElement): Promise<void> {
-		const isMobile = Platform.isMobile;
-		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
-		dropdownContainer.addClass('nova-provider-dropdown-container');
-
-		// Current provider button
-		const providerButton = dropdownContainer.createEl('button', { cls: 'nova-provider-button' });
-		providerButton.addClass('nova-provider-button');
-		if (isMobile) {
-			providerButton.addClass('is-mobile');
-		}
-
-		// Provider name - start with a placeholder to prevent "II" display
-		const providerName = providerButton.createSpan({ text: 'Loading...', cls: 'nova-provider-name' });
-
-		// Dropdown arrow
-		const dropdownArrow = providerButton.createSpan({ text: '▼' });
-		dropdownArrow.addClass('nova-dropdown-arrow');
-
-		// Dropdown menu (initially hidden)
-		const dropdownMenu = dropdownContainer.createDiv({ cls: 'nova-provider-dropdown-menu' });
-		dropdownMenu.addClass('nova-dropdown-menu', 'hidden');
-
-		let isDropdownOpen = false;
-
-		// Update current model display (optimized for speed)
-		const updateCurrentProvider = () => {
-			try {
-				// Get the currently selected model synchronously
-				const currentModel = this.plugin.aiProviderManager.getCurrentModel();
-				
-				if (currentModel) {
-					// Get provider type directly from model name (no async needed)
-					const providerType = getProviderTypeForModel(currentModel, this.plugin.settings);
-					if (providerType) {
-						const displayText = this.getModelDisplayName(providerType, currentModel);
-						
-						providerName.setText(displayText);
-					} else {
-						// Unknown provider, use raw model name
-						providerName.setText(currentModel);
-					}
-				} else {
-					// No model selected, show fallback
-					providerName.setText('Select Model');
-				}
-			} catch (error) {
-				Logger.error('Error updating model display:', error);
-				providerName.setText('Select Model');
-			}
-		};
-
-		// Toggle dropdown
-		const toggleDropdown = () => {
-			isDropdownOpen = !isDropdownOpen;
-			if (isDropdownOpen) {
-				dropdownMenu.removeClass('hidden');
-				dropdownArrow.addClass('rotated');
-			} else {
-				dropdownMenu.addClass('hidden');
-				dropdownArrow.removeClass('rotated');
-			}
+	private async switchProviderModel(providerModelKey: string): Promise<void> {
+		try {
+			// Parse provider-model key (e.g., "claude-claude-3-5-sonnet-20241022")
+			const parts = providerModelKey.split('-');
+			if (parts.length < 2) return;
 			
-			if (isDropdownOpen) {
-				this.populateProviderDropdown(dropdownMenu);
-			}
-		};
+			const provider = parts[0]; // e.g., "claude"
+			const model = parts.slice(1).join('-'); // e.g., "claude-3-5-sonnet-20241022"
+			
+			// Set user-initiated flag to prevent spurious success messages
+			this.isUserInitiatedProviderChange = true;
+			
+			// Update the model in settings
+			await this.plugin.settingTab.setCurrentModel(model);
+			await this.plugin.saveSettings();
+			
+			// Show success message
+			const displayName = this.getModelDisplayName(provider, model);
+			this.addSuccessMessage(`✓ Switched to ${displayName}`);
+			
+		} catch (error) {
+			Logger.error('Error switching provider/model:', error);
+			this.addErrorMessage('❌ Failed to switch provider/model');
+		} finally {
+			// Reset flag
+			this.isUserInitiatedProviderChange = false;
+		}
+	}
 
-		// Close dropdown when clicking outside
-		const closeDropdown: EventListener = (event: Event) => {
-			if (!dropdownContainer.contains(event.target as Node)) {
-				isDropdownOpen = false;
-				dropdownMenu.addClass('hidden');
-				dropdownArrow.removeClass('rotated');
-			}
-		};
-
-		// Close dropdown helper function for internal use
-		const closeDropdownInternal = () => {
-			isDropdownOpen = false;
-			dropdownMenu.addClass('hidden');
-			dropdownArrow.removeClass('rotated');
-		};
-
-		providerButton.addEventListener('click', (e) => {
-			e.stopPropagation();
-			toggleDropdown();
-		});
-
-		// Add global click listener
-		this.addTrackedEventListener(document, 'click', closeDropdown);
-
-		// Update model name immediately (no async needed)
-		updateCurrentProvider();
-
-		// Store reference for cleanup and internal dropdown control
-		// TODO: Replace with proper class property and interface definition
-		(this as any).currentProviderDropdown = {
-			updateCurrentProvider,
-			closeDropdown: closeDropdownInternal,
-			cleanup: () => document.removeEventListener('click', closeDropdown)
-		};
+	/**
+	 * Refresh provider dropdown display
+	 */
+	private async refreshProviderDropdown(): Promise<void> {
+		if (this.providerDropdown) {
+			await this.updateProviderOptions();
+		}
 	}
 
 	/**
@@ -2295,174 +2304,6 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error switching model:', error);
 			this.addErrorMessage('Failed to switch model');
 		}
-	}
-
-	/**
-	 * Populate provider dropdown with grouped models and section headers
-	 */
-	private async populateProviderDropdown(dropdownMenu: HTMLElement): Promise<void> {
-		dropdownMenu.empty();
-
-		// Show loading state
-		const loadingItem = dropdownMenu.createDiv({ cls: 'nova-dropdown-loading' });
-		loadingItem.addClass('nova-dropdown-loading');
-		loadingItem.setText('Loading providers...');
-
-		try {
-			// Get all providers in parallel with availability status
-			const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
-			const currentModel = this.plugin.aiProviderManager.getCurrentModel();
-			const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-
-			// Clear loading state
-			dropdownMenu.empty();
-
-			// Group models by provider with section headers
-			let hasAnyProviders = false;
-			
-			for (const [providerType, isAvailable] of providerAvailability) {
-				if (providerType === 'none' || !isAvailable) continue;
-
-				// Check if provider has API key configured
-				const providers = this.plugin.settings.aiProviders as Record<string, any>;
-				const hasApiKey = providers[providerType]?.apiKey;
-				if (!hasApiKey && providerType !== 'ollama') continue;
-				
-				// Check if provider has been successfully tested
-				const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
-				const providerStatus = providerConfig?.status;
-				if (!providerStatus || providerStatus.state !== 'connected') continue;
-
-				const models = this.getAvailableModels(providerType);
-				const providerDisplayName = this.getProviderDisplayName(providerType);
-				const providerColor = this.getProviderColor(providerType);
-
-				// Skip providers with no models
-				if (models.length === 0 && providerType !== 'ollama') continue;
-
-				// Add provider section header
-				if (hasAnyProviders) {
-					// Add separator between provider sections
-					const separator = dropdownMenu.createDiv({ cls: 'nova-provider-separator' });
-					separator.addClass('nova-dropdown-separator');
-				}
-
-				const sectionHeader = dropdownMenu.createDiv({ cls: 'nova-provider-section-header' });
-				sectionHeader.addClass('nova-dropdown-section-header');
-
-				// Provider color dot in header
-				const headerDot = sectionHeader.createSpan();
-				headerDot.addClass('nova-dropdown-section-dot');
-				headerDot.setAttribute('data-provider', providerType.toLowerCase());
-
-				sectionHeader.createSpan({ text: providerDisplayName });
-				hasAnyProviders = true;
-
-				if (models.length === 0) {
-					// Provider without specific models (like Ollama)
-					this.createModelDropdownItem(
-						dropdownMenu,
-						providerType,
-						providers[providerType]?.model || providerDisplayName,
-						providerDisplayName,
-						providerColor,
-						currentProviderType === providerType,
-						currentModel
-					);
-				} else {
-					// Provider with specific models
-					for (const model of models) {
-						const isCurrentSelection = currentProviderType === providerType && model.value === currentModel;
-						
-						this.createModelDropdownItem(
-							dropdownMenu,
-							providerType,
-							model.value,
-							model.label,
-							providerColor,
-							isCurrentSelection,
-							currentModel
-						);
-					}
-				}
-			}
-
-			// If no providers available, show message
-			if (!hasAnyProviders) {
-				const noProvidersItem = dropdownMenu.createDiv();
-				noProvidersItem.addClass('nova-dropdown-no-providers');
-				noProvidersItem.setText('None configured');
-			}
-
-		} catch (error) {
-			Logger.error('Error populating provider dropdown:', error);
-			dropdownMenu.empty();
-			const errorItem = dropdownMenu.createDiv();
-			errorItem.addClass('nova-dropdown-error');
-			errorItem.setText('Error loading providers');
-		}
-	}
-
-	/**
-	 * Create a single model dropdown item (just model name, no provider prefix)
-	 */
-	private createModelDropdownItem(
-		container: HTMLElement,
-		providerType: string,
-		modelValue: string,
-		modelDisplayName: string,
-		providerColor: string,
-		isCurrent: boolean,
-		_currentModel: string
-	): void {
-		const item = container.createDiv({ cls: 'nova-model-dropdown-item' });
-		if (Platform.isMobile) {
-			item.addClass('is-mobile');
-		}
-		if (isCurrent) {
-			item.addClass('is-current-model');
-		}
-
-		// Provider color indicator (smaller dot)
-		const dot = item.createSpan();
-		dot.addClass('nova-dropdown-item-dot');
-		dot.setAttribute('data-provider', providerType.toLowerCase());
-
-		// Model name only (no provider prefix)
-		const textSpan = item.createSpan({ text: modelDisplayName });
-		textSpan.addClass('nova-dropdown-item-text');
-
-		// Current selection indicator
-		if (isCurrent) {
-			const checkmark = item.createSpan({ text: '✓' });
-			checkmark.addClass('nova-dropdown-item-checkmark');
-		}
-
-		// Click handler for single-click selection
-		item.addEventListener('click', (e) => {
-			e.stopPropagation();
-			
-			if (!isCurrent) {
-				try {
-					// Switch model immediately (no await needed)
-					this.switchToModel(providerType, modelValue || this.getCurrentModel(providerType));
-					
-					// Close dropdown immediately
-					if ((this as any).currentProviderDropdown?.closeDropdown) {
-						(this as any).currentProviderDropdown.closeDropdown();
-					}
-					
-					// Update display immediately
-					if ((this as any).currentProviderDropdown) {
-						(this as any).currentProviderDropdown.updateCurrentProvider();
-					}
-				} catch (error) {
-					Logger.error('Error switching provider/model:', error);
-				}
-			}
-		});
-
-		// Hover effects are handled by CSS
 	}
 
 	/**
@@ -2593,13 +2434,11 @@ USER REQUEST: ${processedMessage}`;
 	 * Handle provider configuration events
 	 */
 	private handleProviderConfigured = async (_event: Event) => {
-		// Update current provider display text
-		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
-			try {
-				(this as any).currentProviderDropdown.updateCurrentProvider();
-			} catch (error) {
-				Logger.error('❌ Failed to update provider display after configuration:', error);
-			}
+		// Update provider dropdown display
+		try {
+			await this.refreshProviderDropdown();
+		} catch (error) {
+			Logger.error('❌ Failed to update provider display after configuration:', error);
 		}
 		
 		// Update privacy indicator
@@ -2607,11 +2446,8 @@ USER REQUEST: ${processedMessage}`;
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
-		// If dropdown is currently open, refresh the available models
-		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
-		if (dropdownMenu && !dropdownMenu.hasClass('hidden')) {
-			this.populateProviderDropdown(dropdownMenu);
-		}
+		// Refresh the provider dropdown options
+		await this.refreshProviderDropdown();
 	}
 
 	/**
@@ -2642,13 +2478,11 @@ USER REQUEST: ${processedMessage}`;
 			}
 		}
 		
-		// Update display regardless (in case dropdown was open)
-		if ((this as any).currentProviderDropdown?.updateCurrentProvider) {
-			try {
-				(this as any).currentProviderDropdown.updateCurrentProvider();
-			} catch (error) {
-				Logger.error('❌ Failed to update provider display after disconnection:', error);
-			}
+		// Update dropdown display
+		try {
+			await this.refreshProviderDropdown();
+		} catch (error) {
+			Logger.error('❌ Failed to update provider display after disconnection:', error);
 		}
 		
 		// Update privacy indicator
@@ -2656,11 +2490,8 @@ USER REQUEST: ${processedMessage}`;
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
-		// If dropdown is currently open, refresh the available models
-		const dropdownMenu = this.containerEl.querySelector('.nova-provider-dropdown-menu') as HTMLElement;
-		if (dropdownMenu && !dropdownMenu.hasClass('hidden')) {
-			this.populateProviderDropdown(dropdownMenu);
-		}
+		// Refresh the provider dropdown options
+		await this.refreshProviderDropdown();
 	}
 
 	/**

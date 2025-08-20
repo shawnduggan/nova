@@ -1945,32 +1945,9 @@
     position: relative;
 }
 
-.nova-provider-button {
-    display: flex;
-    align-items: center;
-    gap: 4px; /* Increased gap for better alignment */
-    padding: 4px 8px; /* Increased padding for better visual balance */
-    font-size: 0.75em; /* Slightly larger text for better readability */
-    color: var(--text-muted);
-    background: var(--background-modifier-hover);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-xs);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    height: 24px; /* Consistent height with other header elements */
-    box-sizing: border-box; /* Ensure padding is included in height */
-}
 
-.nova-provider-button:hover {
-    background: var(--background-modifier-border-hover);
-}
 
 /* Mobile-specific provider button sizing */
-.is-mobile .nova-provider-button {
-    min-height: 32px; /* Reduced from 44px */
-    padding: 4px 8px; /* Much smaller padding */
-    font-size: 0.7em; /* Smaller text */
-}
 
 .nova-provider-dropdown-menu {
     position: absolute;
@@ -3092,219 +3069,25 @@
     gap: var(--size-2-2);
 }
 
-.nova-provider-button {
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
-    color: var(--text-normal);
-    cursor: pointer;
-    border-radius: var(--radius-s);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-    font-size: var(--font-ui-medium);
-    font-weight: 500;
-    min-width: 120px;
-    justify-content: space-between;
-}
 
-.nova-provider-button:not(.is-mobile) {
-    padding: var(--size-2-2) var(--size-2-3);
-    min-height: auto;
-}
 
-.is-mobile .nova-provider-button {
-    padding: var(--size-2-3) var(--size-2-4);
-    min-height: 44px;
-}
 
-.nova-provider-button:hover {
-    background: var(--background-modifier-hover);
-    border-color: var(--interactive-accent);
-}
 
-.nova-dropdown-arrow {
-    width: 12px;
-    height: 12px;
-    transition: transform 0.2s ease;
-    flex-shrink: 0;
-}
 
-.nova-dropdown-arrow.rotated {
-    transform: rotate(180deg);
-}
 
-.nova-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: auto;
-    right: 0;
-    min-width: 250px;
-    background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-    box-shadow: var(--shadow-s);
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-    margin-top: var(--size-2-1);
-}
 
-.nova-dropdown-menu.hidden {
-    display: none;
-}
 
-.nova-dropdown-menu.visible {
-    display: block;
-}
 
-.nova-dropdown-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--size-2-3);
-    color: var(--text-muted);
-    font-size: var(--font-ui-smaller);
-}
 
-.nova-dropdown-separator {
-    height: 1px;
-    background: var(--background-modifier-border);
-    margin: var(--size-2-1) 0;
-}
 
-.nova-dropdown-section-header {
-    padding: var(--size-2-2) var(--size-2-3);
-    font-size: var(--font-ui-small);
-    font-weight: 600;
-    color: var(--text-muted);
-    background: var(--background-modifier-form-field);
-    border-bottom: 1px solid var(--background-modifier-border);
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-}
 
-.nova-dropdown-section-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
 
-.nova-dropdown-no-providers {
-    padding: var(--size-2-3);
-    text-align: center;
-    color: var(--text-muted);
-    font-size: var(--font-ui-smaller);
-    font-style: italic;
-}
 
-.nova-dropdown-error {
-    padding: var(--size-2-3);
-    text-align: center;
-    color: var(--text-error);
-    font-size: var(--font-ui-smaller);
-    background: var(--background-modifier-error-hover);
-    border-radius: var(--radius-xs);
-    margin: var(--size-2-1);
-}
 
-.nova-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-    cursor: pointer;
-    transition: background-color 0.1s ease;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    font-size: 0.85em; /* Match other dropdown items for consistency */
-    white-space: nowrap;
-}
 
-.nova-dropdown-item:not(.is-mobile) {
-    padding: var(--size-2-2) var(--size-2-3);
-    min-height: 32px; /* Consistent height with provider dropdown items */
-}
 
-.is-mobile .nova-dropdown-item {
-    padding: var(--size-2-3) var(--size-2-4);
-    min-height: 44px;
-}
 
-.nova-dropdown-item:hover {
-    background: var(--background-modifier-border-hover);
-}
 
-.nova-dropdown-item-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-/* Provider color coding */
-.nova-dropdown-item-dot[data-provider="claude"],
-.nova-dropdown-section-dot[data-provider="claude"] { background-color: #e17055; }
-.nova-dropdown-item-dot[data-provider="openai"],
-.nova-dropdown-section-dot[data-provider="openai"] { background-color: #10a37f; }
-.nova-dropdown-item-dot[data-provider="google"],
-.nova-dropdown-section-dot[data-provider="google"] { background-color: #4285f4; }
-.nova-dropdown-item-dot[data-provider="ollama"],
-.nova-dropdown-section-dot[data-provider="ollama"] { background-color: #ff6b35; }
-
-.nova-dropdown-item-text {
-    flex: 1;
-    font-weight: 500;
-    color: var(--text-normal);
-}
-
-.nova-dropdown-item-checkmark {
-    width: 16px;
-    height: 16px;
-    color: var(--interactive-accent);
-    flex-shrink: 0;
-}
-
-/* Current model highlighting */
-.nova-dropdown-item.is-current-model {
-    background: var(--background-modifier-hover);
-}
-
-/* Model dropdown item styling */
-.nova-model-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-    padding: var(--size-2-2) var(--size-2-3);
-    cursor: pointer;
-    transition: background-color 0.1s ease;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    font-size: var(--font-ui-smaller);
-    white-space: nowrap;
-}
-
-.nova-model-dropdown-item:hover {
-    background: var(--background-modifier-border-hover);
-}
-
-.nova-model-dropdown-item.is-mobile {
-    padding: var(--size-2-3) var(--size-2-4);
-    min-height: 44px;
-}
-
-/* Provider color dot styling - CSS cannot use attr() for colors, need JavaScript */
-.nova-dropdown-item-dot[data-provider-color] {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
 
 /* Chat Container Dynamic Styles */
 .nova-chat-flex-container {
@@ -3541,24 +3324,49 @@
 }
 
 .nova-provider-dropdown-select {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    color: var(--text-normal);
     font-size: var(--font-ui-small);
+    font-weight: 500;
     cursor: pointer;
-    padding: 0;
-    margin-left: var(--size-2-1);
+    padding: var(--size-2-2) var(--size-2-3);
     min-width: 150px;
+    min-height: 28px;
+    appearance: none; /* Remove default dropdown arrow */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right var(--size-2-2) center;
+    background-size: 12px;
+    padding-right: calc(var(--size-2-3) + 16px); /* Make room for arrow */
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.nova-provider-dropdown-select:hover {
+    background: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.nova-provider-dropdown-select:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+/* Dark theme dropdown arrow */
+.theme-dark .nova-provider-dropdown-select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
 }
 
 .is-mobile .nova-provider-dropdown-select {
-    min-width: 80px;
-    max-width: 140px;
+    min-width: 120px;
+    max-width: 160px;
     width: auto;
-    font-size: 11px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 12px;
+    padding: var(--size-2-3) var(--size-2-4);
+    padding-right: calc(var(--size-2-4) + 16px);
+    min-height: 32px;
 }
 
 /* Command System Styles */
