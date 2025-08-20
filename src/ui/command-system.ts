@@ -101,16 +101,16 @@ export class CommandSystem {
 
 		// Commands available to all users
 		const commands = [
-			{ name: 'Improve Writing', description: 'Enhance clarity and flow', command: 'improve writing' },
-			{ name: 'Fix Grammar', description: 'Correct grammar and spelling', command: 'fix grammar' },
+			{ name: 'Improve writing', description: 'Enhance clarity and flow', command: 'improve writing' },
+			{ name: 'Fix grammar', description: 'Correct grammar and spelling', command: 'fix grammar' },
 			{ name: 'Summarize', description: 'Create a concise summary', command: 'summarize' },
-			{ name: 'Expand Ideas', description: 'Develop thoughts further', command: 'expand' },
+			{ name: 'Expand ideas', description: 'Develop thoughts further', command: 'expand' },
 			{ name: 'Explain', description: 'Clarify complex concepts', command: 'explain this' },
-			{ name: 'Continue Writing', description: 'Extend the current text', command: 'continue writing' }
+			{ name: 'Continue writing', description: 'Extend the current text', command: 'continue writing' }
 		];
 
 		const title = this.commandMenu.createEl('div', { 
-			text: 'Quick Commands',
+			text: 'Quick commands',
 			cls: 'nova-command-menu-title'
 		});
 		title.setCssProps({
@@ -321,7 +321,7 @@ export class CommandSystem {
 	private getStructuredCommands(): StructuredCommand[] {
 		const commands = [
 			{
-				name: 'Add Content',
+				name: 'Add content',
 				description: 'Add new content at cursor position',
 				command: 'add',
 				template: 'add {cursor}',
@@ -329,7 +329,7 @@ export class CommandSystem {
 				keywords: ['create', 'new', 'insert', 'write']
 			},
 			{
-				name: 'Edit Selection',
+				name: 'Edit selection',
 				description: 'Edit the selected text',
 				command: 'edit',
 				template: 'edit to {cursor}',
@@ -337,7 +337,7 @@ export class CommandSystem {
 				keywords: ['modify', 'update', 'change', 'revise']
 			},
 			{
-				name: 'Delete Selection',
+				name: 'Delete selection',
 				description: 'Remove the selected text',
 				command: 'delete',
 				template: 'delete {cursor}',
@@ -353,7 +353,7 @@ export class CommandSystem {
 				keywords: ['rephrase', 'restructure', 'reword']
 			},
 			{
-				name: 'Fix Grammar',
+				name: 'Fix grammar',
 				description: 'Correct grammar and spelling errors',
 				command: 'grammar',
 				template: 'fix grammar {cursor}',
@@ -369,7 +369,7 @@ export class CommandSystem {
 				keywords: ['extend', 'expand', 'proceed']
 			},
 			{
-				name: 'Update Metadata',
+				name: 'Update metadata',
 				description: 'Update document properties',
 				command: 'metadata',
 				template: 'update {cursor} property',

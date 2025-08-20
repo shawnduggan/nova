@@ -92,7 +92,7 @@ export class CustomInstructionModal extends Modal {
                     this.onCancel();
                 }))
             .addButton(btn => btn
-                .setButtonText('Transform Text')
+                .setButtonText('Transform text')
                 .setCta()
                 .onClick(() => this.submit()));
     }

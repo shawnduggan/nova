@@ -133,7 +133,7 @@ export default class NovaPlugin extends Plugin {
 			// Register selection-based commands
 			this.addCommand({
 				id: 'improve-writing',
-				name: 'Improve Writing',
+				name: 'Improve writing',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('improve', editor);
 				}
@@ -141,7 +141,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'make-longer',
-				name: 'Make Longer',
+				name: 'Make longer',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('longer', editor);
 				}
@@ -149,7 +149,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'make-shorter',
-				name: 'Make Shorter',
+				name: 'Make shorter',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('shorter', editor);
 				}

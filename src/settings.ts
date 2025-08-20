@@ -134,9 +134,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (!this.tabContainer) return;
 		
 		const tabs = [
-			{ id: 'getting-started', label: 'Getting Started' },
+			{ id: 'getting-started', label: 'Getting started' },
 			{ id: 'general', label: 'General' },
-			{ id: 'providers', label: 'AI Providers' },
+			{ id: 'providers', label: 'AI providers' },
 			{ id: 'supernova', label: 'Supernova' }
 		];
 
@@ -245,7 +245,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Benefits section with normal styling
 		const benefitsSection = container.createDiv({ cls: 'nova-benefits-section' });
 		// Margin handled by CSS class
-		benefitsSection.createEl('h3', { text: 'Supernova Benefits' });
+		benefitsSection.createEl('h3', { text: 'Supernova benefits' });
 		benefitsSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
@@ -264,11 +264,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			content.createSpan({ text: description });
 		};
 		
-		createBenefitItem('⚡', 'Early Access', 'Get new features 2-4 months before general release');
-		createBenefitItem('💬', 'Priority Support', 'Direct access to developers for feature requests and bug reports');
+		createBenefitItem('⚡', 'Early access', 'Get new features 2-4 months before general release');
+		createBenefitItem('💬', 'Priority support', 'Direct access to developers for feature requests and bug reports');
 		createBenefitItem('🗳️', 'Vote on Features', 'Help shape Nova\'s development and future direction');
-		createBenefitItem('🏆', 'Supporter Badge', 'Recognition in the Nova community (coming soon)');
-		createBenefitItem('❤️', 'Open Source Support', 'Directly fund continued development of Nova');
+		createBenefitItem('🏆', 'Supporter badge', 'Recognition in the Nova community (coming soon)');
+		createBenefitItem('❤️', 'Open source support', 'Directly fund continued development of Nova');
 		
 		
 		// Add closing message
@@ -277,7 +277,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// License settings section - styled like API keys
 		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
-		licenseSection.createEl('h3', { text: 'License Management' });
+		licenseSection.createEl('h3', { text: 'License management' });
 		licenseSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		this.createSupernovaLicenseInput(licenseSection);
@@ -296,13 +296,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
 		
 		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard2.createEl('h4', { text: '⚠️ Developer Options' });
+		infoCard2.createEl('h4', { text: '⚠️ Developer options' });
 		
 		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
 		const features = [
-			['Debug Mode', 'Enable detailed logging and development features'],
-			['Override Date', 'Test time-sensitive features with custom dates'],
-			['Force Supernova', 'Test Supernova-only features without a license']
+			['Debug mode', 'Enable detailed logging and development features'],
+			['Override date', 'Test time-sensitive features with custom dates'],
+			['Force supernova', 'Test Supernova-only features without a license']
 		];
 		
 		features.forEach(([name, desc]) => {
@@ -330,13 +330,13 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Privacy info card
 		const privacyCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		privacyCard.createEl('h4', { text: '🔒 Your Privacy Matters' });
+		privacyCard.createEl('h4', { text: '🔒 Your privacy matters' });
 		const privacyText = privacyCard.createEl('p');
 		privacyText.textContent = 'Nova respects your privacy and gives you full control over how your data is handled. All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.';
 		
 		// Mobile support info card
 		const mobileCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		mobileCard.createEl('h4', { text: '📱 Mobile Support' });
+		mobileCard.createEl('h4', { text: '📱 Mobile support' });
 		const mobileText = mobileCard.createEl('p');
 		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers.';
 		
@@ -357,7 +357,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Mobile Support Toggle
 		new Setting(privacySection)
-			.setName('Enable Mobile Support')
+			.setName('Enable mobile support')
 			.setDesc('Allow Nova to work on mobile devices using cloud-based AI providers')
 			.addToggle(toggle => {
 				const currentMobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
@@ -524,14 +524,14 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createTestConnectionButton(container: HTMLElement, provider: 'claude' | 'openai' | 'google' | 'ollama'): void {
 		const setting = new Setting(container)
-			.setName('Connection Status')
+			.setName('Connection status')
 			.setDesc('Test your API connection');
 
 		// Create status indicator first (to the left)
 		const statusContainer = setting.controlEl.createDiv({ cls: 'nova-connection-status-container' });
 		
 		setting.addButton(button => {
-			button.setButtonText('Test Connection')
+			button.setButtonText('Test connection')
 				.setTooltip(`Test ${provider} connection`)
 				.onClick(async () => {
 					await this.testProviderConnection(provider, button.buttonEl, statusContainer);
@@ -778,7 +778,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createLicenseSettings(containerEl = this.containerEl) {
 		const licenseContainer = containerEl.createDiv({ cls: 'nova-license-section' });
-		licenseContainer.createEl('h3', { text: 'Supernova Supporter Status' });
+		licenseContainer.createEl('h3', { text: 'Supernova supporter status' });
 
 		// Info about the new model
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
@@ -792,7 +792,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
 		const badge = this.getLicenseBadge(supernovaLicense);
-		const statusText = badge?.text || (isSupernova ? 'Supernova Supporter' : 'Nova User');
+		const statusText = badge?.text || (isSupernova ? 'Supernova supporter' : 'Nova user');
 		
 		// Create status badge element
 		const statusBadge = statusDisplay.createDiv({ 
@@ -861,7 +861,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			const statusEl = licenseContainer.createDiv({ cls: 'nova-license-status' });
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
-				: 'Lifetime Support';
+				: 'Lifetime support';
 			const licenseInfo = statusEl.createDiv({ cls: 'license-info' });
 			licenseInfo.createSpan({ cls: 'license-email', text: supernovaLicense.email });
 			licenseInfo.createSpan({ cls: 'license-expiry', text: expiryText });
@@ -869,7 +869,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Supernova license key input using secure input pattern
 		this.createSecureApiKeyInput(licenseContainer, {
-			name: 'Supernova License Key (Optional)',
+			name: 'Supernova license key (optional)',
 			desc: 'Enter your Supernova supporter license key for early access to new features',
 			placeholder: 'Enter Supernova license key...',
 			value: this.plugin.settings.licensing.supernovaLicenseKey || '',
@@ -900,7 +900,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(licenseContainer)
 			.setDesc('Validate your Supernova license key')
 			.addButton(button => {
-				button.setButtonText('Validate License')
+				button.setButtonText('Validate license')
 					.onClick(async () => {
 						const licenseKey = this.plugin.settings.licensing.supernovaLicenseKey;
 						if (!licenseKey) {
@@ -938,7 +938,7 @@ export class NovaSettingTab extends PluginSettingTab {
 						} catch (error) {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
-							button.setButtonText('Validate License');
+							button.setButtonText('Validate license');
 							button.disabled = false;
 						}
 					});
@@ -971,10 +971,10 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createDebugSettings(container: HTMLElement) {
 		const debugContainer = container.createDiv({ cls: 'nova-debug-section' });
-		debugContainer.createEl('h4', { text: 'Development Options' });
+		debugContainer.createEl('h4', { text: 'Development options' });
 
 		new Setting(debugContainer)
-			.setName('Debug Mode')
+			.setName('Debug mode')
 			.setDesc('Enable development testing features')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.licensing.debugSettings.enabled)
@@ -1001,7 +1001,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		if (this.plugin.settings.licensing.debugSettings.enabled) {
 			new Setting(debugContainer)
-				.setName('Override Date')
+				.setName('Override date')
 				.setDesc('Override current date for testing time-gated features (YYYY-MM-DD)')
 				.addText(text => text
 					.setPlaceholder('2025-12-01')
@@ -1027,7 +1027,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					}));
 
 			new Setting(debugContainer)
-				.setName('Force Supernova Status')
+				.setName('Force supernova status')
 				.setDesc('Override Supernova supporter status for testing')
 				.addToggle(toggle => toggle
 					.setValue(this.plugin.settings.licensing.debugSettings.forceSupernova || false)
@@ -1059,10 +1059,10 @@ export class NovaSettingTab extends PluginSettingTab {
 
 			// Clear licenses button
 			new Setting(debugContainer)
-				.setName('Clear All Licenses')
+				.setName('Clear all licenses')
 				.setDesc('Remove all applied licenses (for testing)')
 				.addButton(button => button
-					.setButtonText('Clear Licenses')
+					.setButtonText('Clear licenses')
 					.setWarning()
 					.onClick(async () => {
 						// Confirm action
@@ -1132,7 +1132,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Section spacing handled by CSS class
 
 		new Setting(coreSection)
-			.setName('Default Temperature')
+			.setName('Default temperature')
 			.setDesc('Controls randomness in AI responses (0.0 = focused, 1.0 = creative)')
 			.addSlider(slider => slider
 				.setLimits(0, 1, 0.1)
@@ -1144,7 +1144,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(coreSection)
-			.setName('Default Max Tokens')
+			.setName('Default max tokens')
 			.setDesc('Maximum length of AI responses (1000-10000 tokens)')
 			.addSlider(slider => slider
 				.setLimits(1000, 10000, 500)
@@ -1171,7 +1171,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Configure Your API Keys Section
 		const apiKeysSection = containerEl.createDiv({ cls: 'nova-api-keys-section' });
 		new Setting(apiKeysSection)
-			.setName('Configure Your API Keys')
+			.setName('Configure your API keys')
 			.setHeading();
 		
 		const infoEl = apiKeysSection.createDiv({ cls: 'nova-provider-info' });
@@ -1181,12 +1181,12 @@ export class NovaSettingTab extends PluginSettingTab {
 		basicInfo1.textContent = 'Nova connects to AI providers using your own API keys. All providers are available to all users - just add your API keys below to get started.';
 		
 		const basicInfo2 = basicInfoCard.createEl('p');
-		basicInfo2.createEl('strong', { text: 'Model Selection:' });
+		basicInfo2.createEl('strong', { text: 'Model selection:' });
 		basicInfo2.appendText(' After connecting successfully, select models for any provider using the dropdown in the Nova sidebar.');
 		
 		// Model guidance card
 		const guidanceCard = infoEl.createDiv({ cls: 'nova-info-card nova-model-guidance' });
-		guidanceCard.createEl('h4', { text: 'Recommended Defaults' });
+		guidanceCard.createEl('h4', { text: 'Recommended defaults' });
 		
 		const recommendationsList = guidanceCard.createEl('ul', { cls: 'nova-model-recommendations' });
 		const recommendations = [
@@ -1348,7 +1348,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(ollamaContainer)
-			.setName('Default Context Limit')
+			.setName('Default context limit')
 			.setDesc('Context window size for all Ollama models (Nova defaults to 32K vs Ollama\'s 2K)')
 			.addText(text => {
 				text.inputEl.type = 'number';
@@ -1386,7 +1386,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Platform settings managed via sidebar dropdown now
 
 		new Setting(containerEl)
-			.setName('Model Selection')
+			.setName('Model selection')
 			.setDesc('Models are now selected using the dropdown in the Nova sidebar. Each platform (desktop/mobile) remembers its selected model independently.');
 	}
 
@@ -1420,7 +1420,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createCommandSettings(containerEl = this.containerEl) {
 		new Setting(containerEl)
-			.setName('Custom Commands')
+			.setName('Custom commands')
 			.setHeading();
 
 		// Feature availability check
@@ -1429,7 +1429,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			const noticeDiv = noticeEl.createDiv({ cls: 'nova-feature-card' });
 			
 			const title = noticeDiv.createEl('h4', { cls: 'nova-feature-title' });
-			title.textContent = 'Supernova Supporter Feature';
+			title.textContent = 'Supernova supporter feature';
 			
 			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
 			description.textContent = 'Custom commands are currently available to Supernova supporters. They will be available to all users on ';
@@ -1447,7 +1447,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Show Command Button setting (Supernova-only, Mobile-only)
 		new Setting(containerEl)
-			.setName('Show Command Button in Chat (Mobile)')
+			.setName('Show command button in chat (mobile)')
 			.setDesc('Show the Commands button beside the Send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.features?.commands?.showCommandButton ?? true)
@@ -1472,7 +1472,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(buttonEl)
 			.addButton(button => 
 				button
-					.setButtonText('+ Add Custom Command')
+					.setButtonText('+ Add custom command')
 					.setCta()
 					.onClick(() => this.showAddCommandDialog())
 			);
@@ -1632,7 +1632,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const selectionCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
 		const selectionHeader = selectionCard.createDiv({ cls: 'nova-card-header' });
 		selectionHeader.createSpan({ cls: 'nova-card-icon', text: '🎯' });
-		selectionHeader.createEl('h4', { text: 'Selection-Based Editing' });
+		selectionHeader.createEl('h4', { text: 'Selection-based editing' });
 		
 		const selectionContent = selectionCard.createDiv({ cls: 'nova-card-content' });
 		const selectionSteps = selectionContent.createEl('ol');
@@ -1650,7 +1650,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-chat-card' });
 		const chatHeader = chatCard.createDiv({ cls: 'nova-card-header' });
 		chatHeader.createSpan({ cls: 'nova-card-icon', text: '💬' });
-		chatHeader.createEl('h4', { text: 'Chat-Based Targeting' });
+		chatHeader.createEl('h4', { text: 'Chat-based targeting' });
 		
 		const chatContent = chatCard.createDiv({ cls: 'nova-card-content' });
 		const chatSteps = chatContent.createEl('ol');
@@ -1667,7 +1667,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-provider-card' });
 		const providerHeader = providerCard.createDiv({ cls: 'nova-card-header' });
 		providerHeader.createSpan({ cls: 'nova-card-icon', text: '🤖' });
-		providerHeader.createEl('h4', { text: 'AI Provider Selection' });
+		providerHeader.createEl('h4', { text: 'AI provider selection' });
 		
 		const providerContent = providerCard.createDiv({ cls: 'nova-card-content' });
 		providerContent.createEl('p', { text: 'Choose the right AI for your task:' });
@@ -1886,7 +1886,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Header section
 		const headerDiv = navCard.createDiv({ cls: 'nova-card-header' });
 		headerDiv.createSpan({ cls: 'nova-card-icon', text: '⚡' });
-		headerDiv.createEl('h4', { text: 'Quick Start' });
+		headerDiv.createEl('h4', { text: 'Quick start' });
 		
 		// Content section
 		const contentDiv = navCard.createDiv({ cls: 'nova-card-content' });

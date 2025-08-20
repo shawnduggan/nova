@@ -22,25 +22,25 @@ export interface SelectionAction {
 export const SELECTION_ACTIONS: SelectionAction[] = [
     {
         id: 'improve',
-        label: 'Improve Writing',
+        label: 'Improve writing',
         icon: 'sparkles',
         description: 'Make text clearer, more concise, better flow'
     },
     {
         id: 'longer',
-        label: 'Make Longer',
+        label: 'Make longer',
         icon: 'plus-circle',
         description: 'Expand ideas with more detail and examples'
     },
     {
         id: 'shorter',
-        label: 'Make Shorter',
+        label: 'Make shorter',
         icon: 'minus-circle',
         description: 'Condense to essential points'
     },
     {
         id: 'tone',
-        label: 'Change Tone',
+        label: 'Change tone',
         icon: 'palette',
         description: 'Adjust writing style and tone'
     },

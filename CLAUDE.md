@@ -106,7 +106,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #9 Top-level heading in settings - Remove "Nova Settings" heading in settings tab
 - **COMPLETED**: #10 "Settings" in section headings - Remove word "settings" from settings section headings
 - **COMPLETED**: #11 Improper heading format - Use `new Setting(containerEl).setName('name').setHeading()` for section headings
-- **PENDING**: #12 Incorrect text casing - Use sentence case in UI instead of title case
+- **COMPLETED**: #12 Incorrect text casing - Use sentence case in UI instead of title case
 - **COMPLETED**: #13 "Configuration" in headings - Remove word "configuration" from settings headings
 - **COMPLETED**: #14 Using fetch instead of requestUrl - Use Obsidian's requestUrl function for CORS handling
 - **PENDING**: #15 DeferredView handling - Properly handle deferred views introduced in v1.7.2
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #12 - Incorrect text casing fixed
+- Converted 47 title case strings to sentence case across 5 files
+- Updated: settings.ts (40+ changes), selection-context-menu.ts (5), custom-instruction-modal.ts (1), main.ts (4), command-system.ts (8)
+- Changed examples: 'Getting Started' → 'Getting started', 'Improve Writing' → 'Improve writing', 'Debug Mode' → 'Debug mode'
+- Preserved proper nouns (Nova, Claude, OpenAI, API, URL)
+- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
 
 **COMPLETED**: Task #11 - Convert section headings to proper Obsidian Setting API format
 - Replaced 6 section headings from raw HTML createEl('h3') to proper Setting API format
