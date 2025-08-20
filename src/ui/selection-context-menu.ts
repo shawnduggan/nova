@@ -170,6 +170,7 @@ export class SelectionContextMenu {
     private showCustomInstructionModal(editor: Editor, selectedText: string): void {
         const modal = new CustomInstructionModal(
             this.app,
+            this.plugin,
             async (instruction: string) => {
                 // Execute custom transformation with the instruction
                 await this.executeSelectionEdit('custom', editor, selectedText, instruction);

@@ -3607,6 +3607,7 @@
     border-style: solid;
     border-color: var(--badge-color);
     color: var(--badge-color);
+    background: var(--badge-background, transparent);
 }
 
 /* Supernova icon styles */
@@ -3681,9 +3682,12 @@
 /* Command menu styles */
 .nova-command-menu {
     position: absolute;
-    top: 100%;
-    left: 0;
+    bottom: 100%;
+    top: auto;
     right: 0;
+    left: auto;
+    min-width: 250px;
+    padding: var(--size-2-2);
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
@@ -3699,16 +3703,16 @@
 }
 
 .nova-command-menu-title {
-    padding: 10px 12px;
-    font-weight: bold;
-    border-bottom: 1px solid var(--background-modifier-border);
-    font-size: var(--font-ui-small);
+    font-size: var(--font-ui-medium);
+    margin-bottom: var(--size-2-3);
 }
 
 .nova-command-menu-item {
-    padding: 8px 12px;
+    padding: var(--size-2-2) var(--size-2-3);
+    border-radius: var(--radius-xs);
     cursor: pointer;
-    transition: background-color 0.2s;
+    margin-bottom: var(--size-2-1);
+    transition: background-color 0.1s;
 }
 
 .nova-command-menu-item:hover {
@@ -3718,6 +3722,7 @@
 .nova-command-name {
     font-weight: 500;
     color: var(--text-normal);
+    margin-bottom: var(--size-2-1);
 }
 
 .nova-command-desc {

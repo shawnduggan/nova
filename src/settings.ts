@@ -92,11 +92,10 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Register event listener for cleanup tracking
+	 * Register event listener using plugin's registration system
 	 */
 	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-		element.addEventListener(event, handler);
-		this.eventListeners.push({element, event, handler});
+		this.plugin.registerDomEvent(element, event as any, handler);
 	}
 
 	display(): void {
@@ -227,8 +226,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Benefits section with normal styling
 		const benefitsSection = container.createDiv({ cls: 'nova-benefits-section' });
-		// Margin handled by CSS class
-		benefitsSection.createEl('h3', { text: 'Supernova benefits' });
+		// Main section heading
+		new Setting(benefitsSection).setName('Supernova benefits').setHeading();
 		benefitsSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
@@ -260,7 +259,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// License settings section - styled like API keys
 		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
-		licenseSection.createEl('h3', { text: 'License management' });
+		new Setting(licenseSection).setName('License management').setHeading();
 		licenseSection.createEl('hr', { cls: 'nova-section-divider' });
 		
 		this.createSupernovaLicenseInput(licenseSection);
@@ -761,7 +760,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createLicenseSettings(containerEl = this.containerEl) {
 		const licenseContainer = containerEl.createDiv({ cls: 'nova-license-section' });
-		licenseContainer.createEl('h3', { text: 'Supernova supporter status' });
+		new Setting(licenseContainer).setName('Supernova supporter status').setHeading();
 
 		// Info about the new model
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
@@ -921,7 +920,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createDebugSettings(container: HTMLElement) {
 		const debugContainer = container.createDiv({ cls: 'nova-debug-section' });
-		debugContainer.createEl('h4', { text: 'Development options' });
+		new Setting(debugContainer).setName('Development options').setHeading();
 
 		new Setting(debugContainer)
 			.setName('Debug mode')
@@ -1157,7 +1156,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Configuration Subsection (within API Keys section)
 		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
-		configSection.createEl('h4', { text: 'Setup' });
+		new Setting(configSection).setName('Setup').setHeading();
 		configSection.createEl('hr', { cls: 'nova-section-divider' });
 
 		// Show all providers - no restrictions
@@ -1688,7 +1687,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				const badgeSpan = headerDiv.createSpan({ cls: `nova-license-badge ${badge.className} nova-badge-custom`, text: badge.icon });
 				badgeSpan.setCssProps({
 					'--badge-color': badge.color,
-					'background': badge.color
+					'--badge-background': badge.color
 				});
 			}
 			

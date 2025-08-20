@@ -33,11 +33,10 @@ export class CommandSystem {
 	}
 
 	/**
-	 * Register event listener for cleanup tracking
+	 * Register event listener using plugin's registration system
 	 */
 	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-		element.addEventListener(event, handler);
-		this.eventListeners.push({element, event, handler});
+		this.plugin.registerDomEvent(element, event as any, handler);
 	}
 
 	createCommandButton(inputRow: HTMLElement): ButtonComponent {
@@ -89,15 +88,7 @@ export class CommandSystem {
 
 	private createCommandMenu(): void {
 		this.commandMenu = this.container.createDiv({ cls: 'nova-command-menu' });
-		// Position at bottom since we're in the bottom bar
-		this.commandMenu.setCssProps({
-			'bottom': '100%',
-			'top': 'auto',
-			'right': '0',
-			'left': 'auto',
-			'min-width': '250px',
-			'padding': 'var(--size-2-2)'
-		});
+		// Position at bottom since we're in the bottom bar - styles defined in CSS
 
 		// Commands available to all users
 		const commands = [
@@ -109,30 +100,21 @@ export class CommandSystem {
 			{ name: 'Continue writing', description: 'Extend the current text', command: 'continue writing' }
 		];
 
-		const title = this.commandMenu.createEl('div', { 
+		this.commandMenu.createEl('div', { 
 			text: 'Quick commands',
 			cls: 'nova-command-menu-title'
 		});
-		title.setCssProps({
-			'font-size': 'var(--font-ui-medium)',
-			'margin-bottom': 'var(--size-2-3)'
-		});
+		// Title styles defined in CSS
 
 		commands.forEach(cmd => {
 			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
-			cmdEl.setCssProps({
-				'padding': 'var(--size-2-2) var(--size-2-3)',
-				'border-radius': 'var(--radius-xs)',
-				'cursor': 'pointer',
-				'margin-bottom': 'var(--size-2-1)',
-				'transition': 'background-color 0.1s'
-			});
+			// Command item styles defined in CSS
 
-			const nameEl = cmdEl.createEl('div', { 
+			cmdEl.createEl('div', { 
 				text: cmd.name,
 				cls: 'nova-command-name'
 			});
-			nameEl.setCssProps({ 'margin-bottom': 'var(--size-2-1)' });
+			// Name element styles defined in CSS
 
 			cmdEl.createEl('div', { 
 				text: cmd.description,

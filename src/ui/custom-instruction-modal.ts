@@ -3,30 +3,32 @@
  * Simplified design following Obsidian's native patterns
  */
 
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Setting, Plugin } from 'obsidian';
 
 export class CustomInstructionModal extends Modal {
     private instruction: string = '';
     private onSubmit: (instruction: string) => void;
+    private plugin: Plugin;
     private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
     private onCancel: () => void;
 
     constructor(
         app: App,
+        plugin: Plugin,
         onSubmit: (instruction: string) => void,
         onCancel: () => void
     ) {
         super(app);
+        this.plugin = plugin;
         this.onSubmit = onSubmit;
         this.onCancel = onCancel;
     }
 
     /**
-     * Register event listener for cleanup tracking
+     * Register event listener using plugin's registration system
      */
     private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-        element.addEventListener(event, handler);
-        this.eventListeners.push({element, event, handler});
+        this.plugin.registerDomEvent(element, event as any, handler);
     }
 
     onOpen() {

@@ -289,11 +289,10 @@ export class NovaSidebarView extends ItemView {
 	}
 	
 	/**
-	 * Add event listener with automatic cleanup tracking
+	 * Add event listener using Obsidian's registration system
 	 */
 	private addTrackedEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		element.addEventListener(event, handler);
-		this.documentEventListeners.push({ element, event, handler });
+		this.registerDomEvent(element as HTMLElement, event as any, handler);
 	}
 	
 	/**
@@ -525,11 +524,11 @@ export class NovaSidebarView extends ItemView {
 				descEl.textContent = command.description;
 			}
 
-			item.addEventListener('click', () => {
+			this.registerDomEvent(item, 'click', () => {
 				this.selectCommand(command.trigger);
 			});
 
-			item.addEventListener('mouseenter', () => {
+			this.registerDomEvent(item, 'mouseenter', () => {
 				this.setSelectedCommand(index);
 			});
 
@@ -706,7 +705,7 @@ export class NovaSidebarView extends ItemView {
 				descEl.textContent = command.description;
 			}
 
-			item.addEventListener('click', () => {
+			this.registerDomEvent(item, 'click', () => {
 				this.executeCommandFromMenu(command.trigger);
 			});
 		});
@@ -948,10 +947,10 @@ export class NovaSidebarView extends ItemView {
 		
 		// Visual feedback on the whole summary line instead of just the indicator
 		if (isMobile) {
-			summaryEl.addEventListener('touchstart', () => {
+			this.registerDomEvent(summaryEl, 'touchstart', () => {
 				expandIndicatorEl.addClass('pressed');
 			});
-			summaryEl.addEventListener('touchend', () => {
+			this.registerDomEvent(summaryEl, 'touchend', () => {
 				this.addTrackedTimeout(() => {
 					expandIndicatorEl.removeClass('pressed');
 				}, NovaSidebarView.HOVER_TIMEOUT_MS);
@@ -998,10 +997,10 @@ export class NovaSidebarView extends ItemView {
 		
 		// Touch-friendly feedback for clear button on mobile
 		if (isMobile) {
-			clearAllBtn.addEventListener('touchstart', () => {
+			this.registerDomEvent(clearAllBtn, 'touchstart', () => {
 				clearAllBtn.addClass('nova-button-pressed');
 			});
-			clearAllBtn.addEventListener('touchend', () => {
+			this.registerDomEvent(clearAllBtn, 'touchend', () => {
 				setTimeout(() => {
 					clearAllBtn.removeClass('nova-button-pressed');
 				}, NovaSidebarView.HOVER_TIMEOUT_MS);
@@ -1049,7 +1048,7 @@ export class NovaSidebarView extends ItemView {
 			}
 			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
 			
-			removeBtn.addEventListener('click', async (e: Event) => {
+			this.registerDomEvent(removeBtn, 'click', async (e: Event) => {
 				e.stopPropagation();
 				if (this.currentFile) {
 					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path);
@@ -1059,11 +1058,11 @@ export class NovaSidebarView extends ItemView {
 			
 			// Platform-specific interaction feedback using CSS classes
 			if (isMobile) {
-				removeBtn.addEventListener('touchstart', () => {
+				this.registerDomEvent(removeBtn, 'touchstart', () => {
 					removeBtn.addClass('pressed');
 				});
 				
-				removeBtn.addEventListener('touchend', () => {
+				this.registerDomEvent(removeBtn, 'touchend', () => {
 					setTimeout(() => {
 						removeBtn.removeClass('pressed');
 					}, NovaSidebarView.HOVER_TIMEOUT_MS);
@@ -1093,7 +1092,7 @@ export class NovaSidebarView extends ItemView {
 		};
 		
 		// Click on the entire summary line to expand
-		summaryEl.addEventListener('click', toggleExpanded);
+		this.registerDomEvent(summaryEl, 'click', toggleExpanded);
 		
 		// Close when clicking outside
 		this.contextDrawerCloseHandler = (e: Event) => {
@@ -1532,20 +1531,10 @@ USER REQUEST: ${processedMessage}`;
 				targetFile = activeView.file;
 			} else {
 				// Handle potentially deferred views (introduced in v1.7.2)
-				const activeLeaf = this.app.workspace.activeLeaf;
-				if (activeLeaf && activeLeaf.view?.getViewType() === 'markdown') {
-					// Check if leaf is deferred and load if needed
-					if ('isDeferred' in activeLeaf && activeLeaf.isDeferred && 'loadIfDeferred' in activeLeaf) {
-						try {
-							await (activeLeaf as any).loadIfDeferred();
-						} catch (error) {
-							// Continue with fallback if deferred loading fails
-						}
-					}
-					const view = activeLeaf.view as MarkdownView;
-					if (view && view.file) {
-						targetFile = view.file;
-					}
+				// Use recommended API to get active markdown view
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (view && view.file) {
+					targetFile = view.file;
 				}
 				
 				// Final fallback: any open markdown file

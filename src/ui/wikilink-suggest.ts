@@ -3,17 +3,19 @@
  * Uses Obsidian's native FuzzySuggestModal for consistent UX
  */
 
-import { TFile, App, FuzzySuggestModal, FuzzyMatch } from 'obsidian';
+import { TFile, App, FuzzySuggestModal, FuzzyMatch, Plugin } from 'obsidian';
 
 export class NovaWikilinkAutocomplete {
     private app: App;
+    private plugin: Plugin;
     private textArea: HTMLTextAreaElement;
     private sidebarView: any; // Reference to NovaSidebarView
     private lastTriggerPos: number = -1;
     private inputHandler!: (event: Event) => void;
 
-    constructor(app: App, textArea: HTMLTextAreaElement, _container?: HTMLElement) {
+    constructor(app: App, plugin: Plugin, textArea: HTMLTextAreaElement, _container?: HTMLElement) {
         this.app = app;
+        this.plugin = plugin;
         this.textArea = textArea;
         this.setupEventListeners();
     }
@@ -24,7 +26,7 @@ export class NovaWikilinkAutocomplete {
 
     private setupEventListeners(): void {
         this.inputHandler = this.handleInput.bind(this);
-        this.textArea.addEventListener('input', this.inputHandler);
+        this.plugin.registerDomEvent(this.textArea, 'input', this.inputHandler);
     }
 
     private handleInput(): void {

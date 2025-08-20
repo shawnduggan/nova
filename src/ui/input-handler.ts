@@ -98,7 +98,7 @@ export class InputHandler {
 		setTimeout(this.autoGrowTextarea, 0);
 
 		// Initialize wikilink autocomplete with inputRow for consistent width
-		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.textArea.inputEl, this.inputRow);
+		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.plugin, this.textArea.inputEl, this.inputRow);
 		
 		// Pass sidebar view reference when available
 		if (this.sidebarView) {
@@ -226,8 +226,7 @@ export class InputHandler {
 	}
 
 	private addEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		element.addEventListener(event, handler);
-		this.eventListeners.push({ element, event, handler });
+		this.plugin.registerDomEvent(element as HTMLElement, event as any, handler);
 	}
 
 	private setupDragAndDrop(): void {
