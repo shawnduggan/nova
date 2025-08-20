@@ -123,7 +123,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #22 Unobfuscated license key - Properly obfuscate license signing key as claimed
 - **COMPLETED**: #23 Incorrect heading regex - Use MetadataCache instead of regex with false positives
 - **COMPLETED**: #25 NodeJS.Timeout type - Use regular number type with window.setTimeout/clearTimeout
-- **PENDING**: #26 Private Notice property - Use Notice.messageEl instead of accessing private noticeEl
+- **COMPLETED**: #26 Private Notice property - Use Notice.messageEl instead of accessing private noticeEl
 
 **Phase 3: RECOMMENDED - UI/UX Guidelines**
 
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #26 - Private Notice property replaced with public messageEl API for Obsidian compliance
+- Replaced private `noticeEl` property access with public `messageEl` property in streaming-manager.ts (2 instances at lines 187-190 and 369-372)
+- Updated type assertions from `Notice & { noticeEl?: HTMLElement }` to `Notice & { messageEl?: HTMLElement }`
+- Enhanced Notice mock in test/mocks/obsidian-mock.ts with messageEl property and hide() method for test compatibility
+- Eliminates use of private API and uses Obsidian's official public API for Notice message manipulation
+- All 491 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #26
 
 **COMPLETED**: Task #25 - Replaced NodeJS.Timeout types with web-standard number types for browser compliance
 - Replaced all NodeJS.Timeout type declarations with number type in streaming-manager.ts and sidebar-view.ts (5 instances total)

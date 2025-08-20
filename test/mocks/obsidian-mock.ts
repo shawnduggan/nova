@@ -504,7 +504,14 @@ export class Setting {
 }
 
 export class Notice {
+    messageEl: HTMLElement;
+    
     constructor(_message: string, _timeout?: number) {
+        // Mock implementation - create a mock element
+        this.messageEl = document.createElement('div');
+    }
+    
+    hide(): void {
         // Mock implementation
     }
 }

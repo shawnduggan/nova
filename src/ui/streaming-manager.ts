@@ -184,10 +184,10 @@ export class StreamingManager {
             
             // Show initial state with 1 dot immediately
             const initialNoticeText = `${randomPhrase}.`;
-            const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };
-            const noticeEl = noticeWithEl.noticeEl;
-            if (noticeEl) {
-                noticeEl.textContent = initialNoticeText;
+            const noticeWithEl = this.thinkingNotice as Notice & { messageEl?: HTMLElement };
+            const messageEl = noticeWithEl.messageEl;
+            if (messageEl) {
+                messageEl.textContent = initialNoticeText;
             }
             
             // Start cycling animation with all phrases for this action type
@@ -366,10 +366,10 @@ export class StreamingManager {
                 const noticeText = `${currentPhrase}${dots}`;
                 
                 // Update notice text directly
-                const noticeWithEl = this.thinkingNotice as Notice & { noticeEl?: HTMLElement };
-            const noticeEl = noticeWithEl.noticeEl;
-                if (noticeEl) {
-                    noticeEl.textContent = noticeText;
+                const noticeWithEl = this.thinkingNotice as Notice & { messageEl?: HTMLElement };
+            const messageEl = noticeWithEl.messageEl;
+                if (messageEl) {
+                    messageEl.textContent = noticeText;
                 }
                 
                 // Increment dot count, and when it reaches max, move to next phrase
