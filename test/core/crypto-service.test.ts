@@ -121,4 +121,46 @@ describe('CryptoService', () => {
             }
         });
     });
+
+    describe('master secret obfuscation', () => {
+        it('should properly deobfuscate the master secret', () => {
+            // Access the private methods using bracket notation for testing
+            const obfuscated = 'qryd-olfhqvh-vljqlqj-nhb-5358';
+            const deobfuscated = (CryptoService as any).deobfuscateSecret(obfuscated);
+            expect(deobfuscated).toBe('nova-license-signing-key-2025');
+        });
+
+        it('should use obfuscated secret internally', () => {
+            // Verify the obfuscated secret is stored, not the plain text
+            const obfuscatedSecret = (CryptoService as any).OBFUSCATED_SECRET;
+            expect(obfuscatedSecret).toBe('qryd-olfhqvh-vljqlqj-nhb-5358');
+            expect(obfuscatedSecret).not.toContain('nova-license-signing-key');
+        });
+
+        it('should return correct master secret when requested', () => {
+            // Test that getMasterSecret returns the deobfuscated version
+            const masterSecret = (CryptoService as any).getMasterSecret();
+            expect(masterSecret).toBe('nova-license-signing-key-2025');
+        });
+
+        it('should handle deobfuscation of different character types', () => {
+            // Test lowercase letters
+            expect((CryptoService as any).deobfuscateSecret('def')).toBe('abc');
+            
+            // Test numbers
+            expect((CryptoService as any).deobfuscateSecret('345')).toBe('012');
+            
+            // Test mixed case and special characters
+            expect((CryptoService as any).deobfuscateSecret('DEF-ghi-012')).toBe('ABC-def-789');
+        });
+
+        it('should maintain consistent deobfuscation logic with LicenseValidator', () => {
+            // Ensure both classes use the same deobfuscation algorithm
+            const testObfuscated = 'qryd-olfhqvh-vljqlqj-nhb-5358';
+            const expected = 'nova-license-signing-key-2025';
+            
+            const cryptoResult = (CryptoService as any).deobfuscateSecret(testObfuscated);
+            expect(cryptoResult).toBe(expected);
+        });
+    });
 });

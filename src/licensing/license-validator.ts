@@ -2,8 +2,35 @@ import { SupernovaLicense, SupernovaValidationResult, LicenseError } from './typ
 import { CryptoService } from '../core/crypto-service';
 
 export class LicenseValidator {
-	// Embedded signing key - in production this would be obfuscated
-	private readonly SECRET_KEY = 'nova-license-signing-key-2025';
+	// Obfuscated signing key for license validation
+	private readonly OBFUSCATED_KEY = 'qryd-olfhqvh-vljqlqj-nhb-5358';
+
+	/**
+	 * Simple string deobfuscation using Caesar cipher with offset 3
+	 */
+	private deobfuscateKey(obfuscated: string): string {
+		return obfuscated
+			.split('')
+			.map(char => {
+				const code = char.charCodeAt(0);
+				if (code >= 97 && code <= 122) { // lowercase a-z
+					return String.fromCharCode(((code - 97 - 3 + 26) % 26) + 97);
+				} else if (code >= 65 && code <= 90) { // uppercase A-Z
+					return String.fromCharCode(((code - 65 - 3 + 26) % 26) + 65);
+				} else if (code >= 48 && code <= 57) { // digits 0-9
+					return String.fromCharCode(((code - 48 - 3 + 10) % 10) + 48);
+				}
+				return char; // Keep other characters unchanged
+			})
+			.join('');
+	}
+
+	/**
+	 * Get the deobfuscated secret key
+	 */
+	private getSecretKey(): string {
+		return this.deobfuscateKey(this.OBFUSCATED_KEY);
+	}
 	
 	/**
 	 * Safe base64 decode that handles both browser and Node.js environments
@@ -138,7 +165,7 @@ export class LicenseValidator {
 		issuedAt: Date
 	): Promise<string> {
 		const data = `${email}|${type}|${expiresAt?.toISOString() || 'lifetime'}|${issuedAt.toISOString()}`;
-		return CryptoService.generateHmacSignature(data, this.SECRET_KEY);
+		return CryptoService.generateHmacSignature(data, this.getSecretKey());
 	}
 
 	/**

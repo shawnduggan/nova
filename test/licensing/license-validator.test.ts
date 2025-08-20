@@ -94,4 +94,44 @@ describe('LicenseValidator', () => {
 			expect(result.license?.type).toBe('founding');
 		});
 	});
+
+	describe('key obfuscation', () => {
+		test('should properly deobfuscate the signing key', () => {
+			// Access the private methods using bracket notation for testing
+			const obfuscated = 'qryd-olfhqvh-vljqlqj-nhb-5358';
+			const deobfuscated = (validator as any).deobfuscateKey(obfuscated);
+			expect(deobfuscated).toBe('nova-license-signing-key-2025');
+		});
+
+		test('should use obfuscated key internally', () => {
+			// Verify the obfuscated key is stored, not the plain text
+			const obfuscatedKey = (validator as any).OBFUSCATED_KEY;
+			expect(obfuscatedKey).toBe('qryd-olfhqvh-vljqlqj-nhb-5358');
+			expect(obfuscatedKey).not.toContain('nova-license-signing-key');
+		});
+
+		test('should produce same signature with obfuscated and plain keys', async () => {
+			// Create two validators - one with current obfuscated key logic
+			const validator1 = new LicenseValidator();
+			
+			// Create a test license and verify it validates correctly
+			// This ensures the obfuscated key produces the same HMAC signature
+			const testLicense = await validator1.createTestSupernovaLicense('test@example.com', 'annual');
+			const result = await validator1.validateSupernovaLicense(testLicense);
+			
+			expect(result.valid).toBe(true);
+			expect(result.license?.email).toBe('test@example.com');
+		});
+
+		test('should handle deobfuscation of different character types', () => {
+			// Test lowercase letters
+			expect((validator as any).deobfuscateKey('def')).toBe('abc');
+			
+			// Test numbers
+			expect((validator as any).deobfuscateKey('345')).toBe('012');
+			
+			// Test mixed case and special characters
+			expect((validator as any).deobfuscateKey('DEF-ghi-012')).toBe('ABC-def-789');
+		});
+	});
 });

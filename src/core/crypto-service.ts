@@ -6,8 +6,35 @@
 import { Logger } from '../utils/logger';
 
 export class CryptoService {
-    // Master secret for key derivation - shared with license generator
-    private static readonly MASTER_SECRET = 'nova-license-signing-key-2025';
+    // Obfuscated master secret for key derivation - shared with license generator
+    private static readonly OBFUSCATED_SECRET = 'qryd-olfhqvh-vljqlqj-nhb-5358';
+
+    /**
+     * Simple string deobfuscation using Caesar cipher with offset 3
+     */
+    private static deobfuscateSecret(obfuscated: string): string {
+        return obfuscated
+            .split('')
+            .map(char => {
+                const code = char.charCodeAt(0);
+                if (code >= 97 && code <= 122) { // lowercase a-z
+                    return String.fromCharCode(((code - 97 - 3 + 26) % 26) + 97);
+                } else if (code >= 65 && code <= 90) { // uppercase A-Z
+                    return String.fromCharCode(((code - 65 - 3 + 26) % 26) + 65);
+                } else if (code >= 48 && code <= 57) { // digits 0-9
+                    return String.fromCharCode(((code - 48 - 3 + 10) % 10) + 48);
+                }
+                return char; // Keep other characters unchanged
+            })
+            .join('');
+    }
+
+    /**
+     * Get the deobfuscated master secret
+     */
+    private static getMasterSecret(): string {
+        return this.deobfuscateSecret(this.OBFUSCATED_SECRET);
+    }
 
     /**
      * Safe base64 decode that handles both browser and Node.js environments
@@ -38,7 +65,7 @@ export class CryptoService {
         const encoder = new TextEncoder();
         const keyMaterial = await crypto.subtle.importKey(
             'raw',
-            encoder.encode(this.MASTER_SECRET),
+            encoder.encode(this.getMasterSecret()),
             'PBKDF2',
             false,
             ['deriveKey']
