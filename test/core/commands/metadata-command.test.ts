@@ -225,4 +225,60 @@ describe('MetadataCommand', () => {
             expect(result).not.toContain('{"tags":');
         });
     });
+
+    describe('normalizeTagValue', () => {
+        it('should handle special characters in tags for Obsidian compatibility', () => {
+            // Access the private method through any
+            const normalize = (tag: string) => (metadataCommand as any).normalizeTagValue(tag);
+
+            // Test apostrophes (both straight and curly)
+            expect(normalize("mi'kmaq")).toBe("mikmaq");
+            expect(normalize("don't")).toBe("dont");
+            expect(normalize("user's")).toBe("users");
+            expect(normalize("we're")).toBe("were");
+
+            // Test periods
+            expect(normalize("user.guide")).toBe("user-guide");
+            expect(normalize("v1.0.2")).toBe("v1-0-2");
+
+            // Test spaces (existing behavior should still work)
+            expect(normalize("tag with spaces")).toBe("tag-with-spaces");
+
+            // Test multiple special characters
+            expect(normalize("user's.guide")).toBe("users-guide");
+            expect(normalize("test@email.com")).toBe("testemail-com");
+
+            // Test symbols and punctuation
+            expect(normalize("C++")).toBe("c");
+            expect(normalize("tag!")).toBe("tag");
+            expect(normalize("test$tag")).toBe("testtag");
+            expect(normalize("tag&more")).toBe("tagmore");
+
+            // Test multiple hyphens
+            expect(normalize("multi---dash")).toBe("multi-dash");
+            expect(normalize("test--tag")).toBe("test-tag");
+
+            // Test leading/trailing hyphens
+            expect(normalize("-leading")).toBe("leading");
+            expect(normalize("trailing-")).toBe("trailing");
+            expect(normalize("-both-")).toBe("both");
+
+            // Test valid characters should be preserved
+            expect(normalize("valid_tag")).toBe("valid_tag");
+            expect(normalize("nested/tag")).toBe("nested/tag");
+            expect(normalize("tag-with-hyphens")).toBe("tag-with-hyphens");
+            expect(normalize("TAG123")).toBe("tag123");
+
+            // Test edge cases
+            expect(normalize("")).toBe("");
+            expect(normalize("   ")).toBe("");
+            expect(normalize("---")).toBe("");
+            expect(normalize("!@#$%")).toBe("");
+
+            // Test real-world indigenous language examples
+            expect(normalize("Mi'kmaq")).toBe("mikmaq");
+            expect(normalize("Anishinaabe")).toBe("anishinaabe");
+            expect(normalize("Haudenosaunee")).toBe("haudenosaunee");
+        });
+    });
 });

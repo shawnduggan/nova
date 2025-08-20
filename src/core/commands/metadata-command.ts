@@ -29,10 +29,17 @@ export class MetadataCommand {
     }
 
     /**
-     * Normalize tag value: trim, lowercase, replace spaces with hyphens
+     * Normalize tag value: trim, lowercase, handle special characters for Obsidian compatibility
      */
     private normalizeTagValue(tag: string): string {
-        return tag.trim().toLowerCase().replace(/\s+/g, '-');
+        return tag
+            .trim()
+            .toLowerCase()
+            .replace(/['']/g, '')           // Remove apostrophes (both straight and curly)
+            .replace(/[.\s]+/g, '-')        // Replace periods and spaces with hyphens
+            .replace(/[^a-z0-9_\-/]/g, '') // Remove any other invalid characters (keep letters, numbers, _, -, /)
+            .replace(/-+/g, '-')            // Collapse multiple hyphens into one
+            .replace(/^-|-$/g, '');         // Remove leading/trailing hyphens
     }
 
     /**
