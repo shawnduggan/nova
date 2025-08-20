@@ -124,12 +124,11 @@ Every core writing feature works with your own API keys:
 Support development if Nova transforms your writing:
 
 - Early access to new features (3-6 months before general release)
-- Mobile access during early access period
 - Priority support and feature requests  
 - Community of serious writers  
-- Sustainable development without venture capital
+- Sustainable development 
 
-*Philosophy: Thoughtful tools for the modern writer. Features graduate to free tier after testing period. Support only if it changes how you write.*
+*Philosophy: Thoughtful tools for the modern writer. All features graduate to free tier after Supernova early access period. Support only if it changes how you write.*
 
 ---
 

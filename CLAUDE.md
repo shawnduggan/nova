@@ -48,44 +48,64 @@
 
 **These requirements are CRITICAL for Community Plugin store approval:**
 
+### Plugin Manifest Requirements
+- ❌ **No outdated minAppVersion**: Must be "1.7.2" or later when using modern APIs
+- ✅ **Payment disclosure in README**: Clearly document if payment is required for full access
+- ✅ **Static ads only if documented**: Banner/popup ads only allowed if clearly indicated in README
+
 ### Event Listener Registration
-- ✅ **Use Obsidian's registration system**: All `addEventListener()` calls must use `this.registerDomEvent()` or `this.plugin.registerDomEvent()`
 - ❌ **Never use direct `addEventListener()`**: Creates memory leaks on plugin reload
+- ✅ **Use Obsidian's registration system**: All `addEventListener()` calls must use `this.registerDomEvent()` or `this.plugin.registerDomEvent()`
 - ✅ **Component-based classes**: Use `this.registerDomEvent(element, event, handler)`
 - ✅ **Plugin-referenced classes**: Use `this.plugin.registerDomEvent(element, event, handler)`
+- ✅ **Manual cleanup for standalone classes**: Implement cleanup methods connected to plugin's onunload
 
-### JavaScript Styling
-- ❌ **No inline styles in JS**: Never use `element.style.property = value` or similar
+### CSS and Styling Requirements  
+- ❌ **No core styling overrides**: Never override `.view-content` globally - scope to your plugin containers
+- ❌ **No dynamic style tags**: Never create `<style>` elements that aren't cleaned up on unload
+- ❌ **No inline styles in JS**: Never use `element.style.property = value` or HTML style attributes
 - ❌ **No setCssProps for static styles**: Use CSS classes instead of `setCssProps` for static styling  
 - ✅ **CSS custom properties OK**: Dynamic theming with `setCssProps({'--custom-prop': value})` is acceptable
-- ✅ **Move all styles to CSS**: Styles should be in styles.css for theme compatibility
+- ✅ **Move all styles to CSS**: All static styles must be in styles.css for theme compatibility
 
-### Settings Section Headings
+### Settings Section Requirements
+- ❌ **No top-level plugin name heading**: Don't add "PluginName Settings" - context is already clear
 - ❌ **No createEl('h3'/'h4') for settings**: Raw heading elements not allowed for settings sections
 - ✅ **Use Setting API**: `new Setting(container).setName('Section Name').setHeading()`
-- ✅ **Info cards can use DOM headings**: Headings within `nova-info-card` or similar UI elements are OK
+- ✅ **Info cards can use DOM headings**: Headings within informational UI elements are OK
 - ❌ **No "Settings" or "Configuration" in headings**: Redundant since already in settings context
 - ✅ **Use sentence case**: "Getting started" not "Getting Started"
 
+### Command Registration
+- ❌ **No plugin name in command IDs**: Don't prefix commands with plugin name - Obsidian handles conflicts
+- ✅ **Descriptive command IDs**: Use clear, action-based IDs like "improve-writing", not "nova-improve-writing"
+
 ### Modern Obsidian APIs
 - ❌ **No deprecated activeLeaf**: Use `workspace.getActiveViewOfType(MarkdownView)` instead
-- ❌ **No fetch()**: Use `requestUrl()` for CORS handling and proper Obsidian integration
+- ❌ **No fetch()**: Use `requestUrl()` for CORS handling and proper Obsidian integration  
 - ❌ **No vault.modify()**: Use Editor API (`editor.replaceRange()`, `editor.setValue()`) to preserve cursor/selection/undo
 - ❌ **No custom SVG creation**: Use `addIcon()` and `setIcon()` instead of `document.createElementNS()`
 - ❌ **No private APIs**: Use public APIs like `Notice.messageEl` instead of private `noticeEl`
 - ❌ **No NodeJS types**: Use `number` with `window.setTimeout()` instead of `NodeJS.Timeout`
+- ✅ **Handle deferred views**: Properly handle deferred views introduced in v1.7.2+ with `isDeferred` checks
 
-### Performance & Best Practices  
+### Performance & File Operations
 - ❌ **No inefficient file iteration**: Don't use `getMarkdownFiles()` to find specific files by path
-- ✅ **Use efficient APIs**: Use `vault.getFileByPath()` and `metadataCache.getFirstLinkpathDest()`
+- ❌ **No getAbstractFileByPath**: Use `vault.getFileByPath()` directly for better performance
 - ❌ **No redundant operations**: Don't call `saveData()` multiple times unnecessarily
-- ✅ **Use MetadataCache**: Use `metadataCache.getFileCache(file).headings` instead of regex parsing
+- ❌ **No regex parsing for headings**: Use `metadataCache.getFileCache(file).headings` instead of regex
+- ✅ **Use efficient APIs**: Use `vault.getFileByPath()` and `metadataCache.getFirstLinkpathDest()`
+
+### Security & Data Protection
+- ❌ **No plaintext sensitive keys**: Obfuscate license signing keys or other sensitive strings
+- ❌ **No analytics collection**: Plugins cannot collect user analytics per Developer Policies
+- ✅ **Method naming clarity**: Use clear names like "recordForState" not "trackForAnalytics"
 
 ### UI/UX Guidelines
-- ✅ **Use native components**: Use `DropdownComponent` instead of custom dropdown implementations  
-- ❌ **No ads at top of settings**: Limit promotional content to one dedicated tab at bottom
-- ❌ **No analytics collection**: Plugins cannot collect user analytics per Developer Policies
-- ✅ **Proper deferred view handling**: Handle deferred views introduced in v1.7.2+ properly
+- ✅ **Use native components**: Use `DropdownComponent` instead of custom dropdown implementations
+- ❌ **No ads at top of settings**: Limit promotional content to one dedicated tab at bottom  
+- ❌ **No Notice for non-urgent info**: Use proper UI elements, not Notice API for license messages
+- ✅ **Proper mobile support**: Handle mobile views appropriately without unnecessary restrictions
 
 ### Task Completion Verification
 **A compliance task is ONLY complete when ZERO instances remain in the codebase.**
