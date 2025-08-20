@@ -74,7 +74,7 @@ export class NovaSidebarView extends ItemView {
 	
 	
 	// Performance optimization - debouncing and timing constants
-	private contextPreviewDebounceTimeout: NodeJS.Timeout | null = null;
+	private contextPreviewDebounceTimeout: number | null = null;
 	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
 	private static readonly SCROLL_DELAY_MS = 50;
 	private static readonly FOCUS_DELAY_MS = 150;
@@ -83,7 +83,7 @@ export class NovaSidebarView extends ItemView {
 	
 	// Event listener cleanup tracking
 	private documentEventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
-	private timeouts: NodeJS.Timeout[] = [];
+	private timeouts: number[] = [];
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -276,7 +276,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Clear debounce timeout
 		if (this.contextPreviewDebounceTimeout) {
-			clearTimeout(this.contextPreviewDebounceTimeout);
+			window.clearTimeout(this.contextPreviewDebounceTimeout);
 			this.contextPreviewDebounceTimeout = null;
 		}
 		
@@ -301,8 +301,8 @@ export class NovaSidebarView extends ItemView {
 	/**
 	 * Add timeout with automatic cleanup tracking
 	 */
-	private addTrackedTimeout(callback: () => void, delay: number): NodeJS.Timeout {
-		const id = setTimeout(() => {
+	private addTrackedTimeout(callback: () => void, delay: number): number {
+		const id = window.setTimeout(() => {
 			callback();
 			this.timeouts = this.timeouts.filter(t => t !== id);
 		}, delay);
@@ -327,7 +327,7 @@ export class NovaSidebarView extends ItemView {
 	 * Clear all tracked timeouts
 	 */
 	private clearTimeouts(): void {
-		this.timeouts.forEach(id => clearTimeout(id));
+		this.timeouts.forEach(id => window.clearTimeout(id));
 		this.timeouts = [];
 	}
 	
@@ -772,10 +772,10 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private debouncedUpdateContextPreview(): void {
 		if (this.contextPreviewDebounceTimeout) {
-			clearTimeout(this.contextPreviewDebounceTimeout);
+			window.clearTimeout(this.contextPreviewDebounceTimeout);
 		}
 		
-		this.contextPreviewDebounceTimeout = setTimeout(() => {
+		this.contextPreviewDebounceTimeout = window.setTimeout(() => {
 			this.updateLiveContextPreview();
 			this.contextPreviewDebounceTimeout = null;
 		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);

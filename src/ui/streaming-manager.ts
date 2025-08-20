@@ -17,12 +17,12 @@ export interface StreamingOptions {
 export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
 
 export class StreamingManager {
-    private dotsAnimationInterval: NodeJS.Timeout | null = null;
+    private dotsAnimationInterval: number | null = null;
     private thinkingNotice: Notice | null = null;
     private currentStreamingEndPos: any = null;
     private streamingStartPos: any = null;
     private originalPosition: any = null;
-    private scrollThrottleTimeout: NodeJS.Timeout | null = null;
+    private scrollThrottleTimeout: number | null = null;
     
     // Magical scroll configuration
     private static readonly SCROLL_THROTTLE_MS = 16; // 60fps for smooth experience
@@ -250,7 +250,7 @@ export class StreamingManager {
     private magicalScrollToCursor(editor: Editor, position: any, options: StreamingOptions): void {
         // Use throttled updates for smooth 60fps experience
         if (this.scrollThrottleTimeout) {
-            clearTimeout(this.scrollThrottleTimeout);
+            window.clearTimeout(this.scrollThrottleTimeout);
         }
         
         // Immediate scroll for responsive experience
@@ -286,7 +286,7 @@ export class StreamingManager {
         performScroll();
         
         // Also schedule a throttled update for optimization
-        this.scrollThrottleTimeout = setTimeout(() => {
+        this.scrollThrottleTimeout = window.setTimeout(() => {
             performScroll();
         }, StreamingManager.SCROLL_THROTTLE_MS);
     }
@@ -356,7 +356,7 @@ export class StreamingManager {
         let phraseIndex = 0;
         let dotCount = 1;
         
-        this.dotsAnimationInterval = setInterval(() => {
+        this.dotsAnimationInterval = window.setInterval(() => {
             try {
                 if (!this.thinkingNotice) return;
                 
@@ -391,7 +391,7 @@ export class StreamingManager {
      */
     private stopDotsAnimation(): void {
         if (this.dotsAnimationInterval) {
-            clearInterval(this.dotsAnimationInterval);
+            window.clearInterval(this.dotsAnimationInterval);
             this.dotsAnimationInterval = null;
         }
         
@@ -418,7 +418,7 @@ export class StreamingManager {
         
         // Clear scroll throttle timeout
         if (this.scrollThrottleTimeout) {
-            clearTimeout(this.scrollThrottleTimeout);
+            window.clearTimeout(this.scrollThrottleTimeout);
             this.scrollThrottleTimeout = null;
         }
         

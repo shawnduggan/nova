@@ -122,7 +122,7 @@ Based on Obsidian plugin review feedback, addressing 29 specific issues for plug
 - **COMPLETED**: #21 Unnecessary multiple saves - Remove redundant saveData() calls
 - **COMPLETED**: #22 Unobfuscated license key - Properly obfuscate license signing key as claimed
 - **COMPLETED**: #23 Incorrect heading regex - Use MetadataCache instead of regex with false positives
-- **PENDING**: #25 NodeJS.Timeout type - Use regular number type with window.setTimeout/clearTimeout
+- **COMPLETED**: #25 NodeJS.Timeout type - Use regular number type with window.setTimeout/clearTimeout
 - **PENDING**: #26 Private Notice property - Use Notice.messageEl instead of accessing private noticeEl
 
 **Phase 3: RECOMMENDED - UI/UX Guidelines**
@@ -143,6 +143,13 @@ Final: Comprehensive testing of all providers, UI components, and core functiona
 Phase 1 completion required before plugin can be approved for Community Plugin store
 
 ### Recent Completions
+
+**COMPLETED**: Task #25 - Replaced NodeJS.Timeout types with web-standard number types for browser compliance
+- Replaced all NodeJS.Timeout type declarations with number type in streaming-manager.ts and sidebar-view.ts (5 instances total)
+- Updated timer method calls to use explicit window APIs: window.setTimeout, window.clearTimeout, window.setInterval, window.clearInterval
+- Changed method signatures including addTrackedTimeout return type from NodeJS.Timeout to number
+- Eliminates Node.js dependency and uses proper web-standard timer types for browser/Obsidian plugin environment
+- All 490 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #25
 
 **COMPLETED**: Task #23 - Replaced heading regex with MetadataCache API for Obsidian compliance
 - Replaced regex pattern `/^(#{1,6})\s+(.+)$/` in document-engine.ts with MetadataCache-based solution using `app.metadataCache.getFileCache(file).headings`
