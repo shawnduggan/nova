@@ -138,14 +138,26 @@ describe('MetadataCommand', () => {
     });
 
     describe('updateFrontmatter', () => {
-        it('should not create frontmatter for non-existing frontmatter (correct behavior)', () => {
+        it('should create frontmatter for non-existing frontmatter (correct behavior for metadata operations)', () => {
             const content = '# Test Document\nSome content here.';
             const updates = { title: 'Test', tags: ['test'] };
             
             // Access the private method through any
             const result = (metadataCommand as any).updateFrontmatter(content, updates);
             
-            // Should return original content unchanged when no frontmatter exists
+            // Should create new frontmatter when none exists
+            expect(result).toContain('---\ntitle: Test\ntags: ["test"]\n---');
+            expect(result).toContain('# Test Document\nSome content here.');
+        });
+
+        it('should return original content when no updates provided and no frontmatter exists', () => {
+            const content = '# Test Document\nSome content here.';
+            const updates = {};
+            
+            // Access the private method through any
+            const result = (metadataCommand as any).updateFrontmatter(content, updates);
+            
+            // Should return original content when no updates to apply
             expect(result).toBe(content);
         });
 

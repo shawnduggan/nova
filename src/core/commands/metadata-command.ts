@@ -315,8 +315,31 @@ export class MetadataCommand {
         
         // Check if frontmatter exists
         if (lines[0] !== '---') {
-            // No frontmatter exists - don't create new one, just return original content
-            return content;
+            // No frontmatter exists - create new frontmatter for metadata operations
+            if (Object.keys(updates).length === 0) {
+                return content; // No updates to apply
+            }
+            
+            // Create new frontmatter
+            const newFrontmatter = ['---'];
+            for (const [key, value] of Object.entries(updates)) {
+                if (value === null || value === undefined) {
+                    continue; // Skip null/undefined values
+                }
+                
+                const formattedValue = typeof value === 'object' 
+                    ? JSON.stringify(value)
+                    : String(value);
+                
+                newFrontmatter.push(`${key}: ${formattedValue}`);
+            }
+            newFrontmatter.push('---');
+            
+            // Return content with new frontmatter prepended
+            return [
+                ...newFrontmatter,
+                ...lines
+            ].join('\n');
         }
         
         // Find the closing ---
