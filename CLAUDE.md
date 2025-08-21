@@ -9,7 +9,7 @@
 
 ## 📚 Required Context & Strategic Documentation
 
-**Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/09-Projects/Nova/Core Docs/ to understand Nova.
+**Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/07-Projects/Nova/Core Docs/ to understand Nova.
 
 **Strategic Focus:** Nova solves "where did AI put that?" by letting users control exactly where edits happen - select text to transform it, place cursor to create content exactly there.
 
@@ -900,7 +900,109 @@ docs(readme): update installation instructions
 
 ## 📋 Current Tasks
 
-*No active tasks - all previous work completed successfully*
+### 🔄 IN PROGRESS - Nova Commands System Implementation
+**Context**: Implementing comprehensive command system with markdown-based commands and progressive disclosure UI
+**Progress**: Planning complete, starting Phase 1 implementation
+**Current State**: 
+- Spec analyzed and architecture designed
+- Integration points identified in existing codebase
+- Ready to implement core infrastructure
+**Next Steps**: 
+- Create CommandEngine at src/features/commands/core/CommandEngine.ts
+- Build CommandRegistry for lazy loading at src/features/commands/core/CommandRegistry.ts
+- Implement SmartVariableResolver at src/features/commands/core/SmartVariableResolver.ts
+**Dependencies**: None
+**Quality Status**: Planning complete, implementation starting
+
+### Phase 1 Tasks (HIGH PRIORITY - Days 1-5)
+
+#### Core Infrastructure
+- [ ] Create CommandEngine with markdown file loading system
+  - Location: src/features/commands/core/CommandEngine.ts
+  - Loads commands from Commands/ folder in vault
+  - Executes with streaming support via StreamingManager
+- [ ] Implement SmartVariableResolver for template variables
+  - Variables: {text}, {selection}, {document}, {title}, {document_type}, {metrics}, {audience_level}
+  - Smart context resolution based on cursor/selection
+- [ ] Build CommandRegistry for lazy loading commands
+  - Lazy load commands on first use (<50MB memory)
+  - Cache loaded commands for session
+- [ ] Integrate with existing `/` trigger detection in CommandSystem
+  - Extend src/ui/command-system.ts for markdown commands
+  - Update CommandParser for new command types
+
+#### Progressive Disclosure UI
+- [ ] Create MarginIndicators component
+  - 14px icons at 40% opacity in right margin
+  - Icon types: 💡 enhancement, ⚡ quick fix, 📊 metrics, ✨ transformation
+- [ ] Implement hover preview system
+  - 200ms fade-in on hover
+  - Single-line description with primary command
+- [ ] Build InsightPanels for full intelligence
+  - Positioned near text without covering
+  - Multiple approach options
+  - Clear action buttons
+- [ ] Add SmartTimingEngine
+  - 3 second delay after typing stops
+  - Hide when typing >30 WPM
+  - Respect document type settings
+
+#### Settings Integration
+- [ ] Add Commands tab to NovaSettingTab
+  - Location: src/settings.ts (extend existing)
+  - CommandSettings interface with all options
+- [ ] Implement sidebar quick controls
+  - Add to NovaSidebarView for easy access
+  - Dropdown: Off/Minimal/Balanced/Aggressive
+- [ ] Support per-document frontmatter overrides
+  - Read nova-insights from frontmatter
+  - Override global settings per document
+
+#### 7 Flagship Commands (MUST BE EXCEPTIONAL)
+- [ ] `/expand-outline` - Transform bullets to flowing prose
+  - Multiple expansion styles: Detailed/Concise/Narrative
+  - Maintain logical flow and hierarchy
+- [ ] `/perspective-shift` - Rewrite from different viewpoints
+  - Stakeholder/Temporal/Expertise/Cultural perspectives
+  - Preserve core message accuracy
+- [ ] `/strengthen-hook` - 5 psychological hook styles
+  - Question/Statistics/Story/Challenge/Promise hooks
+  - Rank by predicted engagement
+- [ ] `/add-examples` - 3 types per concept
+  - Quick analogy (1 sentence)
+  - Detailed scenario (paragraph)
+  - Case study reference (real-world)
+- [ ] `/show-through-scene` - Convert telling to showing
+  - Multiple intensity levels: Subtle/Standard/Dramatic
+  - Maintain pacing awareness
+- [ ] `/thesis-strengthen` - 3 academic argument versions
+  - Narrowed/Provocative/Expanded approaches
+  - Include counter-argument considerations
+- [ ] `/troubleshooting-guide` - Symptom→cause→solution format
+  - Common failure analysis
+  - Diagnostic and verification steps
+
+### Phase 2 Tasks (MEDIUM PRIORITY - Days 6-8)
+
+#### 13 Domain Excellence Commands
+- [ ] Blog commands: `/add-subheadings`, `/simplify-language`, `/extract-takeaways`
+- [ ] Fiction commands: `/dialogue-punch`, `/sensory-details`, `/tension-curve`
+- [ ] Academic commands: `/argument-structure`, `/evidence-integration`, `/academic-tone`
+- [ ] Technical commands: `/add-context-blocks`, `/example-generation`, `/prerequisite-check`
+- [ ] Universal command: `/voice-match` - Match another document's style
+
+#### Advanced Features
+- [ ] Build WritingContextPanel with real-time metrics
+- [ ] Create MobileBottomSheet for mobile UI (60% screen height max)
+- [ ] Implement DocumentTypeDetector for automatic detection
+- [ ] Add session preference memory
+
+### Phase 3 Tasks (POLISH - Days 9-10)
+- [ ] Performance optimization (<100ms insight detection, <50ms command start)
+- [ ] Edge case handling (network failures, large documents, malformed commands)
+- [ ] Create default command templates in Commands/ folder
+- [ ] Professional writer beta testing
+- [ ] Documentation and video demonstrations
 
 ### Future Enhancements
 
