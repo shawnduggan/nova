@@ -25,11 +25,224 @@
 - ✅ Avoid side effects in constructor/init logic. Use explicit `init()` methods where needed.
 - ✅ Use `constants.ts` or `config.ts` for all strings, selectors, and static values.
 
-## 🧪 Development & Testing
+## 🧪 Testing Strategy & Guidelines
 
-- ✅ Always write or update tests before implementing new business logic.
-- ❌ Avoid UI snapshot or DOM unit tests unless explicitly requested.
-- ✅ Test all edge cases that affect global state or plugin behavior.
+**Comprehensive testing approach for reliable Nova development:**
+
+### Test Requirements by Code Type
+1. ✅ **Business Logic** (MANDATORY):
+   - Unit tests for all data processing methods
+   - Edge case coverage for error conditions
+   - Input validation and sanitization testing
+   - State management and transformation logic
+
+2. ✅ **Integration Testing** (REQUIRED):
+   - Cross-component communication via StateManager
+   - API provider interactions and responses
+   - File operations with mocked Obsidian APIs
+   - Event flow between UI components and managers
+
+3. ✅ **Obsidian API Integration** (CRITICAL):
+   - Mock all Obsidian APIs consistently
+   - Test proper cleanup method implementation
+   - Verify event listener registration patterns
+   - Confirm Editor API usage over vault operations
+
+4. ❌ **UI Snapshot/DOM Testing** (AVOID):
+   - No Jest snapshots of DOM structure
+   - No detailed DOM unit tests unless explicitly requested
+   - Focus on behavior, not visual structure
+
+### Test Naming & Organization
+```typescript
+// ✅ Good test names (behavior-focused)
+describe('ConversationManager', () => {
+  it('should persist conversation state between sessions', () => {})
+  it('should handle provider switching without data loss', () => {})
+  it('should recover from interrupted streaming responses', () => {})
+})
+
+// ❌ Poor test names (implementation-focused)
+describe('ConversationManager', () => {
+  it('should call saveData method', () => {})
+  it('should set isStreaming to false', () => {})
+})
+```
+
+### Mock Strategy
+1. ✅ **Obsidian API Mocks**:
+   - Use consistent mocks across all test files
+   - Mock app.vault, app.workspace, app.metadataCache
+   - Provide realistic return values, not just empty objects
+   - Update mocks when Obsidian APIs change
+
+2. ✅ **Provider API Mocks**:
+   - Mock HTTP responses with realistic data
+   - Test both success and error scenarios
+   - Include rate limiting and timeout conditions
+   - Mock streaming responses for real-time testing
+
+3. ✅ **StateManager Mocks**:
+   - Mock event emission and subscription
+   - Test state transitions and side effects
+   - Verify cleanup of event listeners
+
+### Test Coverage Requirements
+- ✅ **100% coverage** for utility functions and data processors
+- ✅ **90%+ coverage** for managers and core business logic
+- ✅ **80%+ coverage** for UI components (behavior, not DOM)
+- ✅ **All error paths tested** - don't just test happy path
+- ✅ **Edge cases documented** with specific test cases
+
+### Error Scenario Testing
+1. ✅ **Network failures**:
+   - API timeouts and connection errors
+   - Invalid API responses and malformed data
+   - Rate limiting and quota exceeded scenarios
+
+2. ✅ **File system errors**:
+   - Permission denied for file operations
+   - Corrupted or missing configuration files
+   - Vault access issues and file locks
+
+3. ✅ **User input edge cases**:
+   - Empty, null, or malformed user inputs
+   - Extremely long content and memory limits
+   - Special characters and encoding issues
+
+## 🚨 Error Handling & Recovery Instructions
+
+**Comprehensive error recovery patterns for robust Nova operation:**
+
+### Build Failure Recovery
+**When `npm run build` fails:**
+1. ✅ **Identify the error type**:
+   - TypeScript compilation errors → Fix type issues
+   - Import/export errors → Check module paths and exports
+   - Dependency issues → Run `npm install` and verify versions
+
+2. ✅ **Common build fixes**:
+   ```bash
+   # Clean build artifacts and retry
+   rm -rf dist/
+   npm run build
+   
+   # If still failing, check for syntax errors
+   npx tsc --noEmit
+   
+   # Verify all imports are correct
+   npx tsc --listFiles | grep "error"
+   ```
+
+3. ✅ **Rollback strategy**:
+   - Use `git diff` to see what changed since last working build
+   - Revert problematic changes: `git checkout -- <file>`
+   - Test build after each revert to isolate issue
+
+### Test Failure Recovery
+**When `npm test` fails:**
+1. ✅ **Analyze failure patterns**:
+   - Single test failure → Focus on specific component
+   - Multiple test failures → Check for mock issues or shared state
+   - All tests failing → Check for fundamental setup problems
+
+2. ✅ **Test debugging workflow**:
+   ```bash
+   # Run single test file for focused debugging
+   npm test -- conversation-manager.test.ts
+   
+   # Run tests with verbose output
+   npm test -- --verbose
+   
+   # Update test snapshots if needed (but avoid DOM snapshots)
+   npm test -- --updateSnapshot
+   ```
+
+3. ✅ **Mock verification**:
+   - Ensure all Obsidian API methods are properly mocked
+   - Check that mock return values match expected types
+   - Verify mock cleanup between tests
+
+### ESLint Error Resolution
+**When ESLint shows errors:**
+1. ✅ **Fix errors systematically**:
+   ```bash
+   # Show only errors (not warnings)
+   npx eslint src/ --format=unix | grep error
+   
+   # Fix auto-fixable issues
+   npx eslint src/ --fix
+   
+   # Check specific file
+   npx eslint src/specific-file.ts
+   ```
+
+2. ✅ **Common ESLint fixes**:
+   - Remove unused imports and variables
+   - Fix naming convention violations
+   - Add proper type annotations
+   - Remove any console.log statements
+
+### Plugin Runtime Error Recovery
+**When plugin fails to load in Obsidian:**
+1. ✅ **Check browser console** for error details
+2. ✅ **Verify plugin registration**:
+   - Ensure main.ts exports Plugin class properly
+   - Check onload/onunload method implementations
+   - Verify manifest.json is valid
+
+3. ✅ **Common runtime fixes**:
+   - Check for unhandled Promise rejections
+   - Verify all async operations have error handling
+   - Ensure proper cleanup in onunload method
+
+### Memory Leak Detection & Recovery
+**When plugin causes performance issues:**
+1. ✅ **Audit event listeners**:
+   - Search for `addEventListener` calls without `registerDomEvent`
+   - Check that all components implement cleanup methods
+   - Verify timers are registered and cleared properly
+
+2. ✅ **Memory profiling**:
+   - Use browser dev tools Memory tab
+   - Check for growing object counts after plugin reload
+   - Monitor DOM node count increases
+
+### Rollback Procedures
+**When changes break functionality:**
+1. ✅ **Immediate rollback**:
+   ```bash
+   # See what changed
+   git status
+   git diff
+   
+   # Rollback all changes
+   git reset --hard HEAD
+   
+   # Or rollback specific files
+   git checkout HEAD -- src/specific-file.ts
+   ```
+
+2. ✅ **Partial rollback**:
+   - Use `git log --oneline -10` to see recent commits
+   - Create branch from last known good state
+   - Cherry-pick working changes back
+
+3. ✅ **Recovery verification**:
+   - Run full test suite after rollback
+   - Verify build succeeds
+   - Test plugin loading in Obsidian
+   - Check that all features still work
+
+**Recovery Decision Tree:**
+```
+Build/Test Failure?
+├─ Syntax/Type Error? → Fix immediately, retest
+├─ Single Test Failure? → Debug specific test, check mocks
+├─ Multiple Failures? → Check for shared mock issues
+├─ All Tests Failing? → Rollback and isolate changes
+└─ Plugin Won't Load? → Check console, verify main.ts exports
+```
 
 ## 🛑 Strict Behavior Rules
 
@@ -43,6 +256,183 @@
 - ❌ **Avoid type assertions like `as Type`. Prefer proper typing with interfaces or explicit declarations.**
 
 > Your default mode is read-only and analytical. Only switch to write mode when prompted.
+
+## 🚫 Git Commit Control
+
+**CRITICAL: Never auto-commit changes - User must test first**
+
+- ❌ **NEVER create commits automatically** after making changes
+- ❌ **NEVER commit without explicit user request**
+- ✅ **Only commit when explicitly asked** with phrases like:
+  - "commit this"
+  - "create a commit"
+  - "commit the changes"
+  - "make a commit"
+- ✅ **Before committing, ALWAYS show what will be committed**:
+  - Run `git status` to show modified files
+  - Run `git diff` to show actual changes
+  - Allow user to review before proceeding
+
+**Why this matters:**
+- Users need to test changes in their environment first
+- Code may work in development but fail in production
+- Users may want to request modifications before committing
+- Maintains user control over their git history
+
+> The user should drive the commit process, not the AI.
+
+## 📋 Session Continuity & Task Persistence
+
+**CLAUDE.md is the authoritative source of truth for ALL ongoing work**
+
+### End of Session Requirements
+**Before ANY session ends, you MUST:**
+- ✅ **Update Current Tasks section** with precise status:
+  - **IN PROGRESS**: [Brief description] - Next: [specific next step with file:line references]
+  - **BLOCKED**: [Brief description] - Blocked by: [specific technical issue]
+  - **PENDING**: [Brief description] - Waiting for: [user approval/dependency]
+- ✅ **Document work-in-progress** with enough context for fresh session:
+  - Specific files modified (with line numbers)
+  - Methods/components being changed
+  - Architectural decisions made
+  - Any temporary workarounds that need cleanup
+- ✅ **Record Quality Assurance status**:
+  - Build status (passing/failing)
+  - Test status (which tests pass/fail)
+  - ESLint status (error count)
+- ✅ **Add discovered issues** to Known Issues section with priority
+
+### Start of Session Requirements
+**When starting ANY new session, you MUST:**
+- ✅ **Check Current Tasks section FIRST** before accepting new work
+- ✅ **Resume IN PROGRESS tasks** before starting anything new
+- ✅ **Verify system state** matches last known status:
+  - Run build to confirm current state
+  - Check test status
+  - Review recent git commits if needed
+- ✅ **Ask for clarification** if task context is insufficient
+
+### Task Documentation Format
+**Each task entry must include:**
+- **Context**: Why this task is needed
+- **Progress**: What has been completed
+- **Current State**: Exact files and methods being modified
+- **Next Steps**: Specific actions with file paths and line numbers
+- **Dependencies**: What's blocking progress or needed to continue
+- **Quality Status**: Build/test/lint status
+
+**Example Task Entry:**
+```
+### 🔄 IN PROGRESS - Add user preference for auto-save interval
+**Context**: Users want control over how often Nova auto-saves conversation state
+**Progress**: Added setting UI in settings.ts:245, created AutoSaveManager class
+**Current State**: 
+- settings.ts:245 - Setting UI implemented
+- auto-save-manager.ts:1-50 - Basic class structure done
+- Need to integrate with StateManager at state-manager.ts:120
+**Next**: Connect AutoSaveManager.start() method to plugin initialization in main.ts:85
+**Dependencies**: None
+**Quality**: Build passing, tests at 480/481 (1 failing test in auto-save-manager.test.ts)
+```
+
+## 🔍 Pre-Implementation Research Requirements
+
+**MANDATORY research phase before ANY code changes:**
+
+### Understanding Phase (Required)
+1. ✅ **Search for existing patterns**:
+   - Use `Grep` to find similar implementations
+   - Use `Task` tool for complex multi-file analysis
+   - Study at least 3 similar components before creating new ones
+2. ✅ **Understand component relationships**:
+   - Map dependencies using imports/exports
+   - Identify shared state or event flows
+   - Check for existing interfaces that must be preserved
+3. ✅ **Verify extension opportunities**:
+   - Look for existing functionality that can be extended
+   - Check for similar methods that can be refactored to be reusable
+   - Confirm no redundant logic will be created
+
+### Architecture Verification (Required)
+1. ✅ **Interface compatibility check**:
+   - Ensure no breaking changes to existing provider APIs
+   - Verify UI component contracts remain stable
+   - Check StateManager event signatures
+2. ✅ **Performance impact assessment**:
+   - Identify if change affects DOM updates
+   - Check for potential memory leaks (timers, listeners)
+   - Consider impact on large vaults (1000+ files)
+
+### Documentation Review (Required)
+1. ✅ **Read Core Docs** if architectural changes planned
+2. ✅ **Check Obsidian Plugin Compliance** requirements for API usage
+3. ✅ **Review existing tests** to understand expected behavior patterns
+
+**Never begin implementation without completing this research phase.**
+
+## 🛠️ Enhanced Tool Usage Guidelines
+
+### Task Tool Usage (High Priority)
+**When to use Task tool with subagents:**
+- ✅ **Complex multi-file searches** requiring multiple patterns
+- ✅ **Architecture analysis** across 5+ files
+- ✅ **Compliance verification** needing comprehensive pattern checking
+- ✅ **Open-ended research** that may require iterative searching
+- ❌ **Simple file reads** - use Read tool directly
+- ❌ **Single pattern searches** - use Grep tool directly
+
+**Subagent Context Limitations:**
+- ⚠️ **No persistent state** between subagent calls
+- ⚠️ **Cannot communicate back** after initial response
+- ⚠️ **Must provide complete instructions** in single prompt
+- ✅ **Clearly specify expected return information** format
+
+### Tool Selection Decision Tree
+```
+Need to find something?
+├─ Know specific file path? → Use Read
+├─ Know specific pattern? → Use Grep  
+├─ Multiple patterns/files? → Use Task (general-purpose)
+└─ Complex analysis needed? → Use Task (general-purpose)
+```
+
+## 🧩 Pattern Recognition & Consistency
+
+**Before implementing ANY new functionality:**
+
+### Pattern Analysis (Mandatory)
+1. ✅ **Study existing implementations**:
+   - Find 3+ similar components in the codebase
+   - Document the pattern being followed
+   - Note any deviations and their reasons
+2. ✅ **Follow established conventions**:
+   - Naming conventions (PascalCase for classes, camelCase for methods)
+   - File structure and organization
+   - Import/export patterns
+   - Event handling approaches
+
+### Consistency Verification
+1. ✅ **Interface design**:
+   - Use same parameter patterns as similar methods
+   - Follow same return value conventions
+   - Maintain consistent error handling
+2. ✅ **Architecture adherence**:
+   - Use StateManager for shared state
+   - Use event-driven communication between components
+   - No direct component-to-component method calls
+3. ✅ **Justification for deviations**:
+   - Document WHY you're breaking from established patterns
+   - Get approval for architectural changes
+   - Update pattern documentation if needed
+
+**Example Pattern Documentation:**
+```
+// Following SidebarView pattern for UI components:
+// 1. Constructor takes container and plugin reference
+// 2. Implements cleanup() method for event listener removal  
+// 3. Uses registerDomEvent for all event handlers
+// 4. Emits events to StateManager rather than direct calls
+```
 
 ## 🔒 Obsidian Plugin Compliance Requirements
 
@@ -146,408 +536,377 @@ Before marking any compliance task as complete:
 
 Never mark compliance tasks complete without systematic verification.
 
-## ✅ Quality Assurance Requirements
+## ✅ Enhanced Quality Assurance Requirements
 
-**After ANY code changes, you MUST:**
-- ✅ Run `npm run build` - must complete with 0 errors
-- ✅ Run `npm test` - all tests must pass (476+ tests)
-- ✅ Check ESLint status - 0 errors allowed (warnings are acceptable)
-- ✅ Verify TypeScript compilation passes without errors
-- ✅ Confirm all imports resolve correctly
+**MANDATORY verification steps after ANY code changes:**
+
+### Build & Compilation Verification
+1. ✅ **Run `npm run build`** - Must complete with 0 errors
+2. ✅ **Verify TypeScript compilation** - No type errors allowed
+3. ✅ **Confirm all imports resolve** - No module resolution failures
+4. ✅ **Check bundle size** - No unexpected significant increases
+
+### Testing & Code Quality
+5. ✅ **Run `npm test`** - ALL tests must pass (490+ tests expected)
+6. ✅ **Check ESLint status** - 0 errors allowed (warnings acceptable)
+   - Use: `npx eslint src/ --format=unix | grep error`
+7. ✅ **Verify no console statements** added to production code
+8. ✅ **Check for proper Logger usage** instead of console.log
+
+### Obsidian Plugin Compliance
+9. ✅ **Event listener registration check**:
+   - All `addEventListener` calls use `registerDomEvent`
+   - No unregistered event listeners remain
+10. ✅ **Timer registration verification**:
+    - All `setInterval`/`setTimeout` use registration system
+    - No memory leak potential from unregistered timers
+11. ✅ **API usage compliance**:
+    - No deprecated API usage (activeLeaf, vault.modify, etc.)
+    - Proper Editor API usage for file modifications
+    - No private API access
+
+### Memory & Performance Checks
+12. ✅ **Memory leak prevention**:
+    - All components implement proper cleanup methods
+    - Event listeners properly removed on component destroy
+    - Timers cleared when components unmount
+13. ✅ **Performance impact assessment**:
+    - No unnecessary DOM manipulations added
+    - Efficient API usage (no getMarkdownFiles() for single file lookups)
+    - Proper caching where applicable
+
+### Code Quality Standards
+14. ✅ **Follow established patterns**:
+    - No breaking changes to existing interfaces
+    - Consistent naming conventions maintained
+    - Architecture principles followed (event-driven, StateManager usage)
+15. ✅ **Documentation completeness**:
+    - Complex logic has explanatory comments
+    - Public methods have clear parameter/return documentation
+    - Breaking changes noted in commit messages
 
 **Before considering any task complete:**
-- ✅ Validate that production code builds successfully
-- ✅ Ensure no ESLint errors remain (use `npx eslint src/ --format=unix | grep error`)
-- ✅ Verify all tests continue to pass
+- ✅ **ALL 15 verification steps must pass**
+- ✅ **Document any workarounds or technical debt** in Known Issues
+- ✅ **Update CLAUDE.md task status** with final state
 
-> If build, tests, or linting fail, the task is NOT complete until all issues are resolved.
+> If ANY verification step fails, the task is NOT complete until all issues are resolved.
 
-## 🛠️ Tool Usage Guidelines
+## 🔧 Obsidian API Usage Hierarchy
 
-- ✅ Use `Task` tool for complex searches across multiple files
-- ✅ Use `Grep` and `Glob` for specific pattern searches
-- ✅ Use `Read` tool for examining specific files
-- ✅ Use `Edit` or `MultiEdit` for code changes
-- ✅ Use `TodoWrite` only as optional session-internal working memory
-- ✅ Always reason through the task before making changes
+**Decision tree for choosing the correct Obsidian APIs:**
 
-> CLAUDE.md is the authoritative task source. TodoWrite is temporary session state only.
+### File Operations
+```
+Need to modify file content?
+├─ User-initiated edit in active editor? → Use Editor API (editor.replaceRange, editor.setValue)
+├─ Programmatic file update? → Use Editor API with getActiveViewOfType(MarkdownView)
+├─ Metadata/frontmatter changes? → Use Editor API, never vault.modify()
+└─ File creation/deletion? → Use vault.create(), vault.delete()
+```
 
-## 🔄 Session Continuity Guidelines
+### File Information & Navigation
+```
+Need file information?
+├─ File metadata (headings, links, tags)? → Use app.metadataCache.getFileCache()
+├─ Find file by path? → Use vault.getFileByPath() (not getAbstractFileByPath)
+├─ Find file by link? → Use metadataCache.getFirstLinkpathDest()
+├─ Get all markdown files? → Only for autocomplete/user selection, not single file lookups
+└─ File existence check? → Use vault.getFileByPath() !== null
+```
 
-**When context runs low or session ends:**
-- ✅ Update task status in Current Tasks section with progress notes
-- ✅ Document any work-in-progress with specific next steps
-- ✅ Add any discovered issues to Known Issues section
-- ✅ Note which Quality Assurance steps still need completion
-- ✅ Include relevant file paths and line numbers for context
+### Workspace & Views
+```
+Need to interact with workspace?
+├─ Get active markdown editor? → Use workspace.getActiveViewOfType(MarkdownView)
+├─ Handle deferred views? → Check view.isDeferred, use view.loadIfDeferred()
+├─ Open specific file? → Use workspace.openLinkText() or workspace.getLeaf().openFile()
+├─ Get all open files? → Use workspace.getMarkdownLeaves()
+└─ Never use deprecated activeLeaf
+```
 
-**Task Status Format:**
-- **IN PROGRESS**: [Brief description] - Next: [specific next step]
-- **BLOCKED**: [Brief description] - Blocked by: [specific issue]
-- **PENDING**: [Brief description] - Waiting for: [dependency/approval]
+### Network & External Resources
+```
+Need to make network requests?
+├─ HTTP requests? → Use requestUrl() (not fetch())
+├─ Handle CORS? → requestUrl() handles this automatically
+├─ File uploads? → Use requestUrl() with appropriate headers
+└─ WebSocket connections? → Standard WebSocket API is acceptable
+```
+
+### UI Components & Icons
+```
+Need UI elements?
+├─ Dropdown menus? → Use DropdownComponent (not custom implementations)
+├─ Icons? → Use setIcon() with addIcon() for custom icons
+├─ Settings sections? → Use Setting().setHeading() (not createEl)
+├─ Notices? → Use Notice() for urgent messages only, DOM elements for non-urgent
+└─ Modal dialogs? → Extend Modal class properly
+```
+
+### Event Handling & Cleanup
+```
+Need event listeners?
+├─ Component-based class? → Use this.registerDomEvent()
+├─ Plugin-referenced class? → Use this.plugin.registerDomEvent()
+├─ Standalone class? → Implement manual cleanup, connect to plugin.onunload
+└─ Never use direct addEventListener()
+```
+
+### Performance Optimization
+```
+Optimizing performance?
+├─ Large file operations? → Batch operations, use async/await
+├─ Frequent DOM updates? → Debounce updates, use DocumentFragment
+├─ Memory usage? → Clear references, implement proper cleanup
+├─ File searches? → Use MetadataCache, avoid iterating all files
+└─ State management? → Use StateManager events, avoid direct coupling
+```
+
+**API Preference Order (Higher = Better):**
+1. **Obsidian-specific APIs** (Editor, MetadataCache, Workspace)
+2. **Modern web standards** (requestUrl over fetch)
+3. **Registered/managed resources** (registerDomEvent over addEventListener)
+4. **Public APIs** (messageEl over noticeEl)
+5. **Efficient patterns** (getFileByPath over getAbstractFileByPath)
+
+## 🔄 Common Pitfalls & Anti-Patterns
+
+**Avoid these common mistakes that lead to bugs and compliance issues:**
+
+### Code Architecture Anti-Patterns
+❌ **Direct component coupling**:
+```typescript
+// BAD: Direct method calls between components
+this.sidebarView.refreshConversation();
+```
+✅ **Event-driven communication**:
+```typescript
+// GOOD: Use StateManager for communication
+this.stateManager.emit('conversation-updated', conversationData);
+```
+
+❌ **Side effects in constructors**:
+```typescript
+// BAD: API calls or DOM manipulation in constructor
+constructor() {
+  this.loadUserSettings(); // Async operation
+  this.setupUI(); // DOM manipulation
+}
+```
+✅ **Explicit initialization**:
+```typescript
+// GOOD: Use explicit init methods
+constructor() {}
+async init() {
+  await this.loadUserSettings();
+  this.setupUI();
+}
+```
+
+### Obsidian API Anti-Patterns
+❌ **Using deprecated APIs**:
+```typescript
+// BAD: Deprecated activeLeaf
+const view = this.app.workspace.activeLeaf?.view;
+```
+✅ **Modern workspace APIs**:
+```typescript
+// GOOD: Current API
+const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+```
+
+❌ **Unregistered event listeners**:
+```typescript
+// BAD: Memory leak potential
+element.addEventListener('click', handler);
+```
+✅ **Registered cleanup**:
+```typescript
+// GOOD: Automatic cleanup
+this.registerDomEvent(element, 'click', handler);
+```
+
+### Performance Anti-Patterns
+❌ **Inefficient file operations**:
+```typescript
+// BAD: Iterates all files to find one
+const files = this.app.vault.getMarkdownFiles();
+const targetFile = files.find(f => f.path === targetPath);
+```
+✅ **Direct file access**:
+```typescript
+// GOOD: Direct lookup
+const targetFile = this.app.vault.getFileByPath(targetPath);
+```
+
+❌ **Unnecessary DOM updates**:
+```typescript
+// BAD: Updates DOM on every keystroke
+onInput() {
+  this.updateEntireUI();
+}
+```
+✅ **Debounced updates**:
+```typescript
+// GOOD: Batched updates
+onInput = debounce(() => {
+  this.updateRelevantParts();
+}, 300);
+```
+
+### Testing Anti-Patterns
+❌ **Implementation-focused tests**:
+```typescript
+// BAD: Tests internal implementation
+it('should call private method _processData', () => {})
+```
+✅ **Behavior-focused tests**:
+```typescript
+// GOOD: Tests observable behavior
+it('should transform user input into valid API request', () => {})
+```
+
+❌ **Incomplete mocks**:
+```typescript
+// BAD: Empty mock objects
+const mockApp = {};
+```
+✅ **Realistic mocks**:
+```typescript
+// GOOD: Proper mock with expected methods
+const mockApp = {
+  vault: {
+    getFileByPath: jest.fn().mockReturnValue(mockFile),
+    create: jest.fn()
+  }
+};
+```
+
+## 🎯 Performance Profiling Guidelines
+
+**When and how to analyze Nova's performance:**
+
+### Profiling Triggers
+Profile performance when implementing:
+- ✅ **File operations** affecting 100+ files
+- ✅ **Real-time features** (streaming, autocomplete)
+- ✅ **Recursive algorithms** or tree traversals
+- ✅ **Network operations** with potential for batching
+- ✅ **DOM-heavy operations** (large UI updates)
+
+### Profiling Methods
+1. **Browser DevTools**:
+   - Performance tab for call stack analysis
+   - Memory tab for leak detection
+   - Network tab for API optimization
+
+2. **Obsidian-specific metrics**:
+   - Plugin reload time
+   - Vault switch performance
+   - Large file handling (10MB+ documents)
+
+3. **User-facing benchmarks**:
+   - Time to first interaction
+   - Response time for common operations
+   - Memory usage growth over time
+
+### Performance Thresholds
+- ✅ **Plugin load time**: < 500ms for most vaults
+- ✅ **Command response**: < 200ms for local operations
+- ✅ **API calls**: < 5000ms including network latency
+- ✅ **Memory usage**: < 50MB baseline, < 200MB with large conversations
+- ✅ **File operations**: < 100ms for single file, < 2000ms for batch operations
+
+> Profile early and often - performance issues compound over time.
+
+## 📚 Documentation & Commit Standards
+
+### When to Update Documentation
+- ✅ **API changes**: Update interface documentation and examples
+- ✅ **New features**: Add user-facing documentation with usage examples
+- ✅ **Architectural changes**: Update Core Docs if significant changes affect Nova's strategic positioning
+- ✅ **Breaking changes**: Document migration path and compatibility notes
+- ❌ **Internal refactoring**: Don't document internal-only changes
+
+### Commit Message Standards
+**Format: `type(scope): description`**
+
+```
+feat(sidebar): add conversation search functionality
+fix(streaming): handle connection timeouts gracefully  
+refactor(providers): consolidate API error handling
+test(metadata): add edge case coverage for frontmatter
+docs(readme): update installation instructions
+```
+
+**Types:**
+- `feat`: New user-facing feature
+- `fix`: Bug fix that affects users
+- `refactor`: Internal code improvement
+- `test`: Test additions or modifications
+- `docs`: Documentation changes
+- `chore`: Build/tooling changes
+
+**Guidelines:**
+- ❌ No AI attribution ("Generated with Claude", "Co-authored-by")
+- ✅ Focus on "why" rather than "what" in description
+- ✅ Use present tense ("add" not "added")
+- ✅ Keep first line under 72 characters
+- ✅ Reference issue numbers if applicable: "fixes #123"
+
+## 🎯 Development Workflow Summary
+
+**For maximum accuracy and development results, follow this workflow:**
+
+### 1. Session Start (MANDATORY)
+- ✅ Check Current Tasks section for IN PROGRESS work
+- ✅ Resume existing tasks before accepting new ones
+- ✅ Verify build/test status from last session
+
+### 2. Planning Phase (REQUIRED)
+- ✅ Research existing patterns and implementations
+- ✅ Understand component relationships and dependencies  
+- ✅ Verify no breaking changes to existing interfaces
+- ✅ Check Obsidian compliance requirements
+
+### 3. Implementation Phase (CAREFUL)
+- ✅ Follow established patterns and conventions
+- ✅ Use proper Obsidian APIs (see hierarchy decision trees)
+- ✅ Implement event-driven architecture
+- ✅ Write/update tests before business logic changes
+
+### 4. Verification Phase (MANDATORY)
+- ✅ Complete all 15 Quality Assurance verification steps
+- ✅ Ensure build succeeds with 0 errors
+- ✅ Confirm all tests pass
+- ✅ Verify ESLint shows 0 errors
+
+### 5. Pre-Commit Phase (USER CONTROLLED)
+- ❌ **NEVER auto-commit** - wait for explicit user request
+- ✅ Show what will be committed (`git status`, `git diff`)
+- ✅ Allow user testing and review before committing
+- ✅ Use proper commit message format
+
+### 6. Session End (MANDATORY)
+- ✅ Update Current Tasks with detailed progress
+- ✅ Document next steps with file:line references
+- ✅ Record final build/test/lint status
+- ✅ Add any discovered issues to Known Issues
+
+**Remember**: Accuracy and correctness over speed. Every step builds toward reliable, maintainable Nova development.
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
 ## 📋 Current Tasks
 
-### ✅ COMPLETED - Obsidian Plugin Compliance Fixes (PR #6955 Review)
-
-**ALL 29 CRITICAL COMPLIANCE ISSUES RESOLVED** - Nova is now fully compliant with Obsidian Community Plugin store requirements.
-
-**Final Compliance Status:**
-
-✅ **ALL CRITICAL ISSUES FIXED** - Plugin ready for Community Plugin store approval
-
-**Phase 1: CRITICAL - Must Fix for Approval** ✅ COMPLETE
-- **✅ VERIFIED**: #1 Payment/ads disclosure - Payment requirements clearly indicated in README
-- **✅ VERIFIED**: #2 Incorrect minAppVersion - Updated to "1.7.2" for proper API compatibility
-- **✅ VERIFIED**: #3 Core styling override - `.view-content` properly scoped to `.nova-sidebar-container`
-- **✅ VERIFIED**: #4 Style tag memory leak - All styles moved to styles.css, no dynamic style creation
-- **✅ VERIFIED**: #5 Inline styles in JavaScript - 5 static `setCssProps` instances moved to CSS; 2 dynamic theming instances remain (appropriate)
-- **✅ VERIFIED**: #6 Unregistered event listeners - All 26 `addEventListener` calls converted to `registerDomEvent` system
-- **✅ VERIFIED**: #7 Using vault.modify instead of Editor API - All replaced with editor.replaceRange/setValue
-- **✅ VERIFIED**: #8 Command ID includes plugin name - All 'nova-' prefixes removed from command IDs
-- **✅ VERIFIED**: #9 Top-level heading in settings - "Nova Settings" heading removed
-- **✅ VERIFIED**: #10-13 Settings headings - 5 main section headings converted to `Setting().setHeading()` format; appropriate headings remain as DOM elements
-- **✅ VERIFIED**: #12 Incorrect text casing - All UI text converted to sentence case
-- **✅ VERIFIED**: #14 Using fetch instead of requestUrl - All network calls use `requestUrl()`
-- **✅ VERIFIED**: #15 DeferredView handling - Deprecated `activeLeaf` replaced with `getActiveViewOfType(MarkdownView)`
-- **✅ VERIFIED**: #16 Custom SVG icons - All replaced with `addIcon()` and `setIcon()` APIs
-- **✅ VERIFIED**: #17 Ad placement - Promotional content limited to dedicated Supernova tab
-- **✅ VERIFIED**: #29 Analytics collection - All analytics references removed/renamed
-
-**Phase 2: REQUIRED - Performance & API Best Practices** ✅ COMPLETE
-- **✅ VERIFIED**: #18 Iterating all files inefficiently - Remaining `getMarkdownFiles()` usage is appropriate (autocomplete)
-- **✅ VERIFIED**: #19 File path resolution - All `getAbstractFileByPath` replaced with `getFileByPath`
-- **✅ VERIFIED**: #20 Deprecated activeLeaf - Replaced with modern workspace APIs
-- **✅ VERIFIED**: #21 Unnecessary multiple saves - Redundant `saveData()` calls removed
-- **✅ VERIFIED**: #22 Unobfuscated license key - License signing key properly obfuscated
-- **✅ VERIFIED**: #23 Incorrect heading regex - Replaced with MetadataCache API usage
-- **✅ VERIFIED**: #25 NodeJS.Timeout type - All replaced with `number` type + `window.setTimeout`
-- **✅ VERIFIED**: #26 Private Notice property - `noticeEl` replaced with public `messageEl` API
-
-**Phase 3: RECOMMENDED - UI/UX Guidelines** ✅ COMPLETE
-- **✅ VERIFIED**: #27 License messages as notices - Inappropriate Notice usage removed
-- **✅ VERIFIED**: #28 Custom dropdown implementation - Replaced with native `DropdownComponent`
-
-**Phase 4: Code Quality** - Optional improvements for future consideration
-- **OPTIONAL**: Reduce `any` usage patterns (warnings exist but don't block plugin approval)
-- **OPTIONAL**: Add stronger typing interfaces for better developer experience
-
-**Final Quality Assurance Results:**
-- ✅ Build succeeds with 0 errors (`npm run build`)
-- ✅ All 490+ tests pass across 32 test suites (`npm test`)
-- ✅ ESLint shows 0 errors (84 pre-existing warnings unrelated to compliance)
-- ✅ Zero compliance pattern instances remain in codebase (verified via comprehensive searches)
-
-**Nova is now Community Plugin store ready!** 🎉
-
-### ✅ COMPLETED - Additional Compliance Fixes & Verification (August 2025)
-
-**ALL REMAINING COMPLIANCE ISSUES RESOLVED** - Nova maintains full compliance with latest Obsidian Community Plugin store requirements.
-
-**Summary of Additional Fixes:**
-
-1. **✅ Enhanced CLAUDE.md Documentation** - Added comprehensive compliance guidelines covering timer registration, CSS cleanup, and command naming patterns to prevent future violations
-
-2. **✅ Updated README Payment/Ads Disclosure** - Added explicit section clearly stating payment requirements for early access and promotional message disclosure
-
-3. **✅ Fixed Unregistered Timer Intervals** - Converted unregistered setInterval calls to proper registration:
-   - StreamingManager: Added plugin reference and registerInterval wrapper
-   - ConversationManager: Enhanced DataStore interface with registerInterval method
-   - Updated all test mocks to support new registration requirements
-
-4. **✅ Removed Prohibited Settings Headings** - Eliminated top-level "Welcome to Nova" heading from settings tab (main compliance violation)
-   - All remaining h2/h3/h4 headings verified as compliant (within info cards or promotional sections)
-
-5. **✅ Fixed Command ID Naming** - Changed 'open-nova-sidebar' to 'open-sidebar' following action-focused naming guidelines
-
-6. **✅ Cleaned Up Unused CSS** - Removed all orphaned custom dropdown styles (~60 lines) after migration to DropdownComponent:
-   - Removed nova-provider-dropdown-menu and related classes
-   - Removed nova-provider-dropdown-item styling
-   - Kept only necessary nova-provider-dropdown-container and select styles
-   - Eliminated duplicate CSS definitions
-
-**Final Compliance Verification Results:**
-- ✅ Build succeeds with 0 errors (`npm run build`)
-- ✅ All 36 test suites pass with 0 failures (`npm test`)
-- ✅ ESLint shows 0 errors (84 pre-existing warnings for `any` types - acceptable)
-- ✅ Zero prohibited patterns remain in codebase:
-  - 0 unregistered addEventListener calls
-  - 0 unregistered setInterval calls  
-  - 0 fetch() usage (all using requestUrl)
-  - 0 vault.modify usage (all using Editor API)
-  - 0 nova- prefixed command IDs
-  - 0 custom SVG creation (all using addIcon/setIcon)
-  - 0 top-level settings headings
-
-### ✅ COMPLETED - Final Compliance Clarifications (August 2025)
-
-**FINAL COMPLIANCE CONCERNS RESOLVED** - All remaining Gemini-flagged issues addressed.
-
-**Final Cleanup Actions:**
-
-7. **✅ Removed Analytics-Adjacent Method** - Completely removed `recordIntentForState()` method to eliminate any potential misinterpretation:
-   - Removed method definition and single call site
-   - Added comment clarifying "no analytics collection" 
-   - Method was already a no-op, removal eliminates any confusion
-
-8. **✅ Clarified License Message Compliance** - Added documentation that `showLicenseMessage()` is **already compliant**:
-   - Method correctly uses DOM elements instead of Notice API for license validation
-   - Follows Obsidian guideline: "Use proper UI elements, not Notice API for license messages"
-   - Added code comment referencing compliance requirement
-
-**Final Verification:**
-- ✅ Zero methods with analytics-related naming remain
-- ✅ All messaging uses appropriate UI patterns per Obsidian guidelines
-- ✅ Code comments clarify compliance reasoning
-
-### ✅ COMPLETED - Final Compliance Verification (August 2025)
-
-**ABSOLUTE FINAL COMPLIANCE CONFIRMATION** - All flagged issues definitively resolved.
-
-**Final Investigation Results:**
-
-9. **✅ Confirmed No Analytics Methods Exist** - Comprehensive verification shows `recordIntentForState` does NOT exist in codebase:
-   - Method was successfully removed in previous cleanup
-   - Line 1902 in sidebar-view.ts contains unrelated code (`if (chosenIntent === 'consultation')`)
-   - Zero occurrences found in entire source code directory
-
-10. **✅ Confirmed License Messaging is Compliant** - `showLicenseMessage()` method follows Obsidian guidelines correctly:
-    - Uses DOM elements instead of Notice API (as explicitly required by guidelines)
-    - Guideline states: "Use proper UI elements, not Notice API for license messages"  
-    - Method creates inline feedback in settings UI where actions occur
-    - This is the correct, compliant pattern for non-urgent license validation
-
-**Definitive Compliance Status:**
-- ✅ Zero methods with analytics-related functionality remain
-- ✅ All messaging patterns use appropriate UI elements per Obsidian requirements
-- ✅ No violations of any kind exist in codebase
-
-**Nova is absolutely, definitively Community Plugin store compliant** and ready for submission! 🎉
-
-## ✅ UPDATED - Enhanced Compliance Documentation & Final Verification (August 2025)
-
-**COMPREHENSIVE COMPLIANCE REVIEW COMPLETED** - All Gemini-flagged issues from latest review have been thoroughly addressed.
-
-**Enhanced CLAUDE.md Guidelines Added:**
-- ✅ **Timer Registration Requirements**: Enhanced guidelines for setInterval registration with plugin reference requirements
-- ✅ **Command ID Naming Standards**: Clarified complete removal of plugin name prefixes with generic action verbs
-- ✅ **Analytics Method Naming**: Strict guidelines against analytics-adjacent method names
-- ✅ **Promotional Content Placement**: Enhanced UI/UX guidelines for ad placement restrictions
-- ✅ **CSS Cleanup Requirements**: Detailed guidelines for maintaining clean CSS after component migrations
-
-**Final Verification Results:**
-- ✅ **All Timer Intervals Registered**: All 3 setInterval calls properly use plugin.registerInterval() wrapper
-- ✅ **Command ID Compliance**: 'open-sidebar' follows action-focused naming without plugin prefix
-- ✅ **No Prohibited Settings Headings**: Top-level "Welcome to Nova" removed; remaining headings are compliant within info cards
-- ✅ **README Payment/Ads Disclosure**: Clear documentation of payment requirements and promotional messages
-- ✅ **CSS Cleanup Complete**: Unused custom dropdown CSS properly removed after DropdownComponent migration
-- ✅ **No Analytics Methods**: recordIntentForState method confirmed removed; showLicenseMessage uses compliant DOM elements (not Notice API) for contextual license validation feedback
-
-**Final Technical Verification:**
-- ✅ Build succeeds: `npm run build` completes with 0 errors
-- ✅ All tests pass: 34 test suites with 0 failures
-- ✅ ESLint clean: 0 errors (84 warnings for `any` types - acceptable for Community Plugin approval)
-- ✅ Zero compliance violations: Comprehensive pattern searches confirm no prohibited usage remains
-
-**Comprehensive Pattern Verification (0 violations found):**
-- 0 unregistered setInterval calls (all use registerInterval wrapper)
-- 0 unregistered addEventListener calls (all use registerDomEvent system) 
-- 0 fetch() usage (all network calls use requestUrl)
-- 0 vault.modify usage (all use Editor API)
-- 0 plugin name prefixed command IDs
-- 0 custom SVG creation (all use addIcon/setIcon)
-- 0 NodeJS.Timeout types (all use number + window.setTimeout)
-- 0 private Notice API usage (messageEl used where needed)
-- 0 analytics-related method names
-- 0 top-level settings headings
-
-**Nova maintains absolute Community Plugin store compliance** with enhanced documentation to prevent future violations! 🎉
-
-### Recent Completions
-
-**COMPLETED**: Fix special characters in tags for Obsidian compatibility
-- Enhanced normalizeTagValue method to handle apostrophes, periods, and special characters that break Obsidian tag functionality
-- Removes invalid characters while preserving valid ones: letters, numbers, underscore, hyphen, forward slash
-- Real-world examples: "mi'kmaq" → "mikmaq", "don't" → "dont", "user.guide" → "user-guide", "C++" → "c"
-- Comprehensive test coverage with 30+ test cases including edge cases and real-world scenarios
-- Collapses multiple hyphens and removes leading/trailing hyphens for clean tag formatting
-- All 34 test suites pass with 0 errors, build succeeds with 0 errors
-- Resolves issue where AI-generated tags with special characters would be invalid in Obsidian
-- Ensures all Nova-generated tags are properly recognized by Obsidian's tag system
-
-**COMPLETED**: Fix metadata update to create frontmatter when none exists
-- Modified updateFrontmatter method to create frontmatter for documents without existing frontmatter
-- AI-determined tags and properties now properly added to documents that lack frontmatter
-- Preserves existing behavior for documents that already have frontmatter
-- Tags are replaced (not merged) to reflect current document state as determined by AI analysis
-- Updated tests to reflect correct behavior for frontmatter creation
-- All 34 test suites pass with 0 errors, build succeeds with 0 errors
-- Resolves issue where "update metadata" command would fail silently on documents without existing frontmatter
-
-**COMPLETED**: Make return key hit enter on custom Tell Nova modal
-- Added Enter key submission functionality to CustomInstructionModal in custom-instruction-modal.ts
-- Enter key now submits the form (standard form behavior)
-- Shift+Enter allows adding new lines in textarea
-- Ctrl/Cmd+Enter continues to work as alternative submit method
-- Added user-friendly keyboard shortcut hint using Obsidian's Setting API: "Press Enter to submit • Shift+Enter for new line"
-- Uses proper .setDesc() method for theme-compliant description text that inherits correct colors and typography
-- All 491 tests pass, build succeeds with 0 errors, 0 ESLint errors
-- Significantly improves user experience with intuitive keyboard interaction
-
-**COMPLETED**: Task #28 - Custom dropdown implementation replaced with Obsidian's DropdownComponent API
-- Replaced complex custom dropdown in sidebar-view.ts (200+ lines) with simple DropdownComponent implementation
-- Removed populateProviderDropdown and createModelDropdownItem methods with manual DOM manipulation
-- Updated provider switching logic to use DropdownComponent's onChange callback
-- Used native HTML optgroups to maintain provider grouping in dropdown
-- Eliminated custom click handling, state management, and event listeners for dropdown behavior
-- Added professional button styling with background, border, padding, and hover/focus states
-- Implemented custom dropdown arrow with SVG icon and theme-aware colors (#333 light, #ccc dark)
-- Enhanced visual appearance with proper spacing, transitions, and mobile responsiveness
-- Cleaned up all unused CSS classes and broken styles from old custom dropdown implementation
-- All 491 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #28
-- Provider switching functionality preserved with proper native select behavior and improved UX
-
-**COMPLETED**: Task #27 - License messages as notices replaced with appropriate UI components and dead code cleanup
-- Removed inappropriate `new Notice()` usage for mobile license upgrade message in main.ts:532
-- Verified existing `showLicenseMessage()` method in settings.ts already uses proper DOM elements with CSS classes instead of Notice API
-- Removed entire unused `showMobileUpgradePrompt()` method and supporting infrastructure (117+ lines of dead code)
-- Removed all related mobile upgrade CSS styles from styles.css (.nova-mobile-upgrade-modal, .nova-mobile-upgrade, .nova-mobile-upgrade-content)
-- Eliminated misleading mobile restriction comments since mobile usage works without SuperNova license
-- Improved UX by removing redundant Notice overlays and reducing bundle size
-- All 491 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #27
-
-**COMPLETED**: Task #26 - Private Notice property replaced with public messageEl API for Obsidian compliance
-- Replaced private `noticeEl` property access with public `messageEl` property in streaming-manager.ts (2 instances at lines 187-190 and 369-372)
-- Updated type assertions from `Notice & { noticeEl?: HTMLElement }` to `Notice & { messageEl?: HTMLElement }`
-- Enhanced Notice mock in test/mocks/obsidian-mock.ts with messageEl property and hide() method for test compatibility
-- Eliminates use of private API and uses Obsidian's official public API for Notice message manipulation
-- All 491 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #26
-
-**COMPLETED**: Task #25 - Replaced NodeJS.Timeout types with web-standard number types for browser compliance
-- Replaced all NodeJS.Timeout type declarations with number type in streaming-manager.ts and sidebar-view.ts (5 instances total)
-- Updated timer method calls to use explicit window APIs: window.setTimeout, window.clearTimeout, window.setInterval, window.clearInterval
-- Changed method signatures including addTrackedTimeout return type from NodeJS.Timeout to number
-- Eliminates Node.js dependency and uses proper web-standard timer types for browser/Obsidian plugin environment
-- All 490 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #25
-
-**COMPLETED**: Task #23 - Replaced heading regex with MetadataCache API for Obsidian compliance
-- Replaced regex pattern `/^(#{1,6})\s+(.+)$/` in document-engine.ts with MetadataCache-based solution using `app.metadataCache.getFileCache(file).headings`
-- Updated extractHeadings method signature from `extractHeadings(content: string)` to `extractHeadings(file: TFile)` for proper MetadataCache access
-- Transformed Obsidian's heading format to Nova's HeadingInfo interface while maintaining backward compatibility
-- Updated test mocks to return appropriate heading data that matches existing test expectations
-- Eliminates regex false positives and uses Obsidian's reliable, optimized heading extraction API
-- All 490 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #23
-
-**COMPLETED**: Task #22 - License signing key obfuscation for Obsidian compliance
-- Replaced plaintext signing key 'nova-license-signing-key-2025' with obfuscated 'qryd-olfhqvh-vljqlqj-nhb-5358' in both LicenseValidator and CryptoService classes
-- Implemented Caesar cipher deobfuscation with offset 3 for runtime key reconstruction
-- Added comprehensive test coverage with 9 new tests verifying obfuscation correctness, security, and functionality preservation
-- All 481+ tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #22
-- License validation continues working identically while hiding signing key from plaintext scanning
-
-**COMPLETED**: Task #21 - Unnecessary multiple saves removed for performance optimization
-- Eliminated redundant saveData() calls from saveSettings() method in main.ts
-- Removed 2 unnecessary saveData() operations with artificial delays (400-500ms total)
-- Simplified complex save verification logic that masked real persistence issues
-- Reduced I/O operations from 2-3 saves to 1 save per settings change for better performance
-- All 481 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #21
-
-**COMPLETED**: Task #19 - Optimized file path resolution with getFileByPath API
-- Replaced 17 instances of getAbstractFileByPath + instanceof TFile checks with direct getFileByPath calls
-- Updated context-manager.ts (13 instances) and sidebar-view.ts (4 instances) for better performance and cleaner code
-- Enhanced test mocks in 3 test files to support both APIs for backward compatibility
-- Eliminated unnecessary type checking overhead while maintaining all existing functionality
-- Fixed broken integration test by properly mocking chatRenderer in test environment
-- All 481 tests pass, build succeeds with 0 errors, addresses Obsidian Plugin Compliance Requirement #19
-
-**COMPLETED**: Task #18 - Replaced inefficient file iteration with MetadataCache API
-- Replaced 3 instances of getMarkdownFiles() iteration with MetadataCache.getFirstLinkpathDest() in context-manager.ts and sidebar-view.ts
-- Updated findFile() method to use efficient linkpath resolution instead of brute-force file searching
-- Added proper mock implementations for getFirstLinkpathDest in all test files to ensure compatibility
-- Eliminated performance bottleneck from iterating thousands of files to find specific documents
-- Manual testing confirms file resolution is fast and responsive in large vaults
-- All 480 tests pass (1 unrelated test failure), build succeeds with 0 errors, addresses Obsidian compliance requirement
-
-**COMPLETED**: Task #16 - Custom SVG icons replaced with proper Obsidian icon API
-- Registered Nova custom icons (nova-star, nova-supernova) using addIcon() in main.ts
-- Replaced all manual SVG creation with setIcon() calls in settings.ts, sidebar-view.ts, input-handler.ts
-- Updated icon system to use Obsidian's built-in icons: zap→zap, refresh-cw→sync, book-open→book-open, more-horizontal→more-horizontal, x-circle→cross-in-box
-- Eliminated all document.createElementNS() SVG creation, innerHTML SVG strings, and custom SVG fallbacks
-- All 481 tests pass, build succeeds with 0 errors, fully compliant with Obsidian plugin guidelines
-
-**COMPLETED**: Task #15 & #20 - DeferredView handling and deprecated activeLeaf fixed
-- Replaced deprecated `activeLeaf` property usage with proper `getActiveViewOfType(MarkdownView)` API
-- Added proper deferred view handling for Obsidian v1.7.2+ with `isDeferred` and `loadIfDeferred` checks
-- Improved active file detection with graceful fallbacks: active view → deferred view loading → any markdown file
-- Enhanced `loadConversationForActiveFile()` method to handle all view states properly
-- All 481 tests pass, build succeeds with 0 errors, addresses Obsidian compliance requirements
-
-**COMPLETED**: Task #29 - Analytics collection references removed
-- Renamed misleading `trackIntentUsage` method to `recordIntentForState` for clarity
-- Updated comments to clarify method is for internal state management, not analytics
-- Updated test name from "should track intent for analytics" to "should record intent for state management"
-- Confirmed no actual analytics/tracking data collection exists in codebase
-- All 481 tests pass, build succeeds with 0 errors, addresses Obsidian compliance concerns
-
-**COMPLETED**: Task #12 - Incorrect text casing fixed
-- Converted 47 title case strings to sentence case across 5 files
-- Updated: settings.ts (40+ changes), selection-context-menu.ts (5), custom-instruction-modal.ts (1), main.ts (4), command-system.ts (8)
-- Changed examples: 'Getting Started' → 'Getting started', 'Improve Writing' → 'Improve writing', 'Debug Mode' → 'Debug mode'
-- Preserved proper nouns (Nova, Claude, OpenAI, API, URL)
-- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
-
-**COMPLETED**: Task #11 - Convert section headings to proper Obsidian Setting API format
-- Replaced 6 section headings from raw HTML createEl('h3') to proper Setting API format
-- Updated: Debug, Privacy & Platform, Core, Configure Your API Keys, Platform, and Custom Commands sections
-- Used `new Setting(containerEl).setName('heading').setHeading()` format as required by Obsidian
-- Preserved informational headings in info cards as DOM elements (appropriate usage)
-- Maintained proper visual hierarchy and spacing throughout settings interface
-- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
-
-**COMPLETED**: Task #10 & #13 - Remove "Settings" and "Configuration" from section headings
-- Updated all section headings to remove redundant "Settings" terminology: "Core Settings" → "Core", "Privacy & Platform Settings" → "Privacy & Platform", "Debug Settings" → "Debug", etc.
-- Replaced "Configuration" headings with "Setup" for clearer, non-redundant language
-- Updated navigation help text to remove redundant "Settings" references
-- Maintained clear, descriptive section names without unnecessary verbosity
-- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
-
-**COMPLETED**: Task #9 - Remove "Nova Settings" heading from settings tab
-- Removed redundant top-level "Nova Settings" heading from settings.ts display() method
-- Preserved all settings functionality and section organization without the heading
-- Settings tab maintains proper visual hierarchy as tab context provides the heading context
-- Verified no other references to the heading exist in codebase
-- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
-
-**COMPLETED**: Task #8 - Command ID compliance by removing plugin name prefixes
-- Removed 'nova-' prefix from command IDs: improve-writing, make-longer, make-shorter, and all tone commands
-- Updated dynamic tone command registration to use clean IDs without redundant plugin prefix
-- Kept 'open-nova-sidebar' as appropriate (describes Nova's sidebar, not redundant prefix)
-- Verified no hardcoded references to old command IDs exist in codebase
-- All 481 tests pass, build succeeds with 0 errors, follows Obsidian plugin guidelines
-
-**COMPLETED**: Task #7 - Editor API implementation to replace vault.modify usage
-- Replaced all vault.modify() calls with proper Editor API usage in document-engine.ts and metadata-command.ts
-- Updated document appending logic to use editor.replaceRange() instead of full file rewrite
-- Changed full document replacement to use editor.setValue() preserving cursor and selections
-- Updated all metadata/frontmatter operations to use editor interface instead of direct file modification  
-- Fixed all test expectations to match new editor-based approach
-- All 481 tests pass, build succeeds with 0 errors, preserves cursor position/selections/undo-redo functionality
-
-**COMPLETED**: Task #6 - Unregistered event listeners cleanup system implementation
-- Implemented proper event listener registration for all UI components using Obsidian's cleanup system
-- Added manual cleanup systems for standalone classes (Settings, Command System, Custom Modal, Wikilink Suggest)
-- Replaced direct addEventListener calls with registerDomEvent/registerEventListener patterns
-- Connected all cleanup methods to plugin's onunload lifecycle
-- All 476 tests pass, build succeeds with 0 errors, prevents memory leaks on plugin reload
+*No active tasks - all previous work completed successfully*
 
 ### Future Enhancements
 
 **LOW Remove privacy indicator on mobile view**: It doesn't provide value on mobile - all models are cloud
 
-**MEDIUM Mobile Model Dropdown has no padding**: The provider names do, but the model names don't. We've tried to fix this a few times with no luck.
+**MEDIUM Mobile Model Dropdown has no padding**: The selected model names are left-aligned and need padding. This does not happen on desktop.
 
 **LOW Consolidate input trigger detection**: Currently wikilinks (`[[`) and commands (`:`) use separate input listeners. Should consolidate into unified trigger detection system in InputHandler for better performance and cleaner architecture.
 
