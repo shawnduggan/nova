@@ -1,5 +1,10 @@
 import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
+import { CommandEngine } from '../features/commands/core/CommandEngine';
+import { CommandRegistry } from '../features/commands/core/CommandRegistry';
+import { SmartVariableResolver } from '../features/commands/core/SmartVariableResolver';
+import { Logger } from '../utils/logger';
+import type { MarkdownCommand } from '../features/commands/types';
 
 interface StructuredCommand {
 	name: string;
@@ -26,10 +31,20 @@ export class CommandSystem {
 	private isCommandMenuVisible: boolean = false;
 	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
 
+	// Nova Commands System integration
+	private commandEngine: CommandEngine;
+	private commandRegistry: CommandRegistry;
+	private variableResolver: SmartVariableResolver;
+
 	constructor(plugin: NovaPlugin, container: HTMLElement, textArea: TextAreaComponent) {
 		this.plugin = plugin;
 		this.container = container;
 		this.textArea = textArea;
+		
+		// Initialize Nova Commands components
+		this.commandEngine = new CommandEngine(plugin);
+		this.commandRegistry = new CommandRegistry(plugin, this.commandEngine);
+		this.variableResolver = new SmartVariableResolver(plugin);
 	}
 
 	/**
@@ -162,6 +177,15 @@ export class CommandSystem {
 			} else {
 				this.hideCommandPicker();
 			}
+		} else if (input.startsWith('/')) {
+			// Nova markdown command trigger detected
+			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
+			
+			if (featureEnabled) {
+				this.showMarkdownCommandPicker(input);
+			} else {
+				this.hideCommandPicker();
+			}
 		} else {
 			// No triggers active - hide command picker
 			this.hideCommandPicker();
@@ -254,10 +278,11 @@ export class CommandSystem {
 
 	handleCommandPickerSelection(): boolean {
 		if (this.selectedCommandIndex >= 0 && this.commandPickerItems.length > 0) {
-			// For structured commands, we need to get the selected command from the filtered list
-			const commands = this.getStructuredCommands();
 			const input = this.textArea.getValue();
+			
 			if (input.startsWith(':')) {
+				// Handle structured commands (existing logic)
+				const commands = this.getStructuredCommands();
 				const filterText = input.slice(1).toLowerCase();
 				const filtered = commands.filter(cmd => 
 					cmd.name.toLowerCase().includes(filterText) ||
@@ -270,9 +295,37 @@ export class CommandSystem {
 					this.selectStructuredCommand(selectedCmd.template);
 					return true;
 				}
+			} else if (input.startsWith('/')) {
+				// Handle markdown commands (new logic)
+				this.handleMarkdownCommandSelection();
+				return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Handle selection of markdown commands from picker
+	 */
+	private async handleMarkdownCommandSelection(): Promise<void> {
+		const input = this.textArea.getValue();
+		const filterText = input.slice(1).toLowerCase(); // Remove "/"
+		
+		try {
+			const allCommands = await this.commandRegistry.searchCommands(filterText);
+			const exactMatches = allCommands.filter(cmd => 
+				cmd.id.toLowerCase().includes(filterText) ||
+				cmd.name.toLowerCase().includes(filterText)
+			);
+			const filtered = exactMatches.slice(0, 8);
+			
+			if (this.selectedCommandIndex < filtered.length) {
+				const selectedCmd = filtered[this.selectedCommandIndex];
+				await this.selectMarkdownCommand(selectedCmd);
+			}
+		} catch (error) {
+			Logger.error('Error in markdown command selection:', error);
+		}
 	}
 
 	private updateCommandPickerSelection(): void {
@@ -383,6 +436,128 @@ export class CommandSystem {
 		} else {
 			this.textArea.setValue(template);
 			this.textArea.inputEl.focus();
+		}
+	}
+
+	/**
+	 * Show markdown command picker for "/" trigger
+	 */
+	private async showMarkdownCommandPicker(input: string): Promise<void> {
+		if (!this.commandPicker) {
+			return;
+		}
+		
+		try {
+			const filterText = input.slice(1).toLowerCase(); // Remove "/"
+			const allCommands = await this.commandRegistry.searchCommands(filterText);
+			
+			// Also search by exact command names (like "/expand-outline")
+			const exactMatches = allCommands.filter(cmd => 
+				cmd.id.toLowerCase().includes(filterText) ||
+				cmd.name.toLowerCase().includes(filterText)
+			);
+			
+			// Limit to top 8 results for UI performance
+			const filtered = exactMatches.slice(0, 8);
+
+			this.commandPickerItems = [];
+			this.commandPicker.empty();
+			this.selectedCommandIndex = -1;
+
+			if (filtered.length > 0) {
+				filtered.forEach((cmd, index) => {
+					const item = this.commandPicker.createDiv({ 
+						cls: 'nova-command-picker-item nova-markdown-command-item' 
+					});
+
+					// Command header with icon and name
+					const header = item.createDiv({ cls: 'nova-command-header' });
+					header.createSpan({ 
+						text: cmd.iconType,
+						cls: 'nova-command-icon'
+					});
+					header.createSpan({ 
+						text: cmd.name,
+						cls: 'nova-command-picker-name'
+					});
+
+					// Description
+					item.createEl('div', { 
+						text: cmd.description,
+						cls: 'nova-command-picker-desc'
+					});
+
+					// Category badge
+					item.createSpan({ 
+						text: cmd.category,
+						cls: 'nova-command-category'
+					});
+
+					// Click to execute
+					this.registerEventListener(item, 'click', () => {
+						this.selectMarkdownCommand(cmd);
+					});
+
+					// Hover selection
+					this.registerEventListener(item, 'mouseenter', () => {
+						this.selectedCommandIndex = index;
+						this.updateCommandPickerSelection();
+					});
+
+					this.commandPickerItems.push(item);
+				});
+
+				this.commandPicker.addClass('show');
+			} else {
+				// Show "no commands found" message
+				const noResults = this.commandPicker.createDiv({ 
+					cls: 'nova-command-picker-no-results' 
+				});
+				noResults.createEl('div', { 
+					text: 'No commands found',
+					cls: 'nova-no-results-title'
+				});
+				noResults.createEl('div', { 
+					text: 'Try a different search term',
+					cls: 'nova-no-results-desc'
+				});
+				
+				this.commandPicker.addClass('show');
+			}
+		} catch (error) {
+			Logger.error('Error loading markdown commands:', error);
+			this.hideCommandPicker();
+		}
+	}
+
+	/**
+	 * Execute a selected markdown command
+	 */
+	private async selectMarkdownCommand(command: MarkdownCommand): Promise<void> {
+		this.hideCommandPicker();
+		
+		try {
+			// Build smart context
+			const context = await this.variableResolver.buildSmartContext();
+			if (!context) {
+				Logger.warn('Could not build smart context for command execution');
+				return;
+			}
+
+			// Clear the input (remove the trigger)
+			this.textArea.setValue('');
+			
+			// Execute the command
+			await this.commandEngine.executeCommand(command, context, {
+				outputMode: 'replace',
+				showProgress: true
+			});
+			
+		} catch (error) {
+			Logger.error(`Failed to execute command ${command.name}:`, error);
+			// Show error message to user
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			this.textArea.setValue(`Error executing ${command.name}: ${errorMessage}`);
 		}
 	}
 
