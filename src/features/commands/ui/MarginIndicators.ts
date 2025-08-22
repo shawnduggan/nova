@@ -31,10 +31,16 @@ export class MarginIndicators {
     private indicators = new Map<string, HTMLElement>();
     private currentOpportunities: IndicatorOpportunity[] = [];
     
+    // Performance optimization - line-level caching
+    private lineAnalysisCache = new Map<number, { hash: string; opportunities: IndicatorOpportunity[] }>();
+    private documentHash = '';
+    
     // Timing and performance
     private lastAnalysisTime = 0;
     private analysisDebounceTimer: number | null = null;
+    private scrollDebounceTimer: number | null = null;
     private readonly ANALYSIS_DEBOUNCE = 3000; // 3 seconds as per spec
+    private readonly SCROLL_DEBOUNCE = 100; // 100ms for scroll events
     private readonly MIN_ANALYSIS_INTERVAL = 1000; // Minimum 1 second between analyses
     
     // User activity tracking
@@ -47,6 +53,9 @@ export class MarginIndicators {
     // Settings
     private enabled = true;
     private intensityLevel: 'off' | 'minimal' | 'balanced' | 'aggressive' = 'balanced';
+    
+    // Performance limits
+    private readonly MAX_INDICATORS = 20; // Maximum indicators to show at once
 
     constructor(
         plugin: NovaPlugin,
@@ -91,13 +100,22 @@ export class MarginIndicators {
     /**
      * Handle active editor changes
      */
-    private onActiveEditorChange(): void {
+    private async onActiveEditorChange(): Promise<void> {
         // Clean up previous editor
         this.cleanupCurrentEditor();
 
         // Get new active editor
         const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!activeView || !activeView.editor) {
+        if (!activeView) {
+            this.activeEditor = null;
+            this.activeView = null;
+            return;
+        }
+
+        // Note: Deferred view handling would go here if needed
+        // Current MarkdownView interface doesn't expose isDeferred/loadIfDeferred
+
+        if (!activeView.editor) {
             this.activeEditor = null;
             this.activeView = null;
             return;
@@ -137,12 +155,12 @@ export class MarginIndicators {
             );
         }
 
-        // Listen for scroll events (to update indicator positions)
+        // Listen for scroll events (to re-analyze visible content)
         if (scrollerEl) {
             this.plugin.registerDomEvent(
                 scrollerEl,
                 'scroll',
-                () => this.updateIndicatorPositions()
+                () => this.onScroll()
             );
         }
     }
@@ -154,6 +172,9 @@ export class MarginIndicators {
         // Track typing speed
         this.updateTypingSpeed();
 
+        // Clear cache when document changes
+        this.clearAnalysisCache();
+
         // If typing too fast, hide indicators
         if (this.typingSpeed > this.FAST_TYPING_THRESHOLD) {
             this.hideAllIndicators();
@@ -162,6 +183,23 @@ export class MarginIndicators {
 
         // Schedule analysis after typing stops
         this.scheduleAnalysis();
+    }
+
+    /**
+     * Handle scroll events with debouncing
+     */
+    private onScroll(): void {
+        // Clear existing scroll timer
+        if (this.scrollDebounceTimer) {
+            clearTimeout(this.scrollDebounceTimer);
+        }
+
+        // Schedule re-analysis after scroll stops
+        this.scrollDebounceTimer = this.plugin.registerInterval(
+            window.setTimeout(() => {
+                this.scheduleAnalysis();
+            }, this.SCROLL_DEBOUNCE)
+        );
     }
 
     /**
@@ -199,9 +237,11 @@ export class MarginIndicators {
         }
 
         // Schedule new analysis
-        this.analysisDebounceTimer = window.setTimeout(() => {
-            this.analyzeCurrentContext();
-        }, this.ANALYSIS_DEBOUNCE);
+        this.analysisDebounceTimer = this.plugin.registerInterval(
+            window.setTimeout(() => {
+                this.analyzeCurrentContext();
+            }, this.ANALYSIS_DEBOUNCE)
+        );
     }
 
     /**
@@ -234,7 +274,14 @@ export class MarginIndicators {
 
             // Find opportunities
             const opportunities = await this.findOpportunities(context);
-            this.logger.info(`Found ${opportunities.length} opportunities:`, opportunities.map(o => `${o.type} (${o.confidence})`));
+            this.logger.info(`Found ${opportunities.length} opportunities:`, opportunities.map(o => `Line ${o.line}: ${o.type} (${o.confidence})`));
+            
+            // Debug: Log all available commands for each category
+            const categoryChecks = ['enhancement', 'quickfix', 'analysis', 'transform'];
+            for (const category of categoryChecks) {
+                const commands = await this.getCommandsByCategory(category);
+                this.logger.debug(`Commands available for ${category}: ${commands.length}`, commands.map(c => c.name));
+            }
             
             // Update indicators
             this.updateIndicators(opportunities);
@@ -250,71 +297,109 @@ export class MarginIndicators {
     private async findOpportunities(context: SmartContext): Promise<IndicatorOpportunity[]> {
         const opportunities: IndicatorOpportunity[] = [];
         
-        // Get cursor position for line-based analysis
-        const cursor = this.activeEditor!.getCursor();
-        const currentLine = this.activeEditor!.getLine(cursor.line);
+        // Get visible lines range
+        const visibleRange = this.getVisibleLineRange();
+        this.logger.debug(`Analyzing lines ${visibleRange.from} to ${visibleRange.to}`);
         
-        // Enhancement opportunities (💡)
-        const showEnhancement = this.shouldShowEnhancementIndicators(context, currentLine);
-        this.logger.debug(`Enhancement check: ${showEnhancement} for line: "${currentLine}"`);
-        if (showEnhancement) {
-            const enhancementCommands = await this.getCommandsByCategory('enhancement');
-            this.logger.debug(`Enhancement commands found: ${enhancementCommands.length}`);
-            if (enhancementCommands.length > 0) {
-                opportunities.push({
-                    line: cursor.line,
+        
+        // Pre-load all command categories for efficiency
+        const [enhancementCommands, quickFixCommands, metricsCommands, transformCommands] = await Promise.all([
+            this.getCommandsByCategory('enhancement'),
+            this.getCommandsByCategory('quickfix'),
+            this.getCommandsByCategory('analysis'),
+            this.getCommandsByCategory('transform')
+        ]);
+        
+        // Debug command availability
+        this.logger.debug(`Commands available - Enhancement: ${enhancementCommands.length}, QuickFix: ${quickFixCommands.length}, Metrics: ${metricsCommands.length}, Transform: ${transformCommands.length}`);
+        
+        // Handle missing commands gracefully 
+        // Note: When commands aren't loaded, we still want to show indicators for user feedback
+        // but we should log this condition for debugging
+        if (enhancementCommands.length === 0) this.logger.warn('No enhancement commands loaded from registry');
+        if (quickFixCommands.length === 0) this.logger.warn('No quickfix commands loaded from registry');
+        if (metricsCommands.length === 0) this.logger.warn('No metrics commands loaded from registry');
+        if (transformCommands.length === 0) this.logger.warn('No transform commands loaded from registry');
+        
+        // Use the commands directly - the detection logic will handle empty arrays
+        const activeEnhancementCommands = enhancementCommands;
+        const activeQuickFixCommands = quickFixCommands;
+        const activeMetricsCommands = metricsCommands;
+        const activeTransformCommands = transformCommands;
+        
+        // Analyze each visible line (with caching)
+        for (let lineNumber = visibleRange.from; lineNumber <= visibleRange.to; lineNumber++) {
+            const lineText = this.activeEditor!.getLine(lineNumber);
+            if (!lineText || lineText.trim().length === 0) continue;
+            
+            // Check cache first
+            const lineHash = this.hashLine(lineText);
+            const cached = this.lineAnalysisCache.get(lineNumber);
+            
+            if (cached && cached.hash === lineHash) {
+                // Use cached results
+                opportunities.push(...cached.opportunities);
+                continue;
+            }
+            
+            // Analyze line and cache results
+            const lineOpportunities: IndicatorOpportunity[] = [];
+            
+            // Enhancement opportunities (💡)
+            if (this.shouldShowEnhancementIndicators(context, lineText)) {
+                lineOpportunities.push({
+                    line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'enhancement',
                     icon: '💡',
-                    commands: enhancementCommands.slice(0, 3),
+                    commands: activeEnhancementCommands.slice(0, 3),
                     confidence: this.calculateConfidence(context, 'enhancement')
                 });
             }
-        }
 
-        // Quick fix opportunities (⚡)
-        if (this.shouldShowQuickFixIndicators(context, currentLine)) {
-            const quickFixCommands = await this.getCommandsByCategory('quickfix');
-            if (quickFixCommands.length > 0) {
-                opportunities.push({
-                    line: cursor.line,
+            // Quick fix opportunities (⚡)
+            if (this.shouldShowQuickFixIndicators(context, lineText)) {
+                lineOpportunities.push({
+                    line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'quickfix',
                     icon: '⚡',
-                    commands: quickFixCommands.slice(0, 2),
+                    commands: activeQuickFixCommands.slice(0, 2),
                     confidence: this.calculateConfidence(context, 'quickfix')
                 });
             }
-        }
 
-        // Metrics opportunities (📊)
-        if (this.shouldShowMetricsIndicators(context)) {
-            const metricsCommands = await this.getCommandsByCategory('analysis');
-            if (metricsCommands.length > 0) {
-                opportunities.push({
-                    line: Math.max(0, cursor.line - 2),
-                    column: this.getMarginColumn(),
-                    type: 'metrics',
-                    icon: '📊',
-                    commands: metricsCommands.slice(0, 2),
-                    confidence: this.calculateConfidence(context, 'metrics')
-                });
-            }
-        }
-
-        // Transformation opportunities (✨)
-        if (this.shouldShowTransformIndicators(context, currentLine)) {
-            const transformCommands = await this.getCommandsByCategory('transform');
-            if (transformCommands.length > 0) {
-                opportunities.push({
-                    line: cursor.line,
+            // Transformation opportunities (✨)
+            if (this.shouldShowTransformIndicators(context, lineText)) {
+                lineOpportunities.push({
+                    line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'transform',
                     icon: '✨',
-                    commands: transformCommands.slice(0, 3),
+                    commands: activeTransformCommands.slice(0, 3),
                     confidence: this.calculateConfidence(context, 'transform')
                 });
             }
+            
+            // Cache the results
+            this.lineAnalysisCache.set(lineNumber, {
+                hash: lineHash,
+                opportunities: lineOpportunities
+            });
+            
+            opportunities.push(...lineOpportunities);
+        }
+        
+        // Metrics opportunities (📊) - document-level, place at top
+        if (this.shouldShowMetricsIndicators(context)) {
+            opportunities.push({
+                line: Math.max(0, visibleRange.from),
+                column: this.getMarginColumn(),
+                type: 'metrics',
+                icon: '📊',
+                commands: activeMetricsCommands.slice(0, 2),
+                confidence: this.calculateConfidence(context, 'metrics')
+            });
         }
 
         // Filter by intensity level and confidence
@@ -322,17 +407,97 @@ export class MarginIndicators {
     }
 
     /**
+     * Get the range of visible lines in the editor viewport
+     */
+    private getVisibleLineRange(): { from: number; to: number } {
+        if (!this.activeEditor || !this.activeView) {
+            return { from: 0, to: 0 };
+        }
+
+        try {
+            const scrollerEl = this.activeView.containerEl.querySelector('.cm-scroller') as HTMLElement;
+            const contentEl = this.activeView.containerEl.querySelector('.cm-content') as HTMLElement;
+            
+            if (!scrollerEl || !contentEl) {
+                this.logger.warn('Could not find CodeMirror elements for viewport calculation');
+                return { from: 0, to: 0 };
+            }
+
+            // Calculate line height from actual elements
+            const lineElements = contentEl.querySelectorAll('.cm-line');
+            let lineHeight = 20; // Fallback
+            
+            if (lineElements.length > 0) {
+                const firstLine = lineElements[0] as HTMLElement;
+                lineHeight = firstLine.getBoundingClientRect().height;
+            }
+
+            // Get viewport information
+            const scrollTop = scrollerEl.scrollTop;
+            const viewportHeight = scrollerEl.clientHeight;
+            const lineCount = this.activeEditor.lineCount();
+
+            // Calculate visible line range with buffer
+            const buffer = 5; // Lines to analyze beyond visible area for smooth scrolling
+            const firstVisibleLine = Math.max(0, Math.floor(scrollTop / lineHeight) - buffer);
+            const lastVisibleLine = Math.min(
+                lineCount - 1,
+                Math.ceil((scrollTop + viewportHeight) / lineHeight) + buffer
+            );
+
+            this.logger.debug(`Viewport: scroll=${scrollTop}, height=${viewportHeight}, lineHeight=${lineHeight}`);
+            this.logger.debug(`Visible range: ${firstVisibleLine}-${lastVisibleLine} (buffer=${buffer})`);
+
+            return {
+                from: firstVisibleLine,
+                to: lastVisibleLine
+            };
+        } catch (error) {
+            this.logger.error('Failed to get visible line range:', error);
+            return { from: 0, to: 0 };
+        }
+    }
+
+    /**
+     * Generate a simple hash for a line of text
+     */
+    private hashLine(text: string): string {
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            const char = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash.toString();
+    }
+
+    /**
+     * Clear the line analysis cache
+     */
+    private clearAnalysisCache(): void {
+        this.lineAnalysisCache.clear();
+        this.logger.debug('Line analysis cache cleared');
+    }
+
+    /**
      * Check if enhancement indicators should be shown
      */
     private shouldShowEnhancementIndicators(context: SmartContext, currentLine: string): boolean {
-        // Show for bullet points that could be expanded
-        if (currentLine.trim().match(/^[-*+]\s+/)) return true;
+        const trimmed = currentLine.trim();
         
-        // Show for short paragraphs that could use examples
-        if (currentLine.length > 20 && currentLine.length < 100 && !currentLine.includes('example')) return true;
+        // Skip headers
+        if (trimmed.match(/^#+\s/)) return false;
+        
+        // Skip empty lines
+        if (trimmed.length === 0) return false;
+        
+        // Show for bullet points that could be expanded
+        if (trimmed.match(/^[-*+]\s+/)) return true;
         
         // Show for statements that could use stronger hooks
-        if (currentLine.includes('I think') || currentLine.includes('maybe') || currentLine.includes('perhaps')) return true;
+        if (currentLine.toLowerCase().includes('i think') || 
+            currentLine.toLowerCase().includes('maybe') || 
+            currentLine.toLowerCase().includes('perhaps')) return true;
         
         return false;
     }
@@ -341,14 +506,23 @@ export class MarginIndicators {
      * Check if quick fix indicators should be shown
      */
     private shouldShowQuickFixIndicators(context: SmartContext, currentLine: string): boolean {
-        // Show for passive voice
-        if (currentLine.match(/\b(was|were|is|are|been)\s+\w+ed\b/)) return true;
+        const trimmed = currentLine.trim();
+        
+        // Skip headers
+        if (trimmed.match(/^#+\s/)) return false;
+        
+        // Skip empty lines
+        if (trimmed.length === 0) return false;
+        
+        // Show for passive voice - improved patterns
+        if (currentLine.match(/\b(was|were)\s+\w+ed\b/)) return true;
+        if (currentLine.match(/\b(was|were)\s+(written|taken|given|chosen|broken|spoken)/)) return true;
+        if (currentLine.match(/\bmade\s+(by|throughout|during)/)) return true;
+        if (currentLine.match(/\b(has|have)\s+been\s+\w+ed\b/)) return true;
+        if (currentLine.match(/\b(has|have)\s+been\s+(written|taken|given|chosen|broken|spoken)/)) return true;
         
         // Show for weak words
         if (currentLine.match(/\b(very|really|quite|somewhat|rather)\b/i)) return true;
-        
-        // Show for unclear references
-        if (currentLine.match(/\b(this|that|it|they)\b/) && !context.selection) return true;
         
         return false;
     }
@@ -365,8 +539,13 @@ export class MarginIndicators {
      * Check if transform indicators should be shown
      */
     private shouldShowTransformIndicators(context: SmartContext, currentLine: string): boolean {
-        // Show for academic writing that could use different perspectives
-        if (context.documentType === 'academic' && currentLine.length > 50) return true;
+        const trimmed = currentLine.trim();
+        
+        // Skip headers
+        if (trimmed.match(/^#+\s/)) return false;
+        
+        // Skip empty lines
+        if (trimmed.length === 0) return false;
         
         // Show for "telling" that could be "showing"
         if (currentLine.match(/\b(felt|thought|believed|knew|realized)\b/)) return true;
@@ -399,7 +578,7 @@ export class MarginIndicators {
      * Calculate confidence score for an opportunity
      */
     private calculateConfidence(context: SmartContext, type: string): number {
-        let confidence = 0.5; // Base confidence
+        let confidence = 0.7; // Base confidence (raised for testing/development)
         
         // Adjust based on document type
         if (context.documentType === 'academic' && type === 'enhancement') confidence += 0.2;
@@ -415,7 +594,7 @@ export class MarginIndicators {
     }
 
     /**
-     * Filter opportunities based on intensity level
+     * Filter opportunities based on intensity level and performance limits
      */
     private filterOpportunitiesByIntensity(opportunities: IndicatorOpportunity[]): IndicatorOpportunity[] {
         const confidenceThresholds = {
@@ -426,7 +605,23 @@ export class MarginIndicators {
         };
         
         const threshold = confidenceThresholds[this.intensityLevel];
-        return opportunities.filter(opp => opp.confidence >= threshold);
+        
+        // Debug: Log opportunity details with line numbers
+        this.logger.debug(`Intensity level: ${this.intensityLevel}, threshold: ${threshold}`);
+        this.logger.debug(`Opportunity details:`, opportunities.map(o => `Line ${o.line}:${o.type}:${o.confidence}`));
+        
+        let filtered = opportunities.filter(opp => opp.confidence >= threshold);
+        this.logger.debug(`After filtering: ${filtered.length} opportunities`);
+        
+        // Sort by confidence (highest first) and limit to max indicators
+        filtered.sort((a, b) => b.confidence - a.confidence);
+        
+        if (filtered.length > this.MAX_INDICATORS) {
+            this.logger.debug(`Limiting indicators from ${filtered.length} to ${this.MAX_INDICATORS} for performance`);
+            filtered = filtered.slice(0, this.MAX_INDICATORS);
+        }
+        
+        return filtered;
     }
 
     /**
@@ -449,7 +644,9 @@ export class MarginIndicators {
         this.currentOpportunities = opportunities;
         
         // Create new indicators
+        this.logger.debug(`Creating ${opportunities.length} indicators`);
         for (const opportunity of opportunities) {
+            this.logger.debug(`Creating indicator for line ${opportunity.line}:${opportunity.type}`);
             this.createIndicator(opportunity);
         }
     }
@@ -460,7 +657,20 @@ export class MarginIndicators {
     private createIndicator(opportunity: IndicatorOpportunity): void {
         if (!this.activeView) return;
 
-        const indicator = this.activeView.containerEl.createDiv({
+        // Find the appropriate container (CodeMirror scroller for proper positioning)
+        const scrollerEl = this.activeView.containerEl.querySelector('.cm-scroller') as HTMLElement;
+        if (!scrollerEl) {
+            this.logger.warn('Could not find .cm-scroller for indicator creation');
+            return;
+        }
+
+        // Validate positioning before creating the indicator
+        if (!this.canPositionIndicator(opportunity)) {
+            this.logger.debug(`Cannot position indicator for line ${opportunity.line}, skipping creation`);
+            return;
+        }
+
+        const indicator = scrollerEl.createDiv({
             cls: `nova-margin-indicator nova-margin-indicator-${opportunity.type}`
         });
         
@@ -468,18 +678,10 @@ export class MarginIndicators {
         indicator.setAttribute('data-type', opportunity.type);
         indicator.setAttribute('data-line', opportunity.line.toString());
         
-        // Position the indicator
+        // Position the indicator (should succeed since we validated above)
         this.positionIndicator(indicator, opportunity);
         
-        // Add hover events
-        this.plugin.registerDomEvent(indicator, 'mouseenter', () => {
-            this.onIndicatorHover(indicator, opportunity);
-        });
-        
-        this.plugin.registerDomEvent(indicator, 'mouseleave', () => {
-            this.onIndicatorLeave(indicator);
-        });
-        
+        // Add click event (hover is handled by CSS)
         this.plugin.registerDomEvent(indicator, 'click', () => {
             this.onIndicatorClick(opportunity);
         });
@@ -490,47 +692,121 @@ export class MarginIndicators {
     }
 
     /**
+     * Check if an indicator can be positioned without creating it
+     */
+    private canPositionIndicator(opportunity: IndicatorOpportunity): boolean {
+        if (!this.activeEditor || !this.activeView) return false;
+
+        try {
+            // Get the CodeMirror content area
+            const contentEl = this.activeView.containerEl.querySelector('.cm-content') as HTMLElement;
+            if (!contentEl) return false;
+
+            // Get all line elements
+            const lineElements = contentEl.querySelectorAll('.cm-line');
+            
+            // Calculate frontmatter offset
+            const frontmatterOffset = this.calculateFrontmatterOffset();
+            
+            // Convert editor line number to DOM line index
+            const domLineIndex = opportunity.line - frontmatterOffset;
+            
+            this.logger.debug(`Line ${opportunity.line}: frontmatter offset=${frontmatterOffset}, DOM index=${domLineIndex}, DOM lines available=${lineElements.length}`);
+            
+            // Validate the DOM line index
+            const canPosition = domLineIndex >= 0 && domLineIndex < lineElements.length;
+            if (!canPosition) {
+                this.logger.debug(`Cannot position line ${opportunity.line}: DOM index ${domLineIndex} outside range 0-${lineElements.length-1}`);
+            }
+            return canPosition;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
      * Position an indicator in the margin
      */
     private positionIndicator(indicator: HTMLElement, opportunity: IndicatorOpportunity): void {
-        if (!this.activeEditor) return;
+        if (!this.activeEditor || !this.activeView) return;
 
-        // Get editor dimensions and line height
-        const editorEl = this.activeView!.containerEl.querySelector('.cm-editor') as HTMLElement;
-        if (!editorEl) return;
+        try {
+            // Get the CodeMirror content area
+            const contentEl = this.activeView.containerEl.querySelector('.cm-content') as HTMLElement;
+            const scrollerEl = this.activeView.containerEl.querySelector('.cm-scroller') as HTMLElement;
+            
+            if (!contentEl || !scrollerEl) {
+                this.logger.warn('Could not find CodeMirror elements for positioning');
+                return;
+            }
 
-        const lineHeight = 20; // Approximate line height
-        const topOffset = opportunity.line * lineHeight;
-        
-        // Position in right margin
-        indicator.style.position = 'absolute';
-        indicator.style.top = `${topOffset}px`;
-        indicator.style.right = '20px';
-        indicator.style.fontSize = '14px';
-        indicator.style.opacity = '0.4';
-        indicator.style.cursor = 'pointer';
-        indicator.style.zIndex = '100';
-        indicator.style.transition = 'opacity 0.2s ease';
-        indicator.style.userSelect = 'none';
+            // Get all line elements
+            const lineElements = contentEl.querySelectorAll('.cm-line');
+            
+            // Calculate frontmatter offset
+            // In Obsidian, frontmatter lines exist in the editor but not in the DOM
+            const frontmatterOffset = this.calculateFrontmatterOffset();
+            
+            // Convert editor line number to DOM line index
+            const domLineIndex = opportunity.line - frontmatterOffset;
+            
+            // Validate the DOM line index
+            if (domLineIndex < 0 || domLineIndex >= lineElements.length) {
+                this.logger.debug(`Line ${opportunity.line} (DOM index ${domLineIndex}) is outside visible range (0-${lineElements.length-1}), skipping indicator`);
+                return;
+            }
+            
+            const targetLineElement = lineElements[domLineIndex] as HTMLElement;
+            
+            // Get position relative to the scroller
+            const lineRect = targetLineElement.getBoundingClientRect();
+            const scrollerRect = scrollerEl.getBoundingClientRect();
+            
+            // Calculate position accounting for scroll
+            const topOffset = lineRect.top - scrollerRect.top + scrollerEl.scrollTop;
+            const rightOffset = 25; // Distance from right edge
+            
+            // Position the indicator (only dynamic positioning, CSS handles the rest)
+            indicator.style.position = 'absolute';
+            indicator.style.top = `${topOffset}px`;
+            indicator.style.right = `${rightOffset}px`;
+            
+            this.logger.debug(`Positioned indicator for editor line ${opportunity.line} at DOM index ${domLineIndex}: top=${topOffset}px`);
+            
+        } catch (error) {
+            this.logger.error('Failed to position indicator:', error);
+        }
     }
 
     /**
-     * Handle indicator hover
+     * Calculate how many lines of frontmatter exist
+     * Frontmatter exists in the editor but not in the DOM
      */
-    private onIndicatorHover(indicator: HTMLElement, opportunity: IndicatorOpportunity): void {
-        // Increase opacity on hover
-        indicator.style.opacity = '0.8';
+    private calculateFrontmatterOffset(): number {
+        if (!this.activeEditor) return 0;
         
-        // Future: Show preview tooltip (will be implemented with hover preview system)
-        this.logger.debug(`Hovered indicator: ${opportunity.type} at line ${opportunity.line}`);
+        try {
+            // Check if document starts with frontmatter delimiter
+            const firstLine = this.activeEditor.getLine(0);
+            if (firstLine !== '---') return 0;
+            
+            // Find the closing delimiter
+            for (let i = 1; i < this.activeEditor.lineCount(); i++) {
+                const line = this.activeEditor.getLine(i);
+                if (line === '---') {
+                    // Return the number of frontmatter lines (including delimiters)
+                    return i + 1;
+                }
+            }
+            
+            // If no closing delimiter found, assume no frontmatter
+            return 0;
+        } catch (error) {
+            this.logger.debug('Error calculating frontmatter offset:', error);
+            return 0;
+        }
     }
 
-    /**
-     * Handle indicator leave
-     */
-    private onIndicatorLeave(indicator: HTMLElement): void {
-        indicator.style.opacity = '0.4';
-    }
 
     /**
      * Handle indicator click
@@ -549,8 +825,30 @@ export class MarginIndicators {
      * Update indicator positions (for scroll events)
      */
     private updateIndicatorPositions(): void {
-        // Future: Update positions when editor scrolls
-        // For now, this is a placeholder
+        if (!this.activeEditor || !this.activeView) return;
+
+        try {
+            // Re-position all existing indicators using improved positioning
+            for (const [, indicator] of this.indicators.entries()) {
+                const lineNumber = parseInt(indicator.getAttribute('data-line') || '0', 10);
+                const type = indicator.getAttribute('data-type') as 'enhancement' | 'quickfix' | 'metrics' | 'transform';
+                
+                if (!isNaN(lineNumber) && type) {
+                    const opportunity: IndicatorOpportunity = {
+                        line: lineNumber,
+                        column: this.getMarginColumn(),
+                        type: type,
+                        icon: indicator.textContent || '',
+                        commands: [], // Not needed for positioning
+                        confidence: 0.5 // Not needed for positioning
+                    };
+                    
+                    this.positionIndicator(indicator, opportunity);
+                }
+            }
+        } catch (error) {
+            this.logger.error('Failed to update indicator positions:', error);
+        }
     }
 
     /**
@@ -587,10 +885,16 @@ export class MarginIndicators {
     private cleanupCurrentEditor(): void {
         this.clearIndicators();
         this.currentOpportunities = [];
+        this.clearAnalysisCache();
         
         if (this.analysisDebounceTimer) {
             clearTimeout(this.analysisDebounceTimer);
             this.analysisDebounceTimer = null;
+        }
+        
+        if (this.scrollDebounceTimer) {
+            clearTimeout(this.scrollDebounceTimer);
+            this.scrollDebounceTimer = null;
         }
     }
 

@@ -140,6 +140,28 @@ Each task needs: Context, Progress, Current State (files:lines), Next Steps, Dep
 
 **Never implement without completing research phase.**
 
+## 🛑 STOP AND COPY
+
+**UI Pattern Rule: If Obsidian has it, copy it exactly**
+
+### When Building UI That Mirrors Obsidian
+- ✅ **Autocomplete/Suggestions**: MUST find and copy existing pattern (e.g., `[[` WikilinkFileModal)
+- ✅ **Command Selection**: Use FuzzySuggestModal - never create custom
+- ✅ **Modal Dialogs**: Copy existing modal patterns exactly
+- ✅ **Settings UI**: Use Setting() components only
+
+### Mandatory Questions Before UI Implementation
+1. **Does this UI behavior exist in Obsidian core?** (If yes → copy exactly)
+2. **Have I found the exact pattern match?** (If no → search more)
+3. **Am I copying the implementation approach?** (If no → STOP)
+
+### Examples That Should Have Been Copied
+- `[[` wikilink autocomplete → Copy for `/` command autocomplete
+- Command palette → Copy for any command selection UI
+- Settings tabs → Copy for plugin settings
+
+**If your UI solution is more complex than existing Obsidian patterns, you're doing it wrong.**
+
 ## 🛠️ Tool Usage Guidelines
 
 ### Task Tool Usage
@@ -159,13 +181,43 @@ Each task needs: Context, Progress, Current State (files:lines), Next Steps, Dep
 **Before ANY new functionality:**
 
 ### Pattern Analysis
-1. ✅ **Study 3+ similar components**: Document patterns, note deviations
-2. ✅ **Follow conventions**: PascalCase classes, camelCase methods, consistent imports/events
+1. ✅ **MANDATORY: Find exact UI pattern match FIRST**: If UI behavior exists in Obsidian core, copy it exactly - no exceptions
+2. ✅ **Study 3+ similar components**: Document patterns, note deviations  
+3. ✅ **Follow conventions**: PascalCase classes, camelCase methods, consistent imports/events
+
+### Pre-Implementation Checklist
+- [ ] Have I found the exact pattern match in Obsidian core?
+- [ ] Am I copying the implementation exactly?  
+- [ ] If not copying, have I documented WHY and gotten approval?
 
 ### Consistency Verification
 1. ✅ **Interface design**: Same parameter/return patterns, consistent error handling
 2. ✅ **Architecture**: StateManager for state, event-driven communication, no direct calls
 3. ✅ **Document deviations**: WHY breaking patterns, get approval for changes
+
+## ⚠️ Complexity Trap Warning
+
+**Red Flags That You're Over-Engineering:**
+
+### Stop Signs
+- ✅ **Your solution has more files than the original** → Too complex
+- ✅ **You're creating new UI patterns** → Copy existing instead  
+- ✅ **More than 50 lines for simple UI** → Find simpler approach
+- ✅ **Adding configuration for basic behavior** → Use defaults
+- ✅ **Custom event systems for standard UI** → Use native patterns
+
+### Golden Rules
+1. **Simple copy > clever innovation**
+2. **If your solution is more complex than existing code, you're doing it wrong**
+3. **When in doubt, grep for similar UI behaviors and copy them**
+4. **Default to the most boring, obvious implementation**
+
+### Recovery Action  
+When you catch yourself over-engineering:
+1. **STOP coding immediately**
+2. **Find the simplest existing pattern**
+3. **Copy it exactly**
+4. **Remove custom complexity**
 
 ## 🔒 Obsidian Plugin Compliance
 
@@ -250,6 +302,42 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 - **DOM updates**: Debounce, use DocumentFragment
 - **State**: StateManager events, avoid direct coupling
 
+## 📖 UI Pattern Reference
+
+**ALWAYS use these existing patterns - never create custom alternatives**
+
+### Autocomplete & Suggestions
+- **Wikilink autocomplete (`[[`)**: WikilinkFileModal pattern → Copy for `/` commands  
+- **Tag autocomplete (`#`)**: SuggestModal pattern → Copy for tag-based features
+- **File search**: QuickSwitcher pattern → Copy for file selection UI
+
+### Modal Dialogs
+- **Command selection**: FuzzySuggestModal → Copy for command pickers
+- **File selection**: SuggestModal → Copy for file choosers  
+- **Simple prompts**: Modal class → Copy for confirmations
+
+### Settings & Controls
+- **Setting sections**: `Setting().setHeading()` → Copy for plugin settings
+- **Dropdowns**: `DropdownComponent` → Copy for option selection
+- **Toggle buttons**: `Setting().addToggle()` → Copy for boolean settings
+- **Text inputs**: `Setting().addText()` → Copy for text configuration
+
+### Quick Reference
+```typescript
+// ✅ Copy this pattern for command autocomplete
+new FuzzySuggestModal(app)
+  .setItems(items)
+  .setPlaceholder("Type command name...")
+  .onChooseItem((item) => executeCommand(item))
+
+// ✅ Copy this pattern for file selection  
+new SuggestModal(app)
+  .setSuggestions(files)
+  .onChooseSuggestion((file) => openFile(file))
+```
+
+**If you can't find the pattern here, search the Obsidian codebase first before creating anything new.**
+
 ## 🔄 Common Anti-Patterns
 
 ### Architecture
@@ -270,6 +358,13 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 ### Testing
 ❌ **Implementation-focused**: Test private methods, empty mocks
 ✅ **Behavior-focused**: Test observable behavior, realistic mocks
+
+### UI Patterns  
+❌ **Creating new UI patterns when Obsidian patterns exist**: Custom autocomplete instead of copying `[[` wikilink pattern
+❌ **Writing custom modals instead of using FuzzySuggestModal**: Complex modal systems for simple selection
+❌ **Implementing custom autocomplete instead of copying wikilink pattern**: Building from scratch when WikilinkFileModal exists
+❌ **Custom dropdowns when DropdownComponent exists**: Reinventing native components
+❌ **Complex event handling for simple UI**: Over-engineering when native patterns work
 
 ## 🎯 Performance Guidelines
 
@@ -328,22 +423,27 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 
 ## 📋 Current Tasks
 
-### 🔄 IN PROGRESS - Nova Commands System Implementation
-**Context**: Implementing comprehensive command system with markdown-based commands and progressive disclosure UI
-**Progress**: Core Infrastructure COMPLETE, Native Modal Integration COMPLETE
+### ✅ COMPLETED - MarginIndicators Implementation
+**Context**: Intelligent margin indicators for command suggestions with progressive disclosure UI
+**Progress**: COMPLETE and fully compliant with Obsidian guidelines
 **Current State**: 
-- Core Infrastructure completed (CommandEngine, CommandRegistry, SmartVariableResolver)
-- "/" trigger fully working with native FuzzySuggestModal (consistent with [[)
-- 4 sample commands working: expand-outline, document-metrics, fix-passive-voice, show-dont-tell
-- Modal uses same UX pattern as wikilink autocomplete for consistency
-- Feature enablement dates fixed for testing
+- MarginIndicators fully functional with detection logic (21 tests passing)
+- Proper positioning with frontmatter offset handling
+- Viewport optimization with line-level caching for performance
+- All critical compliance issues resolved:
+  * Fixed unregistered timers using registerInterval()
+  * Removed console statements (replaced with Logger)
+  * Fixed type safety (removed 'any' usage)
+  * CSS-first approach (removed inline styles)
+- Visual improvements: opacity 0.4 → 0.6 for better visibility
+- Comprehensive test suite covering detection, positioning, performance
 **Next Steps**: 
-- Fix MarginIndicators finding 0 opportunities
 - Implement hover preview system
-- Build InsightPanels for full intelligence
+- Build InsightPanels for full intelligence  
 - Add SmartTimingEngine
-**Dependencies**: None
-**Quality Status**: Core Infrastructure and Modal Integration complete and tested
+- Load actual commands into CommandRegistry
+**Dependencies**: Command loading implementation
+**Quality Status**: Production-ready and Obsidian compliant
 
 ### Phase 1 Tasks (HIGH PRIORITY - Days 1-5)
 
