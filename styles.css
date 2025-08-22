@@ -3708,3 +3708,107 @@
     color: var(--text-faint);
     font-style: italic;
 }
+
+.nova-command-picker-no-results {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Margin Indicators */
+.nova-margin-indicator {
+    position: absolute;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.4;
+    cursor: pointer;
+    z-index: 100;
+    transition: opacity 0.2s ease;
+    user-select: none;
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+}
+
+.nova-margin-indicator:hover {
+    opacity: 0.8;
+    transform: scale(1.1);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nova-margin-indicator-enhancement {
+    color: var(--text-accent);
+}
+
+.nova-margin-indicator-quickfix {
+    color: var(--color-orange);
+}
+
+.nova-margin-indicator-metrics {
+    color: var(--color-blue);
+}
+
+.nova-margin-indicator-transform {
+    color: var(--color-purple);
+}
+
+/* Mobile adjustments for margin indicators */
+@media (max-width: 768px) {
+    .nova-margin-indicator {
+        font-size: 12px;
+        width: 14px;
+        height: 14px;
+        right: 10px !important;
+    }
+}
+
+/* Command Picker Modal */
+.nova-command-suggestion {
+    padding: 8px 0;
+}
+
+.nova-command-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.nova-command-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.nova-command-name {
+    font-weight: 500;
+    color: var(--text-normal);
+    font-size: 14px;
+}
+
+.nova-command-description {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.nova-command-example {
+    color: var(--text-faint);
+    font-size: 11px;
+    font-style: italic;
+    margin-bottom: 2px;
+}
+
+.nova-command-category {
+    color: var(--text-accent);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}

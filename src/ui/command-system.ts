@@ -1,4 +1,4 @@
-import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
+import { ButtonComponent, TextAreaComponent, Platform, FuzzySuggestModal, FuzzyMatch, App } from 'obsidian';
 import NovaPlugin from '../../main';
 import { CommandEngine } from '../features/commands/core/CommandEngine';
 import { CommandRegistry } from '../features/commands/core/CommandRegistry';
@@ -33,10 +33,10 @@ export class CommandSystem {
 		this.container = container;
 		this.textArea = textArea;
 		
-		// Initialize Nova Commands components
-		this.commandEngine = new CommandEngine(plugin);
-		this.commandRegistry = new CommandRegistry(plugin, this.commandEngine);
-		this.variableResolver = new SmartVariableResolver(plugin);
+		// Use shared Nova Commands components from main plugin (they may not be available yet)
+		this.commandEngine = plugin.commandEngine;
+		this.commandRegistry = plugin.commandRegistry;
+		this.variableResolver = plugin.smartVariableResolver;
 	}
 
 	/**
@@ -251,94 +251,37 @@ export class CommandSystem {
 
 
 	/**
-	 * Show markdown command picker for "/" trigger
+	 * Show native command modal for "/" trigger (like wikilink modal)
 	 */
-	private async showMarkdownCommandPicker(input: string): Promise<void> {
-		if (!this.commandPicker) {
-			return;
+	private async showMarkdownCommandPicker(_input: string): Promise<void> {
+		// Ensure we have the latest references to Nova Commands components
+		if (!this.commandRegistry) {
+			this.commandEngine = this.plugin.commandEngine;
+			this.commandRegistry = this.plugin.commandRegistry;
+			this.variableResolver = this.plugin.smartVariableResolver;
 		}
 		
-		try {
-			const filterText = input.slice(1).toLowerCase(); // Remove "/"
-			const allCommands = await this.commandRegistry.searchCommands(filterText);
-			
-			// Also search by exact command names (like "/expand-outline")
-			const exactMatches = allCommands.filter(cmd => 
-				cmd.id.toLowerCase().includes(filterText) ||
-				cmd.name.toLowerCase().includes(filterText)
-			);
-			
-			// Limit to top 8 results for UI performance
-			const filtered = exactMatches.slice(0, 8);
-
-			this.commandPickerItems = [];
-			this.commandPicker.empty();
-			this.selectedCommandIndex = -1;
-
-			if (filtered.length > 0) {
-				filtered.forEach((cmd, index) => {
-					const item = this.commandPicker.createDiv({ 
-						cls: 'nova-command-picker-item nova-markdown-command-item' 
-					});
-
-					// Command header with icon and name
-					const header = item.createDiv({ cls: 'nova-command-header' });
-					header.createSpan({ 
-						text: cmd.iconType,
-						cls: 'nova-command-icon'
-					});
-					header.createSpan({ 
-						text: cmd.name,
-						cls: 'nova-command-picker-name'
-					});
-
-					// Description
-					item.createEl('div', { 
-						text: cmd.description,
-						cls: 'nova-command-picker-desc'
-					});
-
-					// Category badge
-					item.createSpan({ 
-						text: cmd.category,
-						cls: 'nova-command-category'
-					});
-
-					// Click to execute
-					this.registerEventListener(item, 'click', () => {
-						this.selectMarkdownCommand(cmd);
-					});
-
-					// Hover selection
-					this.registerEventListener(item, 'mouseenter', () => {
-						this.selectedCommandIndex = index;
-						this.updateCommandPickerSelection();
-					});
-
-					this.commandPickerItems.push(item);
-				});
-
-				this.commandPicker.addClass('show');
-			} else {
-				// Show "no commands found" message
-				const noResults = this.commandPicker.createDiv({ 
-					cls: 'nova-command-picker-no-results' 
-				});
-				noResults.createEl('div', { 
-					text: 'No commands found',
-					cls: 'nova-no-results-title'
-				});
-				noResults.createEl('div', { 
-					text: 'Try a different search term',
-					cls: 'nova-no-results-desc'
-				});
-				
-				this.commandPicker.addClass('show');
-			}
-		} catch (error) {
-			this.logger.error('Error loading markdown commands:', error);
-			this.hideCommandPicker();
+		if (!this.commandRegistry) {
+			this.logger.warn('CommandRegistry not available yet');
+			return;
 		}
+
+		// Load commands first, then pass to modal (like WikilinkFileModal pattern)
+		const commands = await this.commandRegistry.getAllCommands();
+		
+		const modal = new CommandModal(
+			this.plugin.app,
+			commands,
+			async (command: MarkdownCommand) => {
+				await this.selectMarkdownCommand(command);
+			},
+			() => {
+				// User cancelled - clear the input trigger
+				this.textArea.setValue('');
+				this.textArea.inputEl.focus();
+			}
+		);
+		modal.open();
 	}
 
 	/**
@@ -346,6 +289,13 @@ export class CommandSystem {
 	 */
 	private async selectMarkdownCommand(command: MarkdownCommand): Promise<void> {
 		this.hideCommandPicker();
+		
+		// Ensure we have the latest references to Nova Commands components
+		if (!this.variableResolver || !this.commandEngine) {
+			this.commandEngine = this.plugin.commandEngine;
+			this.commandRegistry = this.plugin.commandRegistry;
+			this.variableResolver = this.plugin.smartVariableResolver;
+		}
 		
 		try {
 			// Build smart context
@@ -395,5 +345,101 @@ export class CommandSystem {
 		}
 
 		this.logger.info('CommandSystem cleaned up');
+	}
+}
+
+/**
+ * Native Obsidian command modal for "/" selection
+ * Uses the same pattern as WikilinkFileModal for consistency
+ */
+class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
+	private onSelectCallback: (command: MarkdownCommand) => void;
+	private onCancelCallback?: () => void;
+	private allCommands: MarkdownCommand[] = [];
+
+	constructor(
+		app: App,
+		commands: MarkdownCommand[],
+		onSelect: (command: MarkdownCommand) => void,
+		onCancel?: () => void
+	) {
+		super(app);
+		this.allCommands = commands;
+		this.onSelectCallback = onSelect;
+		this.onCancelCallback = onCancel;
+		
+		this.setPlaceholder('Search commands...');
+		
+		// Sort by name for consistent ordering
+		this.allCommands.sort((a, b) => a.name.localeCompare(b.name));
+	}
+
+	onOpen(): void {
+		super.onOpen();
+		this.addInstructions();
+	}
+
+	private addInstructions(): void {
+		// Add the instruction footer like native Obsidian modals
+		const instructionsEl = this.modalEl.createDiv({ cls: 'prompt-instructions' });
+		
+		const navInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
+		navInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↑↓' });
+		navInstruction.createSpan({ text: 'to navigate' });
+
+		const useInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
+		useInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↵' });
+		useInstruction.createSpan({ text: 'to use' });
+
+		const escInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
+		escInstruction.createSpan({ cls: 'prompt-instruction-command', text: 'esc' });
+		escInstruction.createSpan({ text: 'to dismiss' });
+	}
+
+	getItems(): MarkdownCommand[] {
+		return this.allCommands;
+	}
+
+	getItemText(command: MarkdownCommand): string {
+		return command.name;
+	}
+
+	onChooseItem(command: MarkdownCommand): void {
+		this.onSelectCallback(command);
+	}
+
+	renderSuggestion(match: FuzzyMatch<MarkdownCommand>, el: HTMLElement): void {
+		const command = match.item;
+		
+		// Create container with native Obsidian suggestion styling
+		const container = el.createDiv({ cls: 'suggestion-content' });
+		
+		// Title with icon
+		const title = container.createDiv({ cls: 'suggestion-title' });
+		if (command.iconType) {
+			const icon = title.createSpan({ cls: 'suggestion-flair' });
+			icon.textContent = command.iconType;
+		}
+		const titleText = title.createSpan();
+		titleText.textContent = command.name;
+		
+		// Description
+		if (command.description) {
+			const note = container.createDiv({ cls: 'suggestion-note' });
+			note.textContent = command.description;
+		}
+		
+		// Category as auxiliary info
+		if (command.category) {
+			const aux = container.createDiv({ cls: 'suggestion-aux' });
+			aux.textContent = command.category;
+		}
+	}
+
+	onClose(): void {
+		super.onClose();
+		if (this.onCancelCallback) {
+			this.onCancelCallback();
+		}
 	}
 }

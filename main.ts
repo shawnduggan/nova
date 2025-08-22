@@ -21,6 +21,10 @@ import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
 import { Logger } from './src/utils/logger';
+import { CommandEngine } from './src/features/commands/core/CommandEngine';
+import { CommandRegistry } from './src/features/commands/core/CommandRegistry';
+import { SmartVariableResolver } from './src/features/commands/core/SmartVariableResolver';
+import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
 
 // Nova icon - main plugin icon
 const NOVA_ICON_SVG = `
@@ -75,6 +79,10 @@ export default class NovaPlugin extends Plugin {
 	settingTab!: NovaSettingTab;
 	sidebarView!: NovaSidebarView;
 	selectionContextMenu!: SelectionContextMenu;
+	commandEngine!: CommandEngine;
+	commandRegistry!: CommandRegistry;
+	smartVariableResolver!: SmartVariableResolver;
+	marginIndicators!: MarginIndicators;
 
 	async onload() {
 		try {
@@ -94,7 +102,7 @@ export default class NovaPlugin extends Plugin {
 			}
 
 			// Dispatch license update event to refresh Supernova UI after startup
-			this.app.workspace.onLayoutReady(() => {
+			this.app.workspace.onLayoutReady(async () => {
 				document.dispatchEvent(new CustomEvent('nova-license-updated', { 
 					detail: { 
 						hasLicense: this.featureManager.isSupernovaSupporter(),
@@ -102,6 +110,18 @@ export default class NovaPlugin extends Plugin {
 						action: 'startup'
 					} 
 				}));
+
+				// Initialize Nova Commands components
+				try {
+					if (this.marginIndicators) {
+						await this.marginIndicators.init();
+						Logger.info('Nova Commands system initialized successfully');
+					} else {
+						Logger.error('MarginIndicators component not available - check main plugin initialization');
+					}
+				} catch (error) {
+					Logger.error('Failed to initialize Nova Commands system:', error);
+				}
 			});
 
 
@@ -133,6 +153,14 @@ export default class NovaPlugin extends Plugin {
 			this.grammarCommandHandler = new GrammarCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.rewriteCommandHandler = new RewriteCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
 			this.metadataCommandHandler = new MetadataCommand(this.app, this.documentEngine, this.contextBuilder, this.aiProviderManager);
+
+			// Initialize Nova Commands system
+			Logger.info('Initializing Nova Commands system components...');
+			this.smartVariableResolver = new SmartVariableResolver(this);
+			this.commandEngine = new CommandEngine(this);
+			this.commandRegistry = new CommandRegistry(this, this.commandEngine);
+			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry);
+			Logger.info('Nova Commands system components created successfully');
 
 			this.registerView(
 				VIEW_TYPE_NOVA_SIDEBAR,
@@ -212,6 +240,9 @@ export default class NovaPlugin extends Plugin {
 		this.aiProviderManager?.cleanup();
 		this.conversationManager?.cleanup();
 		this.settingTab?.cleanup();
+		this.marginIndicators?.cleanup();
+		this.commandEngine?.cleanup();
+		this.commandRegistry?.cleanup();
 	}
 
 	async loadSettings() {
