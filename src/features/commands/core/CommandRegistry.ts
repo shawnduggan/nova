@@ -367,4 +367,12 @@ export class CommandRegistry implements ICommandRegistry {
         await this.buildIndex();
         return Array.from(this.categoryIndex.keys());
     }
+
+    /**
+     * Cleanup method for plugin unload
+     */
+    cleanup(): void {
+        this.clearCache();
+        this.logger.info('CommandRegistry cleaned up');
+    }
 }

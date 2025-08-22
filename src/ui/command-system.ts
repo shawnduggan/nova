@@ -35,6 +35,7 @@ export class CommandSystem {
 	private commandEngine: CommandEngine;
 	private commandRegistry: CommandRegistry;
 	private variableResolver: SmartVariableResolver;
+	private logger = Logger.scope('CommandSystem');
 
 	constructor(plugin: NovaPlugin, container: HTMLElement, textArea: TextAreaComponent) {
 		this.plugin = plugin;
@@ -324,7 +325,7 @@ export class CommandSystem {
 				await this.selectMarkdownCommand(selectedCmd);
 			}
 		} catch (error) {
-			Logger.error('Error in markdown command selection:', error);
+			this.logger.error('Error in markdown command selection:', error);
 		}
 	}
 
@@ -429,10 +430,10 @@ export class CommandSystem {
 			this.textArea.setValue(beforeCursor + afterCursor);
 			
 			// Position cursor where {cursor} was
-			setTimeout(() => {
+			this.plugin.registerInterval(window.setTimeout(() => {
 				this.textArea.inputEl.setSelectionRange(cursorPos, cursorPos);
 				this.textArea.inputEl.focus();
-			}, 0);
+			}, 0));
 		} else {
 			this.textArea.setValue(template);
 			this.textArea.inputEl.focus();
@@ -525,7 +526,7 @@ export class CommandSystem {
 				this.commandPicker.addClass('show');
 			}
 		} catch (error) {
-			Logger.error('Error loading markdown commands:', error);
+			this.logger.error('Error loading markdown commands:', error);
 			this.hideCommandPicker();
 		}
 	}
@@ -540,7 +541,7 @@ export class CommandSystem {
 			// Build smart context
 			const context = await this.variableResolver.buildSmartContext();
 			if (!context) {
-				Logger.warn('Could not build smart context for command execution');
+				this.logger.warn('Could not build smart context for command execution');
 				return;
 			}
 
@@ -554,7 +555,7 @@ export class CommandSystem {
 			});
 			
 		} catch (error) {
-			Logger.error(`Failed to execute command ${command.name}:`, error);
+			this.logger.error(`Failed to execute command ${command.name}:`, error);
 			// Show error message to user
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			this.textArea.setValue(`Error executing ${command.name}: ${errorMessage}`);
@@ -568,11 +569,21 @@ export class CommandSystem {
 		});
 		this.eventListeners = [];
 
+		// Clean up Nova Commands components
+		if (this.commandEngine) {
+			this.commandEngine.cleanup();
+		}
+		if (this.commandRegistry) {
+			this.commandRegistry.cleanup();
+		}
+
 		if (this.commandMenu) {
 			this.commandMenu.remove();
 		}
 		if (this.commandPicker) {
 			this.commandPicker.remove();
 		}
+
+		this.logger.info('CommandSystem cleaned up');
 	}
 }

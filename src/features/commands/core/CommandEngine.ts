@@ -3,7 +3,7 @@
  * Handles command discovery, template processing, and execution coordination
  */
 
-import { TFile, Vault, App } from 'obsidian';
+import { TFile, Vault, App, Notice } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import { StreamingManager } from '../../../ui/streaming-manager';
 import { AIProviderManager } from '../../../ai/provider-manager';
@@ -153,6 +153,36 @@ export class CommandEngine {
     }
 
     /**
+     * Validate command and context before execution
+     */
+    private validateCommandExecution(command: MarkdownCommand, context: SmartContext): { isValid: boolean; errors: string[] } {
+        const errors: string[] = [];
+
+        // Basic command validation
+        if (!command.id || !command.name || !command.template) {
+            errors.push('Command missing required fields (id, name, template)');
+        }
+
+        // Check if required variables can be resolved
+        const requiredVars = command.variables.filter(v => v.required);
+        for (const variable of requiredVars) {
+            if (variable.resolver === 'selection' && !context.selection) {
+                errors.push(`Command requires text selection but none found`);
+            }
+        }
+
+        // Template validation
+        if (command.template && !command.template.trim()) {
+            errors.push('Command template is empty');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    }
+
+    /**
      * Execute a command with the given context
      */
     async executeCommand(
@@ -166,6 +196,15 @@ export class CommandEngine {
         this.logger.info(`Executing command: ${command.name}`);
 
         try {
+            // Validate command before execution
+            const validation = this.validateCommandExecution(command, context);
+            if (!validation.isValid) {
+                const errorMessage = `Command validation failed: ${validation.errors.join(', ')}`;
+                this.logger.error(errorMessage);
+                new Notice(errorMessage);
+                throw new Error(errorMessage);
+            }
+
             // Resolve template variables
             const resolvedVariables = await this.resolveVariables(command.variables, context);
             
@@ -354,6 +393,7 @@ export class CommandEngine {
 
         } catch (error) {
             this.logger.error(`Command execution failed for ${context.command.name}:`, error);
+            new Notice(`Failed to execute ${context.command.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             throw error;
         }
     }
@@ -365,13 +405,17 @@ export class CommandEngine {
     private async createDefaultCommands(): Promise<void> {
         this.logger.info('Creating default command templates...');
         
-        // Create Commands folder
-        await this.vault.createFolder(this.commandsFolder).catch(() => {
-            // Folder might already exist
-        });
+        try {
+            // Create Commands folder
+            await this.vault.createFolder(this.commandsFolder).catch((error) => {
+                // Folder might already exist, only log if it's a different error
+                if (!error.message?.includes('already exists')) {
+                    this.logger.warn('Failed to create Commands folder:', error);
+                }
+            });
 
-        // Create expand-outline command as example
-        const expandOutlineCommand = `---
+            // Create expand-outline command as example
+            const expandOutlineCommand = `---
 nova_command: true
 id: expand-outline
 name: Expand Outline
@@ -400,10 +444,20 @@ Style: {style}
 
 Transform each bullet point into well-developed sentences that flow naturally together. Maintain the logical structure while creating smooth transitions between ideas.`;
 
-        const commandPath = `${this.commandsFolder}/expand-outline.md`;
-        if (!this.vault.getAbstractFileByPath(commandPath)) {
-            await this.vault.create(commandPath, expandOutlineCommand);
-            this.logger.info('Created default expand-outline command');
+            const commandPath = `${this.commandsFolder}/expand-outline.md`;
+            if (!this.vault.getAbstractFileByPath(commandPath)) {
+                try {
+                    await this.vault.create(commandPath, expandOutlineCommand);
+                    this.logger.info('Created default expand-outline command');
+                    new Notice('Nova Commands: Created default command templates in Commands folder');
+                } catch (error) {
+                    this.logger.error('Failed to create default command file:', error);
+                    new Notice('Nova Commands: Failed to create default commands. Check file permissions.');
+                }
+            }
+        } catch (error) {
+            this.logger.error('Failed to create default commands:', error);
+            new Notice('Nova Commands: Failed to initialize commands folder');
         }
     }
 
@@ -436,5 +490,14 @@ Transform each bullet point into well-developed sentences that flow naturally to
             cmd.description.toLowerCase().includes(lowerQuery) ||
             cmd.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))
         );
+    }
+
+    /**
+     * Cleanup method for plugin unload
+     */
+    cleanup(): void {
+        this.loadedCommands.clear();
+        this.lastScanTime = 0;
+        this.logger.info('CommandEngine cleaned up');
     }
 }
