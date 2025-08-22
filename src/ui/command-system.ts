@@ -6,15 +6,6 @@ import { SmartVariableResolver } from '../features/commands/core/SmartVariableRe
 import { Logger } from '../utils/logger';
 import type { MarkdownCommand } from '../features/commands/types';
 
-interface StructuredCommand {
-	name: string;
-	description: string;
-	command: string;
-	template: string;
-	example: string;
-	keywords: string[];
-}
-
 
 /**
  * Handles command picker, command menu, and command execution
@@ -168,17 +159,8 @@ export class CommandSystem {
 		
 		const input = this.textArea.getValue();
 		
-		// Check for triggers first (fast), then check permissions (slow)
-		if (input.startsWith(':')) {
-			// Custom command trigger detected - check if feature is enabled
-			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
-			
-			if (featureEnabled) {
-				this.showStructuredCommandPicker(input);
-			} else {
-				this.hideCommandPicker();
-			}
-		} else if (input.startsWith('/')) {
+		// Check for "/" trigger (Nova markdown commands)
+		if (input.startsWith('/')) {
 			// Nova markdown command trigger detected
 			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
 			
@@ -194,63 +176,6 @@ export class CommandSystem {
 	}
 
 
-	/**
-	 * Show structured command picker for ":" trigger  
-	 */
-	private showStructuredCommandPicker(input: string): void {
-		if (!this.commandPicker) {
-			return;
-		}
-		
-		const structuredCommands = this.getStructuredCommands();
-		const filterText = input.slice(1).toLowerCase(); // Remove ":"
-		
-		const filtered = structuredCommands.filter(cmd => 
-			cmd.name.toLowerCase().includes(filterText) ||
-			cmd.command.toLowerCase().includes(filterText) ||
-			cmd.keywords.some(keyword => keyword.toLowerCase().includes(filterText))
-		);
-
-		this.commandPickerItems = [];
-		this.commandPicker.empty();
-		this.selectedCommandIndex = -1;
-
-		if (filtered.length > 0) {
-			filtered.forEach((cmd, index) => {
-				const item = this.commandPicker.createDiv({ cls: 'nova-command-picker-item' });
-
-				item.createEl('div', { 
-					text: cmd.name,
-					cls: 'nova-command-picker-name'
-				});
-
-				item.createEl('div', { 
-					text: cmd.description,
-					cls: 'nova-command-picker-desc'
-				});
-
-				item.createEl('div', { 
-					text: `Example: ${cmd.example}`,
-					cls: 'nova-command-picker-example'
-				});
-
-				this.registerEventListener(item, 'click', () => {
-					this.selectStructuredCommand(cmd.template);
-				});
-
-				this.registerEventListener(item, 'mouseenter', () => {
-					this.selectedCommandIndex = index;
-					this.updateCommandPickerSelection();
-				});
-
-				this.commandPickerItems.push(item);
-			});
-
-			this.commandPicker.addClass('show');
-		} else {
-			this.hideCommandPicker();
-		}
-	}
 
 	hideCommandPicker(): void {
 		this.commandPicker.removeClass('show');
@@ -281,23 +206,8 @@ export class CommandSystem {
 		if (this.selectedCommandIndex >= 0 && this.commandPickerItems.length > 0) {
 			const input = this.textArea.getValue();
 			
-			if (input.startsWith(':')) {
-				// Handle structured commands (existing logic)
-				const commands = this.getStructuredCommands();
-				const filterText = input.slice(1).toLowerCase();
-				const filtered = commands.filter(cmd => 
-					cmd.name.toLowerCase().includes(filterText) ||
-					cmd.command.toLowerCase().includes(filterText) ||
-					cmd.keywords.some(keyword => keyword.toLowerCase().includes(filterText))
-				);
-				
-				if (this.selectedCommandIndex < filtered.length) {
-					const selectedCmd = filtered[this.selectedCommandIndex];
-					this.selectStructuredCommand(selectedCmd.template);
-					return true;
-				}
-			} else if (input.startsWith('/')) {
-				// Handle markdown commands (new logic)
+			if (input.startsWith('/')) {
+				// Handle markdown commands
 				this.handleMarkdownCommandSelection();
 				return true;
 			}
@@ -339,106 +249,6 @@ export class CommandSystem {
 		});
 	}
 
-	private selectCommand(command: string): void {
-		this.textArea.setValue(command + ' ');
-		this.textArea.inputEl.focus();
-		
-		// Position cursor at end
-		const length = this.textArea.getValue().length;
-		this.textArea.inputEl.setSelectionRange(length, length);
-		
-		this.hideCommandPicker();
-	}
-
-
-	/**
-	 * Get structured commands for ":" trigger
-	 */
-	private getStructuredCommands(): StructuredCommand[] {
-		const commands = [
-			{
-				name: 'Add content',
-				description: 'Add new content at cursor position',
-				command: 'add',
-				template: 'add {cursor}',
-				example: ':add paragraph about methodology',
-				keywords: ['create', 'new', 'insert', 'write']
-			},
-			{
-				name: 'Edit selection',
-				description: 'Edit the selected text',
-				command: 'edit',
-				template: 'edit to {cursor}',
-				example: ':edit to be more formal',
-				keywords: ['modify', 'update', 'change', 'revise']
-			},
-			{
-				name: 'Delete selection',
-				description: 'Remove the selected text',
-				command: 'delete',
-				template: 'delete {cursor}',
-				example: ':delete selected text',
-				keywords: ['remove', 'eliminate', 'erase']
-			},
-			{
-				name: 'Rewrite',
-				description: 'Rewrite content with specific style',
-				command: 'rewrite',
-				template: 'rewrite as {cursor}',
-				example: ':rewrite as bullet points',
-				keywords: ['rephrase', 'restructure', 'reword']
-			},
-			{
-				name: 'Fix grammar',
-				description: 'Correct grammar and spelling errors',
-				command: 'grammar',
-				template: 'fix grammar {cursor}',
-				example: ':fix grammar in selection',
-				keywords: ['correct', 'proofread', 'spelling']
-			},
-			{
-				name: 'Continue',
-				description: 'Continue writing from current position',
-				command: 'continue',
-				template: 'continue {cursor}',
-				example: ':continue with examples',
-				keywords: ['extend', 'expand', 'proceed']
-			},
-			{
-				name: 'Update metadata',
-				description: 'Update document properties',
-				command: 'metadata',
-				template: 'update {cursor} property',
-				example: ':update tags property',
-				keywords: ['frontmatter', 'properties', 'tags']
-			}
-		];
-		return commands;
-	}
-
-	/**
-	 * Select a structured command and insert template
-	 */
-	private selectStructuredCommand(template: string): void {
-		this.hideCommandPicker();
-		
-		// Replace cursor placeholder and insert template
-		const cursorPos = template.indexOf('{cursor}');
-		if (cursorPos !== -1) {
-			const beforeCursor = template.slice(0, cursorPos);
-			const afterCursor = template.slice(cursorPos + 8); // Length of '{cursor}'
-			this.textArea.setValue(beforeCursor + afterCursor);
-			
-			// Position cursor where {cursor} was
-			this.plugin.registerInterval(window.setTimeout(() => {
-				this.textArea.inputEl.setSelectionRange(cursorPos, cursorPos);
-				this.textArea.inputEl.focus();
-			}, 0));
-		} else {
-			this.textArea.setValue(template);
-			this.textArea.inputEl.focus();
-		}
-	}
 
 	/**
 	 * Show markdown command picker for "/" trigger
