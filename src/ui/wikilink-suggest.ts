@@ -94,10 +94,8 @@ export class NovaWikilinkAutocomplete {
     }
 
     destroy(): void {
-        // Clean up event listener
-        if (this.inputHandler) {
-            this.textArea.removeEventListener('input', this.inputHandler);
-        }
+        // Event listener cleanup is handled automatically by registerDomEvent
+        // No manual cleanup needed
     }
 }
 

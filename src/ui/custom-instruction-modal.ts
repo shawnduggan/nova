@@ -61,7 +61,7 @@ export class CustomInstructionModal extends Modal {
                 text.inputEl.addClass('nova-custom-textarea');
                 
                 // Focus on the text area
-                setTimeout(() => text.inputEl.focus(), 50);
+                this.plugin.registerInterval(window.setTimeout(() => text.inputEl.focus(), 50));
                 
                 // Handle Enter key submissions
                 this.registerEventListener(text.inputEl, 'keydown', (e: Event) => {

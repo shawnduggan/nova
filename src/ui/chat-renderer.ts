@@ -175,7 +175,7 @@ export class ChatRenderer {
 	}
 
 	private scrollToBottom(smooth: boolean = false): void {
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			if (smooth) {
 				this.chatContainer.scrollTo({
 					top: this.chatContainer.scrollHeight,
@@ -184,7 +184,7 @@ export class ChatRenderer {
 			} else {
 				this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
 			}
-		}, ChatRenderer.SCROLL_DELAY_MS);
+		}, ChatRenderer.SCROLL_DELAY_MS));
 	}
 
 	async loadConversationHistory(file: TFile): Promise<void> {

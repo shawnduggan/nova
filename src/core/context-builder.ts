@@ -266,25 +266,25 @@ ACTION: UPDATE METADATA
     private getOutputInstructions(command: EditCommand): string {
         switch (command.action) {
             case 'add':
-                return 'OUTPUT: Provide only the new content to be added.';
+                return 'OUTPUT: Provide only the new content to be added. Do not include explanations, reasoning, or commentary.';
 
             case 'edit':
-                return 'OUTPUT: Provide only the improved version of the content.';
+                return 'OUTPUT: Provide only the improved version of the content. Do not include explanations, reasoning, or commentary.';
 
             case 'delete':
-                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.';
+                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear. Do not include explanations, reasoning, or commentary.';
 
             case 'grammar':
-                return 'OUTPUT: Provide the corrected version with proper grammar and spelling.';
+                return 'OUTPUT: Provide the corrected version with proper grammar and spelling. Do not include explanations, reasoning, or commentary.';
 
             case 'rewrite':
-                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.';
+                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose. Do not include explanations, reasoning, or commentary.';
 
             case 'metadata':
-                return 'OUTPUT: Provide the updated metadata in proper YAML format.';
+                return 'OUTPUT: Provide the updated metadata in proper YAML format. Do not include explanations, reasoning, or commentary.';
 
             default:
-                return 'OUTPUT: Provide only the requested content changes.';
+                return 'OUTPUT: Provide only the requested content changes. Do not include explanations, reasoning, or commentary.';
         }
     }
 

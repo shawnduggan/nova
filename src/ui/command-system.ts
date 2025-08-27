@@ -376,10 +376,10 @@ export class CommandSystem {
 			this.textArea.setValue(beforeCursor + afterCursor);
 			
 			// Position cursor where {cursor} was
-			setTimeout(() => {
+			this.plugin.registerInterval(window.setTimeout(() => {
 				this.textArea.inputEl.setSelectionRange(cursorPos, cursorPos);
 				this.textArea.inputEl.focus();
-			}, 0);
+			}, 0));
 		} else {
 			this.textArea.setValue(template);
 			this.textArea.inputEl.focus();

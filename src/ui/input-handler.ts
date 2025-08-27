@@ -23,8 +23,7 @@ export class InputHandler {
 	private isDragging: boolean = false;
 	private sidebarView: any; // Reference to NovaSidebarView for context operations
 
-	// Event cleanup tracking
-	private eventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
+	// Event cleanup is handled automatically by registerDomEvent
 
 	constructor(
 		plugin: NovaPlugin, 
@@ -95,7 +94,7 @@ export class InputHandler {
 		this.addEventListener(this.textArea.inputEl, 'input', this.autoGrowTextarea);
 
 		// Trigger auto-grow on initial load
-		setTimeout(this.autoGrowTextarea, 0);
+		this.plugin.registerInterval(window.setTimeout(this.autoGrowTextarea, 0));
 
 		// Initialize wikilink autocomplete with inputRow for consistent width
 		this.wikilinkAutocomplete = new NovaWikilinkAutocomplete(this.plugin.app, this.plugin, this.textArea.inputEl, this.inputRow);
@@ -151,11 +150,11 @@ export class InputHandler {
 	}
 
 	focus(): void {
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			if (this.textArea?.inputEl) {
 				this.textArea.inputEl.focus();
 			}
-		}, InputHandler.FOCUS_DELAY_MS);
+		}, InputHandler.FOCUS_DELAY_MS));
 	}
 
 	private handleSend(): void {
@@ -198,10 +197,10 @@ export class InputHandler {
 
 		// Position cursor after inserted text
 		const newPosition = start + text.length;
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			textarea.setSelectionRange(newPosition, newPosition);
 			textarea.focus();
-		}, 0);
+		}, 0));
 
 		this.autoGrowTextarea();
 	}
@@ -217,10 +216,10 @@ export class InputHandler {
 
 		// Position cursor between before and after text
 		const cursorPosition = start + beforeCursor.length;
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			textarea.setSelectionRange(cursorPosition, cursorPosition);
 			textarea.focus();
-		}, 0);
+		}, 0));
 
 		this.autoGrowTextarea();
 	}
@@ -287,7 +286,7 @@ export class InputHandler {
 		textAreaContainer.appendChild(this.dropZoneOverlay);
 
 		// Animate in
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			if (this.dropZoneOverlay) {
 				this.dropZoneOverlay.classList.add('active');
 				const iconContainer = this.dropZoneOverlay.querySelector('.nova-drop-icon-container') as HTMLElement;
@@ -295,7 +294,7 @@ export class InputHandler {
 					iconContainer.classList.add('active');
 				}
 			}
-		}, 10);
+		}, 10));
 	}
 
 	private handleDragLeave(): void {
@@ -306,10 +305,10 @@ export class InputHandler {
 			if (iconContainer) {
 				iconContainer.classList.remove('active');
 			}
-			setTimeout(() => {
+			this.plugin.registerInterval(window.setTimeout(() => {
 				this.dropZoneOverlay?.remove();
 				this.dropZoneOverlay = null;
-			}, 200);
+			}, 200));
 		}
 	}
 
@@ -409,10 +408,6 @@ export class InputHandler {
 			this.dropZoneOverlay = null;
 		}
 
-		// Clean up event listeners
-		this.eventListeners.forEach(({ element, event, handler }) => {
-			element.removeEventListener(event, handler);
-		});
-		this.eventListeners = [];
+		// Event listeners are cleaned up automatically by registerDomEvent
 	}
 }
