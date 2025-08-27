@@ -109,9 +109,6 @@ describe('MarginIndicators', () => {
             } as SmartContext)
         };
 
-        // Mock CommandEngine
-        mockCommandEngine = {};
-
         // Mock CommandRegistry
         mockCommandRegistry = {
             buildIndex: jest.fn().mockResolvedValue(undefined),
@@ -124,7 +121,12 @@ describe('MarginIndicators', () => {
             })
         };
 
-        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandRegistry);
+        // Mock CommandEngine
+        mockCommandEngine = {
+            executeCommand: jest.fn().mockResolvedValue(undefined)
+        };
+
+        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandRegistry, mockCommandEngine);
     });
 
     describe('Opportunity Detection', () => {

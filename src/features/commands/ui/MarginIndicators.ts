@@ -7,6 +7,8 @@ import { MarkdownView, Editor } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import { SmartVariableResolver } from '../core/SmartVariableResolver';
 import { CommandRegistry } from '../core/CommandRegistry';
+import { CommandEngine } from '../core/CommandEngine';
+import { InsightPanel } from './InsightPanel';
 import type { SmartContext, MarkdownCommand } from '../types';
 import type NovaPlugin from '../../../../main';
 
@@ -23,6 +25,8 @@ export class MarginIndicators {
     private plugin: NovaPlugin;
     private variableResolver: SmartVariableResolver;
     private commandRegistry: CommandRegistry;
+    private commandEngine: CommandEngine;
+    public insightPanel: InsightPanel;
     private logger = Logger.scope('MarginIndicators');
 
     // Component state
@@ -60,11 +64,14 @@ export class MarginIndicators {
     constructor(
         plugin: NovaPlugin,
         variableResolver: SmartVariableResolver,
-        commandRegistry: CommandRegistry
+        commandRegistry: CommandRegistry,
+        commandEngine: CommandEngine
     ) {
         this.plugin = plugin;
         this.variableResolver = variableResolver;
         this.commandRegistry = commandRegistry;
+        this.commandEngine = commandEngine;
+        this.insightPanel = new InsightPanel(plugin, commandEngine);
     }
 
     /**
@@ -678,17 +685,70 @@ export class MarginIndicators {
         indicator.setAttribute('data-type', opportunity.type);
         indicator.setAttribute('data-line', opportunity.line.toString());
         
+        // Create hover preview element
+        this.createHoverPreview(indicator, opportunity);
+        
         // Position the indicator (should succeed since we validated above)
         this.positionIndicator(indicator, opportunity);
         
         // Add click event (hover is handled by CSS)
-        this.plugin.registerDomEvent(indicator, 'click', () => {
-            this.onIndicatorClick(opportunity);
+        this.plugin.registerDomEvent(indicator, 'click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.onIndicatorClick(opportunity, indicator);
         });
         
         // Store reference
         const key = `${opportunity.line}-${opportunity.type}`;
         this.indicators.set(key, indicator);
+    }
+
+    /**
+     * Create hover preview for an indicator
+     */
+    private createHoverPreview(indicator: HTMLElement, opportunity: IndicatorOpportunity): void {
+        // Only create preview if we have commands to show
+        if (opportunity.commands.length === 0) {
+            return;
+        }
+
+        // Get the primary command (first in the list)
+        const primaryCommand = opportunity.commands[0];
+
+        // Create preview container following the tooltip pattern
+        const preview = indicator.createDiv({
+            cls: 'nova-indicator-preview'
+        });
+
+        // Create command display
+        const commandDiv = preview.createDiv({
+            cls: 'nova-preview-command'
+        });
+
+        // Add command name
+        const commandName = commandDiv.createSpan();
+        commandName.textContent = primaryCommand.name;
+
+        // Add description if available  
+        if (primaryCommand.description) {
+            const description = preview.createDiv({
+                cls: 'nova-preview-description'
+            });
+            description.textContent = primaryCommand.description;
+        }
+
+        // Position preview relative to indicator
+        this.positionPreview(preview, opportunity);
+    }
+
+    /**
+     * Position hover preview relative to indicator
+     */
+    private positionPreview(preview: HTMLElement, _opportunity: IndicatorOpportunity): void {
+        // Position to the left of the indicator to avoid covering text
+        preview.style.right = '25px'; // Position left of indicator
+        preview.style.top = '0px';    // Align with indicator top
+        preview.style.transform = 'translateY(-50%)'; // Center vertically
     }
 
     /**
@@ -811,13 +871,19 @@ export class MarginIndicators {
     /**
      * Handle indicator click
      */
-    private onIndicatorClick(opportunity: IndicatorOpportunity): void {
+    private onIndicatorClick(opportunity: IndicatorOpportunity, clickedIndicator: HTMLElement): void {
         this.logger.info(`Clicked indicator: ${opportunity.type} with ${opportunity.commands.length} commands`);
         
-        // Future: Open InsightPanel with command options
-        // For now, just log the available commands
-        for (const command of opportunity.commands) {
-            this.logger.debug(`Available command: ${command.name} - ${command.description}`);
+        if (!this.activeView) {
+            this.logger.warn('No active view available for InsightPanel');
+            return;
+        }
+
+        // Show InsightPanel with full intelligence
+        if (opportunity.commands.length > 0) {
+            this.insightPanel.showPanel(opportunity, clickedIndicator, this.activeView);
+        } else {
+            this.logger.warn(`No commands available for ${opportunity.type} opportunity`);
         }
     }
 
@@ -941,6 +1007,7 @@ export class MarginIndicators {
      */
     cleanup(): void {
         this.cleanupCurrentEditor();
+        this.insightPanel.cleanup();
         this.activeEditor = null;
         this.activeView = null;
         this.logger.info('MarginIndicators cleaned up');

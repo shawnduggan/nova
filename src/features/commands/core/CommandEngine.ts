@@ -354,11 +354,21 @@ export class CommandEngine {
             }
 
             // Set up streaming with the streaming manager
-            const cursorPos = activeEditor.getCursor();
+            // Get cursor positions directly to ensure proper selection detection
+            const cursorFrom = activeEditor.getCursor('from');
+            const cursorTo = activeEditor.getCursor('to');
+            const selection = activeEditor.getSelection();
+            
+            // Determine if we have a selection by comparing positions
+            const hasSelection = (cursorFrom.line !== cursorTo.line || cursorFrom.ch !== cursorTo.ch);
+            const endPos = hasSelection ? cursorTo : null;
+            
+            this.logger.debug(`Setting up streaming: hasSelection=${hasSelection}, selectionLength=${selection.length}, from=${cursorFrom.line}:${cursorFrom.ch}, to=${cursorTo.line}:${cursorTo.ch}`);
+            
             const streaming = this.streamingManager.startStreaming(
                 activeEditor,
-                cursorPos,
-                documentContext.selectedText ? activeEditor.getCursor('to') : null,
+                cursorFrom,
+                endPos,
                 {
                     animationMode: 'inline',
                     scrollBehavior: 'smooth'
@@ -387,6 +397,17 @@ export class CommandEngine {
 
             // Complete the stream
             streaming.updateStream(fullContent, true);
+            
+            // Calculate final cursor position and set it explicitly
+            const lines = fullContent.split('\n');
+            const finalCursorPos = {
+                line: cursorFrom.line + lines.length - 1,
+                ch: lines.length > 1 ? lines[lines.length - 1].length : cursorFrom.ch + fullContent.length
+            };
+            
+            // Ensure cursor is positioned at the end of the new content
+            activeEditor.setCursor(finalCursorPos);
+            
             streaming.stopStream();
 
             this.logger.info(`Command ${context.command.name} completed successfully`);

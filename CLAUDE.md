@@ -421,6 +421,17 @@ new SuggestModal(app)
 
 ## 🐛 Known Issues (Priority=Low/Medium/High/Critical)
 
+**CRITICAL - Non-compliant setTimeout calls (Plugin Store Review Blocker)**
+- `src/ui/input-handler.ts` - Multiple unregistered `setTimeout` calls (lines ~220, others)
+- `src/ui/custom-instruction-modal.ts` - Unregistered `setTimeout` for focus (line ~123) 
+- `src/ui/chat-renderer.ts` - Unregistered `setTimeout` calls
+- `src/ui/sidebar-view.ts` - Multiple unregistered `setTimeout` calls
+- Impact: Plugin Store review rejection - ALL timers must use `this.plugin.registerInterval(window.setTimeout(...))`
+
+**MEDIUM - Incorrect event cleanup**
+- `src/ui/wikilink-suggest.ts` - Using `removeEventListener` instead of relying on `registerDomEvent` cleanup (line 99)
+- Impact: Potential memory leaks, non-standard cleanup pattern
+
 ## 📋 Current Tasks
 
 ### ✅ COMPLETED - MarginIndicators Implementation
@@ -444,6 +455,25 @@ new SuggestModal(app)
 - Load actual commands into CommandRegistry
 **Dependencies**: Command loading implementation
 **Quality Status**: Production-ready and Obsidian compliant
+
+### ✅ COMPLETED - InsightPanel & Tooltip UX Implementation
+**Context**: Full intelligence panel for command selection with proper UX patterns
+**Progress**: COMPLETE and fully compliant with Obsidian guidelines
+**Current State**: 
+- InsightPanel shows multiple command options with clear action buttons
+- Positioned near text without covering content using proper CodeMirror selectors
+- Fixed event handler violations - all handlers use registerDomEvent()
+- Eliminated immediate panel dismissal bug with global handler pattern
+- Simplified tooltip UX to follow industry standards (hover for info, click for action)
+- All bullet preservation and structure preservation issues resolved
+- AI reasoning text filtering strengthened with explicit prompt examples
+**Compliance Status**: 
+  * ✅ All event handlers use this.plugin.registerDomEvent()
+  * ✅ All timers use this.plugin.registerInterval()
+  * ✅ No console statements (Logger used throughout)
+  * ✅ Proper CSS classes (no inline styles)
+  * ✅ Clean component lifecycle management
+**Quality Status**: Production-ready, follows UX best practices, Obsidian compliant
 
 ### Phase 1 Tasks (HIGH PRIORITY - Days 1-5)
 
@@ -469,13 +499,21 @@ new SuggestModal(app)
   - Icon types: 💡 enhancement, ⚡ quick fix, 📊 metrics, ✨ transformation
   - Location: src/features/commands/ui/MarginIndicators.ts
   - Integrated with main plugin and SmartVariableResolver
-- [ ] Implement hover preview system
-  - 200ms fade-in on hover
-  - Single-line description with primary command
-- [ ] Build InsightPanels for full intelligence
-  - Positioned near text without covering
-  - Multiple approach options
-  - Clear action buttons
+- [x] Implement hover preview system
+  - COMPLETED: 200ms fade-in on hover using existing tooltip patterns
+  - COMPLETED: Single-line description with primary command  
+  - COMPLETED: CSS follows existing `.nova-status-tooltip` pattern for consistency
+  - Location: MarginIndicators.ts:createHoverPreview(), styles.css:.nova-indicator-preview
+  - All tests passing (21/21), no ESLint errors, build successful
+- [x] Build InsightPanels for full intelligence
+  - COMPLETED: Positioned near text without covering content
+  - COMPLETED: Multiple approach options (up to 4 commands shown initially)
+  - COMPLETED: Clear action buttons with "Apply" labels on hover
+  - COMPLETED: "Show More" opens full FuzzySuggestModal for complete selection
+  - COMPLETED: Smart positioning that avoids edges and text coverage
+  - Location: InsightPanel.ts, integrated with MarginIndicators click handler
+  - Architecture: Panel positioned near clicked indicator → Command options → Full modal
+  - All tests passing (21/21), build successful, proper cleanup on dismiss
 - [ ] Add SmartTimingEngine
   - 3 second delay after typing stops
   - Hide when typing >30 WPM

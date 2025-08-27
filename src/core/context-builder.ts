@@ -74,13 +74,26 @@ export class ContextBuilder {
     private buildSystemPrompt(action: EditCommand['action'], _config: PromptConfig): string {
         const basePrompt = `You are Nova, an AI writing partner that helps users edit documents at their cursor position. You work with Markdown documents in Obsidian.
 
-IMPORTANT GUIDELINES:
+CRITICAL OUTPUT RULES:
 - Provide ONLY the content to be inserted/modified, no explanations or meta-text
+- Do NOT include any reasoning, thinking process, or explanations
+- Start your response immediately with the actual text content
+- Do NOT use phrases like "Here's the improved text:" or "I'll help you..."
+- Output ONLY the final result that should replace the selected text
+
+CONTENT GUIDELINES:
 - Maintain the document's existing style and tone unless specifically asked to change it
 - Preserve formatting, structure, and markdown syntax
 - Work at the user's cursor position - every edit happens where they are focused
 - Do not add headers unless specifically requested
-- Focus on the user's immediate editing context`;
+- Focus on the user's immediate editing context
+
+PRESERVE THE EXACT PREFIX CHARACTERS:
+- Input: "- Old text" → Output: "- New improved text" (keep the "- ")
+- Input: "1. Old item" → Output: "1. Better item" (keep the "1. ")
+- Input: "## Old title" → Output: "## New title" (keep the "## ")
+- Input: "> Old quote" → Output: "> Better quote" (keep the "> ")
+- CRITICAL: Copy the prefix characters EXACTLY as they appear at the start`;
 
         const actionSpecificPrompts = {
             'add': `
@@ -92,6 +105,8 @@ ACTION: ADD CONTENT
 - Match basic formatting style but prioritize the user's exact request`,
 
             'edit': `
+
+PRESERVE PREFIX FIRST: If input starts with "- ", "1. ", "## ", "> ", etc., your output MUST start with those exact same characters.
 
 ACTION: EDIT CONTENT  
 - Improve, modify, or enhance the specified content
@@ -264,27 +279,30 @@ ACTION: UPDATE METADATA
      * Get output instructions based on action
      */
     private getOutputInstructions(command: EditCommand): string {
+        const baseInstruction = '\n\nIMPORTANT: Your response must contain ONLY the final result. Do not include any explanation, preamble, or reasoning. Start immediately with the content.';
+        const structureInstruction = '\n\nREMEMBER: Copy any prefix characters (-, 1., ##, >, etc.) exactly as they appear in the input.';
+        
         switch (command.action) {
             case 'add':
-                return 'OUTPUT: Provide only the new content to be added.';
+                return 'OUTPUT: Provide only the new content to be added.' + baseInstruction;
 
             case 'edit':
-                return 'OUTPUT: Provide only the improved version of the content.';
+                return 'OUTPUT: Provide only the improved version of the content.' + structureInstruction + baseInstruction;
 
             case 'delete':
-                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.';
+                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.' + baseInstruction;
 
             case 'grammar':
-                return 'OUTPUT: Provide the corrected version with proper grammar and spelling.';
+                return 'OUTPUT: Provide the corrected version with proper grammar and spelling.' + structureInstruction + baseInstruction;
 
             case 'rewrite':
-                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.';
+                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.' + structureInstruction + baseInstruction;
 
             case 'metadata':
-                return 'OUTPUT: Provide the updated metadata in proper YAML format.';
+                return 'OUTPUT: Provide the updated metadata in proper YAML format.' + baseInstruction;
 
             default:
-                return 'OUTPUT: Provide only the requested content changes.';
+                return 'OUTPUT: Provide only the requested content changes.' + structureInstruction + baseInstruction;
         }
     }
 

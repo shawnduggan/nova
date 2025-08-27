@@ -159,7 +159,7 @@ export default class NovaPlugin extends Plugin {
 			this.smartVariableResolver = new SmartVariableResolver(this);
 			this.commandEngine = new CommandEngine(this);
 			this.commandRegistry = new CommandRegistry(this, this.commandEngine);
-			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry);
+			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry, this.commandEngine);
 			Logger.info('Nova Commands system components created successfully');
 
 			this.registerView(
@@ -231,6 +231,10 @@ export default class NovaPlugin extends Plugin {
 
 			this.settingTab = new NovaSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
+		
+		// Register global event handlers for InsightPanel (once per plugin lifecycle)
+		this.registerGlobalInsightPanelHandlers();
+		
 		} catch (error) {
 			Logger.error('Failed to initialize Nova plugin:', error);
 		}
@@ -243,6 +247,34 @@ export default class NovaPlugin extends Plugin {
 		this.marginIndicators?.cleanup();
 		this.commandEngine?.cleanup();
 		this.commandRegistry?.cleanup();
+	}
+
+	/**
+	 * Register global event handlers for InsightPanel dismiss functionality
+	 * These handlers are registered once and check if a panel is active before acting
+	 */
+	private registerGlobalInsightPanelHandlers(): void {
+		// Global click handler for dismissing panels when clicking outside
+		this.registerDomEvent(document, 'click', (event: MouseEvent) => {
+			if (this.marginIndicators?.insightPanel?.isActive()) {
+				const panelElement = this.marginIndicators.insightPanel.getActivePanel();
+				const target = event.target as HTMLElement;
+				
+				// Don't dismiss if clicking on panel, indicator, or indicator preview
+				if (panelElement && !panelElement.contains(target) && 
+					!target.classList.contains('nova-margin-indicator') &&
+					!target.closest('.nova-margin-indicator')) {
+					this.marginIndicators.insightPanel.hidePanel();
+				}
+			}
+		});
+
+		// Global keydown handler for dismissing panels on Escape key
+		this.registerDomEvent(document, 'keydown', (event: KeyboardEvent) => {
+			if (event.key === 'Escape' && this.marginIndicators?.insightPanel?.isActive()) {
+				this.marginIndicators.insightPanel.hidePanel();
+			}
+		});
 	}
 
 	async loadSettings() {
