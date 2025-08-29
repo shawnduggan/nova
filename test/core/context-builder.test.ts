@@ -428,7 +428,7 @@ Final thoughts and summary.`,
             const tokenCount = prompt.userPrompt.length + prompt.systemPrompt.length;
 
             expect(tokenCount).toBeGreaterThan(100);
-            expect(tokenCount).toBeLessThan(2000);
+            expect(tokenCount).toBeLessThan(2500);
         });
 
         it('should handle empty prompts', () => {

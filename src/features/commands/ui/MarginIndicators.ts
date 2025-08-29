@@ -231,7 +231,7 @@ export class MarginIndicators {
     /**
      * Schedule analysis with debouncing
      */
-    private scheduleAnalysis(): void {
+    public scheduleAnalysis(): void {
         // Clear existing timer
         if (this.analysisDebounceTimer) {
             clearTimeout(this.analysisDebounceTimer);
@@ -938,7 +938,7 @@ export class MarginIndicators {
     /**
      * Clear all indicators
      */
-    private clearIndicators(): void {
+    public clearIndicators(): void {
         for (const indicator of this.indicators.values()) {
             indicator.remove();
         }

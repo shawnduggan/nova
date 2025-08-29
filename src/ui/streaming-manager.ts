@@ -220,6 +220,11 @@ export class StreamingManager {
         updateStream: (newText: string, isComplete: boolean) => void;
         stopStream: () => void;
     } {
+        // Clear margin indicators when streaming starts
+        if (this.plugin.marginIndicators?.clearIndicators) {
+            this.plugin.marginIndicators.clearIndicators();
+        }
+        
         // Store original position(s)
         this.originalPosition = { from: startPos, to: endPos };
         
@@ -336,6 +341,13 @@ export class StreamingManager {
             // Set cursor at the end of the new text only when complete
             if (isComplete) {
                 editor.setCursor(this.currentStreamingEndPos);
+                editor.focus();  // Ensure editor has focus after content insertion
+                
+                // Schedule re-analysis of margin indicators after streaming
+                if (this.plugin.marginIndicators?.scheduleAnalysis) {
+                    this.plugin.marginIndicators.scheduleAnalysis();
+                }
+                
                 this.cleanup();
                 
                 // Trigger completion callback

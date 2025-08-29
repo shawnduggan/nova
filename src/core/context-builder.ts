@@ -75,11 +75,10 @@ export class ContextBuilder {
         const basePrompt = `You are Nova, an AI writing partner that helps users edit documents at their cursor position. You work with Markdown documents in Obsidian.
 
 CRITICAL OUTPUT RULES:
-- Provide ONLY the content to be inserted/modified, no explanations or meta-text
-- Do NOT include any reasoning, thinking process, or explanations
-- Start your response immediately with the actual text content
-- Do NOT use phrases like "Here's the improved text:" or "I'll help you..."
-- Output ONLY the final result that should replace the selected text
+- Output ONLY the content to be inserted/modified
+- Start your response immediately with the actual text
+- No explanations, reasoning, or commentary whatsoever
+- Never use phrases like "Here's the improved text:" or "I'll help you..."
 
 CONTENT GUIDELINES:
 - Maintain the document's existing style and tone unless specifically asked to change it
@@ -279,30 +278,30 @@ ACTION: UPDATE METADATA
      * Get output instructions based on action
      */
     private getOutputInstructions(command: EditCommand): string {
-        const baseInstruction = '\n\nIMPORTANT: Your response must contain ONLY the final result. Do not include any explanation, preamble, reasoning, or commentary. Start immediately with the content.';
         const structureInstruction = '\n\nREMEMBER: Copy any prefix characters (-, 1., ##, >, etc.) exactly as they appear in the input.';
+        const finalInstruction = '\n\nOutput ONLY the content with no explanation or preamble.';
         
         switch (command.action) {
             case 'add':
-                return 'OUTPUT: Provide only the new content to be added.' + baseInstruction;
+                return 'OUTPUT: Provide only the new content to be added.' + finalInstruction;
 
             case 'edit':
-                return 'OUTPUT: Provide only the improved version of the content.' + structureInstruction + baseInstruction;
+                return 'OUTPUT: Provide only the improved version of the content.' + structureInstruction + finalInstruction;
 
             case 'delete':
-                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.' + baseInstruction;
+                return 'OUTPUT: Confirm what should be deleted by providing the exact text to remove, or respond "CONFIRMED" if the deletion is clear.' + finalInstruction;
 
             case 'grammar':
-                return 'OUTPUT: Provide the corrected version with proper grammar and spelling.' + structureInstruction + baseInstruction;
+                return 'OUTPUT: Provide the corrected version with proper grammar and spelling.' + structureInstruction + finalInstruction;
 
             case 'rewrite':
-                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.' + structureInstruction + baseInstruction;
+                return 'OUTPUT: Provide the completely rewritten content that serves the same purpose.' + structureInstruction + finalInstruction;
 
             case 'metadata':
-                return 'OUTPUT: Provide the updated metadata in proper YAML format.' + baseInstruction;
+                return 'OUTPUT: Provide the updated metadata in proper YAML format.' + finalInstruction;
 
             default:
-                return 'OUTPUT: Provide only the requested content changes.' + structureInstruction + baseInstruction;
+                return 'OUTPUT: Provide only the requested content changes.' + structureInstruction + finalInstruction;
         }
     }
 

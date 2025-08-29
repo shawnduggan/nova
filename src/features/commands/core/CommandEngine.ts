@@ -395,18 +395,8 @@ export class CommandEngine {
                 }
             }
 
-            // Complete the stream
+            // Complete the stream (this handles cursor positioning automatically)
             streaming.updateStream(fullContent, true);
-            
-            // Calculate final cursor position and set it explicitly
-            const lines = fullContent.split('\n');
-            const finalCursorPos = {
-                line: cursorFrom.line + lines.length - 1,
-                ch: lines.length > 1 ? lines[lines.length - 1].length : cursorFrom.ch + fullContent.length
-            };
-            
-            // Ensure cursor is positioned at the end of the new content
-            activeEditor.setCursor(finalCursorPos);
             
             streaming.stopStream();
 
