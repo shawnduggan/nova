@@ -70,7 +70,8 @@ describe('Unified Message System Integration', () => {
                     getActiveFile: () => ({ path: 'test.md', name: 'test.md' })
                 }
             },
-            conversationManager: mockConversationManager
+            conversationManager: mockConversationManager,
+            registerInterval: jest.fn((intervalId) => intervalId) // Mock for compliance
         };
 
         // Add CSS for styling tests

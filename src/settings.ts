@@ -549,7 +549,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			button.addClass('nova-button-ready');
 		};
 		
-		const backupTimer = setTimeout(restoreButton, 12000); // 12 second backup
+		const backupTimer = this.plugin.registerInterval(window.setTimeout(restoreButton, 12000)); // 12 second backup
 		
 		try {
 			// Check basic configuration first
@@ -560,7 +560,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 			// Set timeout for 10 seconds
 			const timeoutPromise = new Promise<never>((_, reject) => {
-				setTimeout(() => reject(new Error('Connection timeout')), 10000);
+				this.plugin.registerInterval(window.setTimeout(() => reject(new Error('Connection timeout')), 10000));
 			});
 
 			// Test the connection using the plugin's provider system
@@ -1067,9 +1067,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 
 		// Auto-remove after 5 seconds
-		setTimeout(() => {
+		this.plugin.registerInterval(window.setTimeout(() => {
 			messageEl.remove();
-		}, 5000);
+		}, 5000));
 	}
 
 

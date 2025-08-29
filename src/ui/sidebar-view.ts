@@ -256,9 +256,9 @@ export class NovaSidebarView extends ItemView {
 		// Also update stats when Nova sidebar gains focus (click anywhere in sidebar)
 		this.registerDomEvent(this.containerEl, 'mousedown', () => {
 			// Small delay to ensure click is processed
-			setTimeout(() => {
+			this.plugin.registerInterval(window.setTimeout(() => {
 				this.refreshAllStats();
-			}, 50);
+			}, 50));
 		});
 	}
 
@@ -299,10 +299,10 @@ export class NovaSidebarView extends ItemView {
 	 * Add timeout with automatic cleanup tracking
 	 */
 	private addTrackedTimeout(callback: () => void, delay: number): number {
-		const id = window.setTimeout(() => {
+		const id = this.plugin.registerInterval(window.setTimeout(() => {
 			callback();
 			this.timeouts = this.timeouts.filter(t => t !== id);
-		}, delay);
+		}, delay));
 		this.timeouts.push(id);
 		return id;
 	}
@@ -470,7 +470,7 @@ export class NovaSidebarView extends ItemView {
 				// Execute custom command
 				this.inputHandler.getTextArea().setValue(customCommand.template);
 				// Trigger auto-grow after setting template
-					setTimeout(() => this.autoGrowTextarea(), 0);
+					this.plugin.registerInterval(window.setTimeout(() => this.autoGrowTextarea(), 0));
 				this.addSuccessMessage(`✓ Loaded template: ${customCommand.name}`);
 				return true;
 			}
@@ -772,10 +772,10 @@ export class NovaSidebarView extends ItemView {
 			window.clearTimeout(this.contextPreviewDebounceTimeout);
 		}
 		
-		this.contextPreviewDebounceTimeout = window.setTimeout(() => {
+		this.contextPreviewDebounceTimeout = this.plugin.registerInterval(window.setTimeout(() => {
 			this.updateLiveContextPreview();
 			this.contextPreviewDebounceTimeout = null;
-		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);
+		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS));
 	}
 
 	private updateLiveContextPreview(): void {
@@ -1001,9 +1001,9 @@ export class NovaSidebarView extends ItemView {
 				clearAllBtn.addClass('nova-button-pressed');
 			});
 			this.registerDomEvent(clearAllBtn, 'touchend', () => {
-				setTimeout(() => {
+				this.plugin.registerInterval(window.setTimeout(() => {
 					clearAllBtn.removeClass('nova-button-pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS);
+				}, NovaSidebarView.HOVER_TIMEOUT_MS));
 			});
 		}
 		// Desktop hover handled by CSS
@@ -1063,9 +1063,9 @@ export class NovaSidebarView extends ItemView {
 				});
 				
 				this.registerDomEvent(removeBtn, 'touchend', () => {
-					setTimeout(() => {
+					this.plugin.registerInterval(window.setTimeout(() => {
 						removeBtn.removeClass('pressed');
-					}, NovaSidebarView.HOVER_TIMEOUT_MS);
+					}, NovaSidebarView.HOVER_TIMEOUT_MS));
 				});
 			}
 			// Desktop hover is handled by CSS
@@ -1448,7 +1448,9 @@ USER REQUEST: ${processedMessage}`;
 				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: false });
 				
 				// Wait for workspace transition to complete before proceeding
-				await new Promise(resolve => setTimeout(resolve, 50));
+				await new Promise(resolve => {
+					this.plugin.registerInterval(window.setTimeout(resolve, 50));
+				});
 				
 				// Double-check that the file is now active
 				const nowActiveFile = this.app.workspace.getActiveFile();
@@ -1839,9 +1841,9 @@ USER REQUEST: ${processedMessage}`;
 					contentEl.textContent = `I noticed:\n${bulletList}\n\nLet me help.`;
 
 					// Scroll to show the new message
-					setTimeout(() => {
+					this.plugin.registerInterval(window.setTimeout(() => {
 						this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-					}, 50);
+					}, 50));
 				}
 			}
 		} catch (error) {
@@ -2287,49 +2289,27 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Create a message with a clean icon (replaces emoji)
+	 * Create a message with icon prefix (compliant - no HTML generation)
 	 */
 	private createIconMessage(iconName: string, message: string): string {
-		const iconSvg = this.getObsidianIcon(iconName, '14px');
-		// Return as structured string that will be safely parsed by the message display
-		return `<span class="nova-inline-message">${iconSvg}<span>${message}</span></span>`;
-	}
-
-	/**
-	 * Create an inline icon string for safe DOM rendering
-	 */
-	private createInlineIcon(iconName: string, size: string = '14px'): string {
-		return this.getObsidianIcon(iconName, size);
-	}
-
-	/**
-	 * Get Obsidian-style icon SVG
-	 */
-	private getObsidianIcon(iconName: string, size: string = '14px'): string {
-		// Create a temporary container to use setIcon and extract the SVG
-		const tempContainer = document.createElement('div');
-		tempContainer.className = `nova-inline-icon size-${size}`;
-		
-		// Map ALL icons to Obsidian's built-in icons - no custom SVG fallbacks
-		const obsidianIconMap: Record<string, string> = {
-			'edit': 'edit',
-			'help-circle': 'help-circle', 
-			'file-text': 'file-text',
-			'x': 'cross',
-			'trash-2': 'trash',
-			'check-circle': 'check-circle',
-			'alert-circle': 'alert-circle',
-			'zap': 'zap', // Use Obsidian's built-in zap icon
-			'refresh-cw': 'sync', // Map to Obsidian's sync icon
-			'book-open': 'book-open', // Use Obsidian's built-in book-open
-			'more-horizontal': 'more-horizontal', // Use Obsidian's built-in
-			'x-circle': 'cross-in-box' // Map to closest Obsidian equivalent
+		// Map icons to text prefixes for compliance - no HTML generation
+		const iconPrefixes: Record<string, string> = {
+			'alert-circle': '⚠️ ',
+			'check-circle': '✅ ',
+			'x-circle': '❌ ',
+			'help-circle': 'ℹ️ ',
+			'edit': '✏️ ',
+			'file-text': '📄 ',
+			'x': '❌ ',
+			'trash-2': '🗑️ ',
+			'zap': '⚡ ',
+			'refresh-cw': '🔄 ',
+			'book-open': '📖 ',
+			'more-horizontal': '⋯ '
 		};
 		
-		// Use Obsidian's built-in icons for everything
-		const obsidianIconName = obsidianIconMap[iconName] || 'help-circle'; // Default fallback
-		setIcon(tempContainer, obsidianIconName);
-		return tempContainer.innerHTML;
+		const prefix = iconPrefixes[iconName] || 'ℹ️ ';
+		return prefix + message;
 	}
 
 	/**

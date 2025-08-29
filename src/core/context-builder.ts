@@ -279,7 +279,7 @@ ACTION: UPDATE METADATA
      * Get output instructions based on action
      */
     private getOutputInstructions(command: EditCommand): string {
-        const baseInstruction = '\n\nIMPORTANT: Your response must contain ONLY the final result. Do not include any explanation, preamble, or reasoning. Start immediately with the content.';
+        const baseInstruction = '\n\nIMPORTANT: Your response must contain ONLY the final result. Do not include any explanation, preamble, reasoning, or commentary. Start immediately with the content.';
         const structureInstruction = '\n\nREMEMBER: Copy any prefix characters (-, 1., ##, >, etc.) exactly as they appear in the input.';
         
         switch (command.action) {

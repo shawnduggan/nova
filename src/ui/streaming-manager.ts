@@ -292,9 +292,9 @@ export class StreamingManager {
         performScroll();
         
         // Also schedule a throttled update for optimization
-        this.scrollThrottleTimeout = window.setTimeout(() => {
+        this.scrollThrottleTimeout = this.plugin.registerInterval(window.setTimeout(() => {
             performScroll();
-        }, StreamingManager.SCROLL_THROTTLE_MS);
+        }, StreamingManager.SCROLL_THROTTLE_MS));
     }
 
     private updateStreamingText(

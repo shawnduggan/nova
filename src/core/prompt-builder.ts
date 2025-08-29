@@ -178,7 +178,8 @@ Guidelines:
 - Provide helpful, accurate responses
 - Stay focused on the user's needs
 - Be conversational but professional
-- Reference document context when relevant`;
+- Reference document context when relevant
+- Provide direct answers without unnecessary reasoning or explanations`;
 
         let userPrompt = `USER REQUEST: ${message}`;
         
@@ -218,7 +219,8 @@ ${userPrompt}`;
 Guidelines:
 - Provide helpful, accurate responses
 - Stay focused on the user's needs
-- Be conversational but professional`;
+- Be conversational but professional
+- Provide direct answers without unnecessary reasoning or explanations`;
 
         let userPrompt = `USER REQUEST: ${instruction}`;
         

@@ -71,7 +71,9 @@ describe('Context Persistence - Storage Layer', () => {
         const newManager = new ConversationManager(mockDataStore);
         
         // Wait for async loading
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Get old conversation - should have contextDocuments added
         const loadedConversation = newManager.getConversation({ path: 'old.md' } as TFile);
@@ -178,7 +180,9 @@ describe('Context Persistence - Serialization', () => {
         
         // Create new manager to force reload from storage
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         const reloadedConv = newManager.getConversation(mockFile);
         expect(reloadedConv.contextDocuments).toHaveLength(2);
@@ -309,7 +313,9 @@ describe('Context Persistence - Restoration', () => {
         
         // Create new manager instance to simulate restart
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for async loading
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        }); // Wait for async loading
         
         // Verify context is restored
         const restoredContext = await newManager.getContextDocuments(mockFile);
@@ -328,7 +334,9 @@ describe('Context Persistence - Restoration', () => {
         
         // Create new manager instance
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Should have empty context
         const context = await newManager.getContextDocuments(mockFile);
@@ -347,7 +355,9 @@ describe('Context Persistence - Restoration', () => {
         // Measure restoration time
         const startTime = Date.now();
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for loading
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 50));
+        }); // Small delay for loading
         
         const context = await newManager.getContextDocuments(mockFile);
         const endTime = Date.now();
@@ -411,7 +421,9 @@ describe('Context Persistence - File Validation', () => {
         // Simulate one file being deleted by creating new manager
         // In real implementation, the ContextManager would filter missing files
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // The validation logic will be in ContextManager, but storage preserves all
         const storedContext = await newManager.getContextDocuments(mockFile);
@@ -458,7 +470,9 @@ describe('Context Persistence - Error Recovery', () => {
         
         // Create new manager - should handle corruption gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Should still be able to get conversation (will create new empty one)
         const conversation = newManager.getConversation(mockFile);
@@ -487,7 +501,9 @@ describe('Context Persistence - Error Recovery', () => {
         
         // Should handle invalid paths gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         const contextDocs = await newManager.getContextDocuments(mockFile);
         // Should filter out invalid paths and keep only valid ones
@@ -536,7 +552,9 @@ describe('Context Persistence - Error Recovery', () => {
         
         // Should handle missing/invalid fields gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         const contextDocs = await newManager.getContextDocuments(mockFile);
         expect(contextDocs).toHaveLength(3);
@@ -771,7 +789,9 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Phase 2: Simulate restart by creating new manager
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for async loading
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        }); // Wait for async loading
         
         // Phase 3: Verify files are restored
         const restoredContext = await restartedManager.getContextDocuments(mockFile);
@@ -805,7 +825,9 @@ describe('Context Persistence - Integration Testing', () => {
         // Create new manager (simulating restart with some files "deleted")
         // In the real implementation, ContextManager would filter out missing files
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Storage preserves all references - validation happens in ContextManager
         const persistedContext = await restartedManager.getContextDocuments(mockFile);
@@ -833,7 +855,9 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Should remain empty
         const contextAfterRestart = await restartedManager.getContextDocuments(mockFile);
@@ -862,7 +886,9 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart to verify persistence
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         // Context should still be there, messages should still be empty
         expect(restartedManager.getRecentMessages(mockFile, 10)).toHaveLength(0);
@@ -907,7 +933,9 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart and verify
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => {
+            mockDataStore.registerInterval(window.setTimeout(resolve, 100));
+        });
         
         const file1ContextAfter = await restartedManager.getContextDocuments(file1);
         const file2ContextAfter = await restartedManager.getContextDocuments(file2);

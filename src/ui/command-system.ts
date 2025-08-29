@@ -278,7 +278,9 @@ export class CommandSystem {
 			() => {
 				// User cancelled - clear the input trigger
 				this.textArea.setValue('');
-				this.textArea.inputEl.focus();
+				this.plugin.registerInterval(window.setTimeout(() => {
+					this.textArea.inputEl.focus();
+				}, 0));
 			}
 		);
 		modal.open();
