@@ -63,6 +63,12 @@ describe('AIProviderManager', () => {
                 defaultMaxTokens: 1000,
                 autoSave: true
             },
+            commands: {
+                suggestionMode: 'balanced',
+                responseTime: 'normal', 
+                hideWhileTyping: true,
+                enabledDocumentTypes: []
+            },
             features: {
 				commands: {
 					customCommands: [],

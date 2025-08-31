@@ -3831,9 +3831,6 @@
     max-width: 300px;
 }
 
-.nova-margin-indicator:hover .nova-indicator-preview {
-    opacity: 1;
-}
 
 .nova-preview-command {
     display: flex;
@@ -3847,7 +3844,37 @@
     color: var(--text-muted);
     font-style: italic;
     font-size: 0.9em;
-    margin-top: 2px;
+}
+
+/* Specific Issue Preview Styles */
+.nova-preview-issue {
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: var(--background-secondary);
+    border-radius: var(--radius-xs);
+    border-left: 2px solid var(--interactive-accent);
+}
+
+.nova-preview-issue-text {
+    color: var(--text-normal);
+    font-weight: 500;
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    margin-bottom: 3px;
+}
+
+.nova-preview-suggestion {
+    color: var(--text-success);
+    font-weight: 600;
+    font-size: 0.8em;
+}
+
+.nova-preview-count {
+    color: var(--text-accent);
+    font-weight: 600;
+    font-size: 0.75em;
+    margin-top: 4px;
+    font-style: italic;
 }
 
 /* InsightPanel - Full intelligence panel for command selection */
@@ -3945,6 +3972,60 @@
     color: var(--text-muted);
     font-size: 0.8em;
     line-height: 1.3;
+}
+
+/* Specific Issue Option Styles */
+.nova-specific-change {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    gap: 2px;
+}
+
+.nova-original-text {
+    color: var(--text-error);
+    font-weight: 500;
+}
+
+.nova-change-arrow {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.nova-suggested-text {
+    color: var(--text-success);
+    font-weight: 600;
+}
+
+/* Combined Fix Option Styles */
+.nova-combined-fix {
+    color: var(--text-normal);
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+.nova-fix-details {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--background-secondary);
+    border-radius: var(--radius-xs);
+    border-left: 3px solid var(--interactive-accent);
+}
+
+.nova-fix-explanation {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    margin-bottom: 6px;
+    font-style: italic;
+}
+
+.nova-issue-item-info {
+    color: var(--text-normal);
+    font-size: 0.8em;
+    font-family: var(--font-monospace);
+    margin: 3px 0;
+    padding-left: 8px;
 }
 
 .nova-insight-panel-footer {

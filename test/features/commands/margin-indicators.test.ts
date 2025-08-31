@@ -7,6 +7,7 @@ import { MarginIndicators } from '../../../src/features/commands/ui/MarginIndica
 import { SmartVariableResolver } from '../../../src/features/commands/core/SmartVariableResolver';
 import { CommandRegistry } from '../../../src/features/commands/core/CommandRegistry';
 import { CommandEngine } from '../../../src/features/commands/core/CommandEngine';
+import { SmartTimingEngine } from '../../../src/features/commands/core/SmartTimingEngine';
 import type { SmartContext } from '../../../src/features/commands/types';
 
 // Local interface for testing (matches the one in MarginIndicators.ts)
@@ -37,6 +38,7 @@ describe('MarginIndicators', () => {
     let mockVariableResolver: any;
     let mockCommandRegistry: any;
     let mockCommandEngine: any;
+    let mockSmartTimingEngine: any;
     let mockEditor: any;
     let mockView: any;
 
@@ -56,7 +58,15 @@ describe('MarginIndicators', () => {
                 }
             },
             registerEvent: jest.fn(),
-            registerDomEvent: jest.fn()
+            registerDomEvent: jest.fn(),
+            settings: {
+                commands: {
+                    suggestionMode: 'balanced',
+                    responseTime: 'normal',
+                    hideWhileTyping: true,
+                    enabledDocumentTypes: ['blog', 'academic', 'technical', 'creative', 'notes']
+                }
+            }
         };
 
         // Mock Editor
@@ -126,7 +136,18 @@ describe('MarginIndicators', () => {
             executeCommand: jest.fn().mockResolvedValue(undefined)
         };
 
-        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandRegistry, mockCommandEngine);
+        // Mock SmartTimingEngine
+        mockSmartTimingEngine = {
+            on: jest.fn(),
+            off: jest.fn(),
+            setDocumentType: jest.fn(),
+            onEditorInput: jest.fn(),
+            onScroll: jest.fn(),
+            cancelPendingAnalysis: jest.fn(),
+            cleanup: jest.fn()
+        };
+
+        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandRegistry, mockCommandEngine, mockSmartTimingEngine);
     });
 
     describe('Opportunity Detection', () => {
@@ -588,6 +609,209 @@ describe('MarginIndicators', () => {
                 const uniqueTypes = new Set(opportunitiesForLine.map((o: any) => o.type));
                 expect(opportunitiesForLine.length).toBe(uniqueTypes.size);
             }
+        });
+    });
+
+    describe('Settings-Based Behavior', () => {
+        describe('updateSettings Method', () => {
+            test('should use settings from plugin', () => {
+                marginIndicators.updateSettings();
+                
+                // Should use settings values
+                expect((marginIndicators as any).intensityLevel).toBe('balanced');
+                expect((marginIndicators as any).enabled).toBe(true);
+            });
+
+            test('should respond to settings changes', () => {
+                // Test changing to minimal mode
+                mockPlugin.settings.commands.suggestionMode = 'minimal';
+                marginIndicators.updateSettings();
+                
+                expect((marginIndicators as any).intensityLevel).toBe('minimal');
+                expect((marginIndicators as any).enabled).toBe(true);
+                
+                // Test disabling
+                const clearSpy = jest.spyOn(marginIndicators, 'clearIndicators');
+                mockPlugin.settings.commands.suggestionMode = 'off';
+                marginIndicators.updateSettings();
+                
+                expect((marginIndicators as any).enabled).toBe(false);
+                expect(clearSpy).toHaveBeenCalled();
+            });
+
+            test('should handle missing settings gracefully', () => {
+                // Remove commands settings
+                mockPlugin.settings.commands = undefined;
+                
+                // Should not crash
+                expect(() => marginIndicators.updateSettings()).not.toThrow();
+            });
+        });
+
+        describe('Intensity Level Filtering', () => {
+            test('should filter opportunities based on intensity level', () => {
+                const mockOpportunities = [
+                    { confidence: 0.9, type: 'enhancement', line: 1, column: 0, icon: '💡', commands: [] },
+                    { confidence: 0.7, type: 'quickfix', line: 2, column: 0, icon: '⚡', commands: [] },
+                    { confidence: 0.5, type: 'metrics', line: 3, column: 0, icon: '📊', commands: [] },
+                    { confidence: 0.3, type: 'transform', line: 4, column: 0, icon: '✨', commands: [] }
+                ];
+
+                // Test minimal mode (0.8 threshold)
+                mockPlugin.settings.commands.suggestionMode = 'minimal';
+                marginIndicators.updateSettings();
+                
+                const minimalFiltered = (marginIndicators as any).filterOpportunitiesByIntensity(mockOpportunities);
+                expect(minimalFiltered).toHaveLength(1); // Only 0.9
+                
+                // Test balanced mode (0.6 threshold)
+                mockPlugin.settings.commands.suggestionMode = 'balanced';
+                marginIndicators.updateSettings();
+                
+                const balancedFiltered = (marginIndicators as any).filterOpportunitiesByIntensity(mockOpportunities);
+                expect(balancedFiltered).toHaveLength(2); // 0.9 and 0.7
+                
+                // Test aggressive mode (0.4 threshold)
+                mockPlugin.settings.commands.suggestionMode = 'aggressive';
+                marginIndicators.updateSettings();
+                
+                const aggressiveFiltered = (marginIndicators as any).filterOpportunitiesByIntensity(mockOpportunities);
+                expect(aggressiveFiltered).toHaveLength(3); // 0.9, 0.7, and 0.5
+            });
+        });
+
+        describe('Document Type Filtering', () => {
+            test('should respect enabled document types setting', async () => {
+                // Mock workspace to return mock view
+                mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
+                
+                // Set enabled types to exclude 'blog'
+                mockPlugin.settings.commands.enabledDocumentTypes = ['academic', 'technical'];
+                mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
+                
+                // Update settings to apply changes
+                marginIndicators.updateSettings();
+                (marginIndicators as any).activeEditor = mockEditor;
+                (marginIndicators as any).activeView = mockView;
+                
+                // Mock context with blog document type
+                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                    selection: '',
+                    document: '# Blog Post\n\nThis is a blog post.',
+                    title: 'Blog Post',
+                    documentType: 'blog',
+                    cursorContext: { before: '', after: '' },
+                    metrics: { wordCount: 7, paragraphCount: 1 },
+                    audienceLevel: 'general'
+                });
+
+                // Spy on clearIndicators
+                const clearSpy = jest.spyOn(marginIndicators, 'clearIndicators');
+                
+                // Should early return and clear indicators
+                await (marginIndicators as any).analyzeCurrentContext();
+                
+                expect(clearSpy).toHaveBeenCalled();
+            });
+
+            test('should proceed with analysis for enabled document types', async () => {
+                // Mock workspace to return mock view
+                mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
+                
+                // Set enabled types to include 'academic'
+                mockPlugin.settings.commands.enabledDocumentTypes = ['academic', 'technical'];
+                mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
+                
+                // Update settings to apply changes
+                marginIndicators.updateSettings();
+                (marginIndicators as any).activeEditor = mockEditor;
+                (marginIndicators as any).activeView = mockView;
+                
+                // Mock context with academic document type
+                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                    selection: '',
+                    document: '# Research Paper\n\nThis is an academic paper.',
+                    title: 'Research Paper',
+                    documentType: 'academic',
+                    cursorContext: { before: '', after: '' },
+                    metrics: { wordCount: 8, paragraphCount: 1 },
+                    audienceLevel: 'expert'
+                });
+
+                // Spy on SmartTimingEngine.setDocumentType
+                const setDocTypeSpy = jest.spyOn(mockSmartTimingEngine, 'setDocumentType');
+                
+                // Should proceed and set document type
+                await (marginIndicators as any).analyzeCurrentContext();
+                
+                expect(setDocTypeSpy).toHaveBeenCalledWith('academic');
+            });
+
+            test('should allow all types when enabledDocumentTypes is empty', async () => {
+                // Mock workspace to return mock view
+                mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
+                
+                // Set enabled types to empty array
+                mockPlugin.settings.commands.enabledDocumentTypes = [];
+                mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
+                
+                // Update settings to apply changes
+                marginIndicators.updateSettings();
+                (marginIndicators as any).activeEditor = mockEditor;
+                (marginIndicators as any).activeView = mockView;
+                
+                // Mock context with any document type
+                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                    selection: '',
+                    document: '# Any Document\n\nThis is any type.',
+                    title: 'Any Document',
+                    documentType: 'creative',
+                    cursorContext: { before: '', after: '' },
+                    metrics: { wordCount: 6, paragraphCount: 1 },
+                    audienceLevel: 'general'
+                });
+
+                // Spy on SmartTimingEngine.setDocumentType
+                const setDocTypeSpy = jest.spyOn(mockSmartTimingEngine, 'setDocumentType');
+                
+                // Should proceed when empty array (allows all)
+                await (marginIndicators as any).analyzeCurrentContext();
+                
+                expect(setDocTypeSpy).toHaveBeenCalledWith('creative');
+            });
+        });
+
+        describe('Settings Integration', () => {
+            test('should respond to settings changes immediately', () => {
+                // Start with balanced mode
+                expect((marginIndicators as any).intensityLevel).toBe('balanced');
+                expect((marginIndicators as any).enabled).toBe(true);
+                
+                // Change to aggressive
+                mockPlugin.settings.commands.suggestionMode = 'aggressive';
+                marginIndicators.updateSettings();
+                
+                expect((marginIndicators as any).intensityLevel).toBe('aggressive');
+                expect((marginIndicators as any).enabled).toBe(true);
+                
+                // Change to off
+                mockPlugin.settings.commands.suggestionMode = 'off';
+                marginIndicators.updateSettings();
+                
+                expect((marginIndicators as any).intensityLevel).toBe('off');
+                expect((marginIndicators as any).enabled).toBe(false);
+            });
+
+            test('should maintain state consistency after settings update', () => {
+                // Set initial state
+                mockPlugin.settings.commands.suggestionMode = 'minimal';
+                
+                marginIndicators.updateSettings();
+                
+                // Internal state should match settings
+                expect((marginIndicators as any).intensityLevel).toBe('minimal');
+                expect((marginIndicators as any).enabled).toBe(true);
+            });
         });
     });
 });

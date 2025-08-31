@@ -8,6 +8,7 @@ import { OpenAIProvider } from './ai/providers/openai';
 import { GoogleProvider } from './ai/providers/google';
 import { OllamaProvider } from './ai/providers/ollama';
 import { Logger } from './utils/logger';
+import { CommandSuggestionsSettings } from './features/commands/types';
 
 
 export interface CustomCommand {
@@ -30,6 +31,7 @@ export interface NovaSettings {
 		supernovaLicenseKey: string;
 		debugSettings: DebugSettings;
 	};
+	commands: CommandSuggestionsSettings;
 	features?: {
 		commands?: {
 			customCommands: CustomCommand[];
@@ -76,12 +78,18 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			overrideDate: undefined,
 			forceSupernova: false
 		}
+	},
+	commands: {
+		suggestionMode: 'balanced',
+		responseTime: 'normal',
+		hideWhileTyping: true,
+		enabledDocumentTypes: []  // Empty = all types enabled
 	}
 };
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
-	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
+	private activeTab: 'getting-started' | 'general' | 'providers' | 'commands' | 'supernova' | 'debug' = 'getting-started';
 	private tabContainer: HTMLElement | null = null;
 	private contentContainer: HTMLElement | null = null;
 	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
@@ -119,6 +127,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			{ id: 'getting-started', label: 'Getting started' },
 			{ id: 'general', label: 'General' },
 			{ id: 'providers', label: 'AI providers' },
+			{ id: 'commands', label: 'Commands' },
 			{ id: 'supernova', label: 'Supernova' }
 		];
 
@@ -191,6 +200,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			case 'providers':
 				this.createProvidersTabContent(this.contentContainer);
 				break;
+			case 'commands':
+				this.createCommandsTabContent(this.contentContainer);
+				break;
 			case 'supernova':
 				this.createSupernovaTabContent(this.contentContainer);
 				break;
@@ -209,6 +221,74 @@ export class NovaSettingTab extends PluginSettingTab {
 		this.createProviderSettings(container);
 	}
 
+	private createCommandsTabContent(container: HTMLElement): void {
+		// Main section heading
+		new Setting(container).setName('Command suggestions').setHeading();
+		container.createEl('hr', { cls: 'nova-section-divider' });
+		
+		// Description
+		const description = container.createDiv({ cls: 'nova-setting-description' });
+		description.textContent = 'Control when and how Nova shows intelligent command suggestions while you write.';
+		
+		// Suggestion Mode - Main control
+		new Setting(container)
+			.setName('Suggestion mode')
+			.setDesc('How aggressively to show command suggestions')
+			.addDropdown(dropdown => dropdown
+				.addOption('off', 'Off - No suggestions')
+				.addOption('minimal', 'Minimal - Only high-confidence suggestions')
+				.addOption('balanced', 'Balanced - Good suggestions (recommended)')
+				.addOption('aggressive', 'Aggressive - Show all suggestions')
+				.setValue(this.plugin.settings.commands.suggestionMode)
+				.onChange(async (value) => {
+					this.plugin.settings.commands.suggestionMode = value as 'off' | 'minimal' | 'balanced' | 'aggressive';
+					await this.plugin.saveSettings();
+					// Notify components of settings change
+					if (this.plugin.marginIndicators) {
+						this.plugin.marginIndicators.updateSettings();
+					}
+					if (this.plugin.smartTimingEngine) {
+						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
+						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
+					}
+				})
+			);
+		
+		// Response Time
+		new Setting(container)
+			.setName('Response time')
+			.setDesc('How quickly suggestions appear after you stop typing')
+			.addDropdown(dropdown => dropdown
+				.addOption('fast', 'Fast - 1.5 seconds')
+				.addOption('normal', 'Normal - 3 seconds')
+				.addOption('relaxed', 'Relaxed - 5 seconds')
+				.setValue(this.plugin.settings.commands.responseTime)
+				.onChange(async (value) => {
+					this.plugin.settings.commands.responseTime = value as 'fast' | 'normal' | 'relaxed';
+					await this.plugin.saveSettings();
+					if (this.plugin.smartTimingEngine) {
+						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
+						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
+					}
+				})
+			);
+		
+		// Hide While Typing
+		new Setting(container)
+			.setName('Hide while typing fast')
+			.setDesc('Hide suggestions when typing faster than 30 words per minute')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.commands.hideWhileTyping)
+				.onChange(async (value) => {
+					this.plugin.settings.commands.hideWhileTyping = value;
+					await this.plugin.saveSettings();
+					if (this.plugin.smartTimingEngine) {
+						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
+						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
+					}
+				})
+			);
+	}
 
 	private createGettingStartedTabContent(container: HTMLElement): void {
 		this.createWelcomeSection(container);

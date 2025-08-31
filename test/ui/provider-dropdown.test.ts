@@ -30,6 +30,12 @@ describe('Provider Dropdown Performance', () => {
 				defaultMaxTokens: 1000,
 				autoSave: true
 			},
+			commands: {
+				suggestionMode: 'balanced',
+				responseTime: 'normal',
+				hideWhileTyping: true,
+				enabledDocumentTypes: []
+			},
 			licensing: {
 				supernovaLicenseKey: '',
 				debugSettings: { enabled: false }

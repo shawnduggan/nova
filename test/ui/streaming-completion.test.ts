@@ -31,7 +31,9 @@ describe('Streaming Completion Updates', () => {
             getCursor: jest.fn().mockReturnValue({ line: 0, ch: 0 }),
             getSelection: jest.fn().mockReturnValue(''),
             replaceRange: jest.fn(),
-            setCursor: jest.fn()
+            setCursor: jest.fn(),
+            focus: jest.fn(),
+            scrollIntoView: jest.fn()
         };
 
         mockView = {
@@ -70,7 +72,12 @@ describe('Streaming Completion Updates', () => {
         (sidebar as any).app = app;
         
         // Initialize streamingManager with mock plugin
-        const mockPlugin = { registerInterval: (id: number) => id };
+        const mockPlugin = { 
+            registerInterval: (id: number) => id,
+            marginIndicators: {
+                analyzeCurrentContext: jest.fn()
+            }
+        };
         (sidebar as any).streamingManager = new StreamingManager(mockPlugin as any);
     });
 
@@ -85,7 +92,12 @@ describe('Streaming Completion Updates', () => {
         const updateDocumentStatsSpy = jest.spyOn(sidebar as any, 'updateDocumentStats');
 
         // Simulate streaming completion
-        const mockPlugin = { registerInterval: (id: number) => id };
+        const mockPlugin = { 
+            registerInterval: (id: number) => id,
+            marginIndicators: {
+                analyzeCurrentContext: jest.fn()
+            }
+        };
         const streamingManager = new StreamingManager(mockPlugin as any);
         const { updateStream } = streamingManager.startStreaming(mockEditor, { line: 0, ch: 0 }, undefined, {
             onComplete: () => {
@@ -107,7 +119,12 @@ describe('Streaming Completion Updates', () => {
         const refreshContextSpy = jest.spyOn(sidebar as any, 'refreshContext').mockResolvedValue(undefined);
 
         // Simulate streaming with completion callback
-        const mockPlugin = { registerInterval: (id: number) => id };
+        const mockPlugin = { 
+            registerInterval: (id: number) => id,
+            marginIndicators: {
+                analyzeCurrentContext: jest.fn()
+            }
+        };
         const streamingManager = new StreamingManager(mockPlugin as any);
         const { updateStream } = streamingManager.startStreaming(mockEditor, { line: 0, ch: 0 }, undefined, {
             onComplete: () => {

@@ -24,7 +24,9 @@ import { Logger } from './src/utils/logger';
 import { CommandEngine } from './src/features/commands/core/CommandEngine';
 import { CommandRegistry } from './src/features/commands/core/CommandRegistry';
 import { SmartVariableResolver } from './src/features/commands/core/SmartVariableResolver';
+import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngine';
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
+import { toSmartTimingSettings } from './src/features/commands/types';
 
 // Nova icon - main plugin icon
 const NOVA_ICON_SVG = `
@@ -82,6 +84,7 @@ export default class NovaPlugin extends Plugin {
 	commandEngine!: CommandEngine;
 	commandRegistry!: CommandRegistry;
 	smartVariableResolver!: SmartVariableResolver;
+	smartTimingEngine!: SmartTimingEngine;
 	marginIndicators!: MarginIndicators;
 
 	async onload() {
@@ -157,9 +160,15 @@ export default class NovaPlugin extends Plugin {
 			// Initialize Nova Commands system
 			Logger.info('Initializing Nova Commands system components...');
 			this.smartVariableResolver = new SmartVariableResolver(this);
+			this.smartTimingEngine = new SmartTimingEngine(this, this.smartVariableResolver);
+			
+			// Initialize SmartTimingEngine with user settings (converted from simplified)
+			const legacyTimingSettings = toSmartTimingSettings(this.settings.commands);
+			this.smartTimingEngine.updateSettings(legacyTimingSettings);
+			
 			this.commandEngine = new CommandEngine(this);
 			this.commandRegistry = new CommandRegistry(this, this.commandEngine);
-			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry, this.commandEngine);
+			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry, this.commandEngine, this.smartTimingEngine);
 			Logger.info('Nova Commands system components created successfully');
 
 			this.registerView(

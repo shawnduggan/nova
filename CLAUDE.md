@@ -439,49 +439,6 @@ new SuggestModal(app)
 
 ## 📋 Current Tasks
 
-### ✅ COMPLETED - Critical Obsidian Plugin Compliance Fixes
-**Context**: Fixed all setTimeout calls and event cleanup issues that were blocking plugin store submission
-**Progress**: COMPLETE - All critical compliance issues resolved
-**Current State**: 
-- Fixed 20 unregistered setTimeout calls across 6 core UI files:
-  * input-handler.ts: 6 calls (focus delays, cursor positioning, animations)
-  * custom-instruction-modal.ts: 1 call (focus delay)  
-  * chat-renderer.ts: 1 call (scroll animation)
-  * sidebar-view.ts: 8 calls (debouncing, animations, Promise delays)
-  * command-system.ts: 1 call (cursor positioning)
-  * settings.ts: 3 calls (button states, connection timeouts)
-- Fixed 14 setTimeout calls in test files (conversation-context-persistence.test.ts)
-- Fixed 1 mock plugin in test file (unified-system-integration.test.js)
-- Removed manual event cleanup in wikilink-suggest.ts (registerDomEvent handles automatically)
-- All setTimeout calls now use `this.plugin.registerInterval(window.setTimeout(...))`
-- Special handling for Promise-based timeouts implemented correctly
-- Build passes with 0 errors (only TypeScript 'any' warnings remain)
-- All 491 tests passing
-**Next Steps**: Ready for plugin store submission
-**Dependencies**: None
-**Quality Status**: Production-ready and fully Obsidian compliant
-
-### ✅ COMPLETED - Comprehensive Compliance Audit & Final Fixes
-**Context**: Thorough review and fixing of remaining compliance issues after initial setTimeout fixes
-**Progress**: COMPLETE - All critical compliance issues resolved
-**Current State**: 
-- Fixed unregistered setTimeout in streaming-manager.ts:295 (CRITICAL fix)
-- Replaced innerHTML usage in sidebar-view.ts:2334 with safe DOM API (HIGH priority fix)
-- Removed redundant event listener tracking in input-handler.ts (cleanup improvement)
-- Fixed final setTimeout in test file conversation-context-persistence.test.ts
-- Comprehensive audit confirmed full compliance across all categories:
-  * Event Listeners: ✅ All use registerDomEvent()
-  * Timers: ✅ All use registerInterval()
-  * DOM/Security: ✅ No innerHTML, proper DOM API usage
-  * APIs: ✅ Modern Obsidian APIs only
-  * Performance: ✅ Efficient file operations
-  * Plugin Structure: ✅ Proper lifecycle management
-- Build passes: 0 errors (only TypeScript 'any' warnings remain)
-- All 491 tests passing including modified compliance fixes
-**Next Steps**: Final plugin store submission
-**Dependencies**: None
-**Quality Status**: FULLY COMPLIANT - Plugin store ready
-
 ### ✅ COMPLETED - MarginIndicators Implementation
 **Context**: Intelligent margin indicators for command suggestions with progressive disclosure UI
 **Progress**: COMPLETE and fully compliant with Obsidian guidelines
@@ -504,24 +461,51 @@ new SuggestModal(app)
 **Dependencies**: Command loading implementation
 **Quality Status**: Production-ready and Obsidian compliant
 
-### ✅ COMPLETED - InsightPanel & Tooltip UX Implementation
-**Context**: Full intelligence panel for command selection with proper UX patterns
+### ✅ COMPLETED - InsightPanel & Enhanced UX Implementation
+**Context**: Full intelligence panel for command selection with proper UX patterns and combined fix logic
 **Progress**: COMPLETE and fully compliant with Obsidian guidelines
 **Current State**: 
 - InsightPanel shows multiple command options with clear action buttons
 - Positioned near text without covering content using proper CodeMirror selectors
 - Fixed event handler violations - all handlers use registerDomEvent()
 - Eliminated immediate panel dismissal bug with global handler pattern
-- Simplified tooltip UX to follow industry standards (hover for info, click for action)
-- All bullet preservation and structure preservation issues resolved
-- AI reasoning text filtering strengthened with explicit prompt examples
+- Removed hover preview system - users must click indicators for InsightPanel
+- Shows specific text changes instead of generic descriptions ("was written" → "wrote")
+- Immediate indicator refresh after applying fixes (no UX lag)
+- Combined fix enforcement for multiple issues to prevent grammatically incorrect results
+- Clean UI with consistent title formatting: "⚡ 1 Issue" / "⚡2 2 Issues" 
+- Simplified wording: "Fix all issues for proper grammar:" without verbose explanations
+- Margin indicators show count (⚡2) for prioritization, panel shows formatted titles
 **Compliance Status**: 
   * ✅ All event handlers use this.plugin.registerDomEvent()
   * ✅ All timers use this.plugin.registerInterval()
   * ✅ No console statements (Logger used throughout)
   * ✅ Proper CSS classes (no inline styles)
   * ✅ Clean component lifecycle management
+  * ✅ Fixed all unused variable linting warnings
 **Quality Status**: Production-ready, follows UX best practices, Obsidian compliant
+
+### ✅ COMPLETED - SmartTimingEngine Implementation
+**Context**: Centralized timing service for intelligent command timing decisions with document-type awareness
+**Progress**: COMPLETE and fully compliant with Obsidian guidelines
+**Current State**: 
+- SmartTimingEngine fully functional as centralized service (0 errors, 21 tests passing)
+- Extracted all timing logic from MarginIndicators into reusable architecture
+- Event-driven communication between SmartTimingEngine and MarginIndicators
+- Document type awareness with per-type timing overrides (blog, academic, technical, creative, notes)
+- TypingSpeedTracker for real-time WPM calculation with 60-second window
+- DebounceManager for Obsidian-compliant timer registration and cleanup
+- All critical compliance requirements met:
+  * All timers use this.plugin.registerInterval(window.setTimeout(...))
+  * Event-driven architecture with proper cleanup
+  * No console statements (Logger used throughout)  
+  * Modern Obsidian APIs only
+  * Comprehensive cleanup methods implemented
+- Full integration with plugin initialization in main.ts
+- Settings foundation ready for future UI integration
+**Next Steps**: Settings UI integration and flagship command development
+**Dependencies**: None  
+**Quality Status**: Production-ready, plugin store compliant, maintains 100% backward compatibility
 
 ### Phase 1 Tasks (HIGH PRIORITY - Days 1-5)
 
@@ -562,10 +546,18 @@ new SuggestModal(app)
   - Location: InsightPanel.ts, integrated with MarginIndicators click handler
   - Architecture: Panel positioned near clicked indicator → Command options → Full modal
   - All tests passing (21/21), build successful, proper cleanup on dismiss
-- [ ] Add SmartTimingEngine
-  - 3 second delay after typing stops
-  - Hide when typing >30 WPM
-  - Respect document type settings
+- [x] Add SmartTimingEngine
+  - COMPLETED: Centralized timing service with extracted MarginIndicators logic
+  - COMPLETED: 3 second delay after typing stops (configurable)
+  - COMPLETED: Hide when typing >30 WPM (configurable threshold)
+  - COMPLETED: Document type awareness with per-type settings overrides
+  - COMPLETED: Event-driven architecture with timing decisions
+  - COMPLETED: TypingSpeedTracker for real-time WPM calculation
+  - COMPLETED: DebounceManager for Obsidian-compliant timer handling
+  - COMPLETED: Full integration with MarginIndicators via event subscriptions
+  - Location: src/features/commands/core/SmartTimingEngine.ts
+  - Architecture: Centralized timing logic → Event subscriptions → MarginIndicators response
+  - All tests passing (21/21), build successful, fully Obsidian compliant
 
 #### Settings Integration
 - [ ] Add Commands tab to NovaSettingTab

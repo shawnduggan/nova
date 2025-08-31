@@ -8,9 +8,18 @@ import { Logger } from '../../../utils/logger';
 import { SmartVariableResolver } from '../core/SmartVariableResolver';
 import { CommandRegistry } from '../core/CommandRegistry';
 import { CommandEngine } from '../core/CommandEngine';
+import { SmartTimingEngine } from '../core/SmartTimingEngine';
 import { InsightPanel } from './InsightPanel';
-import type { SmartContext, MarkdownCommand } from '../types';
+import type { SmartContext, MarkdownCommand, TimingDecision, TypingMetrics } from '../types';
 import type NovaPlugin from '../../../../main';
+
+interface SpecificIssue {
+    matchedText: string;
+    startIndex: number;
+    endIndex: number;
+    description: string;
+    suggestedFix?: string;
+}
 
 interface IndicatorOpportunity {
     line: number;
@@ -19,6 +28,9 @@ interface IndicatorOpportunity {
     icon: string;
     commands: MarkdownCommand[];
     confidence: number;
+    // Enhanced context for specific fixes
+    specificIssues?: SpecificIssue[];
+    issueCount?: number;
 }
 
 export class MarginIndicators {
@@ -26,6 +38,7 @@ export class MarginIndicators {
     private variableResolver: SmartVariableResolver;
     private commandRegistry: CommandRegistry;
     private commandEngine: CommandEngine;
+    private smartTimingEngine: SmartTimingEngine;
     public insightPanel: InsightPanel;
     private logger = Logger.scope('MarginIndicators');
 
@@ -38,21 +51,6 @@ export class MarginIndicators {
     // Performance optimization - line-level caching
     private lineAnalysisCache = new Map<number, { hash: string; opportunities: IndicatorOpportunity[] }>();
     private documentHash = '';
-    
-    // Timing and performance
-    private lastAnalysisTime = 0;
-    private analysisDebounceTimer: number | null = null;
-    private scrollDebounceTimer: number | null = null;
-    private readonly ANALYSIS_DEBOUNCE = 3000; // 3 seconds as per spec
-    private readonly SCROLL_DEBOUNCE = 100; // 100ms for scroll events
-    private readonly MIN_ANALYSIS_INTERVAL = 1000; // Minimum 1 second between analyses
-    
-    // User activity tracking
-    private typingSpeed = 0;
-    private lastKeystrokeTime = 0;
-    private keystrokeCount = 0;
-    private readonly TYPING_SPEED_WINDOW = 60000; // 1 minute window
-    private readonly FAST_TYPING_THRESHOLD = 30; // WPM
 
     // Settings
     private enabled = true;
@@ -65,13 +63,18 @@ export class MarginIndicators {
         plugin: NovaPlugin,
         variableResolver: SmartVariableResolver,
         commandRegistry: CommandRegistry,
-        commandEngine: CommandEngine
+        commandEngine: CommandEngine,
+        smartTimingEngine: SmartTimingEngine
     ) {
         this.plugin = plugin;
         this.variableResolver = variableResolver;
         this.commandRegistry = commandRegistry;
         this.commandEngine = commandEngine;
+        this.smartTimingEngine = smartTimingEngine;
         this.insightPanel = new InsightPanel(plugin, commandEngine);
+        
+        // Initialize settings from plugin configuration
+        this.updateSettings();
     }
 
     /**
@@ -83,6 +86,9 @@ export class MarginIndicators {
         // Ensure command index is built
         await this.commandRegistry.buildIndex();
         this.logger.info('Command index built');
+        
+        // Set up SmartTimingEngine subscriptions
+        this.setupTimingEventListeners();
         
         // Register for workspace events
         this.plugin.registerEvent(
@@ -102,6 +108,44 @@ export class MarginIndicators {
         this.onActiveEditorChange();
         
         this.logger.info('MarginIndicators initialized');
+    }
+
+    /**
+     * Set up SmartTimingEngine event listeners
+     */
+    private setupTimingEventListeners(): void {
+        // Subscribe to timing decisions
+        this.smartTimingEngine.on('timing-decision', (decision: TimingDecision) => {
+            if (decision.shouldShow) {
+                this.logger.debug(`Timing decision: ${decision.reason}`);
+                if (decision.nextCheckDelay && decision.nextCheckDelay > 0) {
+                    // Decision indicates we should schedule analysis
+                    // The SmartTimingEngine handles the scheduling
+                } else {
+                    // Immediate analysis requested (e.g., after scroll)
+                    this.analyzeCurrentContext();
+                }
+            } else {
+                this.logger.debug(`Timing decision to hide: ${decision.reason}`);
+                this.hideAllIndicators();
+            }
+        });
+
+        // Subscribe to typing metrics for logging/debugging
+        this.smartTimingEngine.on('typing-metrics-updated', (metrics: TypingMetrics) => {
+            this.logger.debug(`Typing metrics: ${metrics.currentWPM.toFixed(1)} WPM, fast: ${metrics.isTypingFast}`);
+        });
+
+        // Subscribe to analysis scheduling events
+        this.smartTimingEngine.on('analysis-scheduled', (delay: number) => {
+            this.logger.debug(`Analysis scheduled in ${delay}ms`);
+            // Schedule our actual analysis to run after the delay
+            this.plugin.registerInterval(
+                window.setTimeout(() => {
+                    this.analyzeCurrentContext();
+                }, delay)
+            );
+        });
     }
 
     /**
@@ -133,7 +177,7 @@ export class MarginIndicators {
         
         if (this.enabled) {
             this.setupEditorListeners();
-            this.scheduleAnalysis();
+            this.analyzeCurrentContext(); // Immediate analysis on editor change
         }
     }
 
@@ -158,7 +202,7 @@ export class MarginIndicators {
             this.plugin.registerDomEvent(
                 editorEl,
                 'click',
-                () => this.scheduleAnalysis()
+                () => this.analyzeCurrentContext() // Immediate analysis on cursor change
             );
         }
 
@@ -175,90 +219,38 @@ export class MarginIndicators {
     /**
      * Handle editor input events
      */
-    private onEditorInput(): void {
-        // Track typing speed
-        this.updateTypingSpeed();
-
+    private async onEditorInput(): Promise<void> {
         // Clear cache when document changes
         this.clearAnalysisCache();
 
-        // If typing too fast, hide indicators
-        if (this.typingSpeed > this.FAST_TYPING_THRESHOLD) {
-            this.hideAllIndicators();
-            return;
+        // Update document type for context-aware timing
+        if (this.activeView?.file) {
+            const context = await this.variableResolver.buildSmartContext();
+            if (context) {
+                this.smartTimingEngine.setDocumentType(context.documentType);
+            }
         }
 
-        // Schedule analysis after typing stops
-        this.scheduleAnalysis();
+        // Delegate timing decisions to SmartTimingEngine
+        this.smartTimingEngine.onEditorInput();
     }
 
     /**
      * Handle scroll events with debouncing
      */
     private onScroll(): void {
-        // Clear existing scroll timer
-        if (this.scrollDebounceTimer) {
-            clearTimeout(this.scrollDebounceTimer);
-        }
-
-        // Schedule re-analysis after scroll stops
-        this.scrollDebounceTimer = this.plugin.registerInterval(
-            window.setTimeout(() => {
-                this.scheduleAnalysis();
-            }, this.SCROLL_DEBOUNCE)
-        );
+        // Delegate scroll timing decisions to SmartTimingEngine
+        this.smartTimingEngine.onScroll();
     }
 
-    /**
-     * Update typing speed calculation
-     */
-    private updateTypingSpeed(): void {
-        const now = Date.now();
-        
-        // Reset if too much time has passed
-        if (now - this.lastKeystrokeTime > this.TYPING_SPEED_WINDOW) {
-            this.keystrokeCount = 0;
-        }
-
-        this.keystrokeCount++;
-        this.lastKeystrokeTime = now;
-
-        // Calculate WPM (assuming 5 characters per word)
-        const timeMinutes = Math.min(this.TYPING_SPEED_WINDOW, now - (this.lastKeystrokeTime - this.TYPING_SPEED_WINDOW)) / 60000;
-        this.typingSpeed = timeMinutes > 0 ? (this.keystrokeCount / 5) / timeMinutes : 0;
-    }
-
-    /**
-     * Schedule analysis with debouncing
-     */
-    public scheduleAnalysis(): void {
-        // Clear existing timer
-        if (this.analysisDebounceTimer) {
-            clearTimeout(this.analysisDebounceTimer);
-        }
-
-        // Don't analyze too frequently
-        const now = Date.now();
-        if (now - this.lastAnalysisTime < this.MIN_ANALYSIS_INTERVAL) {
-            return;
-        }
-
-        // Schedule new analysis
-        this.analysisDebounceTimer = this.plugin.registerInterval(
-            window.setTimeout(() => {
-                this.analyzeCurrentContext();
-            }, this.ANALYSIS_DEBOUNCE)
-        );
-    }
 
     /**
      * Analyze current context and show relevant indicators
      */
-    private async analyzeCurrentContext(): Promise<void> {
+    public async analyzeCurrentContext(): Promise<void> {
         if (!this.activeEditor || !this.enabled) return;
 
         try {
-            this.lastAnalysisTime = Date.now();
             this.logger.info('Analyzing context for margin indicators...');
             
             // Build smart context
@@ -267,6 +259,17 @@ export class MarginIndicators {
                 this.logger.warn('No smart context available');
                 return;
             }
+
+            // Check if document type is enabled for analysis
+            const enabledTypes = this.plugin.settings.commands?.enabledDocumentTypes || [];
+            if (enabledTypes.length > 0 && !enabledTypes.includes(context.documentType)) {
+                this.logger.debug(`Document type '${context.documentType}' is not enabled for progressive disclosure`);
+                this.clearIndicators();
+                return;
+            }
+
+            // Update SmartTimingEngine with current document type for context-aware timing
+            this.smartTimingEngine.setDocumentType(context.documentType);
 
             this.logger.info('Smart context built:', {
                 hasSelection: !!context.selection,
@@ -364,15 +367,21 @@ export class MarginIndicators {
                 });
             }
 
-            // Quick fix opportunities (⚡)
-            if (this.shouldShowQuickFixIndicators(context, lineText)) {
+            // Quick fix opportunities (⚡) - Enhanced with specific issue detection
+            const quickFixIssues = this.findQuickFixIssues(context, lineText);
+            if (quickFixIssues.length > 0) {
+                const issueCount = quickFixIssues.length;
+                const icon = issueCount > 1 ? `⚡${issueCount}` : '⚡';
+                
                 lineOpportunities.push({
                     line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'quickfix',
-                    icon: '⚡',
+                    icon,
                     commands: activeQuickFixCommands.slice(0, 2),
-                    confidence: this.calculateConfidence(context, 'quickfix')
+                    confidence: this.calculateConfidence(context, 'quickfix'),
+                    specificIssues: quickFixIssues,
+                    issueCount
                 });
             }
 
@@ -481,9 +490,17 @@ export class MarginIndicators {
     /**
      * Clear the line analysis cache
      */
-    private clearAnalysisCache(): void {
+    public clearAnalysisCache(): void {
         this.lineAnalysisCache.clear();
         this.logger.debug('Line analysis cache cleared');
+    }
+
+    /**
+     * Clear cache for a specific line (public method for external calls)
+     */
+    public clearLineCacheForLine(lineNumber: number): void {
+        this.lineAnalysisCache.delete(lineNumber);
+        this.logger.debug(`Cleared cache for line ${lineNumber}`);
     }
 
     /**
@@ -510,28 +527,95 @@ export class MarginIndicators {
     }
 
     /**
-     * Check if quick fix indicators should be shown
+     * Find specific quick fix issues on a line with their positions
+     */
+    private findQuickFixIssues(context: SmartContext, currentLine: string): SpecificIssue[] {
+        const trimmed = currentLine.trim();
+        const issues: SpecificIssue[] = [];
+        
+        // Skip headers and empty lines
+        if (trimmed.match(/^#+\s/) || trimmed.length === 0) return issues;
+        
+        // Detect passive voice patterns with positions
+        const passivePatterns = [
+            { pattern: /\b(was|were)\s+(\w+ed)\b/g, type: 'passive', description: 'passive voice detected' },
+            { pattern: /\b(was|were)\s+(written|taken|given|chosen|broken|spoken)\b/g, type: 'passive', description: 'passive voice detected' },
+            { pattern: /\bmade\s+(by|throughout|during)\b/g, type: 'passive', description: 'passive construction' },
+            { pattern: /\b(has|have)\s+been\s+(\w+ed)\b/g, type: 'passive', description: 'passive voice detected' },
+            { pattern: /\b(has|have)\s+been\s+(written|taken|given|chosen|broken|spoken)\b/g, type: 'passive', description: 'passive voice detected' }
+        ];
+        
+        // Find all passive voice instances
+        passivePatterns.forEach(({ pattern, type, description }) => {
+            let match;
+            while ((match = pattern.exec(currentLine)) !== null) {
+                const matchedText = match[0];
+                const suggestedFix = this.getSuggestedFix(matchedText, type);
+                
+                issues.push({
+                    matchedText,
+                    startIndex: match.index,
+                    endIndex: match.index + matchedText.length,
+                    description: `${description}: '${matchedText}'`,
+                    suggestedFix
+                });
+            }
+        });
+        
+        // Detect weak words
+        const weakWordPattern = /\b(very|really|quite|somewhat|rather)\b/gi;
+        let match;
+        while ((match = weakWordPattern.exec(currentLine)) !== null) {
+            const matchedText = match[0];
+            issues.push({
+                matchedText,
+                startIndex: match.index,
+                endIndex: match.index + matchedText.length,
+                description: `weak intensifier: '${matchedText}'`,
+                suggestedFix: this.getSuggestedFix(matchedText, 'weak')
+            });
+        }
+        
+        return issues;
+    }
+    
+    /**
+     * Get suggested fix for specific text patterns
+     */
+    private getSuggestedFix(matchedText: string, issueType: string): string {
+        const text = matchedText.toLowerCase();
+        
+        switch (issueType) {
+            case 'passive':
+                if (text.includes('was written')) return 'wrote';
+                if (text.includes('were written')) return 'wrote';
+                if (text.includes('was taken')) return 'took';
+                if (text.includes('were taken')) return 'took';
+                if (text.includes('was given')) return 'gave';
+                if (text.includes('were given')) return 'gave';
+                if (text.includes('was reviewed')) return 'reviewed';
+                if (text.includes('were reviewed')) return 'reviewed';
+                return 'use active voice';
+                
+            case 'weak':
+                if (text === 'very') return 'remove or use stronger adjective';
+                if (text === 'really') return 'remove or be specific';
+                if (text === 'quite') return 'remove or be specific';
+                if (text === 'somewhat') return 'be more specific';
+                if (text === 'rather') return 'be more specific';
+                return 'use stronger language';
+                
+            default:
+                return 'improve';
+        }
+    }
+
+    /**
+     * Check if quick fix indicators should be shown (legacy method for backward compatibility)
      */
     private shouldShowQuickFixIndicators(context: SmartContext, currentLine: string): boolean {
-        const trimmed = currentLine.trim();
-        
-        // Skip headers
-        if (trimmed.match(/^#+\s/)) return false;
-        
-        // Skip empty lines
-        if (trimmed.length === 0) return false;
-        
-        // Show for passive voice - improved patterns
-        if (currentLine.match(/\b(was|were)\s+\w+ed\b/)) return true;
-        if (currentLine.match(/\b(was|were)\s+(written|taken|given|chosen|broken|spoken)/)) return true;
-        if (currentLine.match(/\bmade\s+(by|throughout|during)/)) return true;
-        if (currentLine.match(/\b(has|have)\s+been\s+\w+ed\b/)) return true;
-        if (currentLine.match(/\b(has|have)\s+been\s+(written|taken|given|chosen|broken|spoken)/)) return true;
-        
-        // Show for weak words
-        if (currentLine.match(/\b(very|really|quite|somewhat|rather)\b/i)) return true;
-        
-        return false;
+        const issues = this.findQuickFixIssues(context, currentLine);
+        return issues.length > 0;
     }
 
     /**
@@ -685,13 +769,10 @@ export class MarginIndicators {
         indicator.setAttribute('data-type', opportunity.type);
         indicator.setAttribute('data-line', opportunity.line.toString());
         
-        // Create hover preview element
-        this.createHoverPreview(indicator, opportunity);
-        
         // Position the indicator (should succeed since we validated above)
         this.positionIndicator(indicator, opportunity);
         
-        // Add click event (hover is handled by CSS)
+        // Add click event
         this.plugin.registerDomEvent(indicator, 'click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -703,53 +784,6 @@ export class MarginIndicators {
         this.indicators.set(key, indicator);
     }
 
-    /**
-     * Create hover preview for an indicator
-     */
-    private createHoverPreview(indicator: HTMLElement, opportunity: IndicatorOpportunity): void {
-        // Only create preview if we have commands to show
-        if (opportunity.commands.length === 0) {
-            return;
-        }
-
-        // Get the primary command (first in the list)
-        const primaryCommand = opportunity.commands[0];
-
-        // Create preview container following the tooltip pattern
-        const preview = indicator.createDiv({
-            cls: 'nova-indicator-preview'
-        });
-
-        // Create command display
-        const commandDiv = preview.createDiv({
-            cls: 'nova-preview-command'
-        });
-
-        // Add command name
-        const commandName = commandDiv.createSpan();
-        commandName.textContent = primaryCommand.name;
-
-        // Add description if available  
-        if (primaryCommand.description) {
-            const description = preview.createDiv({
-                cls: 'nova-preview-description'
-            });
-            description.textContent = primaryCommand.description;
-        }
-
-        // Position preview relative to indicator
-        this.positionPreview(preview, opportunity);
-    }
-
-    /**
-     * Position hover preview relative to indicator
-     */
-    private positionPreview(preview: HTMLElement, _opportunity: IndicatorOpportunity): void {
-        // Position to the left of the indicator to avoid covering text
-        preview.style.right = '25px'; // Position left of indicator
-        preview.style.top = '0px';    // Align with indicator top
-        preview.style.transform = 'translateY(-50%)'; // Center vertically
-    }
 
     /**
      * Check if an indicator can be positioned without creating it
@@ -946,6 +980,29 @@ export class MarginIndicators {
     }
 
     /**
+     * Update settings from plugin configuration
+     */
+    updateSettings(): void {
+        const commands = this.plugin.settings.commands;
+        if (commands) {
+            this.intensityLevel = commands.suggestionMode;
+            this.enabled = commands.suggestionMode !== 'off';
+            
+            this.logger.debug(`Settings updated: intensityLevel=${this.intensityLevel}, enabled=${this.enabled}`);
+            
+            // If disabled, clear all indicators
+            if (!this.enabled) {
+                this.clearIndicators();
+            }
+        } else {
+            // Fallback to defaults
+            this.logger.warn('No commands settings found, using defaults');
+            this.intensityLevel = 'balanced';
+            this.enabled = true;
+        }
+    }
+
+    /**
      * Clean up current editor listeners and indicators
      */
     private cleanupCurrentEditor(): void {
@@ -953,15 +1010,8 @@ export class MarginIndicators {
         this.currentOpportunities = [];
         this.clearAnalysisCache();
         
-        if (this.analysisDebounceTimer) {
-            clearTimeout(this.analysisDebounceTimer);
-            this.analysisDebounceTimer = null;
-        }
-        
-        if (this.scrollDebounceTimer) {
-            clearTimeout(this.scrollDebounceTimer);
-            this.scrollDebounceTimer = null;
-        }
+        // Timer cleanup is now handled by SmartTimingEngine
+        this.smartTimingEngine.cancelPendingAnalysis();
     }
 
     /**
@@ -989,7 +1039,7 @@ export class MarginIndicators {
             this.setEnabled(false);
         } else {
             this.setEnabled(true);
-            this.scheduleAnalysis(); // Re-analyze with new intensity
+            this.analyzeCurrentContext(); // Re-analyze with new intensity
         }
         
         this.logger.info(`MarginIndicators intensity set to: ${level}`);
@@ -1008,6 +1058,7 @@ export class MarginIndicators {
     cleanup(): void {
         this.cleanupCurrentEditor();
         this.insightPanel.cleanup();
+        this.smartTimingEngine.cleanup();
         this.activeEditor = null;
         this.activeView = null;
         this.logger.info('MarginIndicators cleaned up');

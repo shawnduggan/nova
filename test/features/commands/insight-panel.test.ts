@@ -80,7 +80,7 @@ describe('InsightPanel', () => {
             const getTitle = (insightPanel as any).getOpportunityTitle.bind(insightPanel);
             
             expect(getTitle('enhancement')).toBe('Writing Enhancement');
-            expect(getTitle('quickfix')).toBe('Quick Fixes');
+            expect(getTitle('quickfix')).toBe('Issues');
             expect(getTitle('metrics')).toBe('Document Analysis');
             expect(getTitle('transform')).toBe('Content Transform');
         });

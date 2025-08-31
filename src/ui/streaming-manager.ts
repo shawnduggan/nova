@@ -343,9 +343,9 @@ export class StreamingManager {
                 editor.setCursor(this.currentStreamingEndPos);
                 editor.focus();  // Ensure editor has focus after content insertion
                 
-                // Schedule re-analysis of margin indicators after streaming
-                if (this.plugin.marginIndicators?.scheduleAnalysis) {
-                    this.plugin.marginIndicators.scheduleAnalysis();
+                // Re-analyze margin indicators after streaming completes
+                if (this.plugin.marginIndicators?.analyzeCurrentContext) {
+                    this.plugin.marginIndicators.analyzeCurrentContext();
                 }
                 
                 this.cleanup();
@@ -482,7 +482,7 @@ export class StreamingManager {
         this.streamingStartPos = null;
 
         // Create the streaming interface
-        const { updateStream, stopStream: _stopStream } = this.startStreaming(
+        const { updateStream } = this.startStreaming(
             editor,
             originalRange.from,
             undefined,

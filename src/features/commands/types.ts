@@ -63,7 +63,7 @@ export interface SmartContext {
     title: string;
     
     /** Detected document type */
-    documentType: 'blog' | 'academic' | 'technical' | 'creative' | 'notes' | 'unknown';
+    documentType: DocumentType;
     
     /** Cursor position context (paragraph/line) */
     cursorContext: string;
@@ -104,21 +104,53 @@ export interface ExecutionOptions {
     parameters?: Record<string, unknown>;
 }
 
-export interface ProgressiveDisclosureSettings {
-    /** When to show margin indicators */
-    triggerMode: 'off' | 'minimal' | 'balanced' | 'aggressive';
+export type DocumentType = 'blog' | 'academic' | 'technical' | 'creative' | 'notes' | 'unknown';
+
+/** Simplified Commands Settings - Single interface for all command behavior */
+export interface CommandSuggestionsSettings {
+    /** When and how aggressively to show command suggestions */
+    suggestionMode: 'off' | 'minimal' | 'balanced' | 'aggressive';
     
-    /** Delay before showing indicators after typing stops */
-    showDelay: number;
+    /** How quickly to respond after typing stops */
+    responseTime: 'fast' | 'normal' | 'relaxed';
     
-    /** Hide when typing faster than this WPM */
-    hideOnFastTyping: number;
+    /** Hide suggestions while typing fast */
+    hideWhileTyping: boolean;
     
-    /** Which document types to analyze */
+    /** Which document types to analyze (empty = all types) */
     enabledDocumentTypes: string[];
-    
-    /** Whether to respect per-document frontmatter overrides */
+}
+
+// Legacy interfaces for backward compatibility during transition
+export interface ProgressiveDisclosureSettings {
+    triggerMode: 'off' | 'minimal' | 'balanced' | 'aggressive';
+    showDelay: number;
+    hideOnFastTyping: number;
+    enabledDocumentTypes: string[];
     allowFrontmatterOverride: boolean;
+}
+
+export interface SmartTimingSettings {
+    showDelay: number;
+    hideOnFastTyping: boolean;
+    fastTypingThreshold: number;
+    scrollDebounce: number;
+    minAnalysisInterval: number;
+    typingSpeedWindow: number;
+    documentTypeOverrides: Record<DocumentType, Partial<SmartTimingSettings>>;
+}
+
+export interface TimingDecision {
+    shouldShow: boolean;
+    reason: string;
+    nextCheckDelay?: number;
+}
+
+export interface TypingMetrics {
+    currentWPM: number;
+    keystrokeCount: number;
+    isTypingFast: boolean;
+    timeSinceLastKeystroke: number;
 }
 
 export interface CommandRegistry {
@@ -162,4 +194,49 @@ export interface InsightDetection {
     
     /** Confidence score 0-1 */
     confidence: number;
+}
+
+/**
+ * Utility functions for converting simplified settings to internal engine settings
+ */
+
+/** Convert response time preset to milliseconds */
+export function responseTimeToMs(responseTime: 'fast' | 'normal' | 'relaxed'): number {
+    switch (responseTime) {
+        case 'fast': return 1500;
+        case 'normal': return 3000;
+        case 'relaxed': return 5000;
+    }
+}
+
+/** Convert simplified settings to legacy ProgressiveDisclosureSettings */
+export function toProgressiveDisclosureSettings(settings: CommandSuggestionsSettings): ProgressiveDisclosureSettings {
+    return {
+        triggerMode: settings.suggestionMode,
+        showDelay: responseTimeToMs(settings.responseTime),
+        hideOnFastTyping: settings.hideWhileTyping ? 30 : 999, // 30 WPM threshold or effectively disabled
+        enabledDocumentTypes: settings.enabledDocumentTypes,
+        allowFrontmatterOverride: false // Removed from simplified UI
+    };
+}
+
+/** Convert simplified settings to legacy SmartTimingSettings */
+export function toSmartTimingSettings(settings: CommandSuggestionsSettings): SmartTimingSettings {
+    const showDelay = responseTimeToMs(settings.responseTime);
+    return {
+        showDelay,
+        hideOnFastTyping: settings.hideWhileTyping,
+        fastTypingThreshold: 30, // Fixed threshold
+        scrollDebounce: 100, // Fixed value
+        minAnalysisInterval: Math.floor(showDelay / 3), // Automatic calculation
+        typingSpeedWindow: 60000, // Fixed 1 minute
+        documentTypeOverrides: {
+            unknown: {},
+            blog: {},
+            academic: {},
+            technical: {},
+            creative: {},
+            notes: {}
+        }
+    };
 }
