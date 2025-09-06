@@ -21,7 +21,7 @@ export class AIProviderManager {
 		this.featureManager = featureManager;
 	}
 
-	async initialize() {
+	initialize() {
 		this.providers.set('claude', new ClaudeProvider(this.settings.aiProviders.claude, this.settings.general));
 		this.providers.set('openai', new OpenAIProvider(this.settings.aiProviders.openai, this.settings.general));
 		this.providers.set('google', new GoogleProvider(this.settings.aiProviders.google, this.settings.general));

@@ -1,5 +1,5 @@
-import { ConversationData, ContextDocumentRef } from '../core/types';
-import { ConversationManager, DataStore } from '../core/conversation-manager';
+import { ConversationData, ContextDocumentRef } from '../../src/core/types';
+import { ConversationManager, DataStore } from '../../src/core/conversation-manager';
 import { TFile, Notice } from 'obsidian';
 
 // Mock DataStore implementation
