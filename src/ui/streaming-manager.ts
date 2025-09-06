@@ -5,6 +5,7 @@
 
 import { Editor, Notice } from 'obsidian';
 import { Logger } from '../utils/logger';
+import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
 
 export interface StreamingOptions {
@@ -25,6 +26,7 @@ export class StreamingManager {
     private streamingStartPos: any = null;
     private originalPosition: any = null;
     private scrollThrottleTimeout: number | null = null;
+    private timeoutManager = new TimeoutManager();
 
     constructor(plugin: NovaPlugin) {
         this.plugin = plugin;
@@ -256,7 +258,7 @@ export class StreamingManager {
     private magicalScrollToCursor(editor: Editor, position: any, options: StreamingOptions): void {
         // Use throttled updates for smooth 60fps experience
         if (this.scrollThrottleTimeout) {
-            window.clearTimeout(this.scrollThrottleTimeout);
+            this.timeoutManager.removeTimeout(this.scrollThrottleTimeout);
         }
         
         // Immediate scroll for responsive experience
@@ -292,9 +294,9 @@ export class StreamingManager {
         performScroll();
         
         // Also schedule a throttled update for optimization
-        this.scrollThrottleTimeout = this.plugin.registerInterval(window.setTimeout(() => {
+        this.scrollThrottleTimeout = this.timeoutManager.addTimeout(() => {
             performScroll();
-        }, StreamingManager.SCROLL_THROTTLE_MS));
+        }, StreamingManager.SCROLL_THROTTLE_MS);
     }
 
     private updateStreamingText(
@@ -424,9 +426,12 @@ export class StreamingManager {
         
         // Clear scroll throttle timeout
         if (this.scrollThrottleTimeout) {
-            window.clearTimeout(this.scrollThrottleTimeout);
+            this.timeoutManager.removeTimeout(this.scrollThrottleTimeout);
             this.scrollThrottleTimeout = null;
         }
+        
+        // Clear all timeouts
+        this.timeoutManager.clearAll();
         
         this.currentStreamingEndPos = null;
         this.streamingStartPos = null;

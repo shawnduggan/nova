@@ -4,12 +4,13 @@
  */
 
 import { App, Modal, Setting, Plugin } from 'obsidian';
+import { TimeoutManager } from '../utils/timeout-manager';
 
 export class CustomInstructionModal extends Modal {
     private instruction: string = '';
     private onSubmit: (instruction: string) => void;
     private plugin: Plugin;
-    private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
+    private timeoutManager = new TimeoutManager();
     private onCancel: () => void;
 
     constructor(
@@ -61,7 +62,7 @@ export class CustomInstructionModal extends Modal {
                 text.inputEl.addClass('nova-custom-textarea');
                 
                 // Focus on the text area
-                this.plugin.registerInterval(window.setTimeout(() => text.inputEl.focus(), 50));
+                this.timeoutManager.addTimeout(() => text.inputEl.focus(), 50);
                 
                 // Handle Enter key submissions
                 this.registerEventListener(text.inputEl, 'keydown', (e: Event) => {
@@ -118,12 +119,10 @@ export class CustomInstructionModal extends Modal {
     }
 
     onClose() {
-        // Clean up event listeners
-        this.eventListeners.forEach(({element, event, handler}) => {
-            element.removeEventListener(event, handler);
-        });
-        this.eventListeners = [];
+        // Clean up timeouts
+        this.timeoutManager.clearAll();
         
+        // Event listeners are automatically cleaned up by Modal/registerDomEvent
         const { contentEl } = this;
         contentEl.empty();
     }

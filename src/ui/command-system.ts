@@ -1,5 +1,6 @@
 import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
+import { TimeoutManager } from '../utils/timeout-manager';
 
 interface StructuredCommand {
 	name: string;
@@ -24,7 +25,7 @@ export class CommandSystem {
 	private selectedCommandIndex: number = -1;
 	private commandMenu!: HTMLElement;
 	private isCommandMenuVisible: boolean = false;
-	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
+	private timeoutManager = new TimeoutManager();
 
 	constructor(plugin: NovaPlugin, container: HTMLElement, textArea: TextAreaComponent) {
 		this.plugin = plugin;
@@ -376,10 +377,10 @@ export class CommandSystem {
 			this.textArea.setValue(beforeCursor + afterCursor);
 			
 			// Position cursor where {cursor} was
-			this.plugin.registerInterval(window.setTimeout(() => {
+			this.timeoutManager.addTimeout(() => {
 				this.textArea.inputEl.setSelectionRange(cursorPos, cursorPos);
 				this.textArea.inputEl.focus();
-			}, 0));
+			}, 0);
 		} else {
 			this.textArea.setValue(template);
 			this.textArea.inputEl.focus();
@@ -387,11 +388,8 @@ export class CommandSystem {
 	}
 
 	cleanup(): void {
-		// Clean up all tracked event listeners
-		this.eventListeners.forEach(({element, event, handler}) => {
-			element.removeEventListener(event, handler);
-		});
-		this.eventListeners = [];
+		// Clean up timeouts
+		this.timeoutManager.clearAll();
 
 		if (this.commandMenu) {
 			this.commandMenu.remove();

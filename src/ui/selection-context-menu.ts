@@ -336,8 +336,9 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const sidebarView = leaves[0].view as NovaSidebarView;
-                if (sidebarView?.chatRenderer) {
+                const view = leaves[0].view;
+                // Use instanceof check for consistency
+                if (view instanceof NovaSidebarView && view.chatRenderer) {
                     const actionDescription = this.getActionDescription(actionId, customInstruction);
                     const truncatedText = originalText.length > 50 
                         ? originalText.substring(0, 50) + '...' 
@@ -346,7 +347,7 @@ export class SelectionContextMenu {
                     const message = `✓ ${actionDescription} text: "${truncatedText}"`;
                     
                     // Use unified system with persistence
-                    sidebarView.chatRenderer.addSuccessMessage(message, true);
+                    view.chatRenderer.addSuccessMessage(message, true);
                 }
             }
         } catch (error) {
@@ -362,8 +363,9 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const sidebarView = leaves[0].view as NovaSidebarView;
-                if (sidebarView?.chatRenderer) {
+                const view = leaves[0].view;
+                // Use instanceof check for consistency
+                if (view instanceof NovaSidebarView && view.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
                     // Convert past tense to infinitive form properly
                     let verbForm = actionName;
@@ -376,7 +378,7 @@ export class SelectionContextMenu {
                     const message = `✗ Failed to ${verbForm} text: ${errorMessage}`;
                     
                     // Use unified system with persistence
-                    sidebarView.chatRenderer.addErrorMessage(message, true);
+                    view.chatRenderer.addErrorMessage(message, true);
                 }
             }
         } catch (error) {

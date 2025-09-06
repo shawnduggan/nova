@@ -329,8 +329,9 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 ### ✅ RESOLVED - All Critical Compliance Issues Fixed
 
 **FIXED - Non-compliant setTimeout calls** ✅
-- Fixed all unregistered `setTimeout` calls in core UI components
-- All timers now use `this.plugin.registerInterval(window.setTimeout(...))`
+- Fixed all unregistered `setTimeout` calls in core UI components  
+- All one-time timers now use `TimeoutManager.addTimeout()` for proper cleanup
+- IMPORTANT: `registerInterval()` should ONLY be used with `setInterval()`, NOT `setTimeout()`
 - Fixed files: input-handler.ts, custom-instruction-modal.ts, chat-renderer.ts, sidebar-view.ts, command-system.ts, settings.ts
 - Build status: ✅ 0 errors, only minor type warnings remain
 - Status: **Ready for Plugin Store submission**
@@ -358,7 +359,7 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 - Fixed 14 setTimeout calls in test files (conversation-context-persistence.test.ts)
 - Fixed 1 mock plugin in test file (unified-system-integration.test.js)
 - Removed manual event cleanup in wikilink-suggest.ts (registerDomEvent handles automatically)
-- All setTimeout calls now use `this.plugin.registerInterval(window.setTimeout(...))`
+- All setTimeout calls now use `TimeoutManager.addTimeout()` for proper cleanup
 - Special handling for Promise-based timeouts implemented correctly
 - Build passes with 0 errors (only TypeScript 'any' warnings remain)
 - All 491 tests passing
