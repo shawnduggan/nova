@@ -80,7 +80,7 @@ git checkout HEAD -- src/file.ts  # Specific file
 ## 🛑 Strict Rules
 
 - ❌ **No coding until explicitly instructed**
-- ❌ **No commits unless told to**
+- ❌ **No commits without explicit approval of commit message**
 - ❌ **No new tasks without confirmation**
 - ❌ **No inline styles - use CSS**
 - ❌ **No innerHTML/outerHTML - use DOM API**
@@ -92,14 +92,16 @@ git checkout HEAD -- src/file.ts  # Specific file
 
 ## 🚫 Git Commit Control
 
-**CRITICAL: Never auto-commit - User must test first**
+**CRITICAL: Never auto-commit - User must approve ALL commit messages**
 
 - ❌ **NEVER auto-commit** after changes
+- ❌ **NEVER commit without showing commit message first** - User must review and approve
 - ✅ **Only commit when explicitly asked**: "commit this", "create a commit"
 - ✅ **Before committing, show**: `git status` and `git diff`
-- ✅ **Allow user review** before proceeding
+- ✅ **ALWAYS show proposed commit message**: Wait for explicit user approval
+- ✅ **User must approve commit message**: Never proceed without confirmation
 
-> User drives commits, not AI.
+> User controls commits AND commit messages, not AI.
 
 ## 📋 Session Continuity
 
@@ -316,7 +318,9 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 
 ### 5. Pre-Commit (USER CONTROLLED)
 - ❌ **NEVER auto-commit** - wait for explicit request
+- ❌ **NEVER commit without showing proposed commit message** - user must approve
 - ✅ Show `git status`/`git diff`, allow user review
+- ✅ Show proposed commit message and wait for explicit approval
 
 ### 6. Session End
 - ✅ Update Current Tasks, document next steps
