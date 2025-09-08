@@ -6,6 +6,7 @@
 
 import { MarkdownView, FuzzySuggestModal, FuzzyMatch, App, Editor } from 'obsidian';
 import { Logger } from '../../../utils/logger';
+import { TimeoutManager } from '../../../utils/timeout-manager';
 import { CommandEngine } from '../core/CommandEngine';
 import { INSIGHT_PANEL, OPPORTUNITY_TITLES, COMMANDS, CSS_CLASSES, CM_SELECTORS } from '../constants';
 import type { MarkdownCommand } from '../types';
@@ -35,6 +36,7 @@ export class InsightPanel {
     private plugin: NovaPlugin;
     private commandEngine: CommandEngine;
     private logger = Logger.scope('InsightPanel');
+    private timeoutManager = new TimeoutManager();
 
     // Panel state
     private activePanel: HTMLElement | null = null;
@@ -89,13 +91,11 @@ export class InsightPanel {
         this.setupScrollHandler();
         
         // Animate in after next frame for smooth transition
-        this.plugin.registerInterval(
-            window.setTimeout(() => {
-                if (this.activePanel) {
-                    this.activePanel.addClass('visible');
-                }
-            }, 0) // Next frame equivalent
-        );
+        this.timeoutManager.addTimeout(() => {
+            if (this.activePanel) {
+                this.activePanel.addClass('visible');
+            }
+        }, 0); // Next frame equivalent
     }
 
     /**
@@ -112,13 +112,11 @@ export class InsightPanel {
             this.activePanel = null;
             
             // Remove after animation completes
-            this.plugin.registerInterval(
-                window.setTimeout(() => {
-                    if (panelToRemove) {
-                        panelToRemove.remove();
-                    }
-                }, INSIGHT_PANEL.ANIMATION_DURATION)
-            );
+            this.timeoutManager.addTimeout(() => {
+                if (panelToRemove) {
+                    panelToRemove.remove();
+                }
+            }, INSIGHT_PANEL.ANIMATION_DURATION);
         }
 
         this.currentOpportunity = null;
@@ -340,9 +338,8 @@ export class InsightPanel {
             const relativeRight = scrollerRect.right - triggerRect.right;
 
             // Position panel to the left of the indicator (same as hover preview)
-            panel.style.position = 'absolute';
-            panel.style.top = `${relativeTop}px`;
-            panel.style.right = `${relativeRight + INSIGHT_PANEL.TRIGGER_OFFSET}px`;
+            // TODO: Replace with CodeMirror decorations/gutters when refactoring UI
+            this.setInitialPanelPosition(panel, relativeTop, relativeRight + INSIGHT_PANEL.TRIGGER_OFFSET);
             
             // Ensure panel doesn't go off-screen
             this.adjustPanelPosition(panel, scrollerEl);
@@ -366,13 +363,12 @@ export class InsightPanel {
         if (panelRect.bottom > scrollerRect.bottom) {
             const overflow = panelRect.bottom - scrollerRect.bottom;
             const currentTop = parseInt(panel.style.top || '0', 10);
-            panel.style.top = `${Math.max(0, currentTop - overflow - INSIGHT_PANEL.EDGE_PADDING)}px`;
+            this.updatePanelTop(panel, Math.max(0, currentTop - overflow - INSIGHT_PANEL.EDGE_PADDING));
         }
 
         if (panelRect.left < scrollerRect.left) {
             // If panel extends too far left, position it to the right of the indicator instead
-            panel.style.right = 'auto';
-            panel.style.left = `${INSIGHT_PANEL.DEFAULT_POSITION}px`;
+            this.movePanelToRight(panel, INSIGHT_PANEL.DEFAULT_POSITION);
         }
     }
 
@@ -641,10 +637,42 @@ export class InsightPanel {
     }
 
     /**
+     * Set initial panel position using inline styles (temporary until CodeMirror decorations)
+     * 
+     * TEMPORARY SOLUTION: This uses direct style manipulation which is generally
+     * discouraged for Obsidian plugins. This should be replaced with CodeMirror
+     * decorations or gutter integration when refactoring the UI system.
+     * 
+     * The positioning requires dynamic calculation based on scroll position and
+     * relative element positioning, making it difficult to achieve with pure CSS classes.
+     */
+    private setInitialPanelPosition(panel: HTMLElement, top: number, right: number): void {
+        panel.style.position = 'absolute';
+        panel.style.top = `${top}px`;
+        panel.style.right = `${right}px`;
+    }
+
+    /**
+     * Update panel top position (part of temporary inline style solution)
+     */
+    private updatePanelTop(panel: HTMLElement, top: number): void {
+        panel.style.top = `${top}px`;
+    }
+
+    /**
+     * Move panel to right side (part of temporary inline style solution)
+     */
+    private movePanelToRight(panel: HTMLElement, left: number): void {
+        panel.style.right = 'auto';
+        panel.style.left = `${left}px`;
+    }
+
+    /**
      * Clean up when component is destroyed
      */
     cleanup(): void {
         this.hidePanel();
+        this.timeoutManager.clearAll();
         this.logger.info('InsightPanel cleaned up');
     }
 }

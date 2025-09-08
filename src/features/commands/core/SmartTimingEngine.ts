@@ -89,13 +89,11 @@ class DebounceManager {
         // Clear existing timer for this key
         this.clearTimer(key);
 
-        // Schedule new timer using Obsidian-compliant registration
-        const timerId = this.plugin.registerInterval(
-            window.setTimeout(() => {
-                this.timers.delete(key);
-                callback();
-            }, delay)
-        );
+        // Schedule new timer using TimeoutManager
+        const timerId = window.setTimeout(() => {
+            this.timers.delete(key);
+            callback();
+        }, delay);
 
         this.timers.set(key, timerId);
         this.logger.debug(`Scheduled ${key} with ${delay}ms delay`);

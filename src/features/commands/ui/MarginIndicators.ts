@@ -5,6 +5,7 @@
 
 import { MarkdownView, Editor } from 'obsidian';
 import { Logger } from '../../../utils/logger';
+import { TimeoutManager } from '../../../utils/timeout-manager';
 import { SmartVariableResolver } from '../core/SmartVariableResolver';
 import { CommandRegistry } from '../core/CommandRegistry';
 import { CommandEngine } from '../core/CommandEngine';
@@ -41,6 +42,7 @@ export class MarginIndicators {
     private smartTimingEngine: SmartTimingEngine;
     public insightPanel: InsightPanel;
     private logger = Logger.scope('MarginIndicators');
+    private timeoutManager = new TimeoutManager();
 
     // Component state
     private activeEditor: Editor | null = null;
@@ -140,11 +142,9 @@ export class MarginIndicators {
         this.smartTimingEngine.on('analysis-scheduled', (delay: number) => {
             this.logger.debug(`Analysis scheduled in ${delay}ms`);
             // Schedule our actual analysis to run after the delay
-            this.plugin.registerInterval(
-                window.setTimeout(() => {
-                    this.analyzeCurrentContext();
-                }, delay)
-            );
+            this.timeoutManager.addTimeout(() => {
+                this.analyzeCurrentContext();
+            }, delay);
         });
     }
 
@@ -860,10 +860,9 @@ export class MarginIndicators {
             const topOffset = lineRect.top - scrollerRect.top + scrollerEl.scrollTop;
             const rightOffset = 25; // Distance from right edge
             
-            // Position the indicator (only dynamic positioning, CSS handles the rest)
-            indicator.style.position = 'absolute';
-            indicator.style.top = `${topOffset}px`;
-            indicator.style.right = `${rightOffset}px`;
+            // Position the indicator using helper function
+            // TODO: Replace with CodeMirror decorations/gutters when refactoring UI
+            this.setIndicatorPosition(indicator, topOffset, rightOffset);
             
             this.logger.debug(`Positioned indicator for editor line ${opportunity.line} at DOM index ${domLineIndex}: top=${topOffset}px`);
             
@@ -956,7 +955,8 @@ export class MarginIndicators {
      */
     private hideAllIndicators(): void {
         for (const indicator of this.indicators.values()) {
-            indicator.style.display = 'none';
+            indicator.addClass('nova-indicator-hidden');
+            indicator.removeClass('nova-indicator-visible');
         }
     }
 
@@ -965,8 +965,25 @@ export class MarginIndicators {
      */
     private showAllIndicators(): void {
         for (const indicator of this.indicators.values()) {
-            indicator.style.display = 'block';
+            indicator.removeClass('nova-indicator-hidden');
+            indicator.addClass('nova-indicator-visible');
         }
+    }
+
+    /**
+     * Set indicator position using inline styles (temporary until CodeMirror decorations)
+     * 
+     * TEMPORARY SOLUTION: This uses direct style manipulation which is generally
+     * discouraged for Obsidian plugins. This should be replaced with CodeMirror
+     * decorations or gutter integration when refactoring the UI system.
+     * 
+     * The positioning requires dynamic calculation based on scroll position and
+     * line heights, making it difficult to achieve with pure CSS classes.
+     */
+    private setIndicatorPosition(indicator: HTMLElement, topOffset: number, rightOffset: number): void {
+        indicator.style.position = 'absolute';
+        indicator.style.top = `${topOffset}px`;
+        indicator.style.right = `${rightOffset}px`;
     }
 
     /**
@@ -1057,6 +1074,7 @@ export class MarginIndicators {
      */
     cleanup(): void {
         this.cleanupCurrentEditor();
+        this.timeoutManager.clearAll();
         this.insightPanel.cleanup();
         this.smartTimingEngine.cleanup();
         this.activeEditor = null;

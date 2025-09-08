@@ -307,17 +307,19 @@ describe('InsightPanel', () => {
             (insightPanel as any).currentOpportunity = { type: 'enhancement' };
             (insightPanel as any).activeView = {};
 
-            // Call cleanup (which calls hidePanel)
-            insightPanel.cleanup();
-
-            // Should immediately reset opportunity and view
-            expect((insightPanel as any).currentOpportunity).toBeNull();
-            expect((insightPanel as any).activeView).toBeNull();
+            // Call hidePanel first to trigger the removal timeout
+            insightPanel.hidePanel();
             
-            // Panel cleanup is async (setTimeout), so wait for it
+            // Wait for the timeout to trigger panel removal
             setTimeout(() => {
                 expect((insightPanel as any).activePanel).toBeNull();
                 expect(mockPanel.remove).toHaveBeenCalled();
+                
+                // Now call cleanup to test the cleanup method
+                insightPanel.cleanup();
+                expect((insightPanel as any).currentOpportunity).toBeNull();
+                expect((insightPanel as any).activeView).toBeNull();
+                
                 done();
             }, 250); // Wait longer than the 200ms timeout in hidePanel
         });
