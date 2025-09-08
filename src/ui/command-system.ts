@@ -5,6 +5,16 @@ import { CommandRegistry } from '../features/commands/core/CommandRegistry';
 import { SmartVariableResolver } from '../features/commands/core/SmartVariableResolver';
 import { Logger } from '../utils/logger';
 import type { MarkdownCommand } from '../features/commands/types';
+import { TimeoutManager } from '../utils/timeout-manager';
+
+interface StructuredCommand {
+	name: string;
+	description: string;
+	command: string;
+	template: string;
+	example: string;
+	keywords: string[];
+}
 
 
 /**
@@ -20,7 +30,7 @@ export class CommandSystem {
 	private selectedCommandIndex: number = -1;
 	private commandMenu!: HTMLElement;
 	private isCommandMenuVisible: boolean = false;
-	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
+	private timeoutManager = new TimeoutManager();
 
 	// Nova Commands System integration
 	private commandEngine: CommandEngine;
@@ -325,11 +335,8 @@ export class CommandSystem {
 	}
 
 	cleanup(): void {
-		// Clean up all tracked event listeners
-		this.eventListeners.forEach(({element, event, handler}) => {
-			element.removeEventListener(event, handler);
-		});
-		this.eventListeners = [];
+		// Clean up timeouts
+		this.timeoutManager.clearAll();
 
 		// Clean up Nova Commands components
 		if (this.commandEngine) {

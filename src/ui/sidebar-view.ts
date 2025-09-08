@@ -13,6 +13,7 @@ import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
 import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
+import { TimeoutManager } from '../utils/timeout-manager';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -70,7 +71,6 @@ export class NovaSidebarView extends ItemView {
 	
 	// Document drawer state (transient - always starts closed on file switch)
 	private isDrawerOpen: boolean = false;
-	private contextDrawerCloseHandler: EventListener | null = null;
 	
 	
 	// Performance optimization - debouncing and timing constants
@@ -81,9 +81,8 @@ export class NovaSidebarView extends ItemView {
 	private static readonly HOVER_TIMEOUT_MS = 150;
 	private static readonly NOTICE_DURATION_MS = 5000;
 	
-	// Event listener cleanup tracking
-	private documentEventListeners: Array<{element: EventTarget, event: string, handler: EventListener}> = [];
-	private timeouts: number[] = [];
+	// Event listener cleanup is handled automatically by registerDomEvent
+	private timeoutManager = new TimeoutManager();
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -177,6 +176,9 @@ export class NovaSidebarView extends ItemView {
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
 		
+		// Register global document click handler for context drawer - do this once during initialization
+		this.setupContextDrawerCloseHandler();
+		
 		// Register event listener for active file changes
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
@@ -256,9 +258,9 @@ export class NovaSidebarView extends ItemView {
 		// Also update stats when Nova sidebar gains focus (click anywhere in sidebar)
 		this.registerDomEvent(this.containerEl, 'mousedown', () => {
 			// Small delay to ensure click is processed
-			this.plugin.registerInterval(window.setTimeout(() => {
+			this.timeoutManager.addTimeout(() => {
 				this.refreshAllStats();
-			}, 50));
+			}, 50);
 		});
 	}
 
@@ -272,11 +274,8 @@ export class NovaSidebarView extends ItemView {
 			this.wikilinkAutocomplete.destroy();
 		}
 		
-		// Clear debounce timeout
-		if (this.contextPreviewDebounceTimeout) {
-			window.clearTimeout(this.contextPreviewDebounceTimeout);
-			this.contextPreviewDebounceTimeout = null;
-		}
+		// Clear debounce timeout (handled by TimeoutManager, but reset reference)
+		this.contextPreviewDebounceTimeout = null;
 		
 		// Clean up tracked event listeners
 		this.cleanupEventListeners();
@@ -299,33 +298,21 @@ export class NovaSidebarView extends ItemView {
 	 * Add timeout with automatic cleanup tracking
 	 */
 	private addTrackedTimeout(callback: () => void, delay: number): number {
-		const id = this.plugin.registerInterval(window.setTimeout(() => {
-			callback();
-			this.timeouts = this.timeouts.filter(t => t !== id);
-		}, delay));
-		this.timeouts.push(id);
-		return id;
+		return this.timeoutManager.addTimeout(callback, delay);
 	}
 	
 	/**
 	 * Clean up all tracked event listeners
 	 */
 	private cleanupEventListeners(): void {
-		this.documentEventListeners.forEach(({ element, event, handler }) => {
-			element.removeEventListener(event, handler);
-		});
-		this.documentEventListeners = [];
-		
-		// Context drawer close handler cleanup is now handled automatically by registerDomEvent
-		this.contextDrawerCloseHandler = null;
+		// Event listener cleanup is handled automatically by registerDomEvent
 	}
 	
 	/**
 	 * Clear all tracked timeouts
 	 */
 	private clearTimeouts(): void {
-		this.timeouts.forEach(id => window.clearTimeout(id));
-		this.timeouts = [];
+		this.timeoutManager.clearAll();
 	}
 	
 	/**
@@ -470,7 +457,7 @@ export class NovaSidebarView extends ItemView {
 				// Execute custom command
 				this.inputHandler.getTextArea().setValue(customCommand.template);
 				// Trigger auto-grow after setting template
-					this.plugin.registerInterval(window.setTimeout(() => this.autoGrowTextarea(), 0));
+				this.timeoutManager.addTimeout(() => this.autoGrowTextarea(), 0);
 				this.addSuccessMessage(`✓ Loaded template: ${customCommand.name}`);
 				return true;
 			}
@@ -772,10 +759,10 @@ export class NovaSidebarView extends ItemView {
 			window.clearTimeout(this.contextPreviewDebounceTimeout);
 		}
 		
-		this.contextPreviewDebounceTimeout = this.plugin.registerInterval(window.setTimeout(() => {
+		this.contextPreviewDebounceTimeout = this.timeoutManager.addTimeout(() => {
 			this.updateLiveContextPreview();
 			this.contextPreviewDebounceTimeout = null;
-		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS));
+		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);
 	}
 
 	private updateLiveContextPreview(): void {
@@ -855,6 +842,28 @@ export class NovaSidebarView extends ItemView {
 		return file instanceof TFile ? file : null;
 	}
 
+	/**
+	 * Set up the global document click handler for closing the context drawer
+	 * This is registered once during initialization to prevent memory leaks
+	 */
+	private setupContextDrawerCloseHandler(): void {
+		// Create the close handler that will check drawer state and context indicator
+		const closeHandler = (e: Event) => {
+			if (this.isDrawerOpen && this.contextIndicator && !this.contextIndicator.contains(e.target as Node)) {
+				this.isDrawerOpen = false;
+				// Find and hide the expanded element
+				const expandedEl = this.contextIndicator.querySelector('.nova-context-expanded');
+				if (expandedEl) {
+					expandedEl.removeClass('show');
+				}
+				this.contextIndicator.removeClass('drawer-open');
+			}
+		};
+		
+		// Register the handler once using registerDomEvent for proper cleanup
+		this.registerDomEvent(document, 'click', closeHandler);
+	}
+
 	private updateContextIndicator(): void {
 		if (!this.contextIndicator) {
 			return;
@@ -875,9 +884,6 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
-		// Clean up the previous close handler to prevent accumulation
-		// Note: removeEventListener is now handled automatically by registerDomEvent
-		this.contextDrawerCloseHandler = null;
 
 		this.contextIndicator.empty();
 		
@@ -1001,9 +1007,9 @@ export class NovaSidebarView extends ItemView {
 				clearAllBtn.addClass('nova-button-pressed');
 			});
 			this.registerDomEvent(clearAllBtn, 'touchend', () => {
-				this.plugin.registerInterval(window.setTimeout(() => {
+				this.timeoutManager.addTimeout(() => {
 					clearAllBtn.removeClass('nova-button-pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS));
+				}, NovaSidebarView.HOVER_TIMEOUT_MS);
 			});
 		}
 		// Desktop hover handled by CSS
@@ -1063,9 +1069,9 @@ export class NovaSidebarView extends ItemView {
 				});
 				
 				this.registerDomEvent(removeBtn, 'touchend', () => {
-					this.plugin.registerInterval(window.setTimeout(() => {
+					this.timeoutManager.addTimeout(() => {
 						removeBtn.removeClass('pressed');
-					}, NovaSidebarView.HOVER_TIMEOUT_MS));
+					}, NovaSidebarView.HOVER_TIMEOUT_MS);
 				});
 			}
 			// Desktop hover is handled by CSS
@@ -1093,18 +1099,6 @@ export class NovaSidebarView extends ItemView {
 		
 		// Click on the entire summary line to expand
 		this.registerDomEvent(summaryEl, 'click', toggleExpanded);
-		
-		// Close when clicking outside
-		this.contextDrawerCloseHandler = (e: Event) => {
-			if (this.isDrawerOpen && !this.contextIndicator.contains(e.target as Node)) {
-				this.isDrawerOpen = false;
-				expandedEl.removeClass('show');
-				this.contextIndicator.removeClass('drawer-open');
-			}
-		};
-		
-		// Register document event listener for proper cleanup
-		this.registerDomEvent(document, 'click', this.contextDrawerCloseHandler);
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -1420,8 +1414,9 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Find the view with our file
 			for (const leaf of leaves) {
-				const view = leaf.view as MarkdownView;
-				if (view.file === this.currentFile) {
+				const view = leaf.view;
+				// Use instanceof check to handle deferred views properly
+				if (view instanceof MarkdownView && view.file === this.currentFile) {
 					markdownView = view;
 					break;
 				}
@@ -1432,7 +1427,11 @@ USER REQUEST: ${processedMessage}`;
 				const leaf = this.app.workspace.getLeaf(false);
 				if (leaf) {
 					await leaf.openFile(this.currentFile);
-					markdownView = leaf.view as MarkdownView;
+					const view = leaf.view;
+					// Use instanceof check to handle deferred views properly
+					if (view instanceof MarkdownView) {
+						markdownView = view;
+					}
 				}
 			}
 			
@@ -1448,8 +1447,8 @@ USER REQUEST: ${processedMessage}`;
 				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: false });
 				
 				// Wait for workspace transition to complete before proceeding
-				await new Promise(resolve => {
-					this.plugin.registerInterval(window.setTimeout(resolve, 50));
+				await new Promise<void>(resolve => {
+					this.timeoutManager.addTimeout(() => resolve(), 50);
 				});
 				
 				// Double-check that the file is now active
@@ -1532,21 +1531,13 @@ USER REQUEST: ${processedMessage}`;
 			if (activeView && activeView.file) {
 				targetFile = activeView.file;
 			} else {
-				// Handle potentially deferred views (introduced in v1.7.2)
-				// Use recommended API to get active markdown view
-				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (view && view.file) {
-					targetFile = view.file;
-				}
-				
 				// Final fallback: any open markdown file
-				if (!targetFile) {
-					const leaves = this.app.workspace.getLeavesOfType('markdown');
-					if (leaves.length > 0) {
-						const view = leaves[0].view as MarkdownView;
-						if (view && view.file) {
-							targetFile = view.file;
-						}
+				const leaves = this.app.workspace.getLeavesOfType('markdown');
+				if (leaves.length > 0) {
+					const view = leaves[0].view;
+					// Use instanceof check instead of unsafe cast to handle deferred views properly
+					if (view instanceof MarkdownView && view.file) {
+						targetFile = view.file;
 					}
 				}
 			}
@@ -1839,9 +1830,9 @@ USER REQUEST: ${processedMessage}`;
 					contentEl.textContent = `I noticed:\n${bulletList}\n\nLet me help.`;
 
 					// Scroll to show the new message
-					this.plugin.registerInterval(window.setTimeout(() => {
+					this.timeoutManager.addTimeout(() => {
 						this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-					}, 50));
+					}, 50);
 				}
 			}
 		} catch (error) {

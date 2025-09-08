@@ -9,6 +9,7 @@ import { GoogleProvider } from './ai/providers/google';
 import { OllamaProvider } from './ai/providers/ollama';
 import { Logger } from './utils/logger';
 import { CommandSuggestionsSettings } from './features/commands/types';
+import { TimeoutManager } from './utils/timeout-manager';
 
 
 export interface CustomCommand {
@@ -92,7 +93,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	private activeTab: 'getting-started' | 'general' | 'providers' | 'commands' | 'supernova' | 'debug' = 'getting-started';
 	private tabContainer: HTMLElement | null = null;
 	private contentContainer: HTMLElement | null = null;
-	private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListener}> = [];
+	private timeoutManager = new TimeoutManager();
 
 	constructor(app: App, plugin: NovaPlugin) {
 		super(app, plugin);
@@ -328,7 +329,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		createBenefitItem('⚡', 'Early access', 'Get new features 2-4 months before general release');
 		createBenefitItem('💬', 'Priority support', 'Direct access to developers for feature requests and bug reports');
-		createBenefitItem('🗳️', 'Vote on Features', 'Help shape Nova\'s development and future direction');
+		createBenefitItem('🗳️', 'Vote on features', 'Help shape Nova\'s development and future direction');
 		createBenefitItem('🏆', 'Supporter badge', 'Recognition in the Nova community (coming soon)');
 		createBenefitItem('❤️', 'Open source support', 'Directly fund continued development of Nova');
 		
@@ -358,7 +359,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
 		
 		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard2.createEl('h4', { text: '⚠️ Developer options' });
+		infoCard2.createEl('h4', { text: '⚠️ Developer settings' });
 		
 		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
 		const features = [
@@ -385,7 +386,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Privacy & Platform Section
 		const privacySection = container.createDiv({ cls: 'nova-privacy-section' });
 		new Setting(privacySection)
-			.setName('Privacy & Platform')
+			.setName('Privacy & platform')
 			.setHeading();
 		
 		const infoEl = privacySection.createDiv({ cls: 'nova-privacy-info' });
@@ -629,7 +630,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			button.addClass('nova-button-ready');
 		};
 		
-		const backupTimer = this.plugin.registerInterval(window.setTimeout(restoreButton, 12000)); // 12 second backup
+		const backupTimer = this.timeoutManager.addTimeout(restoreButton, 12000); // 12 second backup
 		
 		try {
 			// Check basic configuration first
@@ -640,7 +641,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 			// Set timeout for 10 seconds
 			const timeoutPromise = new Promise<never>((_, reject) => {
-				this.plugin.registerInterval(window.setTimeout(() => reject(new Error('Connection timeout')), 10000));
+				this.timeoutManager.addTimeout(() => reject(new Error('Connection timeout')), 10000);
 			});
 
 			// Test the connection using the plugin's provider system
@@ -700,7 +701,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			}));
 		} finally {
 			// Clear backup timer and restore button
-			clearTimeout(backupTimer);
+			this.timeoutManager.removeTimeout(backupTimer);
 			restoreButton();
 		}
 	}
@@ -1000,7 +1001,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createDebugSettings(container: HTMLElement) {
 		const debugContainer = container.createDiv({ cls: 'nova-debug-section' });
-		new Setting(debugContainer).setName('Development options').setHeading();
+		new Setting(debugContainer).setName('Development settings').setHeading();
 
 		new Setting(debugContainer)
 			.setName('Debug mode')
@@ -1147,9 +1148,9 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 
 		// Auto-remove after 5 seconds
-		this.plugin.registerInterval(window.setTimeout(() => {
+		this.timeoutManager.addTimeout(() => {
 			messageEl.remove();
-		}, 5000));
+		}, 5000);
 	}
 
 
@@ -1410,7 +1411,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Info about platform settings
 		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
 		const infoCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard.createEl('h4', { text: '🖥️ Platform Setup' });
+		infoCard.createEl('h4', { text: '🖥️ Platform setup' });
 		const infoText = infoCard.createEl('p');
 		infoText.textContent = 'Configure which AI provider to use as your primary provider on different platforms. Nova works seamlessly across desktop and mobile with all providers.';
 		
@@ -1491,8 +1492,11 @@ export class NovaSettingTab extends PluginSettingTab {
 					// Find and refresh sidebar view
 					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
 					if (leaves.length > 0) {
-						const sidebarView = leaves[0].view as NovaSidebarView;
-						sidebarView.refreshCommandButton();
+						const view = leaves[0].view;
+						// Use instanceof check for consistency
+						if (view instanceof NovaSidebarView) {
+							view.refreshCommandButton();
+						}
 					}
 				}));
 
@@ -1914,10 +1918,10 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Step items
 		const steps = [
-			{ text: '1. Explore Privacy and General', link: '→ Go to General tab', tab: 'general' },
-			{ text: '2. Configure AI providers', link: '→ Go to AI Providers tab', tab: 'providers' },
-			{ text: '3. Manage Supernova License', link: '→ Go to Supernova tab', tab: 'supernova' },
-			{ text: '4. Explore the User Guide', link: '→ Open User Guide ↗', href: 'https://novawriter.ai/guide.html', external: true }
+			{ text: '1. Explore privacy and general', link: '→ Go to General tab', tab: 'general' },
+			{ text: '2. Configure AI providers', link: '→ Go to AI providers tab', tab: 'providers' },
+			{ text: '3. Manage Supernova license', link: '→ Go to Supernova tab', tab: 'supernova' },
+			{ text: '4. Explore the user guide', link: '→ Open user guide ↗', href: 'https://novawriter.ai/guide.html', external: true }
 		];
 		
 		steps.forEach(step => {
@@ -1958,9 +1962,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	 * Clean up event listeners when settings tab is closed
 	 */
 	cleanup(): void {
-		this.eventListeners.forEach(({element, event, handler}) => {
-			element.removeEventListener(event, handler);
-		});
-		this.eventListeners = [];
+		this.timeoutManager.clearAll();
+		// Event listeners are cleaned up automatically by PluginSettingTab
 	}
 }

@@ -1,5 +1,6 @@
 import { TFile, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
+import { TimeoutManager } from '../utils/timeout-manager';
 
 /**
  * Message options for unified message creation
@@ -17,6 +18,7 @@ export class ChatRenderer {
 	private plugin: NovaPlugin;
 	private chatContainer: HTMLElement;
 	private static readonly SCROLL_DELAY_MS = 50;
+	private timeoutManager = new TimeoutManager();
 
 	constructor(plugin: NovaPlugin, chatContainer: HTMLElement) {
 		this.plugin = plugin;
@@ -175,7 +177,7 @@ export class ChatRenderer {
 	}
 
 	private scrollToBottom(smooth: boolean = false): void {
-		this.plugin.registerInterval(window.setTimeout(() => {
+		this.timeoutManager.addTimeout(() => {
 			if (smooth) {
 				this.chatContainer.scrollTo({
 					top: this.chatContainer.scrollHeight,
@@ -184,7 +186,7 @@ export class ChatRenderer {
 			} else {
 				this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
 			}
-		}, ChatRenderer.SCROLL_DELAY_MS));
+		}, ChatRenderer.SCROLL_DELAY_MS);
 	}
 
 	async loadConversationHistory(file: TFile): Promise<void> {
@@ -213,5 +215,12 @@ export class ChatRenderer {
 		}
 		
 		this.scrollToBottom();
+	}
+
+	/**
+	 * Clean up resources
+	 */
+	cleanup(): void {
+		this.timeoutManager.clearAll();
 	}
 }
