@@ -4,6 +4,7 @@
  */
 
 import { MarkdownView, Editor } from 'obsidian';
+import { EditorView } from '@codemirror/view';
 import { Logger } from '../../../utils/logger';
 import { TimeoutManager } from '../../../utils/timeout-manager';
 import { SmartVariableResolver } from '../core/SmartVariableResolver';
@@ -11,6 +12,7 @@ import { CommandRegistry } from '../core/CommandRegistry';
 import { CommandEngine } from '../core/CommandEngine';
 import { SmartTimingEngine } from '../core/SmartTimingEngine';
 import { InsightPanel } from './InsightPanel';
+import { CodeMirrorIndicatorManager } from './codemirror-decorations';
 import type { SmartContext, MarkdownCommand, TimingDecision, TypingMetrics } from '../types';
 import type NovaPlugin from '../../../../main';
 
@@ -47,7 +49,7 @@ export class MarginIndicators {
     // Component state
     private activeEditor: Editor | null = null;
     private activeView: MarkdownView | null = null;
-    private indicators = new Map<string, HTMLElement>();
+    private indicatorManager: CodeMirrorIndicatorManager | null = null;
     private currentOpportunities: IndicatorOpportunity[] = [];
     
     // Performance optimization - line-level caching
@@ -174,6 +176,9 @@ export class MarginIndicators {
 
         this.activeView = activeView;
         this.activeEditor = activeView.editor;
+        
+        // Set up CodeMirror indicator manager
+        this.setupCodeMirrorManager();
         
         if (this.enabled) {
             this.setupEditorListeners();
@@ -371,13 +376,12 @@ export class MarginIndicators {
             const quickFixIssues = this.findQuickFixIssues(context, lineText);
             if (quickFixIssues.length > 0) {
                 const issueCount = quickFixIssues.length;
-                const icon = issueCount > 1 ? `⚡${issueCount}` : '⚡';
                 
                 lineOpportunities.push({
                     line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'quickfix',
-                    icon,
+                    icon: '⚡',
                     commands: activeQuickFixCommands.slice(0, 2),
                     confidence: this.calculateConfidence(context, 'quickfix'),
                     specificIssues: quickFixIssues,
@@ -725,186 +729,59 @@ export class MarginIndicators {
     }
 
     /**
-     * Update visible indicators
+     * Update visible indicators using CodeMirror decorations
      */
     private updateIndicators(opportunities: IndicatorOpportunity[]): void {
-        // Clear existing indicators
-        this.clearIndicators();
-        
         // Store new opportunities
         this.currentOpportunities = opportunities;
         
-        // Create new indicators
-        this.logger.debug(`Creating ${opportunities.length} indicators`);
-        for (const opportunity of opportunities) {
-            this.logger.debug(`Creating indicator for line ${opportunity.line}:${opportunity.type}`);
-            this.createIndicator(opportunity);
+        // Update indicators using CodeMirror manager
+        if (this.indicatorManager) {
+            this.logger.debug(`Updating ${opportunities.length} indicators via CodeMirror decorations`);
+            this.indicatorManager.updateIndicators(opportunities);
+        } else {
+            this.logger.warn('CodeMirror indicator manager not available');
         }
     }
 
-    /**
-     * Create a visual indicator
-     */
-    private createIndicator(opportunity: IndicatorOpportunity): void {
-        if (!this.activeView) return;
 
-        // Find the appropriate container (CodeMirror scroller for proper positioning)
-        const scrollerEl = this.activeView.containerEl.querySelector('.cm-scroller') as HTMLElement;
-        if (!scrollerEl) {
-            this.logger.warn('Could not find .cm-scroller for indicator creation');
+
+    /**
+     * Set up CodeMirror indicator manager for current editor
+     */
+    private setupCodeMirrorManager(): void {
+        if (!this.activeView) {
+            this.indicatorManager = null;
             return;
         }
-
-        // Validate positioning before creating the indicator
-        if (!this.canPositionIndicator(opportunity)) {
-            this.logger.debug(`Cannot position indicator for line ${opportunity.line}, skipping creation`);
-            return;
-        }
-
-        const indicator = scrollerEl.createDiv({
-            cls: `nova-margin-indicator nova-margin-indicator-${opportunity.type}`
-        });
-        
-        indicator.textContent = opportunity.icon;
-        indicator.setAttribute('data-type', opportunity.type);
-        indicator.setAttribute('data-line', opportunity.line.toString());
-        
-        // Position the indicator (should succeed since we validated above)
-        this.positionIndicator(indicator, opportunity);
-        
-        // Add click event
-        this.plugin.registerDomEvent(indicator, 'click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this.onIndicatorClick(opportunity, indicator);
-        });
-        
-        // Store reference
-        const key = `${opportunity.line}-${opportunity.type}`;
-        this.indicators.set(key, indicator);
-    }
-
-
-    /**
-     * Check if an indicator can be positioned without creating it
-     */
-    private canPositionIndicator(opportunity: IndicatorOpportunity): boolean {
-        if (!this.activeEditor || !this.activeView) return false;
-
-        try {
-            // Get the CodeMirror content area
-            const contentEl = this.activeView.containerEl.querySelector('.cm-content') as HTMLElement;
-            if (!contentEl) return false;
-
-            // Get all line elements
-            const lineElements = contentEl.querySelectorAll('.cm-line');
-            
-            // Calculate frontmatter offset
-            const frontmatterOffset = this.calculateFrontmatterOffset();
-            
-            // Convert editor line number to DOM line index
-            const domLineIndex = opportunity.line - frontmatterOffset;
-            
-            this.logger.debug(`Line ${opportunity.line}: frontmatter offset=${frontmatterOffset}, DOM index=${domLineIndex}, DOM lines available=${lineElements.length}`);
-            
-            // Validate the DOM line index
-            const canPosition = domLineIndex >= 0 && domLineIndex < lineElements.length;
-            if (!canPosition) {
-                this.logger.debug(`Cannot position line ${opportunity.line}: DOM index ${domLineIndex} outside range 0-${lineElements.length-1}`);
-            }
-            return canPosition;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    /**
-     * Position an indicator in the margin
-     */
-    private positionIndicator(indicator: HTMLElement, opportunity: IndicatorOpportunity): void {
-        if (!this.activeEditor || !this.activeView) return;
-
-        try {
-            // Get the CodeMirror content area
-            const contentEl = this.activeView.containerEl.querySelector('.cm-content') as HTMLElement;
-            const scrollerEl = this.activeView.containerEl.querySelector('.cm-scroller') as HTMLElement;
-            
-            if (!contentEl || !scrollerEl) {
-                this.logger.warn('Could not find CodeMirror elements for positioning');
-                return;
-            }
-
-            // Get all line elements
-            const lineElements = contentEl.querySelectorAll('.cm-line');
-            
-            // Calculate frontmatter offset
-            // In Obsidian, frontmatter lines exist in the editor but not in the DOM
-            const frontmatterOffset = this.calculateFrontmatterOffset();
-            
-            // Convert editor line number to DOM line index
-            const domLineIndex = opportunity.line - frontmatterOffset;
-            
-            // Validate the DOM line index
-            if (domLineIndex < 0 || domLineIndex >= lineElements.length) {
-                this.logger.debug(`Line ${opportunity.line} (DOM index ${domLineIndex}) is outside visible range (0-${lineElements.length-1}), skipping indicator`);
-                return;
-            }
-            
-            const targetLineElement = lineElements[domLineIndex] as HTMLElement;
-            
-            // Get position relative to the scroller
-            const lineRect = targetLineElement.getBoundingClientRect();
-            const scrollerRect = scrollerEl.getBoundingClientRect();
-            
-            // Calculate position accounting for scroll
-            const topOffset = lineRect.top - scrollerRect.top + scrollerEl.scrollTop;
-            const rightOffset = 25; // Distance from right edge
-            
-            // Position the indicator using helper function
-            // TODO: Replace with CodeMirror decorations/gutters when refactoring UI
-            this.setIndicatorPosition(indicator, topOffset, rightOffset);
-            
-            this.logger.debug(`Positioned indicator for editor line ${opportunity.line} at DOM index ${domLineIndex}: top=${topOffset}px`);
-            
-        } catch (error) {
-            this.logger.error('Failed to position indicator:', error);
-        }
-    }
-
-    /**
-     * Calculate how many lines of frontmatter exist
-     * Frontmatter exists in the editor but not in the DOM
-     */
-    private calculateFrontmatterOffset(): number {
-        if (!this.activeEditor) return 0;
         
         try {
-            // Check if document starts with frontmatter delimiter
-            const firstLine = this.activeEditor.getLine(0);
-            if (firstLine !== '---') return 0;
-            
-            // Find the closing delimiter
-            for (let i = 1; i < this.activeEditor.lineCount(); i++) {
-                const line = this.activeEditor.getLine(i);
-                if (line === '---') {
-                    // Return the number of frontmatter lines (including delimiters)
-                    return i + 1;
-                }
+            // Get the CodeMirror EditorView from the Obsidian editor
+            const cm = (this.activeView.editor as any).cm as EditorView;
+            if (cm) {
+                this.indicatorManager = new CodeMirrorIndicatorManager(cm);
+                
+                // Set up event listener for indicator clicks
+                this.plugin.registerDomEvent(document, 'nova-indicator-click' as any, (event: CustomEvent) => {
+                    const { opportunity, element } = event.detail;
+                    this.onIndicatorClick(opportunity, element);
+                });
+                
+                this.logger.debug('Set up CodeMirror indicator manager');
+            } else {
+                this.logger.warn('Could not access CodeMirror EditorView');
+                this.indicatorManager = null;
             }
-            
-            // If no closing delimiter found, assume no frontmatter
-            return 0;
         } catch (error) {
-            this.logger.debug('Error calculating frontmatter offset:', error);
-            return 0;
+            this.logger.error('Failed to set up CodeMirror manager:', error);
+            this.indicatorManager = null;
         }
     }
 
-
     /**
-     * Handle indicator click
+     * Handle indicator click events from CodeMirror decorations
      */
-    private onIndicatorClick(opportunity: IndicatorOpportunity, clickedIndicator: HTMLElement): void {
+    private onIndicatorClick(opportunity: IndicatorOpportunity, clickedElement: HTMLElement): void {
         this.logger.info(`Clicked indicator: ${opportunity.type} with ${opportunity.commands.length} commands`);
         
         if (!this.activeView) {
@@ -914,86 +791,45 @@ export class MarginIndicators {
 
         // Show InsightPanel with full intelligence
         if (opportunity.commands.length > 0) {
-            this.insightPanel.showPanel(opportunity, clickedIndicator, this.activeView);
+            this.insightPanel.showPanel(opportunity, clickedElement, this.activeView);
         } else {
             this.logger.warn(`No commands available for ${opportunity.type} opportunity`);
         }
     }
 
-    /**
-     * Update indicator positions (for scroll events)
-     */
-    private updateIndicatorPositions(): void {
-        if (!this.activeEditor || !this.activeView) return;
 
-        try {
-            // Re-position all existing indicators using improved positioning
-            for (const [, indicator] of this.indicators.entries()) {
-                const lineNumber = parseInt(indicator.getAttribute('data-line') || '0', 10);
-                const type = indicator.getAttribute('data-type') as 'enhancement' | 'quickfix' | 'metrics' | 'transform';
-                
-                if (!isNaN(lineNumber) && type) {
-                    const opportunity: IndicatorOpportunity = {
-                        line: lineNumber,
-                        column: this.getMarginColumn(),
-                        type: type,
-                        icon: indicator.textContent || '',
-                        commands: [], // Not needed for positioning
-                        confidence: 0.5 // Not needed for positioning
-                    };
-                    
-                    this.positionIndicator(indicator, opportunity);
-                }
-            }
-        } catch (error) {
-            this.logger.error('Failed to update indicator positions:', error);
-        }
-    }
+
+
 
     /**
-     * Hide all indicators
+     * Hide all indicators using CodeMirror decorations
      */
     private hideAllIndicators(): void {
-        for (const indicator of this.indicators.values()) {
-            indicator.addClass('nova-indicator-hidden');
-            indicator.removeClass('nova-indicator-visible');
+        if (this.indicatorManager) {
+            this.indicatorManager.clearIndicators();
+            this.logger.debug('Cleared all indicators via CodeMirror');
         }
     }
 
     /**
-     * Show all indicators
+     * Show all indicators using CodeMirror decorations
      */
     private showAllIndicators(): void {
-        for (const indicator of this.indicators.values()) {
-            indicator.removeClass('nova-indicator-hidden');
-            indicator.addClass('nova-indicator-visible');
+        if (this.indicatorManager && this.currentOpportunities.length > 0) {
+            this.indicatorManager.updateIndicators(this.currentOpportunities);
+            this.logger.debug('Restored all indicators via CodeMirror');
         }
     }
 
-    /**
-     * Set indicator position using inline styles (temporary until CodeMirror decorations)
-     * 
-     * TEMPORARY SOLUTION: This uses direct style manipulation which is generally
-     * discouraged for Obsidian plugins. This should be replaced with CodeMirror
-     * decorations or gutter integration when refactoring the UI system.
-     * 
-     * The positioning requires dynamic calculation based on scroll position and
-     * line heights, making it difficult to achieve with pure CSS classes.
-     */
-    private setIndicatorPosition(indicator: HTMLElement, topOffset: number, rightOffset: number): void {
-        indicator.style.position = 'absolute';
-        indicator.style.top = `${topOffset}px`;
-        indicator.style.right = `${rightOffset}px`;
-    }
 
     /**
-     * Clear all indicators
+     * Clear all indicators using CodeMirror decorations
      */
     public clearIndicators(): void {
-        for (const indicator of this.indicators.values()) {
-            indicator.remove();
+        if (this.indicatorManager) {
+            this.indicatorManager.clearIndicators();
         }
-        this.indicators.clear();
+        this.currentOpportunities = [];
     }
 
     /**
@@ -1024,8 +860,8 @@ export class MarginIndicators {
      */
     private cleanupCurrentEditor(): void {
         this.clearIndicators();
-        this.currentOpportunities = [];
         this.clearAnalysisCache();
+        this.indicatorManager = null;
         
         // Timer cleanup is now handled by SmartTimingEngine
         this.smartTimingEngine.cancelPendingAnalysis();

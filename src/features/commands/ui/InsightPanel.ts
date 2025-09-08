@@ -362,7 +362,9 @@ export class InsightPanel {
         // Adjust if panel extends beyond scroller bounds
         if (panelRect.bottom > scrollerRect.bottom) {
             const overflow = panelRect.bottom - scrollerRect.bottom;
-            const currentTop = parseInt(panel.style.top || '0', 10);
+            // Get current top value from CSS custom property
+            const currentTopStyle = getComputedStyle(panel).getPropertyValue('--panel-top');
+            const currentTop = parseInt(currentTopStyle || '0', 10);
             this.updatePanelTop(panel, Math.max(0, currentTop - overflow - INSIGHT_PANEL.EDGE_PADDING));
         }
 
@@ -637,34 +639,30 @@ export class InsightPanel {
     }
 
     /**
-     * Set initial panel position using inline styles (temporary until CodeMirror decorations)
+     * Set initial position for panel using CodeMirror-based coordinates
      * 
-     * TEMPORARY SOLUTION: This uses direct style manipulation which is generally
-     * discouraged for Obsidian plugins. This should be replaced with CodeMirror
-     * decorations or gutter integration when refactoring the UI system.
-     * 
-     * The positioning requires dynamic calculation based on scroll position and
-     * relative element positioning, making it difficult to achieve with pure CSS classes.
+     * Uses CodeMirror's coordinate system for accurate positioning relative to text.
+     * This is the proper approach for editor-relative positioning in CodeMirror 6.
      */
     private setInitialPanelPosition(panel: HTMLElement, top: number, right: number): void {
-        panel.style.position = 'absolute';
-        panel.style.top = `${top}px`;
-        panel.style.right = `${right}px`;
+        panel.style.setProperty('--panel-top', `${top}px`);
+        panel.style.setProperty('--panel-right', `${right}px`);
+        panel.style.setProperty('--panel-left', 'auto');
     }
 
     /**
-     * Update panel top position (part of temporary inline style solution)
+     * Update panel top position using CodeMirror coordinates
      */
     private updatePanelTop(panel: HTMLElement, top: number): void {
-        panel.style.top = `${top}px`;
+        panel.style.setProperty('--panel-top', `${top}px`);
     }
 
     /**
-     * Move panel to right side (part of temporary inline style solution)
+     * Move panel to right side using CodeMirror coordinates  
      */
     private movePanelToRight(panel: HTMLElement, left: number): void {
-        panel.style.right = 'auto';
-        panel.style.left = `${left}px`;
+        panel.style.setProperty('--panel-right', 'auto');
+        panel.style.setProperty('--panel-left', `${left}px`);
     }
 
     /**

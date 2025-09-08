@@ -26,6 +26,7 @@ import { CommandRegistry } from './src/features/commands/core/CommandRegistry';
 import { SmartVariableResolver } from './src/features/commands/core/SmartVariableResolver';
 import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngine';
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
+import { createIndicatorExtension } from './src/features/commands/ui/codemirror-decorations';
 import { toSmartTimingSettings } from './src/features/commands/types';
 
 // Nova icon - main plugin icon
@@ -169,6 +170,9 @@ export default class NovaPlugin extends Plugin {
 			this.commandEngine = new CommandEngine(this);
 			this.commandRegistry = new CommandRegistry(this, this.commandEngine);
 			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry, this.commandEngine, this.smartTimingEngine);
+			
+			// Register CodeMirror extension for margin indicators
+			this.registerEditorExtension(createIndicatorExtension());
 			Logger.info('Nova Commands system components created successfully');
 
 			this.registerView(

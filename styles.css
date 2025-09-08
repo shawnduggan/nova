@@ -3716,30 +3716,8 @@
     font-style: italic;
 }
 
-/* Margin Indicators */
-.nova-margin-indicator {
-    position: absolute;
-    font-size: 14px;
-    line-height: 1;
-    opacity: 0.6;
-    cursor: pointer;
-    z-index: 100;
-    transition: opacity 0.2s ease;
-    user-select: none;
-    pointer-events: auto;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 2px;
-}
-
-.nova-margin-indicator:hover {
-    opacity: 1.0;
-    transform: scale(1.1);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
+/* Margin Indicators - Visual styling for CodeMirror decorations */
+/* Note: Positioning is now handled by CodeMirror decorations system */
 
 .nova-margin-indicator-enhancement {
     color: var(--text-accent);
@@ -3755,16 +3733,6 @@
 
 .nova-margin-indicator-transform {
     color: var(--color-purple);
-}
-
-/* Mobile adjustments for margin indicators */
-@media (max-width: 768px) {
-    .nova-margin-indicator {
-        font-size: 12px;
-        width: 14px;
-        height: 14px;
-        right: 10px !important;
-    }
 }
 
 /* Command Picker Modal */
@@ -3880,6 +3848,9 @@
 /* InsightPanel - Full intelligence panel for command selection */
 .nova-insight-panel {
     position: absolute;
+    top: var(--panel-top, 0px);
+    right: var(--panel-right, auto);
+    left: var(--panel-left, auto);
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);

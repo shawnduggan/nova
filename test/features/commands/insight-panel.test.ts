@@ -110,21 +110,34 @@ describe('InsightPanel', () => {
     describe('Panel Position Adjustment Logic', () => {
         let mockPanel: HTMLElement;
         let mockScrollerEl: HTMLElement;
+        let mockCssProperties: { [key: string]: string };
 
         beforeEach(() => {
+            // Track CSS custom properties
+            mockCssProperties = {
+                '--panel-top': '100px',
+                '--panel-left': '50px',
+                '--panel-right': 'auto'
+            };
+
             // Create mock DOM elements
             mockPanel = {
                 getBoundingClientRect: jest.fn(),
                 style: {
-                    top: '100px',
-                    left: '50px',
-                    right: 'auto'
+                    setProperty: jest.fn((prop, value) => {
+                        mockCssProperties[prop] = value;
+                    })
                 }
             } as any;
 
             mockScrollerEl = {
                 getBoundingClientRect: jest.fn()
             } as any;
+
+            // Mock getComputedStyle
+            (global as any).getComputedStyle = jest.fn(() => ({
+                getPropertyValue: jest.fn((prop: string) => mockCssProperties[prop] || '')
+            }));
         });
 
         test('should adjust position when panel extends beyond bottom boundary', () => {
@@ -147,7 +160,7 @@ describe('InsightPanel', () => {
             // Should adjust top position to move panel up
             // overflow = 500 - 400 = 100
             // currentTop = 100, newTop = max(0, 100 - 100 - 10) = 0
-            expect(mockPanel.style.top).toBe('0px');
+            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-top', '0px');
         });
 
         test('should adjust position when panel extends beyond left boundary', () => {
@@ -167,8 +180,8 @@ describe('InsightPanel', () => {
             adjustPosition(mockPanel, mockScrollerEl);
 
             // Should switch to right positioning
-            expect(mockPanel.style.right).toBe('auto');
-            expect(mockPanel.style.left).toBe('30px');
+            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-right', 'auto');
+            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-left', '30px');
         });
 
         test('should not adjust position when panel fits within boundaries', () => {
@@ -184,15 +197,11 @@ describe('InsightPanel', () => {
                 right: 400
             });
 
-            const originalTop = mockPanel.style.top;
-            const originalLeft = mockPanel.style.left;
-
             const adjustPosition = (insightPanel as any).adjustPanelPosition.bind(insightPanel);
             adjustPosition(mockPanel, mockScrollerEl);
 
-            // Should not change position
-            expect(mockPanel.style.top).toBe(originalTop);
-            expect(mockPanel.style.left).toBe(originalLeft);
+            // Should not make any positioning calls since panel fits
+            expect(mockPanel.style.setProperty).not.toHaveBeenCalled();
         });
 
         test('should handle complex overflow scenarios', () => {
@@ -212,8 +221,8 @@ describe('InsightPanel', () => {
             adjustPosition(mockPanel, mockScrollerEl);
 
             // Should handle both adjustments
-            expect(mockPanel.style.top).toBe('0px'); // Adjusted for bottom overflow
-            expect(mockPanel.style.left).toBe('30px'); // Adjusted for left overflow
+            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-top', '0px'); // Adjusted for bottom overflow
+            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-left', '30px'); // Adjusted for left overflow
         });
     });
 
