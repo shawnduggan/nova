@@ -62,7 +62,7 @@ export const COMMANDS = {
     SEARCH_PLACEHOLDER: 'Search commands...',
     
     /** Default opportunity title fallback */
-    DEFAULT_TITLE: 'Command Options',
+    DEFAULT_TITLE: 'Command options',
     
     /** Button labels */
     APPLY_BUTTON_TEXT: 'Apply',
@@ -71,10 +71,10 @@ export const COMMANDS = {
 
 /** Opportunity type display titles */
 export const OPPORTUNITY_TITLES = {
-    enhancement: 'Writing Enhancement',
+    enhancement: 'Writing enhancement',
     quickfix: 'Issues', 
-    metrics: 'Document Analysis',
-    transform: 'Content Transform'
+    metrics: 'Document analysis',
+    transform: 'Content transform'
 } as const;
 
 /** CSS class prefixes for consistency */

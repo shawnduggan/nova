@@ -79,31 +79,31 @@ describe('InsightPanel', () => {
             // Access private method for testing business logic
             const getTitle = (insightPanel as any).getOpportunityTitle.bind(insightPanel);
             
-            expect(getTitle('enhancement')).toBe('Writing Enhancement');
+            expect(getTitle('enhancement')).toBe('Writing enhancement');
             expect(getTitle('quickfix')).toBe('Issues');
-            expect(getTitle('metrics')).toBe('Document Analysis');
-            expect(getTitle('transform')).toBe('Content Transform');
+            expect(getTitle('metrics')).toBe('Document analysis');
+            expect(getTitle('transform')).toBe('Content transform');
         });
 
         test('should return default title for unknown opportunity types', () => {
             const getTitle = (insightPanel as any).getOpportunityTitle.bind(insightPanel);
             
-            expect(getTitle('unknown')).toBe('Command Options');
-            expect(getTitle('')).toBe('Command Options');
-            expect(getTitle(null)).toBe('Command Options');
-            expect(getTitle(undefined)).toBe('Command Options');
+            expect(getTitle('unknown')).toBe('Command options');
+            expect(getTitle('')).toBe('Command options');
+            expect(getTitle(null)).toBe('Command options');
+            expect(getTitle(undefined)).toBe('Command options');
         });
 
         test('should handle edge cases gracefully', () => {
             const getTitle = (insightPanel as any).getOpportunityTitle.bind(insightPanel);
             
             // Test case sensitivity
-            expect(getTitle('ENHANCEMENT')).toBe('Command Options');
-            expect(getTitle('Enhancement')).toBe('Command Options');
+            expect(getTitle('ENHANCEMENT')).toBe('Command options');
+            expect(getTitle('Enhancement')).toBe('Command options');
             
             // Test special characters
-            expect(getTitle('enhancement!')).toBe('Command Options');
-            expect(getTitle(' enhancement ')).toBe('Command Options');
+            expect(getTitle('enhancement!')).toBe('Command options');
+            expect(getTitle(' enhancement ')).toBe('Command options');
         });
     });
 

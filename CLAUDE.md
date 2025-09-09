@@ -240,7 +240,8 @@ When you catch yourself over-engineering:
 - ✅ **Use native components**: `DropdownComponent`, `Setting().setHeading()`
 
 ### Commands & Settings
-- ❌ **No plugin name prefixes** → Use "open-sidebar" not "nova-open-sidebar"
+- ❌ **No plugin name prefixes in command IDs** → Use "open-sidebar" not "nova-open-sidebar"
+- ✅ **Plugin name allowed in UI text** → "Nova" is acceptable in menu items, tooltips, and ribbon icons for user clarity
 - ❌ **No "PluginName Settings" headings** → Context already clear
 
 ### Security & Data

@@ -37,6 +37,9 @@ export const clearIndicatorsEffect = StateEffect.define<void>();
  */
 class IndicatorWidget extends WidgetType {
     private logger = Logger.scope('IndicatorWidget');
+    private clickHandler?: (event: MouseEvent) => void;
+    private mouseEnterHandler?: (event: MouseEvent) => void;
+    private mouseLeaveHandler?: (event: MouseEvent) => void;
 
     constructor(
         private opportunity: IndicatorOpportunity,
@@ -62,21 +65,24 @@ class IndicatorWidget extends WidgetType {
         }
         
         // Add click handler
-        indicator.addEventListener('click', (event) => {
+        this.clickHandler = (event: MouseEvent) => {
             event.preventDefault();
             event.stopPropagation();
             this.onIndicatorClick(this.opportunity, indicator);
             this.logger.debug(`Indicator clicked for line ${this.opportunity.line}`);
-        });
+        };
+        indicator.addEventListener('click', this.clickHandler);
         
         // Add hover class for CSS transitions
-        indicator.addEventListener('mouseenter', () => {
+        this.mouseEnterHandler = () => {
             indicator.addClass('hover');
-        });
+        };
+        indicator.addEventListener('mouseenter', this.mouseEnterHandler);
         
-        indicator.addEventListener('mouseleave', () => {
+        this.mouseLeaveHandler = () => {
             indicator.removeClass('hover');
-        });
+        };
+        indicator.addEventListener('mouseleave', this.mouseLeaveHandler);
 
         this.logger.debug(`Created indicator widget for line ${this.opportunity.line}, type: ${this.opportunity.type}`);
         
@@ -113,7 +119,21 @@ class IndicatorWidget extends WidgetType {
      * Destroy the widget (cleanup)
      */
     destroy(dom: HTMLElement): void {
-        this.logger.debug(`Destroyed indicator widget for line ${this.opportunity.line}`);
+        // Remove event listeners to prevent memory leaks
+        if (this.clickHandler) {
+            dom.removeEventListener('click', this.clickHandler);
+            this.clickHandler = undefined;
+        }
+        if (this.mouseEnterHandler) {
+            dom.removeEventListener('mouseenter', this.mouseEnterHandler);
+            this.mouseEnterHandler = undefined;
+        }
+        if (this.mouseLeaveHandler) {
+            dom.removeEventListener('mouseleave', this.mouseLeaveHandler);
+            this.mouseLeaveHandler = undefined;
+        }
+        
+        this.logger.debug(`Destroyed indicator widget for line ${this.opportunity.line} with proper cleanup`);
     }
 }
 

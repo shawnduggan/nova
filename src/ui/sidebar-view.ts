@@ -39,6 +39,7 @@ export class NovaSidebarView extends ItemView {
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
 	private providerDropdown: DropdownComponent | null = null;
+	private rotationIntervals = new WeakMap<HTMLElement, number>();
 	
 	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
@@ -2919,19 +2920,20 @@ USER REQUEST: ${processedMessage}`;
 			textEl.textContent = newPhrase;
 		}, 2000));
 		
-		// Store interval ID for cleanup
+		// Store interval ID in WeakMap for proper cleanup
 		// Note: registerInterval handles automatic cleanup, but we still store for manual cleanup if needed
-		(textEl as any).rotationInterval = rotationInterval;
+		this.rotationIntervals.set(textEl, rotationInterval);
 	}
 
 	/**
 	 * Stop phrase rotation animation and cleanup
 	 */
 	private stopThinkingPhraseRotation(textEl: HTMLElement): void {
-		// TODO: Replace with WeakMap or proper state management for element data
-		if ((textEl as any).rotationInterval) {
-			clearInterval((textEl as any).rotationInterval);
-			(textEl as any).rotationInterval = null;
+		// Get interval from WeakMap and clean up
+		const rotationInterval = this.rotationIntervals.get(textEl);
+		if (rotationInterval) {
+			clearInterval(rotationInterval);
+			this.rotationIntervals.delete(textEl);
 		}
 	}
 

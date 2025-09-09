@@ -3,7 +3,7 @@
  * Adds Nova submenu to Obsidian's right-click context menu when text is selected
  */
 
-import { App, Editor, Menu, MenuItem, Notice } from 'obsidian';
+import { App, Editor, Menu, MenuItem, Notice, MarkdownView } from 'obsidian';
 import NovaPlugin from '../../main';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
@@ -270,9 +270,21 @@ export class SelectionContextMenu {
      */
     private startSelectionAnimation(editor: Editor): void {
         try {
-            // Find the editor container in the DOM
-            const editorWithCM = editor as Editor & { cm?: { dom: Element } };
-            const editorContainer = editorWithCM.cm?.dom || document.querySelector('.cm-editor');
+            // Find the editor container - prefer getting from active view
+            let editorContainer: Element | null = null;
+            
+            // First try to get from active MarkdownView
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (activeView) {
+                editorContainer = activeView.containerEl.querySelector('.cm-editor');
+            }
+            
+            // Fallback to CodeMirror dom or document query if needed
+            if (!editorContainer) {
+                const editorWithCM = editor as Editor & { cm?: { dom: Element } };
+                editorContainer = editorWithCM.cm?.dom || document.querySelector('.cm-editor');
+            }
+            
             if (editorContainer) {
                 editorContainer.classList.add('nova-selection-processing');
             }
