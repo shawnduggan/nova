@@ -2397,8 +2397,6 @@ USER REQUEST: ${processedMessage}`;
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
-		// Refresh the provider dropdown options
-		await this.refreshProviderDropdown();
 	}
 
 	/**
@@ -2441,8 +2439,6 @@ USER REQUEST: ${processedMessage}`;
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
 		
-		// Refresh the provider dropdown options
-		await this.refreshProviderDropdown();
 	}
 
 	/**
