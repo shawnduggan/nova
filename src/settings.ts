@@ -359,7 +359,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
 		
 		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard2.createEl('h4', { text: '⚠️ Developer settings' });
+		infoCard2.createEl('h4', { text: '⚠️ Developer' });
 		
 		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
 		const features = [
@@ -1001,7 +1001,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createDebugSettings(container: HTMLElement) {
 		const debugContainer = container.createDiv({ cls: 'nova-debug-section' });
-		new Setting(debugContainer).setName('Development settings').setHeading();
+		new Setting(debugContainer).setName('Development').setHeading();
 
 		new Setting(debugContainer)
 			.setName('Debug mode')

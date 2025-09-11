@@ -40,7 +40,7 @@ export class CustomInstructionModal extends Modal {
         this.modalEl.addClass('nova-custom-instruction-modal');
         
         // Title
-        contentEl.createEl('h2', { text: 'Tell Nova' });
+        contentEl.createEl('h2', { text: 'Custom prompt' });
 
         // Description
         new Setting(contentEl)

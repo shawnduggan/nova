@@ -4,6 +4,7 @@
 
 import { App, TFile } from 'obsidian';
 import { MetadataCommand } from '../../../src/core/commands/metadata-command';
+import { createMockTFile } from '../../test-utils';
 import { DocumentEngine } from '../../../src/core/document-engine';
 import { ContextBuilder } from '../../../src/core/context-builder';
 import { AIProviderManager } from '../../../src/ai/provider-manager';
@@ -14,11 +15,6 @@ jest.mock('../../../src/core/document-engine');
 jest.mock('../../../src/core/context-builder');
 jest.mock('../../../src/ai/provider-manager');
 
-// Helper function to create properly typed mock files
-function createMockFile(props: Partial<TFile>): TFile {
-    const mockFile: TFile = props as TFile;
-    return mockFile;
-}
 
 describe('MetadataCommand', () => {
     let metadataCommand: MetadataCommand;
@@ -55,7 +51,7 @@ describe('MetadataCommand', () => {
         };
 
         const mockDocumentContext: DocumentContext = {
-            file: createMockFile({ path: 'test.md', basename: 'test' }),
+            file: createMockTFile('test.md', 'test.md'),
             filename: 'test',
             content: '# Test Content\nSome content here.',
             headings: [],

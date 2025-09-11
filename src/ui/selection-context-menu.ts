@@ -46,7 +46,7 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
     },
     {
         id: 'custom',
-        label: 'Tell Nova...',
+        label: 'Custom prompt',
         icon: 'message-circle',
         description: 'Custom instruction for transformation'
     }
