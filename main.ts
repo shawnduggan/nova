@@ -183,7 +183,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.addCommand({
 				id: 'tell-assistant',
-				name: 'Tell Nova...',
+				name: 'Custom prompt',
 				editorCallback: async (editor: Editor) => {
 					await this.handleSelectionCommand('custom', editor);
 				}

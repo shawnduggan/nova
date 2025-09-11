@@ -1,6 +1,7 @@
 import { ConversationData, ContextDocumentRef } from '../../src/core/types';
 import { ConversationManager, DataStore } from '../../src/core/conversation-manager';
 import { TFile, Notice } from 'obsidian';
+import { createMockTFile } from '../test-utils';
 
 // Mock DataStore implementation
 class MockDataStore implements DataStore {
@@ -28,8 +29,7 @@ describe('Context Persistence - Storage Layer', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -76,7 +76,7 @@ describe('Context Persistence - Storage Layer', () => {
         });
         
         // Get old conversation - should have contextDocuments added
-        const loadedConversation = newManager.getConversation({ path: 'old.md' } as TFile);
+        const loadedConversation = newManager.getConversation(createMockTFile('old.md'));
         expect(loadedConversation).toHaveProperty('contextDocuments');
         expect(loadedConversation.contextDocuments).toEqual([]);
         expect(loadedConversation.messages).toHaveLength(1);
@@ -94,8 +94,7 @@ describe('Context Persistence - Serialization', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -226,8 +225,7 @@ describe('Context Persistence - Save Integration', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -297,8 +295,7 @@ describe('Context Persistence - Restoration', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -377,8 +374,7 @@ describe('Context Persistence - File Validation', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -456,8 +452,7 @@ describe('Context Persistence - Error Recovery', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -577,8 +572,7 @@ describe('Context Persistence - UI Feedback', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
         
         // Mock the Notice constructor
         mockNoticeConstructor = jest.fn();
@@ -758,8 +752,7 @@ describe('Context Persistence - Integration Testing', () => {
     beforeEach(() => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
-        const mockFileData = { path: 'test.md', name: 'test.md', basename: 'test' };
-        mockFile = mockFileData as TFile;
+        mockFile = createMockTFile('test.md', 'test.md');
     });
     
     afterEach(() => {
@@ -903,10 +896,8 @@ describe('Context Persistence - Integration Testing', () => {
     
     test('should handle multiple files with mixed operations', async () => {
         // Complex workflow with multiple operations
-        const file1Data = { path: 'file1.md', name: 'file1.md', basename: 'file1' };
-        const file1: TFile = file1Data as TFile;
-        const file2Data = { path: 'file2.md', name: 'file2.md', basename: 'file2' };
-        const file2: TFile = file2Data as TFile;
+        const file1: TFile = createMockTFile('file1.md', 'file1.md');
+        const file2: TFile = createMockTFile('file2.md', 'file2.md');
         
         // Add context to multiple files
         await conversationManager.addContextDocument(file1, 'shared-doc.md');

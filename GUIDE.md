@@ -88,7 +88,7 @@ Selection-based editing is perfect for quick transformations of existing text. S
   - Casual: "Hey, this project is going pretty well!"
   - Formal: "The project is progressing satisfactorily according to schedule."
 
-#### 5. **Custom Instructions ("Tell Nova...")**
+#### 5. **Custom Instructions ("Custom prompt")**
 - **Purpose**: Give specific instructions for transformation
 - **Best for**: Unique requirements not covered by other options
 - **Examples**:
@@ -227,7 +227,7 @@ Nova understands natural language variations. These all work for adding content:
 - "create a new section about results"
 - "I need a paragraph explaining the process"
 
-For selection-based custom instructions, use the "Tell Nova..." menu option for maximum flexibility with existing text.
+For selection-based custom instructions, use the "Custom prompt" menu option for maximum flexibility with existing text.
 
 ### Undo Integration
 

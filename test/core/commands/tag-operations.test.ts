@@ -4,6 +4,7 @@
 
 import { App, TFile } from 'obsidian';
 import { MetadataCommand } from '../../../src/core/commands/metadata-command';
+import { createMockTFile } from '../../test-utils';
 import { DocumentEngine } from '../../../src/core/document-engine';
 import { ContextBuilder } from '../../../src/core/context-builder';
 import { AIProviderManager } from '../../../src/ai/provider-manager';
@@ -41,8 +42,7 @@ describe('Tag Operations', () => {
     });
 
     describe('Direct tag operations', () => {
-        const mockFileData = { path: 'test.md', basename: 'test' };
-        const mockFile: TFile = mockFileData as TFile;
+        const mockFile: TFile = createMockTFile('test.md', 'test.md');
 
         it('should add tags without duplicates', async () => {
             const documentContext = {
@@ -154,8 +154,7 @@ describe('Tag Operations', () => {
     });
 
     describe('AI-powered tag operations', () => {
-        const mockFileData = { path: 'test.md', basename: 'test' };
-        const mockFile: TFile = mockFileData as TFile;
+        const mockFile: TFile = createMockTFile('test.md', 'test.md');
 
         beforeEach(() => {
             mockContextBuilder.buildPrompt.mockReturnValue({
@@ -323,8 +322,7 @@ describe('Tag Operations', () => {
     });
 
     describe('Tag Space Normalization', () => {
-        const mockFileData = { path: 'test.md', basename: 'test' };
-        const mockFile: TFile = mockFileData as TFile;
+        const mockFile: TFile = createMockTFile('test.md', 'test.md');
 
         beforeEach(() => {
             mockDocumentEngine.getDocumentContext.mockResolvedValue({
