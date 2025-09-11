@@ -7,6 +7,33 @@
 - ✅ **Stable Contracts** – Never break existing provider, UI, or state interfaces.
 - ✅ **Performance-Aware** – Avoid unnecessary DOM updates. Profile when needed.
 
+## ⚠️ Common Compliance Failures - CHECK BEFORE CODING
+
+**These are the most common violations. Search for these patterns BEFORE implementing:**
+
+### Mandatory Pre-Implementation Searches
+Run these Grep searches BEFORE writing any code:
+1. `Grep "attr.*style" src/` - Find how spacing/styling is done (use CSS classes instead)
+2. `Grep "addEventListener" src/` - Find how events are registered (use registerDomEvent)
+3. `Grep "\.className =" src/` - Find how classes are managed (use classList API)
+4. `Grep "as any" src/` - Find if type assertions are needed (define proper types)
+5. `Grep "style\.(left|top|width)" src/` - Find positioning patterns (use CSS)
+
+### Implementation Rules
+- Found inline styles? → Create CSS class first
+- Found addEventListener? → Use this.registerDomEvent
+- Found className assignment? → Use classList.add/remove
+- Found direct style manipulation? → Use CSS classes or custom properties
+- Found type assertions? → Define proper interfaces
+
+**If you skip these searches, you WILL create non-compliant code.**
+
+### Recent Failures (Learn from these)
+- **Inline styles**: Added `attr: { style: 'margin-top: 24px;' }` instead of creating CSS class `.nova-section-divider--spaced`
+- **Direct style**: Used `element.style.left = value` instead of CSS custom properties
+- **Event cleanup**: Used `addEventListener` instead of `registerDomEvent` for proper cleanup
+- **Type assertions**: Used `(settings as any)` instead of updating interface types
+
 ## 📚 Required Context & Strategic Documentation
 
 **Before coding, read Nova's core strategic docs** in /Users/shawn/Library/Mobile Documents/iCloud~md~obsidian/Documents/Basecamp/07-Projects/Nova/Core Docs/
@@ -121,6 +148,47 @@ git checkout HEAD -- src/file.ts  # Specific file
 
 ### Task Format
 Each task needs: Context, Progress, Current State (files:lines), Next Steps, Dependencies, Quality Status
+
+### Lessons Learned Log
+**Document compliance failures to prevent repetition:**
+
+**Recent Compliance Failures Fixed:**
+- **Pattern violated**: Inline styles (`attr: { style: 'margin-top: 24px;' }`)
+- **Correct approach**: Create CSS modifier class (`.nova-section-divider--spaced`)
+- **Files affected**: `src/settings.ts:298,354`, `styles.css:334-336`
+- **Prevention**: `Grep "attr.*style" src/` before implementing
+
+- **Pattern violated**: Direct style manipulation (`element.style.left = value`)
+- **Correct approach**: CSS custom properties (`--popup-left`, `--popup-top`)
+- **Files affected**: `src/ui/sidebar-view.ts:2431-2433`, `styles.css:3339-3340`
+- **Prevention**: `Grep "style\.\w+ =" src/` before positioning
+
+- **Pattern violated**: Direct event listeners (`item.addEventListener`)
+- **Correct approach**: Use `this.registerDomEvent()` for proper cleanup
+- **Files affected**: `src/ui/sidebar-view.ts:2382,2392,2400`
+- **Prevention**: `Grep "addEventListener" src/` before event handling
+
+- **Pattern violated**: Type assertions (`(settings as any).property`)
+- **Correct approach**: Update interfaces to include required properties
+- **Files affected**: `src/settings.ts:370,2093`
+- **Prevention**: `Grep "as any" src/` before type casting
+
+- **Pattern violated**: Custom popup with direct style manipulation (`element.style.setProperty()`)
+- **Correct approach**: Use native Obsidian Menu component with automatic positioning
+- **Files affected**: `src/ui/sidebar-view.ts:2435-2436` (100+ lines custom code removed)
+- **Prevention**: Search for existing Menu patterns, follow "use native components" guideline
+
+- **Pattern violated**: Emoji icons in UI ('🚫', '🟡', '🟢', '🔴')
+- **Correct approach**: Use Lucide icons via setIcon() ('circle-off', 'circle-dot', 'check-circle-2', 'flame')
+- **Files affected**: `src/ui/sidebar-view.ts:2366-2369`
+- **Prevention**: Check existing UI components for icon usage patterns
+
+- **Pattern violated**: Theme-unsafe color tokens (`var(--color-yellow|green|red)`)
+- **Correct approach**: Use standard tokens (`--interactive-accent`, `--text-accent`) with fallbacks
+- **Files affected**: `styles.css:3325-3333`
+- **Prevention**: Search styles.css for color usage patterns before adding new colors
+
+**Update this log when new violations are discovered and fixed.**
 
 ## 🔍 Pre-Implementation Research
 
@@ -261,6 +329,26 @@ Before marking compliance complete: `Grep` searches, build success, 0 ESLint err
 3. ✅ `npx eslint src/ --format=unix | grep error` - 0 errors
 4. ✅ No console statements in production code
 
+### Pre-Commit Compliance Verification
+**Run these searches before EVERY commit - if ANY results found, FIX first:**
+```bash
+# Find inline styles
+Grep "attr.*style" src/
+
+# Find direct event listeners  
+Grep "addEventListener" src/
+
+# Find className overwrites
+Grep "\.className =" src/
+
+# Find type assertions
+Grep "as any" src/
+
+# Find direct style manipulation
+Grep "style\.\w+ =" src/
+```
+**Zero tolerance: Fix ALL violations before committing.**
+
 ### Compliance & Performance
 5. ✅ Event listeners use `registerDomEvent`
 6. ✅ Timers use `registerInterval`
@@ -400,14 +488,19 @@ new SuggestModal(app)
 ### 1. Session Start
 - ✅ Check Current Tasks, resume IN PROGRESS work first
 - ✅ Verify build/test status from last session
+- ✅ **Read "Common Compliance Failures" section above**
 
 ### 2. Planning  
+- ✅ **RUN MANDATORY PRE-IMPLEMENTATION SEARCHES** (see "Common Compliance Failures")
 - ✅ Research patterns, map relationships, verify compatibility
 - ✅ Check Obsidian compliance requirements
+- ✅ **Document which existing patterns you're copying**
 
 ### 3. Implementation
+- ✅ **Copy existing patterns exactly - no clever innovations**
 - ✅ Follow established patterns, use proper APIs
 - ✅ Event-driven architecture, write/update tests
+- ✅ **Check compliance AS YOU CODE, not after**
 
 ### 4. Verification
 - ✅ Complete QA checklist (build, tests, ESLint, compliance)
@@ -487,6 +580,48 @@ new SuggestModal(app)
 **Next Steps**: Final plugin store submission
 **Dependencies**: None
 **Quality Status**: FULLY COMPLIANT - Plugin store ready
+
+### ✅ COMPLETED - Native Menu Component Migration & Code Review Fixes
+**Context**: Replaced custom popup with native Obsidian Menu component to address code review compliance concerns
+**Progress**: COMPLETE - All code review issues resolved with native components  
+**Current State**: 
+- **Must-Fix Issues Resolved**:
+  * Replaced custom popup with native Obsidian `Menu` component (100+ lines → 25 lines)
+  * Eliminated all direct style manipulation (`style.setProperty()` removed)
+  * Replaced emoji icons with Lucide icons (circle-off, circle-dot, check-circle-2, flame)
+  * Fixed event listener lifecycle (Menu handles automatically)
+- **Should-Fix Issues Resolved**:
+  * Updated color tokens from theme-unsafe `--color-*` to `--interactive-accent`, `--text-accent`
+  * Moved test document creation to Nova/ folder (no vault clutter)
+- **Technical Improvements**:
+  * Menu shows checkmarks for current selection
+  * Native keyboard navigation and accessibility
+  * Proper ARIA roles handled by Menu component
+  * Mobile button still properly hidden via Platform.isMobile
+- **Files Modified**: src/ui/sidebar-view.ts, src/settings.ts, styles.css
+- **Verification**: Build passes (0 errors), all 544 tests pass, 0 compliance violations
+**Next Steps**: Commands quick controls now use proven Obsidian patterns 
+**Dependencies**: None
+**Quality Status**: Fully compliant with Obsidian plugin store requirements
+
+### ✅ COMPLETED - CLAUDE.md Compliance Enforcement System  
+**Context**: Added comprehensive compliance prevention system to CLAUDE.md to prevent future violations
+**Progress**: COMPLETE - Systematic approach to compliance implemented
+**Current State**:
+- **New Sections Added**:
+  * "Common Compliance Failures - CHECK BEFORE CODING" with mandatory pre-implementation searches
+  * Updated "Development Workflow" with compliance-first approach
+  * "Pre-Commit Compliance Verification" with zero tolerance enforcement
+  * "Lessons Learned Log" with specific violation examples and prevention strategies
+- **Process Enforcement**:
+  * Exact Grep commands to run before coding: `attr.*style`, `addEventListener`, `\.className =`, etc.
+  * Integration into Development Workflow (Session Start → Planning → Implementation)
+  * Quality Assurance Checklist with specific compliance searches
+  * Real examples from this session's fixes for institutional learning
+- **Verification**: Compliance searches now detect existing patterns correctly
+**Next Steps**: All future sessions must follow the new compliance-first workflow
+**Dependencies**: None  
+**Quality Status**: Prevents "implement first, fix compliance later" anti-pattern
 
 ### ✅ COMPLETED - MarginIndicators Implementation
 **Context**: Intelligent margin indicators for command suggestions with progressive disclosure UI

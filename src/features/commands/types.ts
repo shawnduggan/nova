@@ -119,6 +119,9 @@ export interface CommandSuggestionsSettings {
     
     /** Which document types to analyze (empty = all types) */
     enabledDocumentTypes: string[];
+    
+    /** Allow documents to override global settings via frontmatter */
+    allowDocumentOverrides?: boolean;
 }
 
 // Legacy interfaces for backward compatibility during transition

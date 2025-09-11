@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Platform, setIcon } from 'obsidian';
+import { App, PluginSettingTab, Setting, Platform, setIcon, Notice } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
@@ -150,7 +150,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 	}
 
-	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug'): void {
+	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'commands' | 'supernova' | 'debug'): void {
 		this.activeTab = tabId;
 		this.updateTabStates();
 		this.updateTabContent();
@@ -252,6 +252,10 @@ export class NovaSettingTab extends PluginSettingTab {
 						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
 						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
 					}
+					// Update sidebar button
+					if (this.plugin.sidebarView) {
+						this.plugin.sidebarView.updateCommandsButton();
+					}
 				})
 			);
 		
@@ -287,6 +291,101 @@ export class NovaSettingTab extends PluginSettingTab {
 						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
 						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
 					}
+				})
+			);
+		
+		// Document Types Section
+		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
+		new Setting(container)
+			.setName('Document types')
+			.setHeading();
+		
+		const docTypesDescription = container.createDiv({ cls: 'nova-setting-description' });
+		docTypesDescription.textContent = 'Choose which document types should show command suggestions. When none are selected, all types are enabled.';
+		
+		// Document Type Checkboxes
+		const documentTypes = [
+			{ key: 'blog', label: 'Blog posts', desc: 'Blog posts and articles' },
+			{ key: 'academic', label: 'Academic', desc: 'Research papers and academic writing' },
+			{ key: 'technical', label: 'Technical', desc: 'Documentation and technical writing' },
+			{ key: 'creative', label: 'Creative', desc: 'Stories, novels, and creative writing' },
+			{ key: 'notes', label: 'Notes', desc: 'Personal notes and quick thoughts' }
+		];
+		
+		documentTypes.forEach(docType => {
+			new Setting(container)
+				.setName(docType.label)
+				.setDesc(docType.desc)
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.commands.enabledDocumentTypes.length === 0 || 
+							this.plugin.settings.commands.enabledDocumentTypes.includes(docType.key))
+					.onChange(async (value) => {
+						const currentTypes = [...this.plugin.settings.commands.enabledDocumentTypes];
+						
+						if (value) {
+							// Add type if not present
+							if (!currentTypes.includes(docType.key)) {
+								currentTypes.push(docType.key);
+							}
+						} else {
+							// Remove type
+							const index = currentTypes.indexOf(docType.key);
+							if (index > -1) {
+								currentTypes.splice(index, 1);
+							}
+						}
+						
+						this.plugin.settings.commands.enabledDocumentTypes = currentTypes;
+						await this.plugin.saveSettings();
+						
+						// Update components
+						if (this.plugin.marginIndicators) {
+							this.plugin.marginIndicators.updateSettings();
+						}
+						if (this.plugin.smartTimingEngine) {
+							const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
+							this.plugin.smartTimingEngine.updateSettings(legacyTiming);
+						}
+					})
+				);
+		});
+		
+		// Advanced Settings Section
+		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
+		new Setting(container)
+			.setName('Advanced')
+			.setHeading();
+		
+		const advancedDescription = container.createDiv({ cls: 'nova-setting-description' });
+		advancedDescription.textContent = 'Additional options for power users and customization.';
+		
+		// Per-Document Override Setting
+		new Setting(container)
+			.setName('Allow document overrides')
+			.setDesc('Allow documents to override global settings using frontmatter (nova-insights: off/minimal/balanced/aggressive)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.commands.allowDocumentOverrides || false)
+				.onChange(async (value) => {
+					// Update the property directly (now properly typed)
+					this.plugin.settings.commands.allowDocumentOverrides = value;
+					await this.plugin.saveSettings();
+					
+					// Update components
+					if (this.plugin.marginIndicators) {
+						this.plugin.marginIndicators.updateSettings();
+					}
+				})
+			);
+		
+		// Test Settings Button
+		new Setting(container)
+			.setName('Test current settings')
+			.setDesc('See how your current settings affect command suggestions')
+			.addButton(button => button
+				.setButtonText('Open test document')
+				.setTooltip('Creates a sample document to test your command settings')
+				.onClick(async () => {
+					await this.createTestDocument();
 				})
 			);
 	}
@@ -1956,6 +2055,115 @@ export class NovaSettingTab extends PluginSettingTab {
 				// External links will use default browser behavior (target="_blank")
 			});
 		});
+	}
+
+	/**
+	 * Validate commands settings
+	 */
+	private validateCommandsSettings(settings: CommandSuggestionsSettings): { valid: boolean; errors: string[] } {
+		const errors: string[] = [];
+		
+		// Validate suggestion mode
+		const validModes = ['off', 'minimal', 'balanced', 'aggressive'];
+		if (!validModes.includes(settings.suggestionMode)) {
+			errors.push(`Invalid suggestion mode: ${settings.suggestionMode}`);
+		}
+		
+		// Validate response time
+		const validResponseTimes = ['fast', 'normal', 'relaxed'];
+		if (!validResponseTimes.includes(settings.responseTime)) {
+			errors.push(`Invalid response time: ${settings.responseTime}`);
+		}
+		
+		// Validate document types (if any are specified)
+		if (settings.enabledDocumentTypes && settings.enabledDocumentTypes.length > 0) {
+			const validDocTypes = ['blog', 'academic', 'technical', 'creative', 'notes'];
+			const invalidTypes = settings.enabledDocumentTypes.filter(type => !validDocTypes.includes(type));
+			if (invalidTypes.length > 0) {
+				errors.push(`Invalid document types: ${invalidTypes.join(', ')}`);
+			}
+		}
+		
+		// Validate hideWhileTyping
+		if (typeof settings.hideWhileTyping !== 'boolean') {
+			errors.push('hideWhileTyping must be a boolean value');
+		}
+		
+		// Validate allowDocumentOverrides (if present)
+		const allowOverrides = settings.allowDocumentOverrides;
+		if (allowOverrides !== undefined && typeof allowOverrides !== 'boolean') {
+			errors.push('allowDocumentOverrides must be a boolean value');
+		}
+		
+		return {
+			valid: errors.length === 0,
+			errors
+		};
+	}
+
+	/**
+	 * Create a test document to demonstrate command settings
+	 */
+	private async createTestDocument(): Promise<void> {
+		const testContent = `# Nova Commands Test Document
+
+Welcome to the Nova Commands test environment! This document contains various types of content to help you see how your current settings affect command suggestions.
+
+## Writing Examples
+
+### Blog Post Style
+This is a casual blog post paragraph. It could benefit from being more engaging and having stronger hooks to capture reader attention.
+
+### Academic Style  
+The methodology employed in this research utilizes quantitative analysis techniques. The findings demonstrate significant correlations between variables.
+
+### Technical Documentation
+To configure the system, users must first install dependencies. The following steps outline the installation process.
+
+### Creative Writing
+She walked through the dark forest. The trees were tall. It was scary.
+
+## Test Areas
+
+Try typing in the areas below to see how your suggestion settings work:
+
+**Quick fixes needed:**
+- This sentence has passive voice that could be improved
+- There are redundant words that that need fixing
+- This list needs better structure
+
+**Enhancement opportunities:**
+- Add examples to this concept
+- Strengthen this weak argument
+- Transform this outline into flowing prose
+
+---
+*This test document was created by Nova's command settings. Adjust your settings in the Commands tab and return here to see how they affect suggestion behavior.*`;
+
+		try {
+			// Ensure Nova folder exists
+			const novaFolder = 'Nova';
+			if (!await this.app.vault.adapter.exists(novaFolder)) {
+				await this.app.vault.createFolder(novaFolder);
+			}
+			
+			// Create new file with test content in Nova folder
+			const fileName = `${novaFolder}/Commands Test - ${new Date().toISOString().split('T')[0]}.md`;
+			const file = await this.app.vault.create(fileName, testContent);
+			
+			// Open the file in a new leaf
+			const leaf = this.app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			
+			// Focus the new leaf
+			this.app.workspace.setActiveLeaf(leaf);
+			
+			// Show success notice
+			new Notice(`Test document created: ${fileName}`);
+		} catch (error) {
+			Logger.error('Failed to create test document:', error);
+			new Notice('Failed to create test document. Check console for details.');
+		}
 	}
 
 	/**
