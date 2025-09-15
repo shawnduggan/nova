@@ -650,7 +650,7 @@ new SuggestModal(app)
 **Progress**: COMPLETE and fully compliant with Obsidian guidelines
 **Current State**: 
 - MarginIndicators fully functional with detection logic (21 tests passing)
-- Proper positioning with frontmatter offset handling
+- Proper positioning with offset handling
 - Viewport optimization with line-level caching for performance
 - All critical compliance issues resolved:
   * Fixed unregistered timers using registerInterval()
@@ -716,66 +716,6 @@ new SuggestModal(app)
 
 ### Phase 1 Tasks (HIGH PRIORITY - Days 1-5)
 
-#### Core Infrastructure (COMPLETED)
-- [x] Create CommandEngine with markdown file loading system
-  - Location: src/features/commands/core/CommandEngine.ts
-  - Loads commands from Commands/ folder in vault
-  - Executes with streaming support via StreamingManager
-- [x] Implement SmartVariableResolver for template variables
-  - Variables: {text}, {selection}, {document}, {title}, {document_type}, {metrics}, {audience_level}
-  - Smart context resolution based on cursor/selection
-- [x] Build CommandRegistry for lazy loading commands
-  - Lazy load commands on first use (<50MB memory)
-  - Cache loaded commands for session
-- [x] Integrate with existing `/` trigger detection in CommandSystem
-  - COMPLETED: Native FuzzySuggestModal implementation in src/ui/command-system.ts
-  - Follows WikilinkFileModal pattern exactly for consistency
-  - Mobile and desktop UX identical to [[ file picker
-
-#### Progressive Disclosure UI
-- [x] Create MarginIndicators component
-  - 14px icons at 40% opacity in right margin
-  - Icon types: 💡 enhancement, ⚡ quick fix, 📊 metrics, ✨ transformation
-  - Location: src/features/commands/ui/MarginIndicators.ts
-  - Integrated with main plugin and SmartVariableResolver
-- [x] Implement hover preview system
-  - COMPLETED: 200ms fade-in on hover using existing tooltip patterns
-  - COMPLETED: Single-line description with primary command  
-  - COMPLETED: CSS follows existing `.nova-status-tooltip` pattern for consistency
-  - Location: MarginIndicators.ts:createHoverPreview(), styles.css:.nova-indicator-preview
-  - All tests passing (21/21), no ESLint errors, build successful
-- [x] Build InsightPanels for full intelligence
-  - COMPLETED: Positioned near text without covering content
-  - COMPLETED: Multiple approach options (up to 4 commands shown initially)
-  - COMPLETED: Clear action buttons with "Apply" labels on hover
-  - COMPLETED: "Show More" opens full FuzzySuggestModal for complete selection
-  - COMPLETED: Smart positioning that avoids edges and text coverage
-  - Location: InsightPanel.ts, integrated with MarginIndicators click handler
-  - Architecture: Panel positioned near clicked indicator → Command options → Full modal
-  - All tests passing (21/21), build successful, proper cleanup on dismiss
-- [x] Add SmartTimingEngine
-  - COMPLETED: Centralized timing service with extracted MarginIndicators logic
-  - COMPLETED: 3 second delay after typing stops (configurable)
-  - COMPLETED: Hide when typing >30 WPM (configurable threshold)
-  - COMPLETED: Document type awareness with per-type settings overrides
-  - COMPLETED: Event-driven architecture with timing decisions
-  - COMPLETED: TypingSpeedTracker for real-time WPM calculation
-  - COMPLETED: DebounceManager for Obsidian-compliant timer handling
-  - COMPLETED: Full integration with MarginIndicators via event subscriptions
-  - Location: src/features/commands/core/SmartTimingEngine.ts
-  - Architecture: Centralized timing logic → Event subscriptions → MarginIndicators response
-  - All tests passing (21/21), build successful, fully Obsidian compliant
-
-#### Settings Integration
-- [x] Add Commands tab to NovaSettingTab
-  - Location: src/settings.ts (extend existing)
-  - CommandSettings interface with all options
-- [x] Implement sidebar quick controls
-  - Add to NovaSidebarView for easy access
-  - Dropdown: Off/Minimal/Balanced/Aggressive
-- [ ] Support per-document frontmatter overrides
-  - Read nova-insights from frontmatter
-  - Override global settings per document
 
 #### 7 Flagship Commands (MUST BE EXCEPTIONAL)
 - [ ] `/expand-outline` - Transform bullets to flowing prose

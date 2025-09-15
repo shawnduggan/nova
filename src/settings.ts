@@ -359,24 +359,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		const advancedDescription = container.createDiv({ cls: 'nova-setting-description' });
 		advancedDescription.textContent = 'Additional options for power users and customization.';
 		
-		// Per-Document Override Setting
-		new Setting(container)
-			.setName('Allow document overrides')
-			.setDesc('Allow documents to override global settings using frontmatter (nova-insights: off/minimal/balanced/aggressive)')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.commands.allowDocumentOverrides || false)
-				.onChange(async (value) => {
-					// Update the property directly (now properly typed)
-					this.plugin.settings.commands.allowDocumentOverrides = value;
-					await this.plugin.saveSettings();
-					
-					// Update components
-					if (this.plugin.marginIndicators) {
-						this.plugin.marginIndicators.updateSettings();
-					}
-				})
-			);
-		
 		// Test Settings Button
 		new Setting(container)
 			.setName('Test current settings')
@@ -2089,11 +2071,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			errors.push('hideWhileTyping must be a boolean value');
 		}
 		
-		// Validate allowDocumentOverrides (if present)
-		const allowOverrides = settings.allowDocumentOverrides;
-		if (allowOverrides !== undefined && typeof allowOverrides !== 'boolean') {
-			errors.push('allowDocumentOverrides must be a boolean value');
-		}
 		
 		return {
 			valid: errors.length === 0,

@@ -256,7 +256,7 @@ export class MarginIndicators {
         if (!this.activeEditor || !this.enabled) return;
 
         try {
-            this.logger.info('Analyzing context for margin indicators...');
+            this.logger.debug('Analyzing context for margin indicators...');
             
             // Build smart context
             const context = await this.variableResolver.buildSmartContext();
@@ -276,7 +276,7 @@ export class MarginIndicators {
             // Update SmartTimingEngine with current document type for context-aware timing
             this.smartTimingEngine.setDocumentType(context.documentType);
 
-            this.logger.info('Smart context built:', {
+            this.logger.debug('Smart context built:', {
                 hasSelection: !!context.selection,
                 documentType: context.documentType,
                 wordCount: context.metrics.wordCount
@@ -285,11 +285,11 @@ export class MarginIndicators {
             // Get current line for analysis
             const cursor = this.activeEditor!.getCursor();
             const currentLine = this.activeEditor!.getLine(cursor.line);
-            this.logger.info(`Analyzing line ${cursor.line}: "${currentLine}"`);
+            this.logger.debug(`Analyzing line ${cursor.line}: "${currentLine}"`);
 
             // Find opportunities
             const opportunities = await this.findOpportunities(context);
-            this.logger.info(`Found ${opportunities.length} opportunities:`, opportunities.map(o => `Line ${o.line}: ${o.type} (${o.confidence})`));
+            this.logger.debug(`Found ${opportunities.length} opportunities:`, opportunities.map(o => `Line ${o.line}: ${o.type} (${o.confidence})`));
             
             // Debug: Log all available commands for each category
             const categoryChecks = ['enhancement', 'quickfix', 'analysis', 'transform'];
