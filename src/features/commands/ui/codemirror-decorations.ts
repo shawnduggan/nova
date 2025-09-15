@@ -5,6 +5,7 @@
 
 import { StateField, StateEffect, Transaction } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType } from '@codemirror/view';
+import { Platform } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import type { MarkdownCommand } from '../types';
 
@@ -68,6 +69,12 @@ class IndicatorWidget extends WidgetType {
         this.clickHandler = (event: MouseEvent) => {
             event.preventDefault();
             event.stopPropagation();
+
+            // On mobile, blur any focused element to prevent virtual keyboard from opening
+            if (Platform.isMobile && document.activeElement && document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+
             this.onIndicatorClick(this.opportunity, indicator);
             this.logger.debug(`Indicator clicked for line ${this.opportunity.line}`);
         };

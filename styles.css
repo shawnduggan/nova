@@ -3289,8 +3289,8 @@
     max-width: 160px;
     width: auto;
     font-size: 12px;
-    padding: var(--size-2-3) var(--size-2-4);
-    padding-right: calc(var(--size-2-4) + 16px);
+    padding: var(--size-2-2) var(--size-2-3);
+    padding-right: calc(var(--size-2-3) + 16px);
     min-height: 32px;
 }
 
@@ -3985,6 +3985,16 @@
 
 .nova-command-option:hover .nova-command-option-action {
     opacity: 1;
+}
+
+/* Mobile: always visible with subtle styling */
+.is-mobile .nova-command-option-action.mobile-visible {
+    opacity: 0.7;
+}
+
+/* Mobile: slight increase on touch for feedback */
+.is-mobile .nova-command-option:hover .nova-command-option-action.mobile-visible {
+    opacity: 0.9;
 }
 
 .nova-command-option-description {

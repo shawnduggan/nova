@@ -538,6 +538,28 @@ new SuggestModal(app)
 
 ## 📋 Current Tasks
 
+### ✅ COMPLETED - Mobile UI Fixes & Accessibility Improvements
+**Context**: Fixed all mobile user experience issues with InsightPanel Apply buttons and margin indicators
+**Progress**: COMPLETE - All mobile UX issues resolved with enhanced accessibility
+**Current State**:
+- **Mobile Model Dropdown**: Fixed left-aligned padding issue by updating mobile CSS padding values
+- **Margin Indicator Keyboard Prevention**: Added mobile-specific blur logic to prevent virtual keyboard from opening
+- **Global Panel Dismissal**: Enhanced with mobile-aware timing to handle keyboard show/hide events
+- **Apply Button Visibility**: Fixed DOM structure issue where "Fix All" buttons weren't visible on mobile
+- **Text Consistency**: Standardized all Apply buttons to use consistent "Apply" text across scenarios
+- **Accessibility Enhancements**: Added `role="button"` and `tabindex="0"` to all Apply buttons
+- **Documentation Fix**: Corrected contradictory timer registration guidance in CLAUDE.md
+- **Files Modified**:
+  * main.ts: Mobile keyboard handling and proper setTimeout usage (no registerInterval misuse)
+  * InsightPanel.ts: DOM structure, button visibility, text consistency, accessibility
+  * codemirror-decorations.ts: Mobile focus prevention for margin indicator clicks
+  * styles.css: Mobile dropdown padding and Apply button visibility CSS
+- Build passes: 0 errors, all mobile UI patterns work seamlessly
+- All Apply buttons now visible and accessible on both mobile and desktop
+**Next Steps**: Continue with commands system development
+**Dependencies**: None
+**Quality Status**: Production-ready mobile experience with enhanced accessibility
+
 ### ✅ COMPLETED - Critical Obsidian Plugin Compliance Fixes
 **Context**: Fixed all setTimeout calls and event cleanup issues that were blocking plugin store submission
 **Progress**: COMPLETE - All critical compliance issues resolved
@@ -680,7 +702,8 @@ new SuggestModal(app)
 - TypingSpeedTracker for real-time WPM calculation with 60-second window
 - DebounceManager for Obsidian-compliant timer registration and cleanup
 - All critical compliance requirements met:
-  * All timers use this.plugin.registerInterval(window.setTimeout(...))
+  * All setInterval timers use this.plugin.registerInterval()
+  * All setTimeout timers use TimeoutManager.addTimeout() for proper cleanup
   * Event-driven architecture with proper cleanup
   * No console statements (Logger used throughout)  
   * Modern Obsidian APIs only
@@ -744,10 +767,10 @@ new SuggestModal(app)
   - All tests passing (21/21), build successful, fully Obsidian compliant
 
 #### Settings Integration
-- [ ] Add Commands tab to NovaSettingTab
+- [x] Add Commands tab to NovaSettingTab
   - Location: src/settings.ts (extend existing)
   - CommandSettings interface with all options
-- [ ] Implement sidebar quick controls
+- [x] Implement sidebar quick controls
   - Add to NovaSidebarView for easy access
   - Dropdown: Off/Minimal/Balanced/Aggressive
 - [ ] Support per-document frontmatter overrides

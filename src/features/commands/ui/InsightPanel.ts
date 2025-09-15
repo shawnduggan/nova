@@ -4,7 +4,7 @@
  * Positioned near text without covering content
  */
 
-import { MarkdownView, FuzzySuggestModal, FuzzyMatch, App, Editor } from 'obsidian';
+import { MarkdownView, FuzzySuggestModal, FuzzyMatch, App, Editor, Platform } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import { TimeoutManager } from '../../../utils/timeout-manager';
 import { CommandEngine } from '../core/CommandEngine';
@@ -232,10 +232,19 @@ export class InsightPanel {
         const name = header.createSpan({ cls: CSS_CLASSES.COMMAND_NAME });
         name.textContent = command.name;
 
-        header.createSpan({ 
+        const actionButton = header.createSpan({
             cls: CSS_CLASSES.COMMAND_ACTION,
             text: COMMANDS.APPLY_BUTTON_TEXT
         });
+
+        // On mobile, add class for always-visible styling
+        if (Platform.isMobile) {
+            actionButton.addClass('mobile-visible');
+        }
+
+        // Add accessibility attributes
+        actionButton.setAttr('role', 'button');
+        actionButton.setAttr('tabindex', '0');
 
         // Description
         if (command.description) {
@@ -271,10 +280,19 @@ export class InsightPanel {
         const suggestedText = changeText.createSpan({ cls: 'nova-suggested-text' });
         suggestedText.textContent = issue.suggestedFix || 'improved';
         
-        header.createSpan({ 
+        const actionButton = header.createSpan({
             cls: CSS_CLASSES.COMMAND_ACTION,
             text: COMMANDS.APPLY_BUTTON_TEXT
         });
+
+        // On mobile, add class for always-visible styling
+        if (Platform.isMobile) {
+            actionButton.addClass('mobile-visible');
+        }
+
+        // Add accessibility attributes
+        actionButton.setAttr('role', 'button');
+        actionButton.setAttr('tabindex', '0');
 
         // Description showing what this fixes
         const description = option.createDiv({ cls: CSS_CLASSES.COMMAND_DESCRIPTION });
@@ -296,13 +314,22 @@ export class InsightPanel {
         // Header shows it will fix ALL issues
         const header = option.createDiv({ cls: 'nova-command-option-header' });
         
-        const fixText = header.createDiv({ cls: 'nova-combined-fix' });
+        const fixText = header.createSpan({ cls: 'nova-combined-fix' });
         fixText.textContent = 'Fix all issues for proper grammar:';
         
-        header.createSpan({ 
+        const actionButton = header.createSpan({
             cls: CSS_CLASSES.COMMAND_ACTION,
-            text: 'Fix All'
+            text: COMMANDS.APPLY_BUTTON_TEXT
         });
+
+        // On mobile, add class for always-visible styling
+        if (Platform.isMobile) {
+            actionButton.addClass('mobile-visible');
+        }
+
+        // Add accessibility attributes
+        actionButton.setAttr('role', 'button');
+        actionButton.setAttr('tabindex', '0');
         
         // Show what issues will be fixed (informational only, not clickable)
         const details = option.createDiv({ cls: 'nova-fix-details' });
