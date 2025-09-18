@@ -27,8 +27,7 @@ describe('Provider Dropdown Performance', () => {
 			},
 			general: {
 				defaultTemperature: 0.7,
-				defaultMaxTokens: 1000,
-				autoSave: true
+				defaultMaxTokens: 1000
 			},
 			licensing: {
 				supernovaLicenseKey: '',

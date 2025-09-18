@@ -2093,9 +2093,24 @@ USER REQUEST: ${processedMessage}`;
 	private async updateProviderOptions(): Promise<void> {
 		if (!this.providerDropdown) return;
 
+		// Check if mobile support is disabled on mobile
+		if (Platform.isMobile) {
+			const mobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
+			if (mobileModel === 'none') {
+				// Clear dropdown and add disabled message
+				this.providerDropdown.selectEl.empty();
+				const option = this.providerDropdown.selectEl.createEl('option');
+				option.value = '';
+				option.textContent = 'Mobile disabled';
+				option.disabled = true;
+				this.providerDropdown.setValue('');
+				return;
+			}
+		}
+
 		const currentProvider = await this.plugin.aiProviderManager.getCurrentProviderType();
 		const currentModel = this.plugin.aiProviderManager.getCurrentModel();
-		
+
 		// Clear existing options
 		this.providerDropdown.selectEl.empty();
 		
@@ -2384,19 +2399,39 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider configuration events
 	 */
-	private handleProviderConfigured = async (_event: Event) => {
+	private handleProviderConfigured = async (event: Event) => {
+		const customEvent = event as CustomEvent;
+		const { provider, status } = customEvent.detail;
+
+		// If mobile was just enabled and no model is selected, select first available
+		if (provider === 'mobile-settings' && status === 'enabled' && Platform.isMobile) {
+			const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+			if (!currentModel || currentModel === '') {
+				const firstAvailableModel = await this.getFirstAvailableModel();
+				if (firstAvailableModel) {
+					const providerType = getProviderTypeForModel(firstAvailableModel, this.plugin.settings);
+					if (providerType) {
+						this.switchToModel(providerType, firstAvailableModel);
+						await this.plugin.saveSettings();
+					}
+				}
+			}
+		}
+
 		// Update provider dropdown display
 		try {
 			await this.refreshProviderDropdown();
 		} catch (error) {
 			Logger.error('❌ Failed to update provider display after configuration:', error);
 		}
-		
+
 		// Update privacy indicator
 		if ((this as any).privacyIndicator) {
 			await this.updatePrivacyIndicator((this as any).privacyIndicator);
 		}
-		
+
+		// Update send button state
+		await this.updateSendButtonState();
 	}
 
 	/**

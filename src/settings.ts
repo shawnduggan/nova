@@ -25,7 +25,6 @@ export interface NovaSettings {
 	general: {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
-		autoSave: boolean;
 	};
 	licensing: {
 		supernovaLicenseKey: string;
@@ -62,13 +61,12 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 			selectedModel: ''  // No default model
 		},
 		mobile: {
-			selectedModel: ''  // No default model
+			selectedModel: 'none'  // Explicitly disabled by default for privacy
 		}
 	},
 	general: {
 		defaultTemperature: 0.7,
-		defaultMaxTokens: 1000,
-		autoSave: true
+		defaultMaxTokens: 1000
 	},
 	licensing: {
 		supernovaLicenseKey: '',
@@ -344,7 +342,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setDesc('Allow Nova to work on mobile devices using cloud-based AI providers')
 			.addToggle(toggle => {
 				const currentMobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
-				const isMobileEnabled = currentMobileModel !== 'none' && currentMobileModel !== '';
+				const isMobileEnabled = currentMobileModel !== 'none';
 				
 				toggle
 					.setValue(isMobileEnabled)
@@ -360,6 +358,11 @@ export class NovaSettingTab extends PluginSettingTab {
 						if (this.plugin.aiProviderManager) {
 							this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
 						}
+
+						// Emit event to update sidebar UI
+						document.dispatchEvent(new CustomEvent('nova-provider-configured', {
+							detail: { provider: 'mobile-settings', status: value ? 'enabled' : 'disabled' }
+						}));
 					});
 			});
 	}
@@ -1107,16 +1110,6 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(coreSection)
-			.setName('Auto-save settings')
-			.setDesc('Automatically save configuration changes')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.general.autoSave)
-				.onChange(async (value) => {
-					this.plugin.settings.general.autoSave = value;
-					await this.plugin.saveSettings();
-				}));
-
 	}
 
 	private createProviderSettings(containerEl = this.containerEl) {
@@ -1819,6 +1812,15 @@ export class NovaSettingTab extends PluginSettingTab {
 					e.preventDefault();
 					this.switchTab('supernova');
 				});
+			});
+		}
+
+		// Add click handler for direct action "Become a Supporter" button
+		if (buttonAction === 'direct' && !isSupernova) {
+			const supporterBtn = primaryBtn;
+			this.registerEventListener(supporterBtn, 'click', (e: Event) => {
+				e.preventDefault();
+				window.open('https://novawriter.ai/plans', '_blank');
 			});
 		}
 	}
