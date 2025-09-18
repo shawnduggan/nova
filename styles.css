@@ -3285,8 +3285,8 @@
     max-width: 160px;
     width: auto;
     font-size: 12px;
-    padding: var(--size-2-3) var(--size-2-4);
-    padding-right: calc(var(--size-2-4) + 16px);
+    padding: var(--size-2-2) var(--size-2-3);
+    padding-right: calc(var(--size-2-3) + 16px);
     min-height: 32px;
 }
 
