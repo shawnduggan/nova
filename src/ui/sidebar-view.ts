@@ -756,7 +756,7 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private debouncedUpdateContextPreview(): void {
 		if (this.contextPreviewDebounceTimeout) {
-			window.clearTimeout(this.contextPreviewDebounceTimeout);
+			this.timeoutManager.removeTimeout(this.contextPreviewDebounceTimeout);
 		}
 		
 		this.contextPreviewDebounceTimeout = this.timeoutManager.addTimeout(() => {
