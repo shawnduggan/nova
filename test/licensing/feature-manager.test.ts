@@ -106,7 +106,7 @@ describe('FeatureManager', () => {
 		test('should support debug mode for development', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-12-01', // Future date where all features are available
+				overrideDate: '2026-01-02', // Future date where all features are available
 				forceSupernova: true
 			};
 
