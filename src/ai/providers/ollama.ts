@@ -1,6 +1,7 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { requestUrl } from 'obsidian';
 import { TimeoutManager } from '../../utils/timeout-manager';
+import { Logger } from '../../utils/logger';
 
 export class OllamaProvider implements AIProvider {
 	name = 'Ollama (Local)';
@@ -53,10 +54,18 @@ export class OllamaProvider implements AIProvider {
 					temperature: options?.temperature || this.generalSettings.defaultTemperature,
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
-			})
+			}),
+			throw: false
 		});
 
 		if (response.status !== 200) {
+			Logger.error('Ollama API Error Details:', {
+				status: response.status,
+				headers: response.headers,
+				errorText: response.text,
+				model: model,
+				endpoint: `${baseUrl}/api/generate`
+			});
 			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 
@@ -104,10 +113,18 @@ export class OllamaProvider implements AIProvider {
 					temperature: options?.temperature || this.generalSettings.defaultTemperature,
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
-			})
+			}),
+			throw: false
 		});
 
 		if (response.status !== 200) {
+			Logger.error('Ollama API Error Details:', {
+				status: response.status,
+				headers: response.headers,
+				errorText: response.text,
+				model: model,
+				endpoint: `${baseUrl}/api/chat`
+			});
 			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 

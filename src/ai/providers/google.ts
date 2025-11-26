@@ -84,7 +84,8 @@ export class GoogleProvider implements AIProvider {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(requestBody)
+			body: JSON.stringify(requestBody),
+			throw: false
 		});
 
 		if (response.status !== 200) {
