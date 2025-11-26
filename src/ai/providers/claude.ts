@@ -1,16 +1,19 @@
 import { requestUrl } from 'obsidian';
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
+import { TimeoutManager } from '../../utils/timeout-manager';
 
 export class ClaudeProvider implements AIProvider {
 	name = 'Claude (Anthropic)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -72,7 +75,9 @@ export class ClaudeProvider implements AIProvider {
 				// Check if it's a 500-level error that we should retry
 				if (response.status >= 500 && attempt < maxRetries) {
 					const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue; // Retry
 				}
 
@@ -96,7 +101,9 @@ export class ClaudeProvider implements AIProvider {
 					error.message.includes('Failed to connect')
 				)) {
 					const delay = baseDelay * Math.pow(2, attempt);
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue;
 				}
 				
@@ -128,7 +135,9 @@ export class ClaudeProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };

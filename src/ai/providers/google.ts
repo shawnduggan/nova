@@ -1,16 +1,19 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
 import { requestUrl } from 'obsidian';
+import { TimeoutManager } from '../../utils/timeout-manager';
 
 export class GoogleProvider implements AIProvider {
 	name = 'Google (Gemini)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -186,7 +189,9 @@ export class GoogleProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };

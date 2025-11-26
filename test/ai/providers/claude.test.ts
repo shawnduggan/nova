@@ -1,5 +1,6 @@
 import { ClaudeProvider } from '../../../src/ai/providers/claude';
 import { ProviderConfig } from '../../../src/ai/types';
+import { TimeoutManager } from '../../../src/utils/timeout-manager';
 
 // Mock Obsidian's requestUrl function
 jest.mock('obsidian', () => ({
@@ -11,6 +12,7 @@ import { requestUrl } from 'obsidian';
 describe('ClaudeProvider', () => {
     let provider: ClaudeProvider;
     let config: ProviderConfig;
+    let timeoutManager: TimeoutManager;
     const generalSettings = {
         defaultTemperature: 0.7,
         defaultMaxTokens: 1000
@@ -21,7 +23,8 @@ describe('ClaudeProvider', () => {
             apiKey: 'test-api-key',
             model: 'claude-3-haiku-20240307'
         };
-        provider = new ClaudeProvider(config, generalSettings);
+        timeoutManager = new TimeoutManager();
+        provider = new ClaudeProvider(config, generalSettings, timeoutManager);
         jest.clearAllMocks();
     });
 
@@ -86,8 +89,8 @@ describe('ClaudeProvider', () => {
         });
 
         test('should throw error when API key is missing', async () => {
-            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings);
-            
+            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings, new TimeoutManager());
+
             await expect(
                 providerWithoutKey.complete('System prompt', 'User prompt')
             ).rejects.toThrow('Claude API key not configured');
@@ -119,12 +122,12 @@ describe('ClaudeProvider', () => {
         });
 
         test('should return false when API key is missing', async () => {
-            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings);
+            const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings, new TimeoutManager());
             expect(await providerWithoutKey.isAvailable()).toBe(false);
         });
 
         test('should return false when API key is undefined', async () => {
-            const providerWithoutKey = new ClaudeProvider({}, generalSettings);
+            const providerWithoutKey = new ClaudeProvider({}, generalSettings, new TimeoutManager());
             expect(await providerWithoutKey.isAvailable()).toBe(false);
         });
     });

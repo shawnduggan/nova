@@ -8,6 +8,7 @@ import { NovaSettings } from '../settings';
 import { FeatureManager } from '../licensing/feature-manager';
 import { getProviderTypeForModel } from './models';
 import { getModelMaxOutputTokens } from './context-limits';
+import { TimeoutManager } from '../utils/timeout-manager';
 
 export class AIProviderManager {
 	private providers: Map<ProviderType, AIProvider> = new Map();
@@ -15,17 +16,19 @@ export class AIProviderManager {
 	private featureManager?: FeatureManager;
 	private availabilityCache: Map<ProviderType, { isAvailable: boolean; timestamp: number }> = new Map();
 	private readonly CACHE_TTL = 30000; // 30 seconds
+	private timeoutManager: TimeoutManager;
 
 	constructor(settings: NovaSettings, featureManager?: FeatureManager) {
 		this.settings = settings;
 		this.featureManager = featureManager;
+		this.timeoutManager = new TimeoutManager();
 	}
 
 	initialize() {
-		this.providers.set('claude', new ClaudeProvider(this.settings.aiProviders.claude, this.settings.general));
-		this.providers.set('openai', new OpenAIProvider(this.settings.aiProviders.openai, this.settings.general));
-		this.providers.set('google', new GoogleProvider(this.settings.aiProviders.google, this.settings.general));
-		this.providers.set('ollama', new OllamaProvider(this.settings.aiProviders.ollama, this.settings.general));
+		this.providers.set('claude', new ClaudeProvider(this.settings.aiProviders.claude, this.settings.general, this.timeoutManager));
+		this.providers.set('openai', new OpenAIProvider(this.settings.aiProviders.openai, this.settings.general, this.timeoutManager));
+		this.providers.set('google', new GoogleProvider(this.settings.aiProviders.google, this.settings.general, this.timeoutManager));
+		this.providers.set('ollama', new OllamaProvider(this.settings.aiProviders.ollama, this.settings.general, this.timeoutManager));
 	}
 
 	updateSettings(settings: NovaSettings) {
@@ -281,6 +284,7 @@ export class AIProviderManager {
 	}
 
 	cleanup() {
+		this.timeoutManager.clearAll();
 		this.providers.clear();
 	}
 

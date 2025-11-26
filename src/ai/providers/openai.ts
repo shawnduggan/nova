@@ -1,15 +1,18 @@
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { requestUrl } from 'obsidian';
+import { TimeoutManager } from '../../utils/timeout-manager';
 
 export class OpenAIProvider implements AIProvider {
 	name = 'OpenAI';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -86,7 +89,9 @@ export class OpenAIProvider implements AIProvider {
 				// Check if it's a 500-level error that we should retry
 				if (response.status >= 500 && attempt < maxRetries) {
 					const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue; // Retry
 				}
 
@@ -112,7 +117,9 @@ export class OpenAIProvider implements AIProvider {
 					error.message.includes('Failed to connect')
 				)) {
 					const delay = baseDelay * Math.pow(2, attempt);
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue;
 				}
 				

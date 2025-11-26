@@ -697,25 +697,26 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private async performRealConnectionTest(provider: 'claude' | 'openai' | 'google' | 'ollama'): Promise<void> {
 		// Test the provider classes directly
+		const tempTimeoutManager = new TimeoutManager();
 		switch (provider) {
 			case 'claude': {
-				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude, this.plugin.settings.general);
+				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude, this.plugin.settings.general, tempTimeoutManager);
 				// For Claude, just test a minimal completion instead of getAvailableModels
 				await claudeProvider.complete('You are a helpful assistant.', 'Hi', { maxTokens: 1 });
 				break;
 			}
 			case 'openai': {
-				const openaiProvider = new OpenAIProvider(this.plugin.settings.aiProviders.openai, this.plugin.settings.general);
+				const openaiProvider = new OpenAIProvider(this.plugin.settings.aiProviders.openai, this.plugin.settings.general, tempTimeoutManager);
 				await openaiProvider.getAvailableModels();
 				break;
 			}
 			case 'google': {
-				const googleProvider = new GoogleProvider(this.plugin.settings.aiProviders.google, this.plugin.settings.general);
+				const googleProvider = new GoogleProvider(this.plugin.settings.aiProviders.google, this.plugin.settings.general, tempTimeoutManager);
 				await googleProvider.getAvailableModels();
 				break;
 			}
 			case 'ollama': {
-				const ollamaProvider = new OllamaProvider(this.plugin.settings.aiProviders.ollama, this.plugin.settings.general);
+				const ollamaProvider = new OllamaProvider(this.plugin.settings.aiProviders.ollama, this.plugin.settings.general, tempTimeoutManager);
 				// Ollama doesn't have getAvailableModels, check connection with isAvailable
 				const isAvailable = await ollamaProvider.isAvailable();
 				if (!isAvailable) {
