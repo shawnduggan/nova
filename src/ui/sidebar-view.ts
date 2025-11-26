@@ -2181,6 +2181,10 @@ USER REQUEST: ${processedMessage}`;
 			await this.plugin.settingTab.setCurrentModel(model);
 			await this.plugin.saveSettings();
 			
+			// Refresh privacy indicator and context
+			await this.refreshProviderStatus();
+			this.refreshContext();
+			
 			// Show success message
 			const displayName = this.getModelDisplayName(provider, model);
 			this.addSuccessMessage(`✓ Switched to ${displayName}`);
