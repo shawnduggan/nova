@@ -3245,7 +3245,7 @@
 }
 
 .nova-provider-dropdown-select {
-    background: var(--background-modifier-form-field);
+    background-color: var(--background-modifier-form-field);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
     color: var(--text-normal);
@@ -3255,8 +3255,8 @@
     padding: var(--size-2-2) var(--size-2-3);
     min-width: 150px;
     min-height: 28px;
-    appearance: none; /* Remove default dropdown arrow */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    appearance: none; /* Hide native arrow */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e"); /* Dark arrow for light theme */
     background-repeat: no-repeat;
     background-position: right var(--size-2-2) center;
     background-size: 12px;
@@ -3265,7 +3265,7 @@
 }
 
 .nova-provider-dropdown-select:hover {
-    background: var(--background-modifier-hover);
+    background-color: var(--background-modifier-hover);
     border-color: var(--interactive-accent);
 }
 
@@ -3277,7 +3277,28 @@
 
 /* Dark theme dropdown arrow */
 .theme-dark .nova-provider-dropdown-select {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e"); /* Light arrow for dark theme */
+}
+
+.is-mobile .nova-provider-dropdown-select {
+    min-width: 120px;
+    max-width: 160px;
+    width: auto;
+    font-size: 12px;
+    padding: var(--size-2-2) var(--size-2-3);
+    padding-right: calc(var(--size-2-3) + 16px); /* Make room for arrow on mobile */
+    min-height: 32px;
+}
+
+.nova-provider-dropdown-select:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.nova-provider-dropdown-select:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
 .is-mobile .nova-provider-dropdown-select {
