@@ -15,7 +15,7 @@ describe('ClaudeProvider', () => {
     let timeoutManager: TimeoutManager;
     const generalSettings = {
         defaultTemperature: 0.7,
-        defaultMaxTokens: 1000
+        defaultMaxTokens: 4000
     };
 
     beforeEach(() => {
@@ -56,7 +56,7 @@ describe('ClaudeProvider', () => {
                 },
                 body: JSON.stringify({
                     model: 'claude-3-haiku-20240307',
-                    max_tokens: 1000,
+                    max_tokens: 4000,
                     temperature: 0.7,
                     system: systemPrompt,
                     messages: [

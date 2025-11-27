@@ -202,16 +202,18 @@ export class OpenAIProvider implements AIProvider {
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		// Get the full response from OpenAI, then simulate streaming with consistent chunking
 		const result = await this.chatCompletion(messages, options);
-		
+
 		// Split result into smaller chunks for consistent typewriter effect
 		const chunkSize = 3; // Characters per chunk
 		for (let i = 0; i < result.length; i += chunkSize) {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
-		
+
 		yield { content: '', done: true };
 	}
 

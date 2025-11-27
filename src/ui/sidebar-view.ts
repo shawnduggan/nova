@@ -78,6 +78,9 @@ export class NovaSidebarView extends ItemView {
 	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
 	private static readonly SCROLL_DELAY_MS = 50;
 	private static readonly FOCUS_DELAY_MS = 150;
+
+	// Thinking phrase rotation intervals - WeakMap for proper cleanup
+	private thinkingRotationIntervals = new WeakMap<HTMLElement, number>();
 	private static readonly HOVER_TIMEOUT_MS = 150;
 	private static readonly NOTICE_DURATION_MS = 5000;
 	
@@ -2955,20 +2958,19 @@ USER REQUEST: ${processedMessage}`;
 			const newPhrase = this.getContextualThinkingPhrase(command, messageText);
 			textEl.textContent = newPhrase;
 		}, 2000));
-		
-		// Store interval ID for cleanup
-		// Note: registerInterval handles automatic cleanup, but we still store for manual cleanup if needed
-		(textEl as any).rotationInterval = rotationInterval;
+
+		// Store interval ID in WeakMap for manual cleanup
+		this.thinkingRotationIntervals.set(textEl, rotationInterval);
 	}
 
 	/**
 	 * Stop phrase rotation animation and cleanup
 	 */
 	private stopThinkingPhraseRotation(textEl: HTMLElement): void {
-		// TODO: Replace with WeakMap or proper state management for element data
-		if ((textEl as any).rotationInterval) {
-			clearInterval((textEl as any).rotationInterval);
-			(textEl as any).rotationInterval = null;
+		const intervalId = this.thinkingRotationIntervals.get(textEl);
+		if (intervalId !== undefined) {
+			window.clearInterval(intervalId);
+			this.thinkingRotationIntervals.delete(textEl);
 		}
 	}
 

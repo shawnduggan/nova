@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Platform, setIcon } from 'obsidian';
+import { App, PluginSettingTab, Setting, Platform, setIcon, Modal } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	general: {
 		defaultTemperature: 0.7,
-		defaultMaxTokens: 1000
+		defaultMaxTokens: 4000
 	},
 	licensing: {
 		supernovaLicenseKey: '',
@@ -1019,40 +1019,43 @@ export class NovaSettingTab extends PluginSettingTab {
 					.setButtonText('Clear licenses')
 					.setWarning()
 					.onClick(async () => {
-						// Confirm action
-						const confirmed = confirm('Are you sure you want to clear all licenses? This will remove any applied Supernova license.');
-						if (!confirmed) return;
+						// Confirm action using Obsidian Modal
+						new ConfirmModal(
+							this.app,
+							'Are you sure you want to clear all licenses? This will remove any applied Supernova license.',
+							async () => {
+								// Clear license key
+								this.plugin.settings.licensing.supernovaLicenseKey = '';
 
-						// Clear license key
-						this.plugin.settings.licensing.supernovaLicenseKey = '';
-						
-						// Clear Force Supernova if enabled
-						if (this.plugin.settings.licensing.debugSettings.forceSupernova) {
-							this.plugin.settings.licensing.debugSettings.forceSupernova = false;
-						}
-						
-						await this.plugin.saveSettings();
+								// Clear Force Supernova if enabled
+								if (this.plugin.settings.licensing.debugSettings.forceSupernova) {
+									this.plugin.settings.licensing.debugSettings.forceSupernova = false;
+								}
 
-						// Update feature manager
-						if (this.plugin.featureManager) {
-							await this.plugin.featureManager.updateSupernovaLicense(null);
-							this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
-						}
+								await this.plugin.saveSettings();
 
-						// Dispatch license update event
-						document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-							detail: { 
-								hasLicense: false,
-								licenseKey: '',
-								action: 'clear'
-							} 
-						}));
+								// Update feature manager
+								if (this.plugin.featureManager) {
+									await this.plugin.featureManager.updateSupernovaLicense(null);
+									this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
+								}
 
-						// Show success message
-						this.showLicenseMessage('All licenses cleared successfully.', 'success');
+								// Dispatch license update event
+								document.dispatchEvent(new CustomEvent('nova-license-updated', {
+									detail: {
+										hasLicense: false,
+										licenseKey: '',
+										action: 'clear'
+									}
+								}));
 
-						// Refresh content
-						this.updateTabContent();
+								// Show success message
+								this.showLicenseMessage('All licenses cleared successfully.', 'success');
+
+								// Refresh content
+								this.updateTabContent();
+							}
+						).open();
 					}));
 		}
 	}
@@ -1101,9 +1104,9 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		new Setting(coreSection)
 			.setName('Default max tokens')
-			.setDesc('Maximum length of AI responses (1000-10000 tokens)')
+			.setDesc('Maximum length of AI responses (2000-32000 tokens)')
 			.addSlider(slider => slider
-				.setLimits(1000, 10000, 500)
+				.setLimits(2000, 32000, 1000)
 				.setValue(this.plugin.settings.general.defaultMaxTokens)
 				.setDynamicTooltip()
 				.onChange(async (value) => {
@@ -1537,15 +1540,18 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private deleteCommand(index: number) {
 		if (!this.plugin.settings.features?.commands?.customCommands) return;
-		
+
 		const command = this.plugin.settings.features.commands.customCommands[index];
-		const confirmed = confirm(`Delete command "${command.name}" (${command.trigger})?`);
-		
-		if (confirmed) {
-			this.plugin.settings.features.commands.customCommands.splice(index, 1);
-			this.plugin.saveSettings();
-			this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
-		}
+		new ConfirmModal(
+			this.app,
+			`Delete command "${command.name}" (${command.trigger})?`,
+			() => {
+				if (!this.plugin.settings.features?.commands?.customCommands) return;
+				this.plugin.settings.features.commands.customCommands.splice(index, 1);
+				this.plugin.saveSettings();
+				this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
+			}
+		).open();
 	}
 
 	private createWelcomeSection(container: HTMLElement): void {
@@ -1887,5 +1893,46 @@ export class NovaSettingTab extends PluginSettingTab {
 	cleanup(): void {
 		this.timeoutManager.clearAll();
 		// Event listeners are cleaned up automatically by PluginSettingTab
+	}
+}
+
+/**
+ * Simple confirmation modal for destructive actions
+ */
+class ConfirmModal extends Modal {
+	private message: string;
+	private onConfirm: () => void;
+
+	constructor(app: App, message: string, onConfirm: () => void) {
+		super(app);
+		this.message = message;
+		this.onConfirm = onConfirm;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.createEl('p', { text: this.message });
+
+		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+		buttonContainer.style.display = 'flex';
+		buttonContainer.style.gap = '8px';
+		buttonContainer.style.justifyContent = 'flex-end';
+		buttonContainer.style.marginTop = '16px';
+
+		const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
+		cancelButton.addEventListener('click', () => {
+			this.close();
+		});
+
+		const confirmButton = buttonContainer.createEl('button', { text: 'Confirm', cls: 'mod-warning' });
+		confirmButton.addEventListener('click', () => {
+			this.onConfirm();
+			this.close();
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
 	}
 }

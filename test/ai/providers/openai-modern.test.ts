@@ -16,7 +16,7 @@ describe('OpenAIProvider Modernization', () => {
     let timeoutManager: TimeoutManager;
     const generalSettings = {
         defaultTemperature: 0.7,
-        defaultMaxTokens: 1000
+        defaultMaxTokens: 4000
     };
 
     beforeEach(() => {

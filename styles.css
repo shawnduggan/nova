@@ -220,53 +220,53 @@
 
 /* Status Colors */
 .nova-provider-status.connected {
-    background: rgba(76, 175, 80, 0.1);
-    border-color: rgba(76, 175, 80, 0.3);
-    color: #4caf50;
+    background: rgba(var(--color-green-rgb), 0.1);
+    border-color: rgba(var(--color-green-rgb), 0.3);
+    color: var(--color-green);
 }
 
 .nova-provider-status.connected .nova-status-dot {
-    background: #4caf50;
+    background: var(--color-green);
 }
 
 .nova-provider-status.error {
-    background: rgba(244, 67, 54, 0.1);
-    border-color: rgba(244, 67, 54, 0.3);
-    color: #f44336;
+    background: rgba(var(--color-red-rgb), 0.1);
+    border-color: rgba(var(--color-red-rgb), 0.3);
+    color: var(--color-red);
 }
 
 .nova-provider-status.error .nova-status-dot {
-    background: #f44336;
+    background: var(--color-red);
 }
 
 .nova-provider-status.not-configured {
-    background: rgba(158, 158, 158, 0.1);
-    border-color: rgba(158, 158, 158, 0.3);
-    color: #9e9e9e;
+    background: var(--background-modifier-hover);
+    border-color: var(--background-modifier-border);
+    color: var(--text-muted);
 }
 
 .nova-provider-status.not-configured .nova-status-dot {
-    background: #9e9e9e;
+    background: var(--text-muted);
 }
 
 .nova-provider-status.untested {
-    background: rgba(255, 152, 0, 0.1);
-    border-color: rgba(255, 152, 0, 0.3);
-    color: #ff9800;
+    background: rgba(var(--color-orange-rgb), 0.1);
+    border-color: rgba(var(--color-orange-rgb), 0.3);
+    color: var(--color-orange);
 }
 
 .nova-provider-status.untested .nova-status-dot {
-    background: #ff9800;
+    background: var(--color-orange);
 }
 
 .nova-provider-status.testing {
-    background: rgba(33, 150, 243, 0.1);
-    border-color: rgba(33, 150, 243, 0.3);
-    color: #2196f3;
+    background: rgba(var(--color-blue-rgb), 0.1);
+    border-color: rgba(var(--color-blue-rgb), 0.3);
+    color: var(--color-blue);
 }
 
 .nova-provider-status.testing .nova-status-dot {
-    background: #2196f3;
+    background: var(--color-blue);
     animation: pulse 1s infinite;
 }
 
@@ -648,14 +648,14 @@
     gap: 8px;
     margin-bottom: 12px;
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(76, 175, 80, 0.2);
+    border-bottom: 1px solid rgba(var(--color-green-rgb), 0.2);
 }
 
 .nova-license-checkmark {
     font-size: 1.2em;
-    color: #4caf50;
+    color: var(--color-green);
     font-weight: bold;
-    background: rgba(76, 175, 80, 0.2);
+    background: rgba(var(--color-green-rgb), 0.2);
     border-radius: 50%;
     width: 24px;
     height: 24px;
@@ -667,7 +667,7 @@
 
 .nova-license-title {
     font-weight: 600;
-    color: #4caf50;
+    color: var(--color-green);
     font-size: 1.1em;
 }
 
@@ -2006,9 +2006,9 @@
 /* Unified Static Message Classes */
 .nova-pill-success {
     margin: 8px auto !important;
-    background: rgba(76, 175, 80, 0.1) !important;
-    color: #4caf50 !important;
-    border: 1px solid rgba(76, 175, 80, 0.3) !important;
+    background: rgba(var(--color-green-rgb), 0.1) !important;
+    color: var(--color-green) !important;
+    border: 1px solid rgba(var(--color-green-rgb), 0.3) !important;
     text-align: center !important;
     font-size: calc(var(--font-text-size) * 0.85) !important;
     border-radius: 20px !important;
@@ -2032,9 +2032,9 @@
 
 .nova-bubble-success {
     margin-right: auto !important;
-    background: #f0f9f0 !important;
-    color: #2d5a2d !important;
-    border: 1px solid #d4edda !important;
+    background: rgba(var(--color-green-rgb), 0.1) !important;
+    color: var(--color-green) !important;
+    border: 1px solid rgba(var(--color-green-rgb), 0.3) !important;
     font-size: var(--font-text-size) !important;
     border-radius: var(--radius-m) !important;
     max-width: 80% !important;
@@ -2044,9 +2044,9 @@
 
 .nova-bubble-error {
     margin-right: auto !important;
-    background: #fef2f2 !important;
-    color: #7f1d1d !important;
-    border: 1px solid #fecaca !important;
+    background: rgba(var(--color-red-rgb), 0.1) !important;
+    color: var(--color-red) !important;
+    border: 1px solid rgba(var(--color-red-rgb), 0.3) !important;
     font-size: var(--font-text-size) !important;
     border-radius: var(--radius-m) !important;
     max-width: 80% !important;
@@ -2056,9 +2056,9 @@
 
 .nova-bubble-warning {
     margin-right: auto !important;
-    background: #fffbeb !important;
-    color: #78350f !important;
-    border: 1px solid #fde68a !important;
+    background: rgba(var(--color-orange-rgb), 0.1) !important;
+    color: var(--color-orange) !important;
+    border: 1px solid rgba(var(--color-orange-rgb), 0.3) !important;
     font-size: var(--font-text-size) !important;
     border-radius: var(--radius-m) !important;
     max-width: 80% !important;
@@ -2500,36 +2500,36 @@
 }
 
 .nova-license-badge.founding {
-    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    background: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
     animation: foundingGlow 2s ease-in-out infinite alternate;
 }
 
 .nova-license-badge.lifetime {
-    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-purple) 100%);
 }
 
 .nova-license-badge.supernova {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-blue) 100%);
 }
 
 /* Status badge styling for founding licenses */
 .nova-status-badge.founding {
-    border-color: #fdcb6e !important;
-    color: #fdcb6e !important;
-    background: rgba(253, 203, 110, 0.1);
+    border-color: var(--color-yellow) !important;
+    color: var(--color-yellow) !important;
+    background: rgba(var(--color-yellow-rgb), 0.1);
 }
 
 .nova-status-badge.founding .status-icon {
-    filter: drop-shadow(0 0 4px rgba(253, 203, 110, 0.6));
+    filter: drop-shadow(0 0 4px rgba(var(--color-yellow-rgb), 0.6));
 }
 
 /* Founding badge glow animation */
 @keyframes foundingGlow {
     0% {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(253, 203, 110, 0.4);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(var(--color-yellow-rgb), 0.4);
     }
     100% {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 16px rgba(253, 203, 110, 0.6);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 16px rgba(var(--color-yellow-rgb), 0.6);
     }
 }
 
@@ -3556,8 +3556,8 @@
 .nova-supernova-icon {
     width: 14px;
     height: 14px;
-    color: #9333ea;
-    filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.6));
+    color: var(--color-purple);
+    filter: drop-shadow(0 0 4px rgba(var(--color-purple-rgb), 0.6));
 }
 
 /* Nova icon styles */

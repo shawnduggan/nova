@@ -60,7 +60,7 @@ describe('AIProviderManager', () => {
             },
             general: {
                 defaultTemperature: 0.7,
-                defaultMaxTokens: 1000
+                defaultMaxTokens: 4000
             },
             features: {
 				commands: {
@@ -91,7 +91,7 @@ describe('AIProviderManager', () => {
 
             const result = await manager.complete('System prompt', 'User prompt');
 
-            expect(mockProvider.complete).toHaveBeenCalledWith('System prompt', 'User prompt', { temperature: 0.7, maxTokens: 1000, model: 'claude-3-5-sonnet-20241022' });
+            expect(mockProvider.complete).toHaveBeenCalledWith('System prompt', 'User prompt', { temperature: 0.7, maxTokens: 4000, model: 'claude-3-5-sonnet-20241022' });
             expect(result).toBe('Test response');
         });
 
@@ -107,7 +107,7 @@ describe('AIProviderManager', () => {
             const options = { temperature: 0.5, maxTokens: 2000 };
             await manager.complete('System prompt', 'User prompt', options);
 
-            expect(mockProvider.complete).toHaveBeenCalledWith('System prompt', 'User prompt', { temperature: 0.7, maxTokens: 1000, model: 'claude-3-5-sonnet-20241022' });
+            expect(mockProvider.complete).toHaveBeenCalledWith('System prompt', 'User prompt', { temperature: 0.7, maxTokens: 4000, model: 'claude-3-5-sonnet-20241022' });
         });
 
         test('should throw error when no provider is available', async () => {
