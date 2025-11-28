@@ -144,9 +144,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Top row container for title and controls
 		const topRowEl = headerEl.createDiv({ cls: 'nova-header-top-row' });
-		
+
 		// Left side: Title with Nova icon
-		const titleEl = topRowEl.createEl('h4', { cls: 'nova-header-title' });
+		const titleEl = topRowEl.createDiv({ cls: 'nova-header-title' });
 		
 		// Use setIcon for the Nova icon (simpler and more reliable)
 		const iconEl = titleEl.createSpan();

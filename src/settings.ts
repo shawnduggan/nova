@@ -277,7 +277,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		infoCard1.createEl('p', { text: 'Debug settings for development and testing. These options help developers troubleshoot issues and test new features.' });
 		
 		const infoCard2 = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard2.createEl('h4', { text: '⚠️ Developer' });
+		const cardTitle1 = infoCard2.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle1.setText('⚠️ Developer');
 		
 		const featuresList = infoCard2.createEl('ul', { cls: 'nova-debug-features' });
 		const features = [
@@ -311,13 +312,15 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Privacy info card
 		const privacyCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		privacyCard.createEl('h4', { text: '🔒 Your privacy matters' });
+		const cardTitle2 = privacyCard.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle2.setText('🔒 Your privacy matters');
 		const privacyText = privacyCard.createEl('p');
 		privacyText.textContent = 'Nova respects your privacy and gives you full control over how your data is handled. All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.';
 		
 		// Mobile support info card
 		const mobileCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		mobileCard.createEl('h4', { text: '📱 Mobile support' });
+		const cardTitle3 = mobileCard.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle3.setText('📱 Mobile support');
 		const mobileText = mobileCard.createEl('p');
 		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers.';
 		
@@ -906,7 +909,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Supernova supporter information
 		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
 		const infoCard = supernovaInfo.createDiv({ cls: 'nova-info-card' });
-		infoCard.createEl('h5', { text: 'Become a Supernova Supporter' });
+		const cardTitle4 = infoCard.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle4.setText('Become a Supernova Supporter');
 		const description = infoCard.createEl('p');
 		description.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
 		
@@ -1022,6 +1026,7 @@ export class NovaSettingTab extends PluginSettingTab {
 						// Confirm action using Obsidian Modal
 						new ConfirmModal(
 							this.app,
+							this.plugin,
 							'Are you sure you want to clear all licenses? This will remove any applied Supernova license.',
 							async () => {
 								// Clear license key
@@ -1135,7 +1140,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Model guidance card
 		const guidanceCard = infoEl.createDiv({ cls: 'nova-info-card nova-model-guidance' });
-		guidanceCard.createEl('h4', { text: 'Recommended defaults' });
+		const cardTitle5 = guidanceCard.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle5.setText('Recommended defaults');
 		
 		const recommendationsList = guidanceCard.createEl('ul', { cls: 'nova-model-recommendations' });
 		const recommendations = [
@@ -1167,15 +1173,14 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private createClaudeSettings(containerEl = this.containerEl) {
-		
+
 		const claudeContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		
+
 		// Provider header with status indicator
-		const headerContainer = claudeContainer.createDiv({ cls: 'nova-provider-header' });
-		const titleEl = headerContainer.createEl('h4', { text: 'Claude (Anthropic)' });
-		
-		// Add status indicator to the same h4 element
-		const statusContainer = this.createProviderStatusIndicator(titleEl, 'claude');
+		const headerSetting = new Setting(claudeContainer)
+			.setName('Claude (Anthropic)')
+			.setHeading();
+		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'claude');
 		statusContainer.setAttribute('data-provider', 'claude');
 
 		this.createSecureApiKeyInput(claudeContainer, {
@@ -1197,15 +1202,14 @@ export class NovaSettingTab extends PluginSettingTab {
 
 
 	private createOpenAISettings(containerEl = this.containerEl) {
-		
+
 		const openaiContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		
+
 		// Provider header with status indicator
-		const headerContainer = openaiContainer.createDiv({ cls: 'nova-provider-header' });
-		const titleEl = headerContainer.createEl('h4', { text: 'ChatGPT (OpenAI)' });
-		
-		// Add status indicator to the same h4 element
-		const statusContainer = this.createProviderStatusIndicator(titleEl, 'openai');
+		const headerSetting = new Setting(openaiContainer)
+			.setName('ChatGPT (OpenAI)')
+			.setHeading();
+		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'openai');
 		statusContainer.setAttribute('data-provider', 'openai');
 
 		this.createSecureApiKeyInput(openaiContainer, {
@@ -1226,15 +1230,14 @@ export class NovaSettingTab extends PluginSettingTab {
 
 
 	private createGoogleSettings(containerEl = this.containerEl) {
-		
+
 		const googleContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		
+
 		// Provider header with status indicator
-		const headerContainer = googleContainer.createDiv({ cls: 'nova-provider-header' });
-		const titleEl = headerContainer.createEl('h4', { text: 'Google (Gemini)' });
-		
-		// Add status indicator to the same h4 element
-		const statusContainer = this.createProviderStatusIndicator(titleEl, 'google');
+		const headerSetting = new Setting(googleContainer)
+			.setName('Google (Gemini)')
+			.setHeading();
+		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'google');
 		statusContainer.setAttribute('data-provider', 'google');
 
 		this.createSecureApiKeyInput(googleContainer, {
@@ -1256,13 +1259,12 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createOllamaSettings(containerEl = this.containerEl) {
 		const ollamaContainer = containerEl.createDiv({ cls: 'nova-provider-section' });
-		
+
 		// Provider header with status indicator
-		const headerContainer = ollamaContainer.createDiv({ cls: 'nova-provider-header' });
-		const titleEl = headerContainer.createEl('h4', { text: 'Ollama (Local)' });
-		
-		// Add status indicator to the same h4 element
-		const statusContainer = this.createProviderStatusIndicator(titleEl, 'ollama');
+		const headerSetting = new Setting(ollamaContainer)
+			.setName('Ollama (Local)')
+			.setHeading();
+		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'ollama');
 		statusContainer.setAttribute('data-provider', 'ollama');
 
 		new Setting(ollamaContainer)
@@ -1328,7 +1330,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Info about platform settings
 		const infoEl = containerEl.createDiv({ cls: 'nova-platform-info' });
 		const infoCard = infoEl.createDiv({ cls: 'nova-info-card' });
-		infoCard.createEl('h4', { text: '🖥️ Platform setup' });
+		const cardTitle6 = infoCard.createDiv({ cls: 'nova-info-card-title' });
+		cardTitle6.setText('🖥️ Platform setup');
 		const infoText = infoCard.createEl('p');
 		infoText.textContent = 'Configure which AI provider to use as your primary provider on different platforms. Nova works seamlessly across desktop and mobile with all providers.';
 		
@@ -1376,8 +1379,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
 			const noticeEl = containerEl.createDiv({ cls: 'nova-feature-notice' });
 			const noticeDiv = noticeEl.createDiv({ cls: 'nova-feature-card' });
-			
-			const title = noticeDiv.createEl('h4', { cls: 'nova-feature-title' });
+
+			const title = noticeDiv.createDiv({ cls: 'nova-feature-title' });
 			title.textContent = 'Supernova supporter feature';
 			
 			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
@@ -1544,6 +1547,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const command = this.plugin.settings.features.commands.customCommands[index];
 		new ConfirmModal(
 			this.app,
+			this.plugin,
 			`Delete command "${command.name}" (${command.trigger})?`,
 			() => {
 				if (!this.plugin.settings.features?.commands?.customCommands) return;
@@ -1576,7 +1580,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		const selectionCard = guideSection.createDiv({ cls: 'nova-quick-start-card' });
 		const selectionHeader = selectionCard.createDiv({ cls: 'nova-card-header' });
 		selectionHeader.createSpan({ cls: 'nova-card-icon', text: '🎯' });
-		selectionHeader.createEl('h4', { text: 'Selection-based editing' });
+		const cardTitle7 = selectionHeader.createDiv({ cls: 'nova-card-title' });
+		cardTitle7.setText('Selection-based editing');
 		
 		const selectionContent = selectionCard.createDiv({ cls: 'nova-card-content' });
 		const selectionSteps = selectionContent.createEl('ol');
@@ -1594,7 +1599,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		const chatCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-chat-card' });
 		const chatHeader = chatCard.createDiv({ cls: 'nova-card-header' });
 		chatHeader.createSpan({ cls: 'nova-card-icon', text: '💬' });
-		chatHeader.createEl('h4', { text: 'Chat-based targeting' });
+		const cardTitle8 = chatHeader.createDiv({ cls: 'nova-card-title' });
+		cardTitle8.setText('Chat-based targeting');
 		
 		const chatContent = chatCard.createDiv({ cls: 'nova-card-content' });
 		const chatSteps = chatContent.createEl('ol');
@@ -1611,7 +1617,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		const providerCard = guideSection.createDiv({ cls: 'nova-quick-start-card nova-provider-card' });
 		const providerHeader = providerCard.createDiv({ cls: 'nova-card-header' });
 		providerHeader.createSpan({ cls: 'nova-card-icon', text: '🤖' });
-		providerHeader.createEl('h4', { text: 'AI provider selection' });
+		const cardTitle9 = providerHeader.createDiv({ cls: 'nova-card-title' });
+		cardTitle9.setText('AI provider selection');
 		
 		const providerContent = providerCard.createDiv({ cls: 'nova-card-content' });
 		providerContent.createEl('p', { text: 'Choose the right AI for your task:' });
@@ -1793,7 +1800,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		iconSpan.textContent = statusIcon; // statusIcon is an emoji string from badge.icon
 		
 		const infoDiv = headerDiv.createDiv({ cls: 'nova-supernova-info' });
-		infoDiv.createEl('h3', { text: 'Supernova Support' });
+		const ctaTitle = infoDiv.createDiv({ cls: 'nova-cta-title' });
+		ctaTitle.setText('Supernova Support');
 		const statusP = infoDiv.createEl('p');
 		statusP.textContent = 'Status: ';
 		statusP.createEl('strong', { text: statusText });
@@ -1839,7 +1847,8 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Header section
 		const headerDiv = navCard.createDiv({ cls: 'nova-card-header' });
 		headerDiv.createSpan({ cls: 'nova-card-icon', text: '⚡' });
-		headerDiv.createEl('h4', { text: 'Quick start' });
+		const navTitle = headerDiv.createDiv({ cls: 'nova-card-title' });
+		navTitle.setText('Quick start');
 		
 		// Content section
 		const contentDiv = navCard.createDiv({ cls: 'nova-card-content' });
@@ -1902,9 +1911,11 @@ export class NovaSettingTab extends PluginSettingTab {
 class ConfirmModal extends Modal {
 	private message: string;
 	private onConfirm: () => void;
+	private plugin: NovaPlugin;
 
-	constructor(app: App, message: string, onConfirm: () => void) {
+	constructor(app: App, plugin: NovaPlugin, message: string, onConfirm: () => void) {
 		super(app);
+		this.plugin = plugin;
 		this.message = message;
 		this.onConfirm = onConfirm;
 	}
@@ -1920,12 +1931,12 @@ class ConfirmModal extends Modal {
 		buttonContainer.style.marginTop = '16px';
 
 		const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
-		cancelButton.addEventListener('click', () => {
+		this.plugin.registerDomEvent(cancelButton, 'click', () => {
 			this.close();
 		});
 
 		const confirmButton = buttonContainer.createEl('button', { text: 'Confirm', cls: 'mod-warning' });
-		confirmButton.addEventListener('click', () => {
+		this.plugin.registerDomEvent(confirmButton, 'click', () => {
 			this.onConfirm();
 			this.close();
 		});

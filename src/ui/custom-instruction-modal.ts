@@ -38,9 +38,10 @@ export class CustomInstructionModal extends Modal {
         
         // Use native modal styling
         this.modalEl.addClass('nova-custom-instruction-modal');
-        
+
         // Title
-        contentEl.createEl('h2', { text: 'Custom prompt' });
+        const titleDiv = contentEl.createDiv({ cls: 'modal-title' });
+        titleDiv.setText('Custom prompt');
 
         // Description
         new Setting(contentEl)

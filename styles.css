@@ -178,6 +178,22 @@
     gap: 12px;
 }
 
+/* Provider headers using Settings API */
+.nova-provider-section .setting-item-heading {
+    margin-bottom: 16px;
+}
+
+.nova-provider-section .setting-item-heading .setting-item-name {
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.nova-provider-section .setting-item-heading .setting-item-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .nova-provider-section {
     margin-top: 32px;
 }
@@ -467,6 +483,14 @@
     margin-bottom: 1em;
 }
 
+/* Info card titles (replacing h4 elements) */
+.nova-info-card-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin: 0 0 0.75em 0;
+    color: var(--text-normal);
+}
+
 .nova-info-card.compact {
     padding: 0.75em;
     font-size: 0.9em;
@@ -579,6 +603,8 @@
 .nova-feature-notice .nova-feature-title {
     margin: 0 0 8px 0;
     color: var(--text-normal);
+    font-size: 1.1em;
+    font-weight: 600;
 }
 
 .nova-feature-notice .nova-feature-description {
@@ -1505,6 +1531,14 @@
     color: var(--text-normal);
 }
 
+/* Quick start and navigation card titles (replacing h4 elements) */
+.nova-card-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-normal);
+}
+
 .nova-card-content ol,
 .nova-card-content ul {
     margin: 0 0 12px 0;
@@ -1565,6 +1599,14 @@
     margin-right: 12px;
     align-self: flex-start;
     margin-top: 2px;
+}
+
+/* CTA title (replacing h3 element) */
+.nova-cta-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: var(--text-normal);
 }
 
 .nova-supernova-info h3 {
