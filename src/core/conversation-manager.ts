@@ -437,7 +437,9 @@ export class ConversationManager {
     private startPeriodicCleanup(): void {
         // Clean up every 24 hours
         this.cleanupInterval = this.dataStore.registerInterval(window.setInterval(() => {
-            this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000); // 7 days
+            this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000).catch(error => {
+                Logger.error('Failed to cleanup old conversations:', error);
+            }); // 7 days
         }, 24 * 60 * 60 * 1000));
     }
 

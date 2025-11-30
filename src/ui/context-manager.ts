@@ -713,9 +713,11 @@ export class ContextManager {
 			}
 			
 			this.persistentContext.set(conversationFilePath, updatedPersistent);
-			
+
 			// Schedule async save to conversation manager
-			this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent);
+			this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent).catch(error => {
+				Logger.error('Failed to persist context update:', error);
+			});
 		}
 
 		return { cleanedMessage, references };

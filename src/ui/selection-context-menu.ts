@@ -113,7 +113,9 @@ export class SelectionContextMenu {
                     .setTitle('Nova: ' + action.label)
                     .setIcon(action.icon || 'edit')
                     .onClick(() => {
-                        this.handleSelectionAction(action.id, editor, selectedText);
+                        this.handleSelectionAction(action.id, editor, selectedText).catch(error => {
+                            Logger.error('Failed to handle selection action:', error);
+                        });
                     });
             });
         });

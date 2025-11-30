@@ -242,7 +242,9 @@ export class ProviderManager {
 			await this.plugin.saveSettings();
 
 			// Update status display
-			this.updateProviderStatus();
+			this.updateProviderStatus().catch(error => {
+				Logger.error('Failed to update provider status:', error);
+			});
 
 		} catch (error) {
 			// Error switching provider - handled by UI feedback

@@ -361,7 +361,9 @@ export class InputHandler {
 
 		// Add files to context if we got any
 		if (files.length > 0) {
-			this.addFilesToContext(files);
+			this.addFilesToContext(files).catch(error => {
+				Logger.error('Failed to add files to context:', error);
+			});
 		} else if (textPlainData && textPlainData.includes('obsidian://open?')) {
 			// User dropped something from Obsidian but no files were extracted
 			// This likely means they dropped non-markdown files

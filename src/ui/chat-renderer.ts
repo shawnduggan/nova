@@ -63,10 +63,12 @@ export class ChatRenderer {
 			const activeFile = this.plugin.app.workspace.getActiveFile();
 			if (activeFile) {
 				this.plugin.conversationManager.addSystemMessage(
-					activeFile, 
+					activeFile,
 					content,
 					{ messageType: cssClass } // Store CSS class as metadata
-				);
+				).catch(error => {
+					Logger.error('Failed to save system message to conversation:', error);
+				});
 			}
 		}
 
