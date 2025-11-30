@@ -78,6 +78,23 @@
         "message": "Avoid insertAdjacentHTML for security. Use DOM methods instead."
       }
     ],
+
+    // Prevent usage of window.prompt, window.alert, window.confirm
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "prompt",
+        "message": "Use Obsidian Modal instead of prompt() for better UX and mobile compatibility."
+      },
+      {
+        "name": "alert",
+        "message": "Use Obsidian Notice instead of alert() for better UX and mobile compatibility."
+      },
+      {
+        "name": "confirm",
+        "message": "Use Obsidian Modal with buttons instead of confirm() for better UX and mobile compatibility."
+      }
+    ],
     
     // TypeScript casting rules (simplified to avoid parser service requirements)
     "@typescript-eslint/consistent-type-assertions": [

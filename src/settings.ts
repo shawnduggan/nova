@@ -9,6 +9,7 @@ import { GoogleProvider } from './ai/providers/google';
 import { OllamaProvider } from './ai/providers/ollama';
 import { Logger } from './utils/logger';
 import { TimeoutManager } from './utils/timeout-manager';
+import { CustomCommandModal } from './ui/custom-command-modal';
 
 
 export interface CustomCommand {
@@ -1507,43 +1508,29 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private showCommandDialog(existingCommand?: CustomCommand, editIndex?: number) {
-		// For now, use a simple prompt-based approach
-		// TODO: Implement proper modal when Modal class is properly available
-		const name = prompt('Command name:', existingCommand?.name || '');
-		if (!name) return;
-		
-		const trigger = prompt('Command trigger (without :):', existingCommand?.trigger || '');
-		if (!trigger) return;
-		
-		const description = prompt('Description (optional):', existingCommand?.description || '');
-		
-		const template = prompt('Template content:', existingCommand?.template || '');
-		if (!template) return;
-		
-		const result: CustomCommand = {
-			id: existingCommand?.id || ('cmd_' + Math.random().toString(36).substring(2, 11)),
-			name,
-			trigger: trigger.toLowerCase(),
-			template,
-			description: description || undefined
-		};
-		
-		if (editIndex !== undefined) {
-			// Edit existing command
-			if (!this.plugin.settings.features) this.plugin.settings.features = {};
-			if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
-			this.plugin.settings.features.commands.customCommands[editIndex] = result;
-		} else {
-			// Add new command
-			if (!this.plugin.settings.features) this.plugin.settings.features = {};
-			if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
-			this.plugin.settings.features.commands.customCommands.push(result);
-		}
+		const modal = new CustomCommandModal(
+			this.app,
+			(result: CustomCommand) => {
+				if (editIndex !== undefined) {
+					// Edit existing command
+					if (!this.plugin.settings.features) this.plugin.settings.features = {};
+					if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
+					this.plugin.settings.features.commands.customCommands[editIndex] = result;
+				} else {
+					// Add new command
+					if (!this.plugin.settings.features) this.plugin.settings.features = {};
+					if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
+					this.plugin.settings.features.commands.customCommands.push(result);
+				}
 
-		this.plugin.saveSettings().catch(error => {
-			Logger.error('Failed to save settings after adding command:', error);
-		});
-		this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
+				this.plugin.saveSettings().catch(error => {
+					Logger.error('Failed to save settings after adding command:', error);
+				});
+				this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
+			},
+			existingCommand
+		);
+		modal.open();
 	}
 
 	private deleteCommand(index: number) {
