@@ -117,9 +117,13 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private onStreamingComplete(): void {
 		// Update document stats and context remaining
-		this.refreshAllStats();
+		this.refreshAllStats().catch(error => {
+			Logger.error('Failed to refresh stats on streaming complete:', error);
+		});
 		// Refresh context indicators
-		this.refreshContext();
+		this.refreshContext().catch(error => {
+			Logger.error('Failed to refresh context on streaming complete:', error);
+		});
 	}
 
 	async onOpen() {
@@ -159,7 +163,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Privacy indicator pill
 		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
-		this.updatePrivacyIndicator(privacyIndicator);
+		this.updatePrivacyIndicator(privacyIndicator).catch(error => {
+			Logger.error('Failed to update privacy indicator:', error);
+		});
 		
 		// Store reference for updates
 		this.privacyIndicator = privacyIndicator;
@@ -185,7 +191,9 @@ export class NovaSidebarView extends ItemView {
 		// Register event listener for active file changes
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
-				this.loadConversationForActiveFile();
+				this.loadConversationForActiveFile().catch(error => {
+					Logger.error('Failed to load conversation on file change:', error);
+				});
 			})
 		);
 		
@@ -200,7 +208,9 @@ export class NovaSidebarView extends ItemView {
 		this.setupEditorBlurListener();
 		
 		// Load conversation for current file
-		this.loadConversationForActiveFile();
+		this.loadConversationForActiveFile().catch(error => {
+			Logger.error('Failed to load conversation on open:', error);
+		});
 		
 		// Set completion callback on plugin's selection context menu
 		if (this.plugin.selectionContextMenu) {
@@ -254,7 +264,9 @@ export class NovaSidebarView extends ItemView {
 		const inputElement = this.inputHandler?.getTextArea()?.inputEl;
 		if (inputElement) {
 			this.registerDomEvent(inputElement, 'focus', () => {
-				this.refreshAllStats();
+				this.refreshAllStats().catch(error => {
+					Logger.error('Failed to refresh stats on input focus:', error);
+				});
 			});
 		}
 		
@@ -262,7 +274,9 @@ export class NovaSidebarView extends ItemView {
 		this.registerDomEvent(this.containerEl, 'mousedown', () => {
 			// Small delay to ensure click is processed
 			this.timeoutManager.addTimeout(() => {
-				this.refreshAllStats();
+				this.refreshAllStats().catch(error => {
+					Logger.error('Failed to refresh stats on sidebar click:', error);
+				});
 			}, 50);
 		});
 	}
@@ -372,7 +386,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Set up send message callback
 		this.inputHandler.setOnSendMessage((message: string) => {
-			this.handleSend(message);
+			this.handleSend(message).catch(error => { Logger.error('Failed to handle send:', error); });
 		});
 		
 		// Create context indicator and preview using ContextManager
@@ -582,7 +596,7 @@ export class NovaSidebarView extends ItemView {
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.hideCommandPicker();
 		// Trigger the command immediately
-		this.handleSend();
+		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
 	}
 
 	private getAvailableCommands(): Array<{trigger: string, name: string, description?: string}> {
@@ -696,7 +710,7 @@ export class NovaSidebarView extends ItemView {
 			}
 
 			this.registerDomEvent(item, 'click', () => {
-				this.executeCommandFromMenu(command.trigger);
+				this.executeCommandFromMenu(command.trigger).catch(error => { Logger.error('Failed to execute command from menu:', error); });
 			});
 		});
 
@@ -735,7 +749,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Execute regular command (provider switching, custom commands)
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
-		this.handleSend();
+		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
 	}
 
 
@@ -993,8 +1007,8 @@ export class NovaSidebarView extends ItemView {
 			.setTooltip('Clear all documents from context')
 			.onClick(async () => {
 				if (this.currentFile) {
-					this.contextManager.clearPersistentContext(this.currentFile.path);
-					await this.refreshContext();
+					this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
+					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 				}
 			});
 		
@@ -1060,8 +1074,8 @@ export class NovaSidebarView extends ItemView {
 			this.registerDomEvent(removeBtn, 'click', async (e: Event) => {
 				e.stopPropagation();
 				if (this.currentFile) {
-					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path);
-					await this.refreshContext();
+					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path).catch(error => { Logger.error('Failed to remove persistent doc:', error); });
+					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 				}
 			});
 			
@@ -1389,7 +1403,7 @@ USER REQUEST: ${processedMessage}`;
 		const sendButton = this.inputHandler.sendButtonComponent;
 			if (sendButton) sendButton.setDisabled(false);
 			// Refresh context indicator to show persistent documents
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
 	}
 
@@ -1553,7 +1567,7 @@ USER REQUEST: ${processedMessage}`;
 			// Immediately clear context state to prevent bleeding
 			this.currentContext = null;
 			this.contextManager.setCurrentFile(null);
-			this.refreshContext();
+			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			this.addWelcomeMessage('Open a document to get started.');
 			return;
 		}
@@ -1576,7 +1590,7 @@ USER REQUEST: ${processedMessage}`;
 		this.updateContextIndicator();
 		
 		// Update document statistics in header
-		this.refreshAllStats();
+		this.refreshAllStats().catch(error => { Logger.error('Failed to refresh stats:', error); });
 		
 		// Immediately track cursor position for the newly active file
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1605,7 +1619,7 @@ USER REQUEST: ${processedMessage}`;
 			await this.contextManager.restoreContextAfterChatLoad(targetFile);
 			
 			// Refresh the context UI after restoration to remove any stale references
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
 			// Show document insights after loading conversation
 			await this.showDocumentInsights(targetFile);
@@ -1648,7 +1662,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Then refresh context to rebuild currentContext from persistent storage and update UI
 		if (this.currentFile) {
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
 	}
 
@@ -1662,7 +1676,7 @@ USER REQUEST: ${processedMessage}`;
 		await this.updateDocumentStats();
 		
 		// Refresh context to recalculate token counts with updated document content
-		await this.refreshContext();
+		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		
 		this.updateContextRemaining();
 	}
@@ -2065,7 +2079,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 
 		// Update send button state
-		this.updateSendButtonState();
+		this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 
 		// Update provider dropdown display
 		await this.refreshProviderDropdown();
@@ -2186,7 +2200,7 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Refresh privacy indicator and context
 			await this.refreshProviderStatus();
-			this.refreshContext();
+			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
 			// Show success message
 			const displayName = this.getModelDisplayName(provider, model);
@@ -2438,7 +2452,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 
 		// Update send button state
-		await this.updateSendButtonState();
+		await this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 	}
 
 	/**
@@ -2847,14 +2861,14 @@ USER REQUEST: ${processedMessage}`;
 		// Update persistent context if we made any changes
 		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0 || currentFiles.length > 0) {
 			// Use ContextManager to update persistent context
-			this.contextManager.clearPersistentContext(this.currentFile.path);
+			this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
 			for (const doc of updatedPersistent) {
 				await this.contextManager.addDocument(doc.file);
 			}
 		}
 		
 		// Refresh context UI
-		await this.refreshContext();
+		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		
 		// Show a single comprehensive notification for better UX
 		// const totalFiles = filenames.length;

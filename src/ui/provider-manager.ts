@@ -1,6 +1,7 @@
 import { DropdownComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { getAvailableModels } from '../ai/models';
+import { Logger } from '../utils/logger';
 
 /**
  * Handles provider dropdown and switching logic

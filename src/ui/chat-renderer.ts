@@ -1,6 +1,7 @@
 import { TFile, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { TimeoutManager } from '../utils/timeout-manager';
+import { Logger } from '../utils/logger';
 
 /**
  * Message options for unified message creation
