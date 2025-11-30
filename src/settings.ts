@@ -268,7 +268,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Debug Settings Section
 		const debugSection = container.createDiv({ cls: 'nova-debug-section' });
 		new Setting(debugSection)
-			.setName('Debug')
+			.setName('Debug mode')
 			.setHeading();
 		
 		const infoEl = debugSection.createDiv({ cls: 'nova-debug-info' });
@@ -1090,7 +1090,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Core Settings section with clean header
 		const coreSection = containerEl.createDiv({ cls: 'nova-core-settings-section' });
 		new Setting(coreSection)
-			.setName('Core')
+			.setName('Core settings')
 			.setHeading();
 		
 		// Section spacing handled by CSS class
@@ -1162,7 +1162,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Configuration Subsection (within API Keys section)
 		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
-		new Setting(configSection).setName('Setup').setHeading();
+		new Setting(configSection).setName('Setup providers').setHeading();
 		configSection.createEl('hr', { cls: 'nova-section-divider' });
 
 		// Show all providers - no restrictions
@@ -1324,7 +1324,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createPlatformSettings(containerEl = this.containerEl) {
 		new Setting(containerEl)
-			.setName('Platform')
+			.setName('Platform settings')
 			.setHeading();
 		
 		// Info about platform settings

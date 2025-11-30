@@ -174,7 +174,7 @@ export default class NovaPlugin extends Plugin {
 			TONE_OPTIONS.forEach(tone => {
 				this.addCommand({
 					id: `make-${tone.id}`,
-					name: `Make ${tone.label}`,
+					name: `Make ${tone.label.charAt(0).toUpperCase() + tone.label.slice(1)}`,
 					editorCallback: async (editor: Editor) => {
 						await this.handleToneCommand(tone.id, editor);
 					}
