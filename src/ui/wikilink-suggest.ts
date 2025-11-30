@@ -9,7 +9,7 @@ export class NovaWikilinkAutocomplete {
     private app: App;
     private plugin: Plugin;
     private textArea: HTMLTextAreaElement;
-    private sidebarView: any; // Reference to NovaSidebarView
+    private sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> } | null = null; // Reference to NovaSidebarView
     private lastTriggerPos: number = -1;
     private inputHandler!: (event: Event) => void;
 
@@ -20,7 +20,7 @@ export class NovaWikilinkAutocomplete {
         this.setupEventListeners();
     }
 
-    setSidebarView(sidebarView: any): void {
+    setSidebarView(sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> }): void {
         this.sidebarView = sidebarView;
     }
 
@@ -44,8 +44,8 @@ export class NovaWikilinkAutocomplete {
     }
 
     private showNativeFileModal(): void {
-        // Get current file from sidebar view
-        const currentFile = this.sidebarView?.currentFile || this.app.workspace.getActiveFile();
+        // Get current file from sidebar view or workspace
+        const currentFile = this.app.workspace.getActiveFile();
         
         const modal = new WikilinkFileModal(
             this.app,

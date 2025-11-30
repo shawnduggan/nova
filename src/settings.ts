@@ -93,8 +93,8 @@ export class NovaSettingTab extends PluginSettingTab {
 	/**
 	 * Register event listener using plugin's registration system
 	 */
-	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-		this.plugin.registerDomEvent(element, event as any, handler);
+	private registerEventListener<K extends keyof HTMLElementEventMap>(element: HTMLElement, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.plugin.registerDomEvent(element, event, handler);
 	}
 
 	display(): void {
@@ -591,11 +591,12 @@ export class NovaSettingTab extends PluginSettingTab {
 				detail: { provider, status: 'connected' } 
 			}));
 			
-		} catch (error: any) {
+		} catch (error: unknown) {
 			Logger.error(`Connection test failed for ${provider}:`, error);
+			const err = error as Error;
 			let errorMessage = 'Connection failed';
-			
-			if (error.message === 'Connection timeout') {
+
+			if (err.message === 'Connection timeout') {
 				errorMessage = 'Timeout';
 			} else if (provider === 'ollama') {
 				// Check if URL is actually configured
@@ -605,13 +606,13 @@ export class NovaSettingTab extends PluginSettingTab {
 				} else {
 					errorMessage = 'Connection failed';
 				}
-			} else if (error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('API key')) {
+			} else if (err.message?.includes('401') || err.message?.includes('unauthorized') || err.message?.includes('API key')) {
 				errorMessage = 'Invalid API key';
-			} else if (error.message?.includes('429')) {
+			} else if (err.message?.includes('429')) {
 				errorMessage = 'Rate limited';
-			} else if (error.message?.includes('quota')) {
+			} else if (err.message?.includes('quota')) {
 				errorMessage = 'Quota exceeded';
-			} else if (error.message?.includes('not configured') || error.message?.includes('missing')) {
+			} else if (err.message?.includes('not configured') || err.message?.includes('missing')) {
 				errorMessage = 'Not configured';
 			} else {
 				errorMessage = 'Connection failed';

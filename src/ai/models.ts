@@ -2,19 +2,21 @@
  * Centralized model definitions for all AI providers
  */
 
+import type { NovaSettings } from '../settings';
+
 export interface ModelDefinition {
 	value: string;
 	label: string;
 }
 
 export interface ModelConfig {
-	getAvailableModels(providerType: string, settings?: any): ModelDefinition[];
+	getAvailableModels(providerType: string, settings?: NovaSettings): ModelDefinition[];
 }
 
 /**
  * Get the provider type for a given model name by searching all providers
  */
-export function getProviderTypeForModel(modelName: string, settings?: any): string | null {
+export function getProviderTypeForModel(modelName: string, settings?: NovaSettings): string | null {
 	// Search all provider types for this model
 	const providerTypes = ['claude', 'openai', 'google', 'ollama'];
 	
@@ -33,7 +35,7 @@ export function getProviderTypeForModel(modelName: string, settings?: any): stri
 /**
  * Get available models for a provider
  */
-export function getAvailableModels(providerType: string, settings?: any): ModelDefinition[] {
+export function getAvailableModels(providerType: string, settings?: NovaSettings): ModelDefinition[] {
 	switch (providerType) {
 		case 'claude':
 			return [

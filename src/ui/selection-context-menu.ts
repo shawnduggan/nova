@@ -3,7 +3,7 @@
  * Adds Nova submenu to Obsidian's right-click context menu when text is selected
  */
 
-import { App, Editor, Menu, MenuItem, Notice } from 'obsidian';
+import { App, Editor, Menu, MenuItem, Notice, EditorPosition } from 'obsidian';
 import NovaPlugin from '../../main';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
@@ -310,7 +310,7 @@ export class SelectionContextMenu {
         }
     }
 
-    private animatedSelection: { from: any; to: any } | null = null;
+    private animatedSelection: { from: EditorPosition; to: EditorPosition } | null = null;
 
 
 

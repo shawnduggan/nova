@@ -28,8 +28,8 @@ export class CustomInstructionModal extends Modal {
     /**
      * Register event listener using plugin's registration system
      */
-    private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-        this.plugin.registerDomEvent(element, event as any, handler);
+    private registerEventListener<K extends keyof HTMLElementEventMap>(element: HTMLElement, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+        this.plugin.registerDomEvent(element, event, handler);
     }
 
     onOpen() {

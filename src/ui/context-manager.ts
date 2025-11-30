@@ -47,7 +47,7 @@ export class ContextManager {
 	private currentContext: MultiDocContext | null = null;
 	private currentFilePath: string | null = null; // Track current file for validation
 	private currentOperationId: string | null = null; // Track current async operation
-	private sidebarView: any; // Reference to NovaSidebarView for adding files
+	private sidebarView: { addWarningMessage: (message: string) => void } | null = null; // Reference to NovaSidebarView for adding files
 	private static readonly NOTICE_DURATION_MS = 5000;
 
 	constructor(plugin: NovaPlugin, app: App, container: HTMLElement) {
@@ -56,7 +56,7 @@ export class ContextManager {
 		this.container = container;
 	}
 
-	setSidebarView(sidebarView: any): void {
+	setSidebarView(sidebarView: { addWarningMessage: (message: string) => void }): void {
 		this.sidebarView = sidebarView;
 	}
 

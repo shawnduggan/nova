@@ -34,8 +34,8 @@ export class GoogleProvider implements AIProvider {
 		yield* this.chatCompletionStream(messages, options);
 	}
 
-	private formatMessagesForGemini(messages: AIMessage[]): any {
-		const contents = [];
+	private formatMessagesForGemini(messages: AIMessage[]): Array<{ role: string; parts: Array<{ text: string }> }> {
+		const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
 		for (const message of messages) {
 			const role = message.role === 'assistant' ? 'model' : 'user';
@@ -61,9 +61,19 @@ export class GoogleProvider implements AIProvider {
 		// Use a newer model by default if no model is specified
 		const model = options?.model || this.config.model || 'gemini-2.0-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
-		
 
-		const requestBody: any = {
+		interface GoogleRequestBody {
+			contents: Array<{ role: string; parts: Array<{ text: string }> }>;
+			generationConfig: {
+				temperature: number;
+				maxOutputTokens: number;
+			};
+			systemInstruction?: {
+				parts: Array<{ text: string }>;
+			};
+		}
+
+		const requestBody: GoogleRequestBody = {
 			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
 				temperature: options?.temperature || this.generalSettings.defaultTemperature,

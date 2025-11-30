@@ -5,7 +5,7 @@
 
 import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
-import { ContextBuilder } from '../context-builder';
+import { ContextBuilder, GeneratedPrompt } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
 import { StreamingCallback } from './add-command';
@@ -210,7 +210,7 @@ export class GrammarCommand {
     private async executeWithStreaming(
         command: EditCommandType,
         documentContext: DocumentContext,
-        prompt: any,
+        prompt: GeneratedPrompt,
         streamingCallback: StreamingCallback
     ): Promise<EditResult> {
         try {

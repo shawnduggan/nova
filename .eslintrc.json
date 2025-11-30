@@ -29,7 +29,7 @@
       "warn",
       { "argsIgnorePattern": "^_" }
     ],
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-floating-promises": "error",
     "no-unused-vars": "off",
     "no-undef": "error",

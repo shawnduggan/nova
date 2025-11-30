@@ -22,7 +22,7 @@ export class InputHandler {
 	private static readonly FOCUS_DELAY_MS = 150;
 	private dropZoneOverlay: HTMLElement | null = null;
 	private isDragging: boolean = false;
-	private sidebarView: any; // Reference to NovaSidebarView for context operations
+	private sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> } | null = null; // Reference to NovaSidebarView for context operations
 	private timeoutManager = new TimeoutManager();
 
 	// Event cleanup is handled automatically by registerDomEvent
@@ -37,7 +37,7 @@ export class InputHandler {
 		this.contextManager = contextManager;
 	}
 
-	setSidebarView(sidebarView: any): void {
+	setSidebarView(sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> }): void {
 		this.sidebarView = sidebarView;
 		// Also pass to wikilink autocomplete if it exists
 		if (this.wikilinkAutocomplete) {
@@ -226,8 +226,8 @@ export class InputHandler {
 		this.autoGrowTextarea();
 	}
 
-	private addEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		this.plugin.registerDomEvent(element as HTMLElement, event as any, handler);
+	private addEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.plugin.registerDomEvent(element as HTMLElement, event, handler);
 	}
 
 	private setupDragAndDrop(): void {

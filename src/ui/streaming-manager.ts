@@ -3,7 +3,7 @@
  * Provides consistent visual feedback and streaming across all command types
  */
 
-import { Editor, Notice } from 'obsidian';
+import { Editor, Notice, EditorPosition } from 'obsidian';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
@@ -22,9 +22,9 @@ export class StreamingManager {
     private plugin: NovaPlugin;
     private dotsAnimationInterval: number | null = null;
     private thinkingNotice: Notice | null = null;
-    private currentStreamingEndPos: any = null;
-    private streamingStartPos: any = null;
-    private originalPosition: any = null;
+    private currentStreamingEndPos: EditorPosition | null = null;
+    private streamingStartPos: EditorPosition | null = null;
+    private originalPosition: { from: EditorPosition; to?: EditorPosition } | null = null;
     private scrollThrottleTimeout: number | null = null;
     private timeoutManager = new TimeoutManager();
 
@@ -214,9 +214,9 @@ export class StreamingManager {
      * Features magical smooth scroll-to-cursor by default for enhanced UX
      */
     startStreaming(
-        editor: Editor, 
-        startPos: any, 
-        endPos?: any, 
+        editor: Editor,
+        startPos: EditorPosition,
+        endPos?: EditorPosition,
         options: StreamingOptions = {}
     ): {
         updateStream: (newText: string, isComplete: boolean) => void;
@@ -255,7 +255,7 @@ export class StreamingManager {
      * Magically smooth scroll to keep streaming cursor in view
      * Uses throttling to prevent jerky movements and provides smooth experience
      */
-    private magicalScrollToCursor(editor: Editor, position: any, options: StreamingOptions): void {
+    private magicalScrollToCursor(editor: Editor, position: EditorPosition, options: StreamingOptions): void {
         // Use throttled updates for smooth 60fps experience
         if (this.scrollThrottleTimeout) {
             this.timeoutManager.removeTimeout(this.scrollThrottleTimeout);
@@ -336,7 +336,7 @@ export class StreamingManager {
             }
             
             // Set cursor at the end of the new text only when complete
-            if (isComplete) {
+            if (isComplete && this.currentStreamingEndPos) {
                 editor.setCursor(this.currentStreamingEndPos);
                 this.cleanup();
                 
@@ -441,7 +441,7 @@ export class StreamingManager {
     /**
      * Get the original position before streaming started
      */
-    getOriginalPosition(): { from: any; to?: any } | null {
+    getOriginalPosition(): { from: EditorPosition; to?: EditorPosition } | null {
         return this.originalPosition;
     }
 
@@ -458,7 +458,7 @@ export class StreamingManager {
      */
     async startSelectionStreaming(
         editor: Editor,
-        originalRange: { from: any; to: any; text: string },
+        originalRange: { from: EditorPosition; to: EditorPosition; text: string },
         actionType: ActionType,
         streamingCallback: (chunk: string, isComplete: boolean) => void,
         options: StreamingOptions = {}

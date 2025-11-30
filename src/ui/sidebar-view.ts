@@ -46,9 +46,9 @@ export class NovaSidebarView extends ItemView {
 	private get autoGrowTextarea() { return () => {}; }
 	
 	// Command system delegation
-	private _commandPickerItems: any[] = [];
+	private _commandPickerItems: HTMLElement[] = [];
 	private get commandPickerItems() { return this._commandPickerItems; }
-	private set commandPickerItems(value: any[]) { this._commandPickerItems = value; }
+	private set commandPickerItems(value: HTMLElement[]) { this._commandPickerItems = value; }
 	private _selectedCommandIndex: number = -1;
 	private get selectedCommandIndex() { return this._selectedCommandIndex; }
 	private set selectedCommandIndex(value: number) { this._selectedCommandIndex = value; }
@@ -224,7 +224,7 @@ export class NovaSidebarView extends ItemView {
 	/**
 	 * Track cursor position changes in the active editor (file-scoped)
 	 */
-	private trackCursorPosition(editor: any) {
+	private trackCursorPosition(editor: { getCursor: () => EditorPosition | null }) {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile || !editor) {
 			return;
@@ -304,8 +304,8 @@ export class NovaSidebarView extends ItemView {
 	/**
 	 * Add event listener using Obsidian's registration system
 	 */
-	private addTrackedEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		this.registerDomEvent(element as HTMLElement, event as any, handler);
+	private addTrackedEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.registerDomEvent(element as HTMLElement, event, handler);
 	}
 	
 	/**
@@ -370,7 +370,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Pass sidebar view reference for context operations
 		this.inputHandler.setSidebarView(this);
-		this.contextManager.setSidebarView(this);
+		this.contextManager.setSidebarView({ addWarningMessage: this.addWarningMessage.bind(this) });
 		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
@@ -2071,8 +2071,8 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async refreshProviderStatus(): Promise<void> {
 		// Update privacy indicator if it exists
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
 
 		// Update send button state
@@ -2133,14 +2133,13 @@ USER REQUEST: ${processedMessage}`;
 		
 		for (const [providerType, isAvailable] of providerAvailability) {
 			if (providerType === 'none' || !isAvailable) continue;
-			
+
 			// Check if provider has API key configured
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			const hasApiKey = providers[providerType]?.apiKey;
-			if (!hasApiKey && providerType !== 'ollama') continue;
-			
-			// Check if provider is connected
 			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const hasApiKey = providerConfig?.apiKey;
+			if (!hasApiKey && providerType !== 'ollama') continue;
+
+			// Check if provider is connected
 			const providerStatus = providerConfig?.status;
 			if (!providerStatus || providerStatus.state !== 'connected') continue;
 			
@@ -2157,8 +2156,8 @@ USER REQUEST: ${processedMessage}`;
 			if (models.length === 0) {
 				// Provider without specific models (like Ollama)
 				const option = group.createEl('option');
-				option.value = `${providerType}-${providers[providerType]?.model || providerDisplayName}`;
-				option.textContent = providers[providerType]?.model || providerDisplayName;
+				option.value = `${providerType}-${providerConfig?.model || providerDisplayName}`;
+				option.textContent = providerConfig?.model || providerDisplayName;
 			} else {
 				// Provider with specific models
 				for (const model of models) {
@@ -2232,8 +2231,8 @@ USER REQUEST: ${processedMessage}`;
 	 * Get current model for a provider type
 	 */
 	private getCurrentModel(providerType: string): string {
-		const providers = this.plugin.settings.aiProviders as Record<string, any>;
-		const currentModel = providers[providerType]?.model;
+		const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+		const currentModel = providerConfig?.model;
 		
 		if (currentModel) {
 			return currentModel;
@@ -2278,13 +2277,13 @@ USER REQUEST: ${processedMessage}`;
 			// Update platform settings for persistence (this is what actually matters)
 			const platform = Platform.isMobile ? 'mobile' : 'desktop';
 			this.plugin.settings.platformSettings[platform].selectedModel = modelValue;
-			
+
 			// Also update provider model setting for consistency
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			if (providers[providerType]) {
-				providers[providerType].model = modelValue;
+			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			if (providerConfig) {
+				providerConfig.model = modelValue;
 			}
-			
+
 			// Show success message immediately (optimistic update)
 			const modelDisplayName = this.getModelDisplayName(providerType, modelValue);
 			const providerDisplayName = this.getProviderDisplayName(providerType);
@@ -2444,8 +2443,8 @@ USER REQUEST: ${processedMessage}`;
 		}
 
 		// Update privacy indicator
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
 
 		// Update send button state
@@ -2486,12 +2485,12 @@ USER REQUEST: ${processedMessage}`;
 		} catch (error) {
 			Logger.error('❌ Failed to update provider display after disconnection:', error);
 		}
-		
+
 		// Update privacy indicator
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
-		
+
 	}
 
 	/**
@@ -2557,14 +2556,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute add command with streaming support
 	 */
-	private async executeAddCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeAddCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2573,7 +2572,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2609,7 +2608,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming add command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2617,14 +2616,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute edit command with streaming support
 	 */
-	private async executeEditCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeEditCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2633,7 +2632,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2669,7 +2668,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming edit command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2677,14 +2676,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute rewrite command with streaming support
 	 */
-	private async executeRewriteCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeRewriteCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2693,7 +2692,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2729,7 +2728,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming rewrite command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2737,14 +2736,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute grammar command with streaming support
 	 */
-	private async executeGrammarCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeGrammarCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2753,7 +2752,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2789,7 +2788,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming grammar command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}

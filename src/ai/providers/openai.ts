@@ -52,8 +52,15 @@ export class OpenAIProvider implements AIProvider {
 		if (!baseUrl.endsWith('/responses')) {
 			endpoint = `${baseUrl}/responses`;
 		}
-		
-		const requestBodyObj: any = {
+
+		interface OpenAIRequestBody {
+			model: string;
+			input: AIMessage[];
+			max_output_tokens: number;
+			reasoning: { effort: string };
+		}
+
+		const requestBodyObj: OpenAIRequestBody = {
 			model: modelName,
 			input: requestMessages,
 			max_output_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
@@ -96,13 +103,20 @@ export class OpenAIProvider implements AIProvider {
 						// Extract text content from output items
 						// GPT-5 returns items with type 'message' (containing 'content') or 'text'
 						return data.output
-							.filter((item: any) => item.type === 'message' || item.type === 'text')
-							.map((item: any) => {
-								const content = item.content || item.text || '';
+							.filter((item: unknown) => {
+								const outputItem = item as { type?: string };
+								return outputItem.type === 'message' || outputItem.type === 'text';
+							})
+							.map((item: unknown) => {
+								const outputItem = item as { content?: unknown; text?: string };
+								const content = outputItem.content || outputItem.text || '';
 								// content might be an array of parts (e.g. [{type: 'text', text: '...'}])
 								if (Array.isArray(content)) {
 									return content
-										.map((part: any) => part.text || part.value || '')
+										.map((part: unknown) => {
+											const contentPart = part as { text?: string; value?: string };
+											return contentPart.text || contentPart.value || '';
+										})
 										.join('');
 								}
 								return content;
