@@ -1360,10 +1360,10 @@ export class NovaSettingTab extends PluginSettingTab {
 		return names[provider] || provider;
 	}
 
-	async setCurrentModel(modelId: string): Promise<void> {
+	setCurrentModel(modelId: string): void {
 		const platform = Platform.isMobile ? 'mobile' : 'desktop';
 		this.plugin.settings.platformSettings[platform].selectedModel = modelId;
-		
+
 		// Update the provider manager with new settings
 		if (this.plugin.aiProviderManager) {
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);

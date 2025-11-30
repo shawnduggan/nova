@@ -66,7 +66,7 @@ Content for section two.`,
         );
 
         // Setup default mocks
-        mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+        mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
         mockContextBuilder.buildPrompt.mockReturnValue({
             systemPrompt: 'System prompt',
             userPrompt: 'User prompt',
@@ -84,7 +84,7 @@ Content for section two.`,
             appliedAt: { line: 2, ch: 0 }
         });
         
-        mockDocumentEngine.setDocumentContent.mockResolvedValue({
+        mockDocumentEngine.setDocumentContent.mockReturnValue({
             success: true,
             content: 'Improved document content',
             editType: 'replace'
@@ -139,7 +139,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: 'Selected text to edit'
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithSelection);
 
             const command: EditCommandType = {
                 action: 'edit',
@@ -188,7 +188,7 @@ Content for section two.`,
         });
 
         it('should handle no active document', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(null);
 
             const command: EditCommandType = {
                 action: 'edit',
@@ -208,7 +208,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: undefined
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithoutSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithoutSelection);
 
             const command: EditCommandType = {
                 action: 'edit',
@@ -275,7 +275,7 @@ Content for section two.`,
         // Remove editor-based test - not needed in cursor-only system
 
         it('should handle exceptions during execution', async () => {
-            mockDocumentEngine.getDocumentContext.mockRejectedValue(new Error('File system error'));
+            mockDocumentEngine.getDocumentContext.mockImplementation(() => { throw new Error('File system error'); });
 
             const command: EditCommandType = {
                 action: 'edit',

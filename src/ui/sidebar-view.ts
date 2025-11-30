@@ -271,21 +271,21 @@ export class NovaSidebarView extends ItemView {
 		// Clean up provider dropdown event listener
 		// Cleanup dropdown component (handled by Obsidian)
 		this.providerDropdown = null;
-		
+
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
 			this.wikilinkAutocomplete.destroy();
 		}
-		
+
 		// Clear debounce timeout (handled by TimeoutManager, but reset reference)
 		this.contextPreviewDebounceTimeout = null;
-		
+
 		// Clean up tracked event listeners
 		this.cleanupEventListeners();
-		
+
 		// Clear all timeouts
 		this.clearTimeouts();
-		
+
 		// Clean up DOM elements
 		this.cleanupDOMElements();
 	}
@@ -1393,7 +1393,7 @@ USER REQUEST: ${processedMessage}`;
 		}
 	}
 
-	async insertTextIntoActiveNote(text: string) {
+	insertTextIntoActiveNote(text: string) {
 		const activeView = this.app.workspace.getActiveViewOfType(ItemView);
 		if (this.isMarkdownView(activeView)) {
 			const editor = activeView.editor;

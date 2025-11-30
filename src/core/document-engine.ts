@@ -100,7 +100,7 @@ export class DocumentEngine {
     /**
      * Extract comprehensive document context
      */
-    async getDocumentContext(): Promise<DocumentContext | null> {
+    getDocumentContext(): DocumentContext | null {
         const file = this.getActiveFile();
         const editor = this.getActiveEditor();
         
@@ -328,19 +328,19 @@ export class DocumentEngine {
     /**
      * Get the full document content
      */
-    async getDocumentContent(): Promise<string | null> {
+    getDocumentContent(): string | null {
         const editor = this.getActiveEditor();
         if (!editor) return null;
-        
+
         return editor.getValue();
     }
 
     /**
      * Replace the entire document content
      */
-    async setDocumentContent(content: string): Promise<EditResult> {
+    setDocumentContent(content: string): EditResult {
         const editor = this.getActiveEditor();
-        
+
         if (!editor) {
             return {
                 success: false,
@@ -352,7 +352,7 @@ export class DocumentEngine {
         try {
             // Use editor interface to preserve cursor, selections, undo/redo
             editor.setValue(content);
-            
+
             return {
                 success: true,
                 content,

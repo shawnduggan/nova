@@ -42,7 +42,7 @@ describe('PromptBuilder', () => {
         mockFile = new TFile();
         
         // Setup default mock responses
-        mockDocumentEngine.getDocumentContext.mockResolvedValue({
+        mockDocumentEngine.getDocumentContext.mockReturnValue({
             file: mockFile,
             filename: 'test',
             content: '# Test Document\n\nThis is a test document.',
@@ -50,7 +50,7 @@ describe('PromptBuilder', () => {
             selectedText: undefined,
             surroundingLines: undefined
         });
-        mockDocumentEngine.getDocumentContent.mockResolvedValue('# Test Document\n\nThis is a test document.');
+        mockDocumentEngine.getDocumentContent.mockReturnValue('# Test Document\n\nThis is a test document.');
         (mockConversationManager.getRecentMessages as jest.Mock).mockResolvedValue([]);
     });
 
@@ -103,7 +103,7 @@ describe('PromptBuilder', () => {
         });
 
         test('should build prompt for edit command with selection', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue({
+            mockDocumentEngine.getDocumentContext.mockReturnValue({
                 file: mockFile,
                 filename: 'test',
                 content: '# Test Document\n\nThis is a test document.',
@@ -333,7 +333,7 @@ describe('PromptBuilder', () => {
                 surroundingLines: { before: ['line1'], after: ['line2'] }
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
 
             const command: EditCommand = {
                 action: 'edit',
