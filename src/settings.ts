@@ -1518,7 +1518,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (!template) return;
 		
 		const result: CustomCommand = {
-			id: existingCommand?.id || ('cmd_' + Math.random().toString(36).substr(2, 9)),
+			id: existingCommand?.id || ('cmd_' + Math.random().toString(36).substring(2, 11)),
 			name,
 			trigger: trigger.toLowerCase(),
 			template,
@@ -1925,10 +1925,6 @@ class ConfirmModal extends Modal {
 		contentEl.createEl('p', { text: this.message });
 
 		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
-		buttonContainer.style.display = 'flex';
-		buttonContainer.style.gap = '8px';
-		buttonContainer.style.justifyContent = 'flex-end';
-		buttonContainer.style.marginTop = '16px';
 
 		const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
 		this.plugin.registerDomEvent(cancelButton, 'click', () => {

@@ -3771,3 +3771,11 @@
     color: var(--text-faint);
     font-style: italic;
 }
+
+/* Modal Button Container */
+.modal-button-container {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+}

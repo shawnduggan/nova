@@ -1523,7 +1523,7 @@ USER REQUEST: ${processedMessage}`;
 		this.isUserInitiatedProviderChange = false;
 		
 		// PHASE 3 FIX: Generate operation ID to prevent race conditions
-		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+		const operationId = Date.now().toString() + Math.random().toString(36).substring(2, 11);
 		this.currentFileLoadOperation = operationId;
 		
 		// If no active file, try to find the currently active view's file

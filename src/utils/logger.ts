@@ -101,3 +101,5 @@ export class ScopedLogger {
         }
     }
 }
+
+/* eslint-enable no-console */
