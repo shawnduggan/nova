@@ -20,7 +20,7 @@ export class ClaudeProvider implements AIProvider {
 		this.config = config;
 	}
 
-	async isAvailable(): Promise<boolean> {
+	isAvailable(): boolean {
 		return !!this.config.apiKey;
 	}
 

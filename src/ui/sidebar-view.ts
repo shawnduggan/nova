@@ -1258,7 +1258,7 @@ export class NovaSidebarView extends ItemView {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const selectedText = activeView?.editor?.getSelection();
 			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
-			const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
+			const intent = this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
 			
 			// Get initial contextual thinking phrase
 			let contextualCommand: EditCommand | undefined;
@@ -1907,7 +1907,7 @@ USER REQUEST: ${processedMessage}`;
 	 * Process user input with intent detection integration
 	 */
 	async processUserInputWithIntent(input: string): Promise<void> {
-		const intent = await this.plugin.aiIntentClassifier.classifyIntent(input);
+		const intent = this.plugin.aiIntentClassifier.classifyIntent(input);
 		
 		switch (intent) {
 			case 'CHAT':

@@ -21,7 +21,7 @@ export class AIIntentClassifier {
     /**
      * Classify user input into one of three intents
      */
-    async classifyIntent(userInput: string, _hasSelection: boolean = false): Promise<UserIntent> {
+    classifyIntent(userInput: string, _hasSelection: boolean = false): UserIntent {
         try {
             // Input validation
             if (!userInput || typeof userInput !== 'string') {
