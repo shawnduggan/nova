@@ -117,13 +117,10 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private onStreamingComplete(): void {
 		// Update document stats and context remaining
-		this.refreshAllStats().catch(error => {
-			Logger.error('Failed to refresh stats on streaming complete:', error);
-		});
+		// Using void to explicitly mark as intentional floating promise (fire-and-forget)
+		void this.refreshAllStats();
 		// Refresh context indicators
-		this.refreshContext().catch(error => {
-			Logger.error('Failed to refresh context on streaming complete:', error);
-		});
+		void this.refreshContext();
 	}
 
 	async onOpen() {
