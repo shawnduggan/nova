@@ -735,7 +735,7 @@ export class NovaSidebarView extends ItemView {
 				// Use the existing selection context menu handler
 				await this.selectionContextMenu.handleSelectionAction(trigger, activeView.editor, selectedText);
 			} else {
-				new Notice('No text selected. Please select text to use Nova editing commands.', 3000);
+				new Notice('No text selected. Please select text to use nova editing commands.', 3000);
 			}
 			return;
 		}
@@ -1057,7 +1057,7 @@ export class NovaSidebarView extends ItemView {
 			
 			// Add read-only indicator
 			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
-			readOnlyEl.textContent = 'read-only';
+			readOnlyEl.textContent = 'Read-only';
 			readOnlyEl.addClass('nova-context-doc-readonly');
 			
 			// Mobile-optimized remove button with simple reliable icon
@@ -1225,7 +1225,7 @@ export class NovaSidebarView extends ItemView {
 			
 			// Check token limit
 			if (multiDocContext?.isNearLimit) {
-				new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
+				new Notice('⚠️ approaching token limit. Consider removing some documents from context', NovaSidebarView.NOTICE_DURATION_MS);
 			}
 		}
 

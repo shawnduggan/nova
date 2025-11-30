@@ -35,7 +35,7 @@ export class CustomCommandModal extends Modal {
 			.setName('Command name')
 			.setDesc('Display name for this command')
 			.addText(text => text
-				.setPlaceholder('e.g., Expand outline')
+				.setPlaceholder('E.g., expand outline')
 				.setValue(nameValue)
 				.onChange(value => {
 					nameValue = value;
@@ -46,7 +46,7 @@ export class CustomCommandModal extends Modal {
 			.setName('Command trigger')
 			.setDesc('Shortcut to trigger this command (without colon)')
 			.addText(text => text
-				.setPlaceholder('e.g., expand')
+				.setPlaceholder('E.g., expand')
 				.setValue(triggerValue)
 				.onChange(value => {
 					triggerValue = value;
@@ -57,7 +57,7 @@ export class CustomCommandModal extends Modal {
 			.setName('Description')
 			.setDesc('Optional description of what this command does')
 			.addText(text => text
-				.setPlaceholder('e.g., Transform bullet points into flowing prose')
+				.setPlaceholder('E.g., transform bullet points into flowing prose')
 				.setValue(descriptionValue)
 				.onChange(value => {
 					descriptionValue = value;
@@ -69,7 +69,7 @@ export class CustomCommandModal extends Modal {
 			.setDesc('The prompt template for this command')
 			.addTextArea(text => {
 				text
-					.setPlaceholder('e.g., Transform the following bullet points into flowing prose...')
+					.setPlaceholder('E.g., transform the following bullet points into flowing prose...')
 					.setValue(templateValue)
 					.onChange(value => {
 						templateValue = value;

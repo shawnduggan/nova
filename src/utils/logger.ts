@@ -3,7 +3,7 @@
  * Provides consistent logging with appropriate prefixes and levels
  */
 
-/* eslint-disable no-console -- Logger utility requires direct console access for centralized logging */
+ 
 
 export enum LogLevel {
     DEBUG = 0,
@@ -102,4 +102,4 @@ export class ScopedLogger {
     }
 }
 
-/* eslint-enable no-console -- End of Logger utility */
+ 

@@ -46,13 +46,13 @@ export class CustomInstructionModal extends Modal {
         // Description
         new Setting(contentEl)
             .setName('Instruction')
-            .setDesc('Describe how you want Nova to transform your selected text');
+            .setDesc('Describe how you want nova to transform your selected text');
 
         // Text area using Setting component for consistent styling
         const textAreaSetting = new Setting(contentEl)
             .addTextArea(text => {
                 text
-                    .setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"')
+                    .setPlaceholder('E.g., "make this more persuasive", "add statistics", "write in bullet points"')
                     .setValue(this.instruction)
                     .onChange(value => {
                         this.instruction = value;
