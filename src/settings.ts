@@ -1536,8 +1536,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
 			this.plugin.settings.features.commands.customCommands.push(result);
 		}
-		
-		this.plugin.saveSettings();
+
+		this.plugin.saveSettings().catch(error => {
+			Logger.error('Failed to save settings after adding command:', error);
+		});
 		this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
 	}
 
@@ -1552,7 +1554,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			() => {
 				if (!this.plugin.settings.features?.commands?.customCommands) return;
 				this.plugin.settings.features.commands.customCommands.splice(index, 1);
-				this.plugin.saveSettings();
+				this.plugin.saveSettings().catch(error => {
+					Logger.error('Failed to save settings after deleting command:', error);
+				});
 				this.renderCustomCommandsList(this.containerEl.querySelector('.nova-command-section') as HTMLElement);
 			}
 		).open();
