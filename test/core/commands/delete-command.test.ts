@@ -74,26 +74,29 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('AI analysis complete');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockReturnValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete'
-        });
-        
-        mockDocumentEngine.deleteContent.mockResolvedValue({
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
+
+        const mockDeleteContentResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete',
             appliedAt: { line: 2, ch: 0 }
-        });
+        };
+        mockDocumentEngine.deleteContent.mockReturnValue(mockDeleteContentResult);
         
         const mockEditor = {
             replaceRange: jest.fn(),

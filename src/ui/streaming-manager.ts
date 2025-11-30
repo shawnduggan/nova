@@ -456,13 +456,13 @@ export class StreamingManager {
      * Unified streaming method for selection-based operations
      * Handles both notice animations and document updates
      */
-    async startSelectionStreaming(
+    startSelectionStreaming(
         editor: Editor,
         originalRange: { from: EditorPosition; to: EditorPosition; text: string },
         actionType: ActionType,
         streamingCallback: (chunk: string, isComplete: boolean) => void,
         options: StreamingOptions = {}
-    ): Promise<(chunk: string, isComplete: boolean) => void> {
+    ): (chunk: string, isComplete: boolean) => void {
         // Set animation mode to 'notice' for selection operations
         const selectionOptions = { ...options, animationMode: 'notice' as const };
         

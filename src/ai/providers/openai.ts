@@ -260,7 +260,7 @@ export class OpenAIProvider implements AIProvider {
 				throw new Error(`API request failed: ${response.status}`);
 			}
 
-			response.json; // Validate response format
+			void response.json; // Validate response format
 			
 			// Return hardcoded current models
 			const models = [

@@ -24,7 +24,7 @@ export class GrammarCommand {
     async execute(command: EditCommandType, streamingCallback?: StreamingCallback): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -88,7 +88,7 @@ export class GrammarCommand {
                     }
 
                     // Apply the grammar fix based on target
-                    result = await this.applyGrammarFix(command, documentContext, content);
+                    result = this.applyGrammarFix(command, documentContext, content);
                 }
 
                 // Log only failures as assistant messages
@@ -117,15 +117,15 @@ export class GrammarCommand {
     /**
      * Apply grammar fix based on command target
      */
-    private async applyGrammarFix(
+    private applyGrammarFix(
         command: EditCommandType,
         documentContext: DocumentContext,
         content: string
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'selection':
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'selection',
                         {
@@ -143,7 +143,7 @@ export class GrammarCommand {
 
             case 'document':
                 // Replace entire document with corrected version
-                return await this.documentEngine.setDocumentContent(content);
+                return this.documentEngine.setDocumentContent(content);
 
             case 'cursor':
                 // Grammar correction at cursor doesn't make much sense, 

@@ -76,19 +76,21 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('Improved content');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'Improved content',
             editType: 'replace',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockReturnValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: 'Improved document content',
             editType: 'replace'
-        });
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
         
         // Remove findSection mock - not used in cursor-only system
         const mockEditor = {

@@ -51,7 +51,7 @@ describe('PromptBuilder', () => {
             surroundingLines: undefined
         });
         mockDocumentEngine.getDocumentContent.mockReturnValue('# Test Document\n\nThis is a test document.');
-        (mockConversationManager.getRecentMessages as jest.Mock).mockResolvedValue([]);
+        (mockConversationManager.getRecentMessages as jest.Mock).mockReturnValue([]);
     });
 
     afterEach(() => {
@@ -59,8 +59,8 @@ describe('PromptBuilder', () => {
     });
 
     describe('buildPromptForMessage', () => {
-        test('should build command prompt for command messages', async () => {
-            const prompt = await promptBuilder.buildPromptForMessage('add a section about testing', mockFile);
+        test('should build command prompt for command messages', () => {
+            const prompt = promptBuilder.buildPromptForMessage('add a section about testing', mockFile);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
@@ -68,16 +68,16 @@ describe('PromptBuilder', () => {
             expect(prompt.userPrompt).toContain('Test Document');
         });
 
-        test('should build conversation prompt for non-command messages', async () => {
-            const prompt = await promptBuilder.buildPromptForMessage('What is this document about?', mockFile);
+        test('should build conversation prompt for non-command messages', () => {
+            const prompt = promptBuilder.buildPromptForMessage('What is this document about?', mockFile);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.systemPrompt).toContain('AI writing partner');
             expect(prompt.userPrompt).toContain('What is this document about?');
         });
 
-        test('should handle messages without file context', async () => {
-            const prompt = await promptBuilder.buildPromptForMessage('What is the weather today?');
+        test('should handle messages without file context', () => {
+            const prompt = promptBuilder.buildPromptForMessage('What is the weather today?');
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.userPrompt).toContain('What is the weather today?');
@@ -86,7 +86,7 @@ describe('PromptBuilder', () => {
     });
 
     describe('buildCommandPrompt', () => {
-        test('should build prompt for add command', async () => {
+        test('should build prompt for add command', () => {
             const command: EditCommand = {
                 action: 'add',
                 target: 'cursor',
@@ -94,7 +94,7 @@ describe('PromptBuilder', () => {
                 context: undefined
             };
 
-            const prompt = await promptBuilder.buildCommandPrompt(command, mockFile);
+            const prompt = promptBuilder.buildCommandPrompt(command, mockFile);
 
             expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
             expect(prompt.userPrompt).toContain('add a section about testing');
@@ -102,7 +102,7 @@ describe('PromptBuilder', () => {
             expect(mockDocumentEngine.getDocumentContext).toHaveBeenCalled();
         });
 
-        test('should build prompt for edit command with selection', async () => {
+        test('should build prompt for edit command with selection', () => {
             mockDocumentEngine.getDocumentContext.mockReturnValue({
                 file: mockFile,
                 filename: 'test',
@@ -111,7 +111,7 @@ describe('PromptBuilder', () => {
                 selectedText: 'Selected text content',
                 surroundingLines: undefined
             });
-            
+
             const command: EditCommand = {
                 action: 'edit',
                 target: 'selection',
@@ -119,18 +119,18 @@ describe('PromptBuilder', () => {
                 context: undefined
             };
 
-            const prompt = await promptBuilder.buildCommandPrompt(command, mockFile);
+            const prompt = promptBuilder.buildCommandPrompt(command, mockFile);
 
             expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
             expect(prompt.userPrompt).toContain('DOCUMENT: test');
         });
 
-        test('should include conversation history when requested', async () => {
+        test('should include conversation history when requested', () => {
             const mockHistory: ConversationMessage[] = [
                 { id: '1', role: 'user', content: 'Previous question', timestamp: Date.now() },
                 { id: '2', role: 'assistant', content: 'Previous answer', timestamp: Date.now() }
             ];
-            (mockConversationManager.getRecentMessages as jest.Mock).mockResolvedValue(mockHistory);
+            (mockConversationManager.getRecentMessages as jest.Mock).mockReturnValue(mockHistory);
 
             const command: EditCommand = {
                 action: 'add',
@@ -139,13 +139,13 @@ describe('PromptBuilder', () => {
                 context: undefined
             };
 
-            const prompt = await promptBuilder.buildCommandPrompt(command, mockFile, { includeHistory: true });
+            const prompt = promptBuilder.buildCommandPrompt(command, mockFile, { includeHistory: true });
 
             expect(prompt.userPrompt).toContain('DOCUMENT: test');
             expect(mockConversationManager.getRecentMessages).toHaveBeenCalledWith(mockFile, 5);
         });
 
-        test('should throw error when file is not provided', async () => {
+        test('should throw error when file is not provided', () => {
             const command: EditCommand = {
                 action: 'add',
                 target: 'document',
@@ -153,13 +153,13 @@ describe('PromptBuilder', () => {
                 context: undefined
             };
 
-            await expect(promptBuilder.buildCommandPrompt(command)).rejects.toThrow('File is required for command prompts');
+            expect(() => promptBuilder.buildCommandPrompt(command)).toThrow('File is required for command prompts');
         });
     });
 
     describe('buildConversationPrompt', () => {
-        test('should build conversation prompt with document context', async () => {
-            const prompt = await promptBuilder.buildConversationPrompt('What is this document about?', mockFile);
+        test('should build conversation prompt with document context', () => {
+            const prompt = promptBuilder.buildConversationPrompt('What is this document about?', mockFile);
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.userPrompt).toContain('Current document: test');
@@ -167,22 +167,22 @@ describe('PromptBuilder', () => {
             expect(prompt.userPrompt).toContain('What is this document about?');
         });
 
-        test('should build conversation prompt without file context', async () => {
-            const prompt = await promptBuilder.buildConversationPrompt('General question');
+        test('should build conversation prompt without file context', () => {
+            const prompt = promptBuilder.buildConversationPrompt('General question');
 
             expect(prompt.systemPrompt).toContain('AI writing partner');
             expect(prompt.userPrompt).toContain('USER REQUEST: General question');
             expect(prompt.context).toBe('');
         });
 
-        test('should include recent conversation history', async () => {
+        test('should include recent conversation history', () => {
             const mockHistory: ConversationMessage[] = [
                 { id: '1', role: 'user', content: 'First message', timestamp: Date.now() },
                 { id: '2', role: 'assistant', content: 'First response', timestamp: Date.now() }
             ];
-            (mockConversationManager.getRecentMessages as jest.Mock).mockResolvedValue(mockHistory);
+            (mockConversationManager.getRecentMessages as jest.Mock).mockReturnValue(mockHistory);
 
-            const prompt = await promptBuilder.buildConversationPrompt('Follow-up question', mockFile);
+            const prompt = promptBuilder.buildConversationPrompt('Follow-up question', mockFile);
 
             expect(prompt.userPrompt).toContain('Follow-up question');
             expect(prompt.userPrompt).toContain('USER REQUEST:');
@@ -207,16 +207,16 @@ describe('PromptBuilder', () => {
     });
 
     describe('buildQuickPrompt', () => {
-        test('should build quick prompt with file context', async () => {
-            const prompt = await promptBuilder.buildQuickPrompt('grammar', 'fix grammar errors', mockFile);
+        test('should build quick prompt with file context', () => {
+            const prompt = promptBuilder.buildQuickPrompt('grammar', 'fix grammar errors', mockFile);
 
             expect(prompt.systemPrompt).toContain('ACTION: ADD CONTENT');
             expect(prompt.userPrompt).toContain('DOCUMENT: test');
             expect(mockDocumentEngine.getDocumentContext).toHaveBeenCalled();
         });
 
-        test('should build quick prompt without file context', async () => {
-            const prompt = await promptBuilder.buildQuickPrompt('grammar', 'fix grammar errors');
+        test('should build quick prompt without file context', () => {
+            const prompt = promptBuilder.buildQuickPrompt('grammar', 'fix grammar errors');
 
             expect(prompt.systemPrompt).toContain('You are Nova');
             expect(prompt.userPrompt).toContain('fix grammar errors');
@@ -224,18 +224,18 @@ describe('PromptBuilder', () => {
     });
 
     describe('buildCustomPrompt', () => {
-        test('should build custom prompt with system override', async () => {
+        test('should build custom prompt with system override', () => {
             const customSystem = 'You are a custom AI assistant.';
-            const prompt = await promptBuilder.buildCustomPrompt(customSystem, 'User message', mockFile);
+            const prompt = promptBuilder.buildCustomPrompt(customSystem, 'User message', mockFile);
 
             expect(prompt.systemPrompt).toBe(customSystem);
             expect(prompt.userPrompt).toBe('User message');
             expect(prompt.context).toContain('Document: test');
         });
 
-        test('should build custom prompt without file context', async () => {
+        test('should build custom prompt without file context', () => {
             const customSystem = 'You are a custom AI assistant.';
-            const prompt = await promptBuilder.buildCustomPrompt(customSystem, 'User message');
+            const prompt = promptBuilder.buildCustomPrompt(customSystem, 'User message');
 
             expect(prompt.systemPrompt).toBe(customSystem);
             expect(prompt.userPrompt).toBe('User message');
@@ -323,7 +323,7 @@ describe('PromptBuilder', () => {
     });
 
     describe('document context integration', () => {
-        test('should gather complete document context', async () => {
+        test('should gather complete document context', () => {
             const mockDocumentContext = {
                 file: mockFile,
                 filename: 'test',
@@ -342,7 +342,7 @@ describe('PromptBuilder', () => {
                 context: undefined
             };
 
-            const prompt = await promptBuilder.buildCommandPrompt(command, mockFile);
+            const prompt = promptBuilder.buildCommandPrompt(command, mockFile);
 
             expect(mockDocumentEngine.getDocumentContext).toHaveBeenCalled();
             expect(prompt.userPrompt).toContain('DOCUMENT: test');

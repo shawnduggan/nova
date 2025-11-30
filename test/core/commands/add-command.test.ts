@@ -70,14 +70,15 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('Generated content');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'Generated content',
             editType: 'insert',
             appliedAt: { line: 10, ch: 0 }
-        });
-        
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
         // Remove findSection mock - not used in cursor-only system
     });
 
@@ -215,11 +216,12 @@ Content for section two.`,
         });
 
         it('should handle document engine error', async () => {
-            mockDocumentEngine.applyEdit.mockResolvedValue({
+            const mockErrorResult: EditResult = {
                 success: false,
                 error: 'Document is read-only',
                 editType: 'insert'
-            });
+            };
+            mockDocumentEngine.applyEdit.mockReturnValue(mockErrorResult);
 
             const command: EditCommand = {
                 action: 'add',

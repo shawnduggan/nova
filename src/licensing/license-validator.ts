@@ -115,7 +115,7 @@ export class LicenseValidator {
 
 			return {
 				email,
-				type: type as 'annual' | 'lifetime' | 'founding',
+				type,
 				expiresAt,
 				issuedAt,
 				signature,

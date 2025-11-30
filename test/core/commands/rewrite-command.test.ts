@@ -76,19 +76,21 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('This is a modern introduction paragraph with contemporary language.');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'This is a modern introduction paragraph with contemporary language.',
             editType: 'replace',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockReturnValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: 'Rewritten document content',
             editType: 'replace'
-        });
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
 
         // Mock editor for direct editing operations
         const mockEditor = {

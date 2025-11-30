@@ -893,7 +893,7 @@ export class ContextManager {
 			if (this.currentFilePath && this.plugin.conversationManager) {
 				const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
 				if (currentFile) {
-					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
+					const conversation = this.plugin.conversationManager.getConversation(currentFile);
 					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
 				}
 			}

@@ -24,7 +24,7 @@ export class EditCommand {
     async execute(command: EditCommandType, streamingCallback?: StreamingCallback): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -88,7 +88,7 @@ export class EditCommand {
                     }
 
                     // Apply the edit based on target
-                    result = await this.applyEdit(command, documentContext, content);
+                    result = this.applyEdit(command, documentContext, content);
                 }
 
                 // Log only failures as assistant messages
@@ -117,15 +117,15 @@ export class EditCommand {
     /**
      * Apply edit based on command target
      */
-    private async applyEdit(
+    private applyEdit(
         command: EditCommandType,
         documentContext: DocumentContext,
         content: string
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'selection':
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'selection',
                         {
@@ -143,7 +143,7 @@ export class EditCommand {
 
             case 'cursor':
                 // Insert content at cursor position
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'cursor',
                     {
@@ -154,11 +154,11 @@ export class EditCommand {
 
             case 'document':
                 // Replace entire document
-                return await this.documentEngine.setDocumentContent(content);
+                return this.documentEngine.setDocumentContent(content);
 
             case 'end':
                 // Append to end of document
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'end',
                     {

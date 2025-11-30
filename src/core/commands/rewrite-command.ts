@@ -24,7 +24,7 @@ export class RewriteCommand {
     async execute(command: EditCommandType, streamingCallback?: StreamingCallback): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -88,7 +88,7 @@ export class RewriteCommand {
                     }
 
                     // Apply the rewrite based on target
-                    result = await this.applyRewrite(command, documentContext, content);
+                    result = this.applyRewrite(command, documentContext, content);
                 }
 
                 // Log only failures as assistant messages
@@ -117,19 +117,19 @@ export class RewriteCommand {
     /**
      * Apply rewrite based on command target
      */
-    private async applyRewrite(
+    private applyRewrite(
         command: EditCommandType,
         documentContext: DocumentContext,
         content: string
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'document':
                 // Replace entire document with rewritten version
-                return await this.documentEngine.setDocumentContent(content);
+                return this.documentEngine.setDocumentContent(content);
 
             case 'end':
                 // Add rewritten content to end of document
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'end',
                     {
@@ -141,7 +141,7 @@ export class RewriteCommand {
             case 'selection':
                 // Rewrite selected content
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'selection',
                         {
@@ -159,7 +159,7 @@ export class RewriteCommand {
 
             case 'cursor':
                 // Insert rewritten content at cursor
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'cursor',
                     {

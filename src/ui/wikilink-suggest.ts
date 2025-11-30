@@ -49,8 +49,8 @@ export class NovaWikilinkAutocomplete {
         
         const modal = new WikilinkFileModal(
             this.app,
-            async (file: TFile) => {
-                await this.selectFile(file);
+            (file: TFile) => {
+                void this.selectFile(file);
             },
             () => {
                 // User cancelled - reset trigger position

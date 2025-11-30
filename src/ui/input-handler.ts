@@ -126,7 +126,7 @@ export class InputHandler {
 
 			if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
 				event.preventDefault();
-				(this.commandSystem?.handleCommandPickerSelection() || false) || this.handleSend();
+				void ((this.commandSystem?.handleCommandPickerSelection() || false) || this.handleSend());
 			} else if (keyEvent.key === 'Escape') {
 				this.commandSystem?.hideCommandPicker();
 			} else if (keyEvent.key === 'ArrowUp' || keyEvent.key === 'ArrowDown') {

@@ -155,9 +155,9 @@ export class SelectionContextMenu {
     private showToneSelectionModal(editor: Editor, selectedText: string): void {
         const modal = new ToneSelectionModal(
             this.app,
-            async (selectedTone: string) => {
+            (selectedTone: string) => {
                 // Execute tone change with the selected tone
-                await this.executeSelectionEdit('tone', editor, selectedText, selectedTone);
+                void this.executeSelectionEdit('tone', editor, selectedText, selectedTone);
             },
             () => {
                 // User cancelled, do nothing
@@ -173,9 +173,9 @@ export class SelectionContextMenu {
         const modal = new CustomInstructionModal(
             this.app,
             this.plugin,
-            async (instruction: string) => {
+            (instruction: string) => {
                 // Execute custom transformation with the instruction
-                await this.executeSelectionEdit('custom', editor, selectedText, instruction);
+                void this.executeSelectionEdit('custom', editor, selectedText, instruction);
             },
             () => {
                 // User cancelled, do nothing

@@ -176,11 +176,11 @@ export class DocumentEngine {
     /**
      * Apply an edit to the document
      */
-    async applyEdit(
+    applyEdit(
         content: string,
         position: 'cursor' | 'selection' | 'end' | { line: number; ch: number },
         options: EditOptions = {}
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         
@@ -266,9 +266,9 @@ export class DocumentEngine {
     /**
      * Delete content at cursor location
      */
-    async deleteContent(
+    deleteContent(
         target: 'selection' | 'line'
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         
@@ -474,11 +474,11 @@ export class DocumentEngine {
      * Replace selected text with new content
      * Handles undo/redo properly and preserves cursor position
      */
-    async replaceSelection(
+    replaceSelection(
         newText: string,
         from?: EditorPosition,
         to?: EditorPosition
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         

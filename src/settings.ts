@@ -1023,28 +1023,29 @@ export class NovaSettingTab extends PluginSettingTab {
 				.addButton(button => button
 					.setButtonText('Clear licenses')
 					.setWarning()
-					.onClick(async () => {
+					.onClick(() => {
 						// Confirm action using Obsidian Modal
 						new ConfirmModal(
 							this.app,
 							this.plugin,
 							'Are you sure you want to clear all licenses? This will remove any applied Supernova license.',
-							async () => {
-								// Clear license key
-								this.plugin.settings.licensing.supernovaLicenseKey = '';
+							() => {
+								void (async () => {
+									// Clear license key
+									this.plugin.settings.licensing.supernovaLicenseKey = '';
 
-								// Clear Force Supernova if enabled
-								if (this.plugin.settings.licensing.debugSettings.forceSupernova) {
-									this.plugin.settings.licensing.debugSettings.forceSupernova = false;
-								}
+									// Clear Force Supernova if enabled
+									if (this.plugin.settings.licensing.debugSettings.forceSupernova) {
+										this.plugin.settings.licensing.debugSettings.forceSupernova = false;
+									}
 
-								await this.plugin.saveSettings();
+									await this.plugin.saveSettings();
 
-								// Update feature manager
-								if (this.plugin.featureManager) {
-									await this.plugin.featureManager.updateSupernovaLicense(null);
-									this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
-								}
+									// Update feature manager
+									if (this.plugin.featureManager) {
+										await this.plugin.featureManager.updateSupernovaLicense(null);
+										this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
+									}
 
 								// Dispatch license update event
 								document.dispatchEvent(new CustomEvent('nova-license-updated', {
@@ -1055,11 +1056,12 @@ export class NovaSettingTab extends PluginSettingTab {
 									}
 								}));
 
-								// Show success message
-								this.showLicenseMessage('All licenses cleared successfully.', 'success');
+									// Show success message
+									this.showLicenseMessage('All licenses cleared successfully.', 'success');
 
-								// Refresh content
-								this.updateTabContent();
+									// Refresh content
+									this.updateTabContent();
+								})();
 							}
 						).open();
 					}));

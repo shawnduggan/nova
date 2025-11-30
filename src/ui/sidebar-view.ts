@@ -281,6 +281,7 @@ export class NovaSidebarView extends ItemView {
 	async onClose() {
 		// Clean up provider dropdown event listener
 		// Cleanup dropdown component (handled by Obsidian)
+		await Promise.resolve(); // Keep async to match Obsidian's ItemView interface
 		this.providerDropdown = null;
 
 		// Clean up wikilink autocomplete
@@ -458,7 +459,7 @@ export class NovaSidebarView extends ItemView {
 
 		if (providerCommands[command]) {
 			const providerId = providerCommands[command];
-			await this.plugin.settingTab.setCurrentModel(providerId);
+			this.plugin.settingTab.setCurrentModel(providerId);
 			await this.plugin.saveSettings();
 			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
 			return true;
@@ -1238,8 +1239,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Disable send button during processing
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-		if (sendButton) sendButton.setDisabled(true);
+		this.inputHandler.sendButtonComponent?.setDisabled(true);
 
 		try {
 			// Store user message in conversation (will be restored via loadConversationHistory)
@@ -1298,7 +1298,7 @@ export class NovaSidebarView extends ItemView {
 				response = await this.executeCommand(parsedCommand);
 			} else {
 				// Handle as conversation using PromptBuilder
-				const prompt = await this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
+				const prompt = this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
 				
 				// Add multi-document context if available
 				if (multiDocContext && multiDocContext.contextString) {
@@ -1397,8 +1397,7 @@ USER REQUEST: ${processedMessage}`;
 		} finally {
 			// Re-enable send button
 			// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-			if (sendButton) sendButton.setDisabled(false);
+			this.inputHandler.sendButtonComponent?.setDisabled(false);
 			// Refresh context indicator to show persistent documents
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
@@ -1492,7 +1491,7 @@ USER REQUEST: ${processedMessage}`;
 					result = await this.executeEditCommandWithStreaming(command);
 					break;
 				case 'delete':
-					result = await this.plugin.deleteCommandHandler.execute(command);
+					result = this.plugin.deleteCommandHandler.execute(command);
 					break;
 				case 'grammar':
 					result = await this.executeGrammarCommandWithStreaming(command);
@@ -1605,7 +1604,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		try {
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
-			await this.chatRenderer.loadConversationHistory(targetFile);
+			this.chatRenderer.loadConversationHistory(targetFile);
 			
 			// PHASE 3 FIX: Check again after async operation
 			if (this.currentFileLoadOperation !== operationId) {
@@ -1859,9 +1858,9 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	async handleConsultationRequest(input: string): Promise<void> {
 		const activeFile = this.plugin.documentEngine.getActiveFile();
-		
+
 		// Get AI response using PromptBuilder but do NOT modify document
-		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
+		const prompt = this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
 		const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
 		
 		// Display response in chat only
@@ -1937,9 +1936,9 @@ USER REQUEST: ${processedMessage}`;
 	// Public methods for testing
 	async sendMessage(message: string): Promise<void> {
 		const activeFile = this.plugin.documentEngine.getActiveFile();
-		
+
 		// Build prompt using PromptBuilder
-		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+		const prompt = this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
 		
 		// Try to parse as command first
 		const command = this.plugin.commandParser.parseCommand(message);
@@ -1964,7 +1963,7 @@ USER REQUEST: ${processedMessage}`;
 					await this.plugin.editCommandHandler.execute(command);
 					break;
 				case 'delete':
-					await this.plugin.deleteCommandHandler.execute(command);
+					this.plugin.deleteCommandHandler.execute(command);
 					break;
 				case 'grammar':
 					await this.plugin.grammarCommandHandler.execute(command);
@@ -2000,8 +1999,7 @@ USER REQUEST: ${processedMessage}`;
 	private async updateSendButtonState(): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-		if (sendButton) sendButton.setDisabled(!currentProviderType);
+		this.inputHandler.sendButtonComponent?.setDisabled(!currentProviderType);
 	}
 
 	/**
@@ -2133,7 +2131,7 @@ USER REQUEST: ${processedMessage}`;
 			if (providerType === 'none' || !isAvailable) continue;
 
 			// Check if provider has API key configured
-			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const providerConfig = this.plugin.settings.aiProviders[providerType];
 			const hasApiKey = providerConfig?.apiKey;
 			if (!hasApiKey && providerType !== 'ollama') continue;
 
@@ -2187,9 +2185,9 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Set user-initiated flag to prevent spurious success messages
 			this.isUserInitiatedProviderChange = true;
-			
+
 			// Update the model in settings
-			await this.plugin.settingTab.setCurrentModel(model);
+			this.plugin.settingTab.setCurrentModel(model);
 			await this.plugin.saveSettings();
 			
 			// Refresh privacy indicator and context
@@ -2494,11 +2492,11 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle license update events
 	 */
-	private handleLicenseUpdated = async (_event: Event) => {
+	private handleLicenseUpdated = (_event: Event) => {
 		// Event parameter prefixed with _ to indicate intentionally unused
 		// const customEvent = event as CustomEvent;
 		// const { _hasLicense, _licenseKey, _action } = customEvent.detail;
-		
+
 		// Refresh Supernova UI when license status changes
 		try {
 			this.refreshSupernovaUI();
@@ -2521,7 +2519,7 @@ USER REQUEST: ${processedMessage}`;
 			if (providerType === 'none') continue; // Skip 'none' provider type
 			const isAvailable = providerAvailability.get(providerType);
 			// Also check if provider has been successfully tested
-			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const providerConfig = this.plugin.settings.aiProviders[providerType];
 			const providerStatus = providerConfig?.status;
 			if (isAvailable && providerStatus?.state === 'connected') {
 				const models = getAvailableModels(providerType, this.plugin.settings);

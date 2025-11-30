@@ -32,11 +32,11 @@ export class PromptBuilder {
     /**
      * Build prompt for a user message - determines if it's a command or conversation
      */
-    async buildPromptForMessage(
+    buildPromptForMessage(
         message: string,
         file?: TFile,
         options: Partial<PromptConfig> = {}
-    ): Promise<GeneratedPrompt> {
+    ): GeneratedPrompt {
         // Check if this is likely a command based on action words
         const isLikelyCommand = this.isLikelyCommand(message);
         
@@ -123,22 +123,22 @@ export class PromptBuilder {
     /**
      * Build prompt for a specific command
      */
-    async buildCommandPrompt(
+    buildCommandPrompt(
         command: EditCommand,
         file?: TFile,
         options: Partial<PromptConfig> = {}
-    ): Promise<GeneratedPrompt> {
+    ): GeneratedPrompt {
         if (!file) {
             throw new Error('File is required for command prompts');
         }
 
         // Get document context
-        const documentContext = await this.getDocumentContext(file);
+        const documentContext = this.getDocumentContext(file);
         
         // Get conversation context if needed
         let conversationContext: string | undefined;
         if (options.includeHistory) {
-            const recentMessages = await this.conversationManager.getRecentMessages(file, 5);
+            const recentMessages = this.conversationManager.getRecentMessages(file, 5);
             conversationContext = this.formatConversationHistory(recentMessages);
         }
 
@@ -149,20 +149,20 @@ export class PromptBuilder {
     /**
      * Build prompt for conversation (non-command messages)
      */
-    async buildConversationPrompt(
+    buildConversationPrompt(
         message: string,
         file?: TFile,
         options: Partial<PromptConfig> = {}
-    ): Promise<GeneratedPrompt> {
+    ): GeneratedPrompt {
         let documentContext: DocumentContext | undefined;
         let recentHistory: ConversationMessage[] = [];
 
         // Get document context if file is provided
         if (file) {
-            documentContext = await this.getDocumentContext(file);
-            
+            documentContext = this.getDocumentContext(file);
+
             // Get recent conversation history
-            recentHistory = await this.conversationManager.getRecentMessages(file, 5);
+            recentHistory = this.conversationManager.getRecentMessages(file, 5);
         }
 
         // Build conversation-style prompt (not command format)
@@ -244,13 +244,13 @@ ${userPrompt}`;
     /**
      * Get document context for a file
      */
-    private async getDocumentContext(file: TFile): Promise<DocumentContext> {
+    private getDocumentContext(file: TFile): DocumentContext {
         // Use the document engine's built-in context gathering
-        const context = await this.documentEngine.getDocumentContext();
-        
+        const context = this.documentEngine.getDocumentContext();
+
         if (!context) {
             // Fallback: create minimal context
-            const content = await this.documentEngine.getDocumentContent() || '';
+            const content = this.documentEngine.getDocumentContent() || '';
             return {
                 file: file,
                 filename: file.basename,
@@ -326,11 +326,11 @@ ${userPrompt}`;
     /**
      * Create prompt for a specific action with minimal context
      */
-    async buildQuickPrompt(
+    buildQuickPrompt(
         action: EditCommand['action'],
         instruction: string,
         file?: TFile
-    ): Promise<GeneratedPrompt> {
+    ): GeneratedPrompt {
         const command: EditCommand = {
             action,
             target: 'document',
@@ -361,15 +361,15 @@ ${userPrompt}`;
     /**
      * Build prompt with custom system prompt override
      */
-    async buildCustomPrompt(
+    buildCustomPrompt(
         systemPrompt: string,
         userMessage: string,
         file?: TFile
-    ): Promise<GeneratedPrompt> {
+    ): GeneratedPrompt {
         let context = '';
         
         if (file) {
-            const documentContext = await this.getDocumentContext(file);
+            const documentContext = this.getDocumentContext(file);
             context = `Document: ${documentContext.filename}\n${documentContext.content}`;
         }
 

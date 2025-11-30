@@ -76,19 +76,21 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('This is the introduction paragraph with some corrections.');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'This is the introduction paragraph with some corrections.',
             editType: 'replace',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockReturnValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: 'Corrected document content',
             editType: 'replace'
-        });
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
 
         // Mock conversation context methods
         mockDocumentEngine.getConversationContext.mockReturnValue('');

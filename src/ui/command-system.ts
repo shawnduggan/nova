@@ -65,13 +65,11 @@ export class CommandSystem {
 	}
 
 	updateCommandButtonVisibility(): void {
-		if (this.commandButton) {
-			const shouldShow = this.shouldShowCommandButton();
-			if (shouldShow) {
-				this.commandButton.buttonEl.show();
-			} else {
-				this.commandButton.buttonEl.hide();
-			}
+		const shouldShow = this.shouldShowCommandButton();
+		if (shouldShow) {
+			this.commandButton?.buttonEl.show();
+		} else {
+			this.commandButton?.buttonEl.hide();
 		}
 	}
 
@@ -147,11 +145,10 @@ export class CommandSystem {
 	}
 
 	handleInputChange(): void {
-		if (!this.textArea) {
+		const input = this.textArea?.getValue();
+		if (!input) {
 			return;
 		}
-		
-		const input = this.textArea.getValue();
 		
 		// Check for triggers first (fast), then check permissions (slow)
 		if (input.startsWith(':')) {
