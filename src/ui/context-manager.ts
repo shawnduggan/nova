@@ -740,7 +740,7 @@ export class ContextManager {
 				for (const [key, value] of Object.entries(cache.frontmatter)) {
 					// Format the property value (handle arrays, objects, etc.)
 					const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
-					contextParts.push(`- ${key}: ${formattedValue}`);
+					contextParts.push(`- ${key}: ${String(formattedValue)}`);
 				}
 			}
 			
@@ -797,7 +797,7 @@ export class ContextManager {
 				// Get specific property from frontmatter
 				const cache = this.app.metadataCache.getFileCache(file);
 				if (cache?.frontmatter && cache.frontmatter[property]) {
-					return `## ${file.basename} - ${property}\n${cache.frontmatter[property]}`;
+					return `## ${file.basename} - ${property}\n${String(cache.frontmatter[property])}`;
 				}
 				return null;
 			} else {

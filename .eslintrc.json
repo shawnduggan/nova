@@ -15,7 +15,9 @@
     "project": "./tsconfig.json"
   },
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "deprecation",
+    "eslint-comments"
   ],
   "globals": {
     "AsyncGenerator": "readonly",
@@ -35,6 +37,15 @@
     "@typescript-eslint/await-thenable": "error",
     "@typescript-eslint/no-unnecessary-type-assertion": "error",
     "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/restrict-template-expressions": [
+      "error",
+      {
+        "allowNumber": true,
+        "allowBoolean": true,
+        "allowNullish": false,
+        "allowNever": false
+      }
+    ],
     "no-unused-vars": "off",
     "no-undef": "error",
     "prefer-const": "error",
@@ -103,7 +114,13 @@
         "assertionStyle": "as",
         "objectLiteralTypeAssertions": "allow-as-parameter"
       }
-    ]
+    ],
+
+    // Deprecation detection (catches substr and other deprecated APIs)
+    "deprecation/deprecation": "error",
+
+    // ESLint comment management (Obsidian requirement)
+    "eslint-comments/require-description": "error"
   },
   "ignorePatterns": [
     "main.js",

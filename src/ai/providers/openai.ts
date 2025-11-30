@@ -152,9 +152,9 @@ export class OpenAIProvider implements AIProvider {
 				// Try to parse error message if JSON
 				let errorMessage = `${response.status}`;
 				try {
-					const errorData = JSON.parse(response.text);
+					const errorData = JSON.parse(response.text) as { error?: { message?: string; type?: string } };
 					if (errorData.error) {
-						errorMessage = `${response.status}: ${errorData.error.message || errorData.error.type || response.text}`;
+						errorMessage = `${response.status}: ${String(errorData.error.message || errorData.error.type || response.text)}`;
 					}
 				} catch {
 					errorMessage = `${response.status}: ${response.text}`;

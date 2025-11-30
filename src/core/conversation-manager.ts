@@ -44,7 +44,7 @@ export class ConversationManager {
                         this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
                     } catch (error) {
                         // Skip corrupted individual conversations
-                        Logger.warn(`Skipped corrupted conversation for file: ${conversation?.filePath || 'unknown'}`, error);
+                        Logger.warn(`Skipped corrupted conversation for file: ${String(conversation?.filePath) || 'unknown'}`, error);
                     }
                 }
             }

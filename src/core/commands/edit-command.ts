@@ -170,7 +170,7 @@ export class EditCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid edit target: ${command.target}`,
+                    error: `Invalid edit target: ${String(command.target)}`,
                     editType: 'replace'
                 };
         }

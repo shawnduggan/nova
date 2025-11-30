@@ -1503,7 +1503,7 @@ USER REQUEST: ${processedMessage}`;
 					result = await this.plugin.metadataCommandHandler.execute(command);
 					break;
 				default:
-					return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
+					return `I don't understand the command "${String(command.action)}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
 			}
 			
 			if (result.success) {

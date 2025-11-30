@@ -108,7 +108,7 @@ export class GoogleProvider implements AIProvider {
 					// Format as [CODE]: message
 					const code = errorData.error.code || response.status;
 					const message = errorData.error.message || errorData.error.status;
-					errorMessage = `[${code}]: ${message}`;
+					errorMessage = `[${String(code)}]: ${String(message)}`;
 					
 					// Add specific guidance for common errors
 					if (response.status === 400) {
@@ -146,7 +146,7 @@ export class GoogleProvider implements AIProvider {
 		if (!data.candidates || data.candidates.length === 0) {
 			// Check if there's an error message in the response
 			if (data.error) {
-				throw new Error(`Google API error: ${data.error.message || JSON.stringify(data.error)}`);
+				throw new Error(`Google API error: ${String(data.error.message) || JSON.stringify(data.error)}`);
 			}
 			throw new Error('Google API returned no candidates');
 		}

@@ -101,7 +101,7 @@ export class DeleteCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid delete target: ${command.target}`,
+                    error: `Invalid delete target: ${String(command.target)}`,
                     editType: 'delete'
                 };
         }

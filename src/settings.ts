@@ -912,7 +912,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
 		const infoCard = supernovaInfo.createDiv({ cls: 'nova-info-card' });
 		const cardTitle4 = infoCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle4.setText('Become a Supernova Supporter');
+		cardTitle4.setText('Become a Supernova supporter');
 		const description = infoCard.createEl('p');
 		description.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
 		
@@ -1795,7 +1795,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const infoDiv = headerDiv.createDiv({ cls: 'nova-supernova-info' });
 		const ctaTitle = infoDiv.createDiv({ cls: 'nova-cta-title' });
-		ctaTitle.setText('Supernova Support');
+		ctaTitle.setText('Supernova support');
 		const statusP = infoDiv.createEl('p');
 		statusP.textContent = 'Status: ';
 		statusP.createEl('strong', { text: statusText });
@@ -1806,12 +1806,12 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (buttonAction === 'tab') {
 			primaryBtn.setAttribute('data-tab', 'supernova');
 		}
-		primaryBtn.textContent = isSupernova ? (buttonAction === 'tab' ? 'Manage License' : 'Thank You for Supporting!') : 'Become a Supporter';
+		primaryBtn.textContent = isSupernova ? (buttonAction === 'tab' ? 'Manage license' : 'Thank you for supporting!') : 'Become a supporter';
 		
 		if (showLearnMore) {
 			const secondaryBtn = actionsDiv.createEl('button', { cls: 'nova-supernova-btn secondary' });
 			secondaryBtn.setAttribute('data-tab', 'supernova');
-			secondaryBtn.textContent = 'Learn More';
+			secondaryBtn.textContent = 'Learn more';
 		}
 		
 		// Add click handlers if using tab navigation

@@ -213,7 +213,7 @@ TASK: Apply custom transformation
 - Follow the user's specific instruction exactly
 - Maintain content integrity unless asked to change it
 - Apply the requested changes precisely`;
-                userPrompt = `Apply this instruction to the text: "${customInstruction}"\n\nText to transform:\n\n${selectedText}`;
+                userPrompt = `Apply this instruction to the text: "${String(customInstruction)}"\n\nText to transform:\n\n${selectedText}`;
                 break;
 
             default:

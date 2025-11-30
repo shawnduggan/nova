@@ -185,7 +185,7 @@ export class AddCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid add target: ${command.target}`,
+                    error: `Invalid add target: ${String(command.target)}`,
                     editType: 'insert'
                 };
         }

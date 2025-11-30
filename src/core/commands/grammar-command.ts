@@ -165,7 +165,7 @@ export class GrammarCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid grammar target: ${command.target}`,
+                    error: `Invalid grammar target: ${String(command.target)}`,
                     editType: 'replace'
                 };
         }

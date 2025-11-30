@@ -397,7 +397,7 @@ export class SelectionContextMenu {
             case 'longer': return 'Expanded';
             case 'shorter': return 'Condensed';
             case 'tone': return `Changed tone to ${customInstruction || 'formal'}`;
-            case 'custom': return `Applied "${customInstruction}"`;
+            case 'custom': return `Applied "${String(customInstruction)}"`;
             default: return 'Processed';
         }
     }

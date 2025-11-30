@@ -171,7 +171,7 @@ export class RewriteCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid rewrite target: ${command.target}`,
+                    error: `Invalid rewrite target: ${String(command.target)}`,
                     editType: 'replace'
                 };
         }
