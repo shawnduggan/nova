@@ -475,7 +475,7 @@ export class StreamingManager {
         this.streamingStartPos = null;
 
         // Create the streaming interface
-        const { updateStream, stopStream: _stopStream } = this.startStreaming(
+        const { updateStream } = this.startStreaming(
             editor,
             originalRange.from,
             undefined,

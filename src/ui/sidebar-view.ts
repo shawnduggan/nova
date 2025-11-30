@@ -11,7 +11,7 @@ import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
-import { formatContextUsage, getRemainingContextPercentage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
+import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 
@@ -1747,14 +1747,12 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Get total context usage if available, otherwise fall back to old calculation
 		const totalContextUsage = this.currentContext?.totalContextUsage;
-		let remainingPercent: number;
 		let warningLevel: string;
 		let displayText: string;
 		let tooltipText: string;
-		
+
 		if (totalContextUsage) {
 			// Use new total context calculation
-			remainingPercent = getRemainingContextPercentage(totalContextUsage);
 			warningLevel = getContextWarningLevel(totalContextUsage);
 			displayText = formatContextUsage(totalContextUsage);
 			tooltipText = getContextTooltip(totalContextUsage);
@@ -2496,8 +2494,9 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle license update events
 	 */
-	private handleLicenseUpdated = async (event: Event) => {
-		const customEvent = event as CustomEvent;
+	private handleLicenseUpdated = async (_event: Event) => {
+		// Event parameter prefixed with _ to indicate intentionally unused
+		// const customEvent = event as CustomEvent;
 		// const { _hasLicense, _licenseKey, _action } = customEvent.detail;
 		
 		// Refresh Supernova UI when license status changes
