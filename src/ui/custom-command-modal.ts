@@ -23,7 +23,9 @@ export class CustomCommandModal extends Modal {
 	onOpen() {
 		const { contentEl } = this;
 
-		contentEl.createEl('h2', { text: this.existingCommand ? 'Edit custom command' : 'New custom command' });
+		new Setting(contentEl)
+			.setName(this.existingCommand ? 'Edit custom command' : 'New custom command')
+			.setHeading();
 
 		let nameValue = this.existingCommand?.name || '';
 		let triggerValue = this.existingCommand?.trigger || '';
