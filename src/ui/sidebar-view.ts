@@ -1544,7 +1544,7 @@ USER REQUEST: ${processedMessage}`;
 			if (activeView && activeView.file) {
 				targetFile = activeView.file;
 			} else {
-				// Final fallback: any open markdown file
+				// Final fallback: first available open markdown file
 				const leaves = this.app.workspace.getLeavesOfType('markdown');
 				if (leaves.length > 0) {
 					const view = leaves[0].view;

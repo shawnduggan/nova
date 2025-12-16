@@ -3,6 +3,12 @@ import { NovaSettings } from '../../src/settings';
 import { Platform } from 'obsidian';
 import { FeatureManager } from '../../src/licensing/feature-manager';
 import { LicenseValidator } from '../../src/licensing/license-validator';
+import { AIProvider } from '../../src/ai/types';
+
+// Type for mocking Platform
+interface MockPlatform {
+    isMobile: boolean;
+}
 
 // Mock Platform
 jest.mock('obsidian', () => ({
@@ -87,7 +93,7 @@ describe('AIProviderManager', () => {
             };
 
             // Mock the provider
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             const result = await manager.complete('System prompt', 'User prompt');
 
@@ -102,7 +108,7 @@ describe('AIProviderManager', () => {
                 complete: jest.fn().mockResolvedValue('Test response')
             };
 
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             const options = { temperature: 0.5, maxTokens: 2000 };
             await manager.complete('System prompt', 'User prompt', options);
@@ -117,7 +123,7 @@ describe('AIProviderManager', () => {
                 complete: jest.fn()
             };
 
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             await expect(
                 manager.complete('System prompt', 'User prompt')
@@ -131,7 +137,7 @@ describe('AIProviderManager', () => {
                 complete: jest.fn()
             };
 
-            manager['providers'].set('claude', claudeProvider as any);
+            manager['providers'].set('claude', claudeProvider as unknown as AIProvider);
 
             await expect(
                 manager.complete('System prompt', 'User prompt')
@@ -142,7 +148,7 @@ describe('AIProviderManager', () => {
 
         test('should respect mobile platform settings', async () => {
             // Mock mobile platform
-            (Platform as any).isMobile = true;
+            (Platform as unknown as MockPlatform).isMobile = true;
 
             const mockProvider = {
                 name: 'Claude (Anthropic)',
@@ -150,7 +156,7 @@ describe('AIProviderManager', () => {
                 complete: jest.fn()
             };
 
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             await expect(
                 manager.complete('System prompt', 'User prompt')
@@ -159,7 +165,7 @@ describe('AIProviderManager', () => {
             expect(mockProvider.isAvailable).not.toHaveBeenCalled();
 
             // Reset
-            (Platform as any).isMobile = false;
+            (Platform as unknown as MockPlatform).isMobile = false;
         });
     });
 
@@ -170,7 +176,7 @@ describe('AIProviderManager', () => {
                 isAvailable: jest.fn().mockResolvedValue(true)
             };
 
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             const result = await manager.getCurrentProviderName();
             expect(result).toBe('Claude (Anthropic)');
@@ -182,7 +188,7 @@ describe('AIProviderManager', () => {
                 isAvailable: jest.fn().mockResolvedValue(false)
             };
 
-            manager['providers'].set('claude', mockProvider as any);
+            manager['providers'].set('claude', mockProvider as unknown as AIProvider);
 
             const result = await manager.getCurrentProviderName();
             expect(result).toBe('None');

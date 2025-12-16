@@ -13,10 +13,9 @@ module.exports = {
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-      }
+      tsconfig: './tsconfig.test.json',
+      // Allow ts-jest to compile without full type checking for mock compatibility
+      isolatedModules: true,
     }],
   },
   testEnvironmentOptions: {

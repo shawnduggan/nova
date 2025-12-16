@@ -30,7 +30,8 @@ describe('Conversation History Restoration', () => {
             loadConversationHistory: null // We'll test this method
         };
         
-        // Add CSS for testing
+        // Add CSS for testing - allowed in test files for DOM testing
+        // eslint-disable-next-line obsidianmd/no-forbidden-elements -- Test file needs style element for DOM testing
         const style = document.createElement('style');
         style.textContent = `
             .nova-pill-success { background: green; }
