@@ -72,7 +72,7 @@ export class LicenseValidator {
 				valid: true, 
 				license 
 			};
-		} catch (_error) {
+		} catch (_) {
 			return {
 				valid: false,
 				error: LicenseError.MALFORMED_DATA
@@ -121,7 +121,7 @@ export class LicenseValidator {
 				signature,
 				licenseKey
 			};
-		} catch (_error) {
+		} catch (_) {
 			return null;
 		}
 	}

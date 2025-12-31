@@ -279,7 +279,7 @@ export class MetadataCommand {
             }
             
             return Object.keys(updates).length > 0 ? updates : null;
-        } catch (_error) {
+        } catch (_) {
             // Failed to parse property updates - graceful fallback
             return null;
         }
@@ -336,8 +336,8 @@ export class MetadataCommand {
                 
                 const formattedValue = (typeof value === 'object' && value !== null)
                     ? JSON.stringify(value)
-                    : String(value);
-                
+                    : String(value as string | number | boolean);
+
                 newFrontmatter.push(`${key}: ${formattedValue}`);
             }
             newFrontmatter.push('---');
@@ -412,7 +412,7 @@ export class MetadataCommand {
 
             const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
-                : String(value);
+                : String(value as string | number | boolean);
 
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
@@ -509,7 +509,7 @@ export class MetadataCommand {
 
             const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
-                : String(value);
+                : String(value as string | number | boolean);
 
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
@@ -823,7 +823,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                             reasoning: parsed.reasoning
                         };
                     }
-                } catch (_e) {
+                } catch (_) {
                     // JSON parse failed, continue to other formats
                 }
             }

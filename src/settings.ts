@@ -894,7 +894,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								// Refresh content 
 								this.updateTabContent();
 							}
-						} catch (_error) {
+						} catch (_) {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
 							button.setButtonText('Validate license');
@@ -1564,7 +1564,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
 		// Remove redundant top-level heading as context is already clear in settings tab
 		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'Your AI writing partner to make the writing process smoother' });
-		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from llms to obsidian, and provides actionable insights to help improve your writing' });
+		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing' });
 	}
 
 	private createQuickStartGuide(container: HTMLElement): void {

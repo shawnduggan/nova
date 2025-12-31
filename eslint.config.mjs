@@ -22,7 +22,7 @@ export default [
 			...obsidianmd.configs.recommended,
 			"obsidianmd/ui/sentence-case": ["error", {
 				allowAutoFix: true,
-				brands: ["Nova", "Anthropic", "Claude", "Google", "Gemini", "OpenAI", "ChatGPT"]
+				brands: ["Nova", "Obsidian", "LLMs", "Anthropic", "Claude", "Google", "Gemini", "OpenAI", "ChatGPT"]
 			}],
 
 			// TypeScript strict rules (matching Obsidian bot)

@@ -1645,7 +1645,7 @@ USER REQUEST: ${processedMessage}`;
 				
 				// Clear token warnings
 				this.lastTokenWarnings = {};
-			} catch (_error) {
+			} catch (_) {
 				// Failed to clear conversation - graceful fallback
 			}
 		}
@@ -1712,7 +1712,7 @@ USER REQUEST: ${processedMessage}`;
 					statsEl.textContent = `~ ${readingTime} min read`;
 				}
 			}
-		} catch (_error) {
+		} catch (_) {
 			// Silently fail - stats are optional
 		}
 	}
@@ -1848,7 +1848,7 @@ USER REQUEST: ${processedMessage}`;
 					}, 50);
 				}
 			}
-		} catch (_error) {
+		} catch (_) {
 			// Silently fail - analysis is optional
 		}
 	}
