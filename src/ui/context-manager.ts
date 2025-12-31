@@ -228,7 +228,7 @@ export class ContextManager {
 			}
 
 			return context;
-		} catch (error) {
+		} catch (_error) {
 			// Failed to build context - graceful fallback
 			return null;
 		}
@@ -419,7 +419,7 @@ export class ContextManager {
 					const currentContent = await this.app.vault.read(currentFile);
 					totalTokens += Math.ceil(currentContent.length / 4);
 				}
-			} catch (error) {
+			} catch (_error) {
 				// Skip if can't read current file
 			}
 			
@@ -428,7 +428,7 @@ export class ContextManager {
 				try {
 					const content = await this.app.vault.read(doc.file);
 					totalTokens += Math.ceil(content.length / 4);
-				} catch (error) {
+				} catch (_error) {
 					// Skip files that can't be read
 				}
 			}
@@ -451,7 +451,7 @@ export class ContextManager {
 
 			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
 
-		} catch (error) {
+		} catch (_error) {
 			// Handle context build failures gracefully
 			this.currentContext = null;
 			this.hideContextIndicator();
@@ -622,7 +622,7 @@ export class ContextManager {
 				missingFiles,
 				totalCount: savedContextDocs.length
 			};
-		} catch (error) {
+		} catch (_error) {
 			// Graceful fallback
 			return { validFiles: [], missingFiles: [], totalCount: 0 };
 		}
@@ -774,7 +774,7 @@ export class ContextManager {
 			}
 			
 			return contextParts.join('\n');
-		} catch (error) {
+		} catch (_error) {
 			// Failed to read full context - graceful fallback
 			return null;
 		}
@@ -804,7 +804,7 @@ export class ContextManager {
 				// Get full document context with metadata
 				return this.getFullDocumentContext(file);
 			}
-		} catch (error) {
+		} catch (_error) {
 			// Failed to read context - graceful fallback
 			return null;
 		}

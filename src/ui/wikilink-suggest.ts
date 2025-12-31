@@ -124,7 +124,7 @@ class WikilinkFileModal extends FuzzySuggestModal<TFile> {
     }
 
     onOpen(): void {
-        super.onOpen();
+        void super.onOpen();
         this.addInstructions();
     }
 

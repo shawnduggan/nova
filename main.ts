@@ -391,7 +391,7 @@ export default class NovaPlugin extends Plugin {
 			await this.selectionContextMenu.handleSelectionAction(actionId, editor, selectedText);
 		} catch (error) {
 			Logger.error('Error executing Nova selection command:', error);
-			new Notice('Failed to execute Nova action. Please try again.', 3000);
+			new Notice('Failed to execute Nova action, please try again', 3000);
 		}
 	}
 
@@ -410,7 +410,7 @@ export default class NovaPlugin extends Plugin {
 			await this.selectionContextMenu.handleSelectionAction('tone', editor, selectedText, toneId);
 		} catch (error) {
 			Logger.error('Error executing Nova tone command:', error);
-			new Notice('Failed to execute Nova action. Please try again.', 3000);
+			new Notice('Failed to execute Nova action, please try again', 3000);
 		}
 	}
 

@@ -169,7 +169,7 @@ export class ChatRenderer {
 		
 		// Add welcome text
 		const textP = contentDiv.createEl('p', { cls: 'nova-welcome-text' });
-		textP.textContent = "Hi! I'm Nova, your AI writing partner. Select any text and right-click to transform it directly, or chat with me to add content exactly where your cursor is.";
+		textP.textContent = "Hi! I'm Nova, your AI writing partner — select any text and right-click to transform it directly, or chat with me to add content where your cursor is";
 
 		this.scrollToBottom(true);
 	}

@@ -37,7 +37,7 @@ export class Logger {
      */
     static info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
-            console.log(`${Logger.PREFIX} ${message}`, ...args);
+            console.debug(`${Logger.PREFIX} ${message}`, ...args);
         }
     }
 
@@ -85,7 +85,7 @@ export class ScopedLogger {
 
     info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
-            console.log(`${this.prefix} ${message}`, ...args);
+            console.debug(`${this.prefix} ${message}`, ...args);
         }
     }
 

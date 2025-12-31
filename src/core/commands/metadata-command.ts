@@ -279,7 +279,7 @@ export class MetadataCommand {
             }
             
             return Object.keys(updates).length > 0 ? updates : null;
-        } catch (error) {
+        } catch (_error) {
             // Failed to parse property updates - graceful fallback
             return null;
         }
@@ -334,7 +334,7 @@ export class MetadataCommand {
                     continue; // Skip null/undefined values
                 }
                 
-                const formattedValue = typeof value === 'object' 
+                const formattedValue = (typeof value === 'object' && value !== null)
                     ? JSON.stringify(value)
                     : String(value);
                 
@@ -409,15 +409,15 @@ export class MetadataCommand {
                 continue;
             }
             processedKeys.add(normalizedKey);
-            
-            const formattedValue = typeof value === 'object' 
+
+            const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
                 : String(value);
-            
+
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
         newFrontmatter.push('---');
-        
+
         // Return updated content
         return [
             ...newFrontmatter,
@@ -506,15 +506,15 @@ export class MetadataCommand {
                 continue;
             }
             processedKeys.add(normalizedKey);
-            
-            const formattedValue = typeof value === 'object' 
+
+            const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
                 : String(value);
-            
+
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
         newFrontmatter.push('---');
-        
+
         // Return updated content
         return [
             ...newFrontmatter,
@@ -823,7 +823,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                             reasoning: parsed.reasoning
                         };
                     }
-                } catch (e) {
+                } catch (_e) {
                     // JSON parse failed, continue to other formats
                 }
             }

@@ -247,7 +247,7 @@ export class ProviderManager {
 				Logger.error('Failed to update provider status:', error);
 			});
 
-		} catch (error) {
+		} catch (_error) {
 			// Error switching provider - handled by UI feedback
 		}
 	}

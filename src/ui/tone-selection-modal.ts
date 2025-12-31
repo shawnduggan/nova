@@ -14,22 +14,22 @@ export interface ToneOption {
 export const TONE_OPTIONS: ToneOption[] = [
     {
         id: 'formal',
-        label: 'formal',
+        label: 'Formal',
         description: 'Professional, structured language suitable for business or academic contexts'
     },
     {
         id: 'casual',
-        label: 'casual',
+        label: 'Casual',
         description: 'Relaxed, conversational tone for informal communication'
     },
     {
         id: 'academic',
-        label: 'academic',
+        label: 'Academic',
         description: 'Scholarly, precise language with technical vocabulary'
     },
     {
         id: 'friendly',
-        label: 'friendly',
+        label: 'Friendly',
         description: 'Warm, approachable tone that builds connection'
     }
 ];

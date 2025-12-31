@@ -735,7 +735,7 @@ export class NovaSidebarView extends ItemView {
 				// Use the existing selection context menu handler
 				await this.selectionContextMenu.handleSelectionAction(trigger, activeView.editor, selectedText);
 			} else {
-				new Notice('No text selected. Please select text to use nova editing commands.', 3000);
+				new Notice('No text selected. Please select text to use Nova editing commands.', 3000);
 			}
 			return;
 		}
@@ -1645,7 +1645,7 @@ USER REQUEST: ${processedMessage}`;
 				
 				// Clear token warnings
 				this.lastTokenWarnings = {};
-			} catch (error) {
+			} catch (_error) {
 				// Failed to clear conversation - graceful fallback
 			}
 		}
@@ -1712,7 +1712,7 @@ USER REQUEST: ${processedMessage}`;
 					statsEl.textContent = `~ ${readingTime} min read`;
 				}
 			}
-		} catch (error) {
+		} catch (_error) {
 			// Silently fail - stats are optional
 		}
 	}
@@ -1848,7 +1848,7 @@ USER REQUEST: ${processedMessage}`;
 					}, 50);
 				}
 			}
-		} catch (error) {
+		} catch (_error) {
 			// Silently fail - analysis is optional
 		}
 	}

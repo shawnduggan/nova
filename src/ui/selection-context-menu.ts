@@ -145,7 +145,7 @@ export class SelectionContextMenu {
             await this.executeSelectionEdit(actionId, editor, selectedText, customInstruction);
         } catch (error) {
             Logger.error('Error executing Nova selection action:', error);
-            new Notice('Failed to execute nova action. Please try again.', 3000);
+            new Notice('Failed to execute Nova action. Please try again.', 3000);
         }
     }
 
@@ -248,7 +248,7 @@ export class SelectionContextMenu {
             }
         } catch (error) {
             Logger.error('Error in streaming selection edit:', error);
-            new Notice('Failed to execute nova action. Please try again.', 3000);
+            new Notice('Failed to execute Nova action. Please try again.', 3000);
             
             // Restore original text on complete failure
             this.restoreOriginalText(editor);

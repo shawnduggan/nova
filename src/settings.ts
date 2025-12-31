@@ -233,7 +233,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
 		// Create benefits content using DOM API
 		const benefitsP = benefitsContent.createEl('p', { cls: 'nova-benefits-intro' });
-		benefitsP.textContent = 'Support nova development and get early access to new features. All features eventually become free for everyone.';
+		benefitsP.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
 		
 		const benefitsList = benefitsContent.createDiv({ cls: 'nova-benefits-list' });
 		
@@ -255,7 +255,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		// Add closing message
 		const closingP = benefitsContent.createEl('p', { cls: 'nova-benefits-closing' });
-		closingP.textContent = 'Your support keeps nova free and open source for everyone';
+		closingP.textContent = 'Your support keeps Nova free and open source for everyone';
 		
 		// License settings section - styled like API keys
 		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
@@ -323,7 +323,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const cardTitle3 = mobileCard.createDiv({ cls: 'nova-info-card-title' });
 		cardTitle3.setText('📱 mobile support');
 		const mobileText = mobileCard.createEl('p');
-		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers';
+		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers';
 		
 		// Features list
 		const featuresList = mobileCard.createEl('ul', { cls: 'nova-privacy-features' });
@@ -894,7 +894,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								// Refresh content 
 								this.updateTabContent();
 							}
-						} catch (error) {
+						} catch (_error) {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
 							button.setButtonText('Validate license');
@@ -914,7 +914,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const cardTitle4 = infoCard.createDiv({ cls: 'nova-info-card-title' });
 		cardTitle4.setText('Become a supernova supporter');
 		const description = infoCard.createEl('p');
-		description.textContent = 'Support nova development and get early access to new features. All features eventually become free for everyone.';
+		description.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
 		
 		const featuresList = infoCard.createEl('ul');
 		const features = [
@@ -1182,7 +1182,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Provider header with status indicator
 		const headerSetting = new Setting(claudeContainer)
-			.setName('Claude (anthropic)')
+			.setName('Claude (Anthropic)')
 			.setHeading();
 		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'claude');
 		statusContainer.setAttribute('data-provider', 'claude');
@@ -1211,7 +1211,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Provider header with status indicator
 		const headerSetting = new Setting(openaiContainer)
-			.setName('Chatgpt (openai)')
+			.setName('ChatGPT (OpenAI)')
 			.setHeading();
 		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'openai');
 		statusContainer.setAttribute('data-provider', 'openai');
@@ -1239,7 +1239,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Provider header with status indicator
 		const headerSetting = new Setting(googleContainer)
-			.setName('Google (gemini)')
+			.setName('Google (Gemini)')
 			.setHeading();
 		const statusContainer = this.createProviderStatusIndicator(headerSetting.controlEl, 'google');
 		statusContainer.setAttribute('data-provider', 'google');
@@ -1304,7 +1304,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		new Setting(ollamaContainer)
 			.setName('Default context limit')
-			.setDesc('Context window size for all ollama models (nova defaults to 32k vs ollama\'s 2k)')
+			.setDesc('Context window size for all ollama models (Nova defaults to 32k vs ollama\'s 2k)')
 			.addText(text => {
 				text.inputEl.type = 'number';
 				text.inputEl.addClass('nova-api-input-tiny');
@@ -1343,7 +1343,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Model selection')
-			.setDesc('Models are now selected using the dropdown in the nova sidebar. Each platform (desktop/mobile) remembers its selected model independently');
+			.setDesc('Models are now selected using the dropdown in the Nova sidebar. Each platform (desktop/mobile) remembers its selected model independently');
 	}
 
 	private getAllowedProvidersForPlatform(platform: 'desktop' | 'mobile'): ProviderType[] {
@@ -1404,7 +1404,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Show Command Button setting (Supernova-only, Mobile-only)
 		new Setting(containerEl)
 			.setName('Show command button in chat (mobile)')
-			.setDesc('Show the commands button beside the send button for mobile quick access to nova commands and selection actions')
+			.setDesc('Show the commands button beside the send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.features?.commands?.showCommandButton ?? true)
 			.onChange(async (value) => {
@@ -1564,7 +1564,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
 		// Remove redundant top-level heading as context is already clear in settings tab
 		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'Your AI writing partner to make the writing process smoother' });
-		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from llms to Obsidian, and provides actionable insights to help improve your writing' });
+		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from llms to obsidian, and provides actionable insights to help improve your writing' });
 	}
 
 	private createQuickStartGuide(container: HTMLElement): void {
