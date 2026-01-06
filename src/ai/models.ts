@@ -46,6 +46,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 			];
 		case 'openai':
 			return [
+				{ value: 'gpt-5.2-2025-12-11', label: 'GPT-5.2' },
 				{ value: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
 				{ value: 'gpt-5.1', label: 'GPT-5.1' },
 				{ value: 'gpt-5-pro', label: 'GPT-5 Pro' },

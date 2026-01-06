@@ -22,6 +22,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
     
     openai: {
         // OpenAI models - matching models.ts exactly
+        'gpt-5.2-2025-12-11': { tokens: 400000, maxOutputTokens: 128000 },
         'gpt-5.1-chat-latest': { tokens: 400000, maxOutputTokens: 128000 },
         'gpt-5.1': { tokens: 400000, maxOutputTokens: 128000 },
         'gpt-5': { tokens: 400000, maxOutputTokens: 128000 },

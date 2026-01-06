@@ -1918,7 +1918,7 @@ class ConfirmModal extends Modal {
 		const { contentEl } = this;
 		contentEl.createEl('p', { text: this.message });
 
-		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+		const buttonContainer = contentEl.createDiv({ cls: 'nova-modal-button-container' });
 
 		const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
 		this.plugin.registerDomEvent(cancelButton, 'click', () => {

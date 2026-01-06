@@ -367,7 +367,8 @@ export class InputHandler {
 		} else if (textPlainData && textPlainData.includes('obsidian://open?')) {
 			// User dropped something from Obsidian but no files were extracted
 			// This likely means they dropped non-markdown files
-			new Notice('Only markdown files can be added to context', 3000);
+			// eslint-disable-next-line obsidianmd/ui/sentence-case -- "Markdown" is a proper noun
+			new Notice('Only Markdown files can be added to context', 3000);
 		} else if (textPlainData && textPlainData.trim() && !textPlainData.includes('://')) {
 			// User dropped a folder (plain text path without protocol)
 			new Notice('Folders cannot be added to context. Please select individual files.', 3000);
