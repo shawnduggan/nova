@@ -1,6 +1,5 @@
 /**
- * Grammar command implementation for Nova
- * Handles fixing grammar and spelling at cursor position
+ * @file GrammarCommand - Handles grammar and spelling corrections
  */
 
 import { App } from 'obsidian';

@@ -1,6 +1,5 @@
 /**
- * Native wikilink autocomplete for Nova textarea
- * Uses Obsidian's native FuzzySuggestModal for consistent UX
+ * @file WikilinkSuggest - Autocomplete for [[wikilinks]] in input
  */
 
 import { TFile, App, FuzzySuggestModal, FuzzyMatch, Plugin } from 'obsidian';

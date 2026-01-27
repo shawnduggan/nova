@@ -1,6 +1,5 @@
 /**
- * Prompt builder service for Nova
- * Integrates ContextBuilder with document engine and conversation history
+ * @file PromptBuilder - Builds system and user prompts for AI
  */
 
 import { TFile } from 'obsidian';

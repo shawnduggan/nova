@@ -1,3 +1,7 @@
+/**
+ * @file Settings - Plugin settings UI and configuration
+ */
+
 import { App, PluginSettingTab, Setting, Platform, setIcon, Modal } from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';

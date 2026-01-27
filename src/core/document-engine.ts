@@ -1,6 +1,5 @@
 /**
- * Core document engine for Nova
- * Handles all document manipulation and editor interactions
+ * @file DocumentEngine - Central hub for all document manipulation
  */
 
 import { App, Editor, MarkdownView, TFile, EditorPosition } from 'obsidian';

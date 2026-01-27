@@ -1,3 +1,7 @@
+/**
+ * @file ChatRenderer - Renders conversation messages in sidebar
+ */
+
 import { TFile, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { TimeoutManager } from '../utils/timeout-manager';

@@ -1,3 +1,7 @@
+/**
+ * @file CommandSystem - Handles slash command detection and picker UI
+ */
+
 import { ButtonComponent, TextAreaComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { TimeoutManager } from '../utils/timeout-manager';

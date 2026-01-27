@@ -7,14 +7,278 @@
 
 ## Current Session
 
-**Started**: 2025-11-30
-**Focus**: PR Code Scan Compliance Fixes (87+ violations)
+**Started**: 2026-01-27
+**Focus**: Codebase Sync System
 
 ---
 
 ## IN PROGRESS
 
-### PR Code Scan Compliance Fixes
+### Codebase Sync System
+**Started**: 2026-01-27
+**Priority**: MEDIUM (Developer tooling)
+**Status**: ✅ COMPLETE
+
+---
+
+## Architecture Plan: Codebase Sync System
+
+**Date**: 2026-01-27
+**Status**: IMPLEMENTED
+
+### Context
+
+Claude Code needs to maintain accurate understanding of Nova's architecture as it evolves. Currently, the single `nova-architecture` skill mixes static patterns (coding standards, compliance rules) with dynamic information (file structure, exports). This makes it difficult to keep architectural knowledge current without manually editing skill files after every major feature.
+
+**Solution**: Split the skill into static patterns (manually maintained) and generated codebase map (auto-updated), then create a sync command to regenerate the dynamic portion after significant changes.
+
+### Current State
+
+**Existing Files:**
+- `.claude/skills/nova-architecture/SKILL.md` - 362 lines mixing static patterns and file structure
+- `.claude/agents/architect.md` - loads skills: `obsidian, nova-architecture`
+- `.claude/agents/code-reviewer.md` - loads skills: `obsidian, nova-architecture`
+
+**Source Files (46 total):**
+```
+src/
+├── ai/                    # 7 files
+│   ├── context-limits.ts
+│   ├── models.ts
+│   ├── provider-manager.ts
+│   ├── types.ts
+│   └── providers/         # claude.ts, google.ts, ollama.ts, openai.ts
+├── core/                  # 14 files
+│   ├── ai-intent-classifier.ts, command-parser.ts, context-builder.ts
+│   ├── context-calculator.ts, conversation-manager.ts, crypto-service.ts
+│   ├── document-analysis.ts, document-engine.ts, intent-detector.ts
+│   ├── prompt-builder.ts, types.ts
+│   └── commands/          # 7 command files
+├── licensing/             # 4 files
+├── ui/                    # 13 files
+├── utils/                 # 2 files
+├── constants.ts
+└── settings.ts
+```
+
+**Current Header Status:**
+- Files WITH headers (inconsistent format, no @file): ~6 files
+- Files WITHOUT headers: ~40 files
+
+### Proposed Changes
+
+#### Files to Modify
+
+| File | Change | Risk |
+|------|--------|------|
+| `.claude/skills/nova-architecture/SKILL.md` | Replace with nova-patterns content | Low |
+| `.claude/agents/architect.md` | Update skills line | Low |
+| `.claude/agents/code-reviewer.md` | Update skills line | Low |
+| 46 src/*.ts files | Add @file header comments | Low |
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| `.claude/skills/nova-patterns/SKILL.md` | Static coding standards, compliance, patterns |
+| `.claude/skills/nova-codebase/SKILL.md` | Generated file structure, exports, dependencies |
+| `.claude/commands/sync-codebase.md` | Command to regenerate nova-codebase skill |
+
+### Implementation Steps
+
+#### Phase 1: Add @file Headers to All 46 src/*.ts Files
+
+Standard format:
+```typescript
+/**
+ * @file ModuleName - One-line description of purpose
+ */
+```
+
+Proposed descriptions by folder:
+
+**src/ai/**
+| File | @file Description |
+|------|-------------------|
+| `context-limits.ts` | ContextLimits - Token and context window limits per AI model |
+| `models.ts` | Models - Centralized model definitions for all AI providers |
+| `provider-manager.ts` | AIProviderManager - Manages AI provider instances and model selection |
+| `types.ts` | AITypes - Type definitions for AI providers, messages, and streaming |
+| `providers/claude.ts` | ClaudeProvider - Anthropic Claude API integration |
+| `providers/google.ts` | GoogleProvider - Google Gemini API integration |
+| `providers/ollama.ts` | OllamaProvider - Local Ollama API integration |
+| `providers/openai.ts` | OpenAIProvider - OpenAI GPT API integration |
+
+**src/core/**
+| File | @file Description |
+|------|-------------------|
+| `ai-intent-classifier.ts` | AIIntentClassifier - AI-powered intent classification for ambiguous inputs |
+| `command-parser.ts` | CommandParser - Parses user input into structured edit commands |
+| `context-builder.ts` | ContextBuilder - Builds document context for AI prompts |
+| `context-calculator.ts` | ContextCalculator - Calculates token usage and context limits |
+| `conversation-manager.ts` | ConversationManager - Manages file-scoped conversation storage |
+| `crypto-service.ts` | CryptoService - Encrypts/decrypts sensitive data like API keys |
+| `document-analysis.ts` | DocumentAnalyzer - Analyzes document structure and metadata |
+| `document-engine.ts` | DocumentEngine - Central hub for all document manipulation |
+| `intent-detector.ts` | IntentDetector - Classifies user input as editing vs consultation |
+| `prompt-builder.ts` | PromptBuilder - Builds system and user prompts for AI |
+| `types.ts` | CoreTypes - Type definitions for document editing and commands |
+| `commands/add-command.ts` | AddCommand - Handles content insertion at cursor |
+| `commands/delete-command.ts` | DeleteCommand - Handles content removal |
+| `commands/edit-command.ts` | EditCommand - Handles in-place content modification |
+| `commands/grammar-command.ts` | GrammarCommand - Handles grammar and spelling corrections |
+| `commands/metadata-command.ts` | MetadataCommand - Handles frontmatter and tag modifications |
+| `commands/rewrite-command.ts` | RewriteCommand - Handles content rewriting with tone/style |
+| `commands/selection-edit-command.ts` | SelectionEditCommand - Handles editing selected text |
+
+**src/licensing/**
+| File | @file Description |
+|------|-------------------|
+| `feature-config.ts` | FeatureConfig - Time-gated feature configuration |
+| `feature-manager.ts` | FeatureManager - Manages feature flags and Supernova access |
+| `license-validator.ts` | LicenseValidator - Validates Supernova license keys |
+| `types.ts` | LicensingTypes - Type definitions for licensing system |
+
+**src/ui/**
+| File | @file Description |
+|------|-------------------|
+| `chat-renderer.ts` | ChatRenderer - Renders conversation messages in sidebar |
+| `command-system.ts` | CommandSystem - Handles slash command detection and picker UI |
+| `context-manager.ts` | ContextManager - Manages multi-document context in sidebar |
+| `custom-command-modal.ts` | CustomCommandModal - Modal for creating/editing custom commands |
+| `custom-instruction-modal.ts` | CustomInstructionModal - Modal for custom editing instructions |
+| `input-handler.ts` | InputHandler - Handles text input and keyboard events |
+| `provider-manager.ts` | UIProviderManager - UI components for provider/model selection |
+| `selection-context-menu.ts` | SelectionContextMenu - Context menu for text selection actions |
+| `sidebar-view.ts` | NovaSidebarView - Main sidebar view with chat interface |
+| `streaming-manager.ts` | StreamingManager - Manages AI response streaming to editor |
+| `tone-selection-modal.ts` | ToneSelectionModal - Modal for selecting rewrite tone |
+| `wikilink-suggest.ts` | WikilinkSuggest - Autocomplete for [[wikilinks]] in input |
+
+**src/utils/**
+| File | @file Description |
+|------|-------------------|
+| `logger.ts` | Logger - Centralized logging utility with levels |
+| `timeout-manager.ts` | TimeoutManager - Obsidian-compliant timeout management |
+
+**src/ (root)**
+| File | @file Description |
+|------|-------------------|
+| `constants.ts` | Constants - Shared constants and magic strings |
+| `settings.ts` | Settings - Plugin settings UI and configuration |
+
+#### Phase 2: Split nova-architecture Skill
+
+**2.1 Create `.claude/skills/nova-patterns/SKILL.md`** (static, manually maintained)
+
+Content from current skill:
+- YAML frontmatter with name and description
+- Core Philosophy section
+- State Management patterns and key events table
+- Component Patterns (UI, Core Services, AI Providers)
+- Timer Management (TimeoutManager patterns)
+- Logging (Logger utility usage)
+- Error Handling Pattern
+- File Conventions table
+- Testing Patterns (with mock patterns)
+- Constants usage
+- **NEW**: File header requirement rule
+
+**2.2 Create `.claude/skills/nova-codebase/SKILL.md`** (generated, auto-updated)
+
+Format:
+```markdown
+---
+name: nova-codebase
+description: Auto-generated Nova codebase map. Regenerate with /project:sync-codebase
+generated: 2026-01-27T10:30:00Z
+---
+
+# Nova Codebase Map
+
+> This file is auto-generated. Do not edit manually.
+> Regenerate with: `/project:sync-codebase`
+
+## File Structure
+
+### src/ai/
+| File | Description | Key Exports |
+|------|-------------|-------------|
+| context-limits.ts | Token limits per model | `getModelContextLimit()`, `getModelMaxOutputTokens()` |
+...
+
+## Component Dependencies
+
+### AI Layer (src/ai/)
+- `provider-manager.ts` imports from:
+  - `./types`, `./providers/*`, `../settings`, `../licensing/feature-manager`
+...
+
+## Recent Changes
+
+| Commit | Date | Summary |
+|--------|------|---------|
+| fcf9efe | 2026-01-26 | 1.0.23 |
+...
+```
+
+**2.3 Delete/rename old skill**
+- Delete `.claude/skills/nova-architecture/SKILL.md` after creating both new ones
+
+#### Phase 3: Create Sync Command
+
+**Create `.claude/commands/sync-codebase.md`**
+
+Command instructions for Claude to:
+1. Walk src/ recursively, extract @file descriptions
+2. Extract exports (classes, interfaces, functions, types)
+3. Build import dependency map
+4. Get last 10 commits: `git log --oneline -10 --no-merges`
+5. Generate `.claude/skills/nova-codebase/SKILL.md`
+6. Warn on missing @file descriptions
+7. Stage and commit: `chore: sync nova-codebase skill`
+
+#### Phase 4: Update Agents
+
+**Update `.claude/agents/architect.md`**
+```yaml
+skills: obsidian, nova-patterns, nova-codebase
+```
+
+**Update `.claude/agents/code-reviewer.md`**
+```yaml
+skills: obsidian, nova-patterns, nova-codebase
+```
+
+### Key Decisions
+
+1. **Format**: Tabular, organized by folder, with descriptions from @file headers
+2. **Dependency organization**: By folder, then alphabetically within folder
+3. **Auto-commit**: Yes, with standardized message `chore: sync nova-codebase skill`
+4. **Header format**: Add @file as first line of existing comments to preserve detail
+
+### Risk Assessment
+
+- **Breaking changes**: No - New files only, no interface changes
+- **Test impact**: None - No production code changes
+- **Compliance**: None - Changes are in .claude/ which is gitignored by users
+- **Mobile**: N/A - Developer tooling only
+
+### Success Criteria
+
+- [ ] All 46 src/*.ts files have @file header descriptions
+- [ ] nova-patterns skill contains coding standards including @file requirement
+- [ ] nova-codebase skill is generated with accurate structure
+- [ ] Running `/project:sync-codebase` regenerates skill correctly
+- [ ] Agents load both skills appropriately
+
+---
+
+⚠️ **AWAITING APPROVAL - Do not proceed without explicit approval**
+
+---
+
+### PR Code Scan Compliance Fixes (COMPLETED)
 **Started**: 2025-11-30
 **Priority**: CRITICAL (Blocking plugin store submission)
 **Status**: ✅ COMPLETE (8 commits, all blocking issues resolved)

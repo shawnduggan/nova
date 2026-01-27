@@ -1,3 +1,7 @@
+/**
+ * @file ContextManager - Manages multi-document context in sidebar
+ */
+
 import { App, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { calculateContextUsage, ContextUsage } from '../core/context-calculator';

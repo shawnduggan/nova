@@ -1,3 +1,7 @@
+/**
+ * @file OpenAIProvider - OpenAI GPT API integration
+ */
+
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { requestUrl } from 'obsidian';
 import { TimeoutManager } from '../../utils/timeout-manager';

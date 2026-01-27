@@ -1,3 +1,7 @@
+/**
+ * @file AIProviderManager - Manages AI provider instances and model selection
+ */
+
 import { Platform } from 'obsidian';
 import { AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse } from './types';
 import { ClaudeProvider } from './providers/claude';

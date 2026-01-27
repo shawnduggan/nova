@@ -1,6 +1,5 @@
 /**
- * Metadata command handler for Nova
- * Handles updating document properties/frontmatter
+ * @file MetadataCommand - Handles frontmatter and tag modifications
  */
 
 import { App } from 'obsidian';

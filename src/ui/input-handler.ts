@@ -1,3 +1,7 @@
+/**
+ * @file InputHandler - Handles text input and keyboard events
+ */
+
 import { ButtonComponent, TextAreaComponent, Notice, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';

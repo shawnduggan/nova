@@ -1,6 +1,5 @@
 /**
- * Selection-based context menu for Nova
- * Adds Nova submenu to Obsidian's right-click context menu when text is selected
+ * @file SelectionContextMenu - Context menu for text selection actions
  */
 
 import { App, Editor, Menu, MenuItem, Notice, EditorPosition } from 'obsidian';

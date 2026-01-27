@@ -1,6 +1,5 @@
 /**
- * Rewrite command implementation for Nova
- * Handles generating alternative content at cursor position
+ * @file RewriteCommand - Handles content rewriting with tone/style
  */
 
 import { App } from 'obsidian';

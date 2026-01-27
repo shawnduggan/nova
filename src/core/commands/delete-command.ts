@@ -1,6 +1,5 @@
 /**
- * Delete command implementation for Nova
- * Handles removing content at cursor position
+ * @file DeleteCommand - Handles content removal
  */
 
 import { App } from 'obsidian';

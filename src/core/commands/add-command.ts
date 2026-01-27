@@ -1,6 +1,5 @@
 /**
- * Add command implementation for Nova
- * Handles adding new content to documents at cursor position
+ * @file AddCommand - Handles content insertion at cursor
  */
 
 import { App } from 'obsidian';

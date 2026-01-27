@@ -1,3 +1,7 @@
+/**
+ * @file UIProviderManager - UI components for provider/model selection
+ */
+
 import { DropdownComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { getAvailableModels } from '../ai/models';

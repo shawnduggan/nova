@@ -1,6 +1,5 @@
 /**
- * AI Intent Classifier for Nova
- * Determines whether user input is a chat, metadata command, or content command
+ * @file AIIntentClassifier - AI-powered intent classification for ambiguous inputs
  */
 
 import { AIProviderManager } from '../ai/provider-manager';

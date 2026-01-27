@@ -1,6 +1,5 @@
 /**
- * Native custom instruction modal for Nova using Obsidian's Modal class
- * Simplified design following Obsidian's native patterns
+ * @file CustomInstructionModal - Modal for custom editing instructions
  */
 
 import { App, Modal, Setting, Plugin } from 'obsidian';

@@ -1,3 +1,7 @@
+/**
+ * @file ContextLimits - Token and context window limits per AI model
+ */
+
 export interface ContextLimit {
     tokens: number;
     maxOutputTokens?: number;

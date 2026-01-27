@@ -1,3 +1,7 @@
+/**
+ * @file NovaSidebarView - Main sidebar view with chat interface
+ */
+
 import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition, DropdownComponent } from 'obsidian';
 import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';

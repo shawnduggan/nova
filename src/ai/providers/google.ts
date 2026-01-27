@@ -1,3 +1,7 @@
+/**
+ * @file GoogleProvider - Google Gemini API integration
+ */
+
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
 import { requestUrl } from 'obsidian';

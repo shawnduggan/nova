@@ -1,5 +1,5 @@
 /**
- * Centralized model definitions for all AI providers
+ * @file Models - Centralized model definitions for all AI providers
  */
 
 import type { NovaSettings } from '../settings';

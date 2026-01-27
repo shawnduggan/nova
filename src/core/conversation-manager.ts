@@ -1,6 +1,5 @@
 /**
- * Conversation Manager for Nova
- * Handles file-scoped conversation storage and retrieval
+ * @file ConversationManager - Manages file-scoped conversation storage
  */
 
 import { TFile } from 'obsidian';

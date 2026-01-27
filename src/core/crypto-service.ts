@@ -1,6 +1,5 @@
 /**
- * Unified crypto service for Nova plugin
- * Handles both license validation (HMAC-SHA256) and API key encryption (AES-GCM)
+ * @file CryptoService - Encrypts/decrypts sensitive data like API keys
  */
 
 import { Logger } from '../utils/logger';

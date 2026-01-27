@@ -1,6 +1,5 @@
 /**
- * Selection-based editing command handler for Nova
- * Processes AI transformations on selected text
+ * @file SelectionEditCommand - Handles editing selected text
  */
 
 import { Editor, EditorPosition, Notice } from 'obsidian';

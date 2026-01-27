@@ -1,6 +1,5 @@
 /**
- * Unified streaming and notice management for Nova
- * Provides consistent visual feedback and streaming across all command types
+ * @file StreamingManager - Manages AI response streaming to editor
  */
 
 import { Editor, Notice, EditorPosition } from 'obsidian';

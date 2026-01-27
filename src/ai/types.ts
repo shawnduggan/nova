@@ -1,3 +1,7 @@
+/**
+ * @file AITypes - Type definitions for AI providers, messages, and streaming
+ */
+
 export interface AIMessage {
 	role: 'user' | 'assistant' | 'system';
 	content: string;

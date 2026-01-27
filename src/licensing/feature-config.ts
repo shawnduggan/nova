@@ -1,3 +1,7 @@
+/**
+ * @file FeatureConfig - Time-gated feature configuration
+ */
+
 export interface TimeGatedFeature {
     supernovaDate: string;  // YYYY-MM-DD format
     generalDate: string;   // YYYY-MM-DD format

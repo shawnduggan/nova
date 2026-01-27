@@ -1,3 +1,7 @@
+/**
+ * @file ContextCalculator - Calculates token usage and context limits
+ */
+
 import { getContextLimit } from '../ai/context-limits';
 
 export interface ContextUsage {

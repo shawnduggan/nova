@@ -1,5 +1,5 @@
 /**
- * Modal for creating and editing custom commands
+ * @file CustomCommandModal - Modal for creating/editing custom commands
  */
 
 import { App, Modal, Setting } from 'obsidian';

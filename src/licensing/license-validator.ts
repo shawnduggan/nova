@@ -1,3 +1,7 @@
+/**
+ * @file LicenseValidator - Validates Supernova license keys
+ */
+
 import { SupernovaLicense, SupernovaValidationResult, LicenseError } from './types';
 import { CryptoService } from '../core/crypto-service';
 

@@ -1,3 +1,7 @@
+/**
+ * @file ClaudeProvider - Anthropic Claude API integration
+ */
+
 import { requestUrl } from 'obsidian';
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';

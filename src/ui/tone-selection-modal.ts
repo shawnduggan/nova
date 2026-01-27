@@ -1,6 +1,5 @@
 /**
- * Native tone selection modal for Nova using Obsidian's FuzzySuggestModal
- * Provides consistent UX with core Obsidian features
+ * @file ToneSelectionModal - Modal for selecting rewrite tone
  */
 
 import { App, FuzzySuggestModal } from 'obsidian';

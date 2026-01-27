@@ -1,6 +1,5 @@
 /**
- * Edit command implementation for Nova
- * Handles modifying and improving existing content at cursor position
+ * @file EditCommand - Handles in-place content modification
  */
 
 import { App } from 'obsidian';

@@ -1,6 +1,5 @@
 /**
- * Centralized logging utility for Nova Plugin
- * Provides consistent logging with appropriate prefixes and levels
+ * @file Logger - Centralized logging utility with levels
  */
 
  
