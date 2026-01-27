@@ -1,23 +1,30 @@
+/**
+ * @file GoogleProvider - Google Gemini API integration
+ */
+
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
 import { requestUrl } from 'obsidian';
+import { TimeoutManager } from '../../utils/timeout-manager';
 
 export class GoogleProvider implements AIProvider {
 	name = 'Google (Gemini)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
 		this.config = config;
 	}
 
-	async isAvailable(): Promise<boolean> {
+	isAvailable(): boolean {
 		return !!this.config.apiKey;
 	}
 
@@ -31,8 +38,8 @@ export class GoogleProvider implements AIProvider {
 		yield* this.chatCompletionStream(messages, options);
 	}
 
-	private formatMessagesForGemini(messages: AIMessage[]): any {
-		const contents = [];
+	private formatMessagesForGemini(messages: AIMessage[]): Array<{ role: string; parts: Array<{ text: string }> }> {
+		const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
 		for (const message of messages) {
 			const role = message.role === 'assistant' ? 'model' : 'user';
@@ -58,9 +65,19 @@ export class GoogleProvider implements AIProvider {
 		// Use a newer model by default if no model is specified
 		const model = options?.model || this.config.model || 'gemini-2.0-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
-		
 
-		const requestBody: any = {
+		interface GoogleRequestBody {
+			contents: Array<{ role: string; parts: Array<{ text: string }> }>;
+			generationConfig: {
+				temperature: number;
+				maxOutputTokens: number;
+			};
+			systemInstruction?: {
+				parts: Array<{ text: string }>;
+			};
+		}
+
+		const requestBody: GoogleRequestBody = {
 			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
 				temperature: options?.temperature || this.generalSettings.defaultTemperature,
@@ -81,7 +98,8 @@ export class GoogleProvider implements AIProvider {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(requestBody)
+			body: JSON.stringify(requestBody),
+			throw: false
 		});
 
 		if (response.status !== 200) {
@@ -94,7 +112,7 @@ export class GoogleProvider implements AIProvider {
 					// Format as [CODE]: message
 					const code = errorData.error.code || response.status;
 					const message = errorData.error.message || errorData.error.status;
-					errorMessage = `[${code}]: ${message}`;
+					errorMessage = `[${String(code)}]: ${String(message)}`;
 					
 					// Add specific guidance for common errors
 					if (response.status === 400) {
@@ -109,7 +127,7 @@ export class GoogleProvider implements AIProvider {
 				} else {
 					errorMessage = `[${response.status}]: ${errorText}`;
 				}
-			} catch (e) {
+			} catch (_) {
 				errorMessage = `[${response.status}]: ${errorText}`;
 			}
 			
@@ -132,7 +150,7 @@ export class GoogleProvider implements AIProvider {
 		if (!data.candidates || data.candidates.length === 0) {
 			// Check if there's an error message in the response
 			if (data.error) {
-				throw new Error(`Google API error: ${data.error.message || JSON.stringify(data.error)}`);
+				throw new Error(`Google API error: ${String(data.error.message) || JSON.stringify(data.error)}`);
 			}
 			throw new Error('Google API returned no candidates');
 		}
@@ -186,7 +204,9 @@ export class GoogleProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };
@@ -220,7 +240,7 @@ export class GoogleProvider implements AIProvider {
 				throw new Error(`API request failed: ${response.status}`);
 			}
 
-			response.json; // Validate response format
+			void response.json; // Validate response format
 			
 			// Return hardcoded current models
 			const models = [

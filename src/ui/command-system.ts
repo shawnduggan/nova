@@ -1,3 +1,7 @@
+/**
+ * @file CommandSystem - Handles slash command detection and picker UI
+ */
+
 import { ButtonComponent, TextAreaComponent, Platform, FuzzySuggestModal, FuzzyMatch, App } from 'obsidian';
 import NovaPlugin from '../../main';
 import { CommandEngine } from '../features/commands/core/CommandEngine';
@@ -52,8 +56,8 @@ export class CommandSystem {
 	/**
 	 * Register event listener using plugin's registration system
 	 */
-	private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-		this.plugin.registerDomEvent(element, event as any, handler);
+	private registerEventListener<K extends keyof HTMLElementEventMap>(element: HTMLElement, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.plugin.registerDomEvent(element, event, handler);
 	}
 
 	createCommandButton(inputRow: HTMLElement): ButtonComponent {
@@ -81,13 +85,11 @@ export class CommandSystem {
 	}
 
 	updateCommandButtonVisibility(): void {
-		if (this.commandButton) {
-			const shouldShow = this.shouldShowCommandButton();
-			if (shouldShow) {
-				this.commandButton.buttonEl.show();
-			} else {
-				this.commandButton.buttonEl.hide();
-			}
+		const shouldShow = this.shouldShowCommandButton();
+		if (shouldShow) {
+			this.commandButton?.buttonEl.show();
+		} else {
+			this.commandButton?.buttonEl.hide();
 		}
 	}
 
@@ -163,15 +165,14 @@ export class CommandSystem {
 	}
 
 	handleInputChange(): void {
-		if (!this.textArea) {
+		const input = this.textArea?.getValue();
+		if (!input) {
 			return;
 		}
-		
-		const input = this.textArea.getValue();
-		
+
 		// Check for "/" trigger (Nova markdown commands)
 		if (input.startsWith('/')) {
-			// Nova markdown command trigger detected
+			// Nova markdown command trigger detected - check if feature is enabled
 			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
 			
 			if (featureEnabled) {

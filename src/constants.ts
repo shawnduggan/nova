@@ -1,3 +1,7 @@
+/**
+ * @file Constants - Shared constants and magic strings
+ */
+
 export const NOVA_CONVERSATIONS_STORAGE_KEY = 'nova-conversations';
 export const NOVA_API_KEYS_SALT = 'nova-api-keys-salt';
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';

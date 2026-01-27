@@ -2,28 +2,139 @@
  * Mock implementation of Obsidian API for testing
  */
 
-export class TFile {
+// EventRef type for event subscriptions
+export type EventRef = { unsubscribe?: () => void };
+
+// DataWriteOptions interface
+export interface DataWriteOptions {
+    ctime?: number;
+    mtime?: number;
+}
+
+// Stat type matching Obsidian's
+export interface Stat {
+    type: 'file' | 'folder';
+    ctime: number;
+    mtime: number;
+    size: number;
+}
+
+// DataAdapter interface (minimal mock)
+export interface DataAdapter {
+    getName(): string;
+    exists(normalizedPath: string, sensitive?: boolean): Promise<boolean>;
+    stat(normalizedPath: string): Promise<Stat | null>;
+    list(normalizedPath: string): Promise<{ files: string[]; folders: string[] }>;
+    read(normalizedPath: string): Promise<string>;
+    readBinary(normalizedPath: string): Promise<ArrayBuffer>;
+    write(normalizedPath: string, data: string, options?: DataWriteOptions): Promise<void>;
+    writeBinary(normalizedPath: string, data: ArrayBuffer, options?: DataWriteOptions): Promise<void>;
+    append(normalizedPath: string, data: string, options?: DataWriteOptions): Promise<void>;
+    process(normalizedPath: string, fn: (data: string) => string, options?: DataWriteOptions): Promise<string>;
+    getResourcePath(normalizedPath: string): string;
+    remove(normalizedPath: string): Promise<void>;
+    rmdir(normalizedPath: string, recursive: boolean): Promise<void>;
+    mkdir(normalizedPath: string): Promise<void>;
+    trashSystem(normalizedPath: string): Promise<boolean>;
+    trashLocal(normalizedPath: string): Promise<void>;
+    rename(normalizedPath: string, normalizedNewPath: string): Promise<void>;
+    copy(normalizedPath: string, normalizedNewPath: string): Promise<void>;
+}
+
+// Mock DataAdapter implementation
+class MockDataAdapter implements DataAdapter {
+    getName(): string { return 'mock-adapter'; }
+    exists(_normalizedPath: string, _sensitive?: boolean): Promise<boolean> { return Promise.resolve(false); }
+    stat(_normalizedPath: string): Promise<Stat | null> { return Promise.resolve(null); }
+    list(_normalizedPath: string): Promise<{ files: string[]; folders: string[] }> { return Promise.resolve({ files: [], folders: [] }); }
+    read(_normalizedPath: string): Promise<string> { return Promise.resolve(''); }
+    readBinary(_normalizedPath: string): Promise<ArrayBuffer> { return Promise.resolve(new ArrayBuffer(0)); }
+    write(_normalizedPath: string, _data: string, _options?: DataWriteOptions): Promise<void> { return Promise.resolve(); }
+    writeBinary(_normalizedPath: string, _data: ArrayBuffer, _options?: DataWriteOptions): Promise<void> { return Promise.resolve(); }
+    append(_normalizedPath: string, _data: string, _options?: DataWriteOptions): Promise<void> { return Promise.resolve(); }
+    process(_normalizedPath: string, fn: (data: string) => string, _options?: DataWriteOptions): Promise<string> { return Promise.resolve(fn('')); }
+    getResourcePath(normalizedPath: string): string { return `app://local/${normalizedPath}`; }
+    remove(_normalizedPath: string): Promise<void> { return Promise.resolve(); }
+    rmdir(_normalizedPath: string, _recursive: boolean): Promise<void> { return Promise.resolve(); }
+    mkdir(_normalizedPath: string): Promise<void> { return Promise.resolve(); }
+    trashSystem(_normalizedPath: string): Promise<boolean> { return Promise.resolve(true); }
+    trashLocal(_normalizedPath: string): Promise<void> { return Promise.resolve(); }
+    rename(_normalizedPath: string, _normalizedNewPath: string): Promise<void> { return Promise.resolve(); }
+    copy(_normalizedPath: string, _normalizedNewPath: string): Promise<void> { return Promise.resolve(); }
+}
+
+// Forward declaration for circular reference
+let mockVaultInstance: Vault | null = null;
+let isConstructingVault = false;
+
+// WeakMap to store vault references without adding properties to TAbstractFile
+// This avoids structural type incompatibility with real Obsidian types
+const vaultMap = new WeakMap<TAbstractFile, Vault>();
+
+function getMockVault(): Vault {
+    if (!mockVaultInstance && !isConstructingVault) {
+        isConstructingVault = true;
+        mockVaultInstance = new Vault();
+        isConstructingVault = false;
+    }
+    return mockVaultInstance!;
+}
+
+// TAbstractFile base class
+export abstract class TAbstractFile {
     path: string;
     name: string;
+    parent: TFolder | null;
+
+    constructor(path?: string) {
+        this.path = path || '';
+        this.name = this.path.split('/').pop() || '';
+        this.parent = null;
+    }
+
+    // Lazy vault getter to avoid circular reference during construction
+    get vault(): Vault {
+        let v = vaultMap.get(this);
+        if (!v) {
+            v = getMockVault();
+            vaultMap.set(this, v);
+        }
+        return v;
+    }
+
+    set vault(v: Vault) {
+        vaultMap.set(this, v);
+    }
+}
+
+export class TFolder extends TAbstractFile {
+    children: TAbstractFile[];
+
+    constructor(path?: string) {
+        super(path);
+        this.children = [];
+    }
+
+    isRoot(): boolean {
+        return this.path === '' || this.path === '/';
+    }
+}
+
+export class TFile extends TAbstractFile {
     extension: string;
     basename: string;
-    parent: any;
     stat: { ctime: number; mtime: number; size: number };
-    vault: any;
-    
+
     constructor(path?: string) {
-        this.path = path || 'test.md';
-        this.name = this.path.split('/').pop() || '';
+        super(path || 'test.md');
         const parts = this.name.split('.');
         this.extension = parts.length > 1 ? parts.pop() || '' : '';
         this.basename = parts.join('.');
-        this.parent = null;
         this.stat = {
             ctime: Date.now(),
             mtime: Date.now(),
             size: 0
         };
-        this.vault = null;
     }
 }
 
@@ -87,7 +198,7 @@ export class Editor {
         this.selection = { from, to };
     }
     
-    scrollIntoView(_range: any, _center?: boolean): void {
+    scrollIntoView(_range: { from: EditorPosition; to: EditorPosition }, _center?: boolean): void {
         // Mock implementation
     }
 }
@@ -101,11 +212,11 @@ export class App {
     vault: Vault;
     workspace: Workspace;
     metadataCache: MetadataCache;
-    keymap: any;
-    scope: any;
-    fileManager: any;
-    lastEvent: any;
-    
+    keymap: Record<string, unknown>;
+    scope: Record<string, unknown>;
+    fileManager: Record<string, unknown>;
+    lastEvent: Event | null;
+
     constructor() {
         this.vault = new Vault();
         this.workspace = new Workspace();
@@ -115,63 +226,207 @@ export class App {
         this.fileManager = {};
         this.lastEvent = null;
     }
-    
+
     loadLocalStorage(_key: string): string | null {
         return null;
     }
-    
+
     saveLocalStorage(_key: string, _value: string): void {
         // Mock implementation
     }
-    
-    async loadData(_key: string): Promise<any> {
-        return null;
+
+    loadData(_key: string): Promise<unknown> {
+        return Promise.resolve(null);
     }
-    
-    async saveData(_key: string, _data: any): Promise<void> {
+
+    saveData(_key: string, _data: unknown): Promise<void> {
+        return Promise.resolve();
+    }
+}
+
+// WeakMaps to store Vault internal state without adding properties
+// This avoids structural type incompatibility with real Obsidian types
+const vaultRootFolders = new WeakMap<Vault, TFolder>();
+const vaultEventHandlers = new WeakMap<Vault, Map<string, Array<(...args: unknown[]) => unknown>>>();
+
+export class Vault {
+    // Required properties
+    adapter: DataAdapter;
+    configDir: string;
+
+    constructor() {
+        this.adapter = new MockDataAdapter();
+        // eslint-disable-next-line obsidianmd/hardcoded-config-path -- Mock implementation uses fixed test value
+        this.configDir = '.obsidian';
+        vaultRootFolders.set(this, new TFolder('/'));
+        vaultEventHandlers.set(this, new Map());
+    }
+
+    // Required methods
+    getName(): string {
+        return 'TestVault';
+    }
+
+    getRoot(): TFolder {
+        return vaultRootFolders.get(this) || new TFolder('/');
+    }
+
+    read(_file: TFile): Promise<string> {
+        return Promise.resolve('mock file content');
+    }
+
+    cachedRead(_file: TFile): Promise<string> {
+        return Promise.resolve('mock cached content');
+    }
+
+    readBinary(_file: TFile): Promise<ArrayBuffer> {
+        return Promise.resolve(new ArrayBuffer(0));
+    }
+
+    modify(_file: TFile, _content: string, _options?: DataWriteOptions): Promise<void> {
+        return Promise.resolve();
+    }
+
+    modifyBinary(_file: TFile, _data: ArrayBuffer, _options?: DataWriteOptions): Promise<void> {
+        return Promise.resolve();
+    }
+
+    append(_file: TFile, _data: string, _options?: DataWriteOptions): Promise<void> {
+        return Promise.resolve();
+    }
+
+    process(_file: TFile, fn: (data: string) => string, _options?: DataWriteOptions): Promise<string> {
+        return Promise.resolve(fn('mock content'));
+    }
+
+    create(path: string, _content: string, _options?: DataWriteOptions): Promise<TFile> {
+        return Promise.resolve(new TFile(path));
+    }
+
+    createBinary(path: string, _data: ArrayBuffer, _options?: DataWriteOptions): Promise<TFile> {
+        return Promise.resolve(new TFile(path));
+    }
+
+    createFolder(path: string): Promise<TFolder> {
+        return Promise.resolve(new TFolder(path));
+    }
+
+    delete(_file: TAbstractFile, _force?: boolean): Promise<void> {
+        return Promise.resolve();
+    }
+
+    trash(_file: TAbstractFile, _system: boolean): Promise<void> {
+        return Promise.resolve();
+    }
+
+    rename(_file: TAbstractFile, _newPath: string): Promise<void> {
+        return Promise.resolve();
+    }
+
+    copy(_file: TFile, _newPath: string): Promise<TFile> {
+        return Promise.resolve(new TFile(_newPath));
+    }
+
+    getAbstractFileByPath(path: string): TAbstractFile | null {
+        if (!path) return null;
+        return new TFile(path);
+    }
+
+    getFileByPath(path: string): TFile | null {
+        if (!path) return null;
+        return new TFile(path);
+    }
+
+    getFolderByPath(path: string): TFolder | null {
+        if (!path || path === '/') return this.getRoot();
+        return new TFolder(path);
+    }
+
+    getResourcePath(_file: TFile): string {
+        return 'app://local/mock-resource-path';
+    }
+
+    getAllLoadedFiles(): TAbstractFile[] {
+        return [];
+    }
+
+    getMarkdownFiles(): TFile[] {
+        return [];
+    }
+
+    getFiles(): TFile[] {
+        return [];
+    }
+
+    getAllFolders(): TFolder[] {
+        return [];
+    }
+
+    // Event handling
+    on(name: string, callback: (...data: unknown[]) => unknown, _ctx?: unknown): EventRef {
+        const handlers = vaultEventHandlers.get(this) || new Map();
+        if (!handlers.has(name)) {
+            handlers.set(name, []);
+        }
+        handlers.get(name)!.push(callback);
+        return {
+            unsubscribe: () => {
+                const h = handlers.get(name);
+                if (h) {
+                    const idx = h.indexOf(callback);
+                    if (idx !== -1) h.splice(idx, 1);
+                }
+            }
+        };
+    }
+
+    off(name: string, callback: (...data: unknown[]) => unknown): void {
+        const handlers = vaultEventHandlers.get(this);
+        if (handlers) {
+            const h = handlers.get(name);
+            if (h) {
+                const idx = h.indexOf(callback);
+                if (idx !== -1) h.splice(idx, 1);
+            }
+        }
+    }
+
+    offref(ref: EventRef): void {
+        ref.unsubscribe?.();
+    }
+
+    trigger(name: string, ...data: unknown[]): void {
+        const handlers = vaultEventHandlers.get(this);
+        const h = handlers?.get(name) || [];
+        h.forEach(handler => handler(...data));
+    }
+
+    tryTrigger(_evt: EventRef, _args: unknown[]): void {
         // Mock implementation
     }
 }
 
-export class Vault {
-    async read(_file: TFile): Promise<string> {
-        return 'mock file content';
-    }
-    
-    async modify(_file: TFile, _content: string): Promise<void> {
-        // Mock modify
-    }
-    
-    async create(path: string, _content: string): Promise<TFile> {
-        return new TFile(path);
-    }
-    
-    async delete(_file: TFile): Promise<void> {
-        // Mock delete
-    }
-    
-    getAbstractFileByPath(path: string): TFile | null {
-        return new TFile(path);
-    }
-    
-    getFileByPath(path: string): TFile | null {
-        return new TFile(path);
-    }
+// Type for view constructor
+type ViewConstructor<T> = new (...args: unknown[]) => T;
+
+// Interface for workspace leaf (internal use)
+interface WorkspaceLeafLike {
+    view: MarkdownView | null;
 }
 
 export class Workspace {
     activeEditor: { editor: Editor | null; file: TFile | null } | null = null;
     private eventHandlers: Map<string, Array<() => void>> = new Map();
-    
+
     getActiveFile(): TFile | null {
         return this.activeEditor?.file || null;
     }
-    
-    getActiveViewOfType<T>(_type: any): T | null {
+
+    getActiveViewOfType<T>(_type: ViewConstructor<T>): T | null {
         return null;
     }
-    
-    getLeavesOfType(_type: string): any[] {
+
+    getLeavesOfType(_type: string): WorkspaceLeafLike[] {
         return [];
     }
     
@@ -200,8 +455,18 @@ export class Workspace {
     }
 }
 
+// Interface for cached file metadata
+interface CachedMetadata {
+    headings: Array<{ heading: string; level: number; position: { start: { line: number; col: number; offset: number }; end: { line: number; col: number; offset: number } } }>;
+    sections: unknown[];
+    links: unknown[];
+    embeds: unknown[];
+    tags: unknown[];
+    frontmatter: Record<string, unknown> | null;
+}
+
 export class MetadataCache {
-    getFileCache(_file: TFile): any {
+    getFileCache(_file: TFile): CachedMetadata {
         return {
             headings: [
                 { heading: 'Test Document', level: 1, position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 0, col: 15, offset: 15 } } }
@@ -213,7 +478,7 @@ export class MetadataCache {
             frontmatter: null
         };
     }
-    
+
     getFirstLinkpathDest(_linkpath: string, _sourcePath: string): TFile | null {
         // Mock implementation - return a test file
         return new TFile('test.md');
@@ -273,10 +538,10 @@ export class ItemView {
     app: App;
     containerEl: ExtendedHTMLElement;
     private _children: ExtendedHTMLElement[] = [];
-    
-    constructor(_leaf: any) {
+
+    constructor(_leaf: WorkspaceLeaf | null) {
         this.app = new App();
-        this.containerEl = this.createExtendedElement('div') as ExtendedHTMLElement;
+        this.containerEl = this.createExtendedElement('div');
         
         // Add child elements that Obsidian normally provides  
         const child1 = this.createExtendedElement('div');
@@ -292,24 +557,25 @@ export class ItemView {
     }
     
     private createExtendedElement(tag: string): ExtendedHTMLElement {
-        const element = document.createElement(tag) as any;
+        const element = document.createElement(tag) as unknown as ExtendedHTMLElement;
         // Copy all methods from ExtendedHTMLElement prototype
         Object.setPrototypeOf(element, ExtendedHTMLElement.prototype);
+        const proto = ExtendedHTMLElement.prototype as unknown as Record<string, unknown>;
         Object.getOwnPropertyNames(ExtendedHTMLElement.prototype).forEach(name => {
-            if (name !== 'constructor' && typeof (ExtendedHTMLElement.prototype as any)[name] === 'function') {
-                element[name] = (ExtendedHTMLElement.prototype as any)[name];
+            if (name !== 'constructor' && typeof proto[name] === 'function') {
+                (element as unknown as Record<string, unknown>)[name] = proto[name];
             }
         });
-        return element as ExtendedHTMLElement;
+        return element;
     }
-    
-    async onOpen(): Promise<void> {}
-    async onClose(): Promise<void> {}
+
+    onOpen(): Promise<void> { return Promise.resolve(); }
+    onClose(): Promise<void> { return Promise.resolve(); }
     getViewType(): string { return ''; }
     getDisplayText(): string { return ''; }
     getIcon(): string { return ''; }
-    
-    registerEvent(_event: any): void {
+
+    registerEvent(_event: EventRef): void {
         // Mock implementation
     }
     
@@ -595,7 +861,7 @@ export class Modal {
     
     constructor(app: App) {
         this.app = app;
-        this.contentEl = this.createExtendedElement('div') as ExtendedHTMLElement;
+        this.contentEl = this.createExtendedElement('div');
     }
     
     private createExtendedElement(tag: string): ExtendedHTMLElement {

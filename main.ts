@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, ItemView, addIcon, Notice, Editor, MarkdownView, MarkdownFileInfo, Platform } from 'obsidian';
+import { Plugin, WorkspaceLeaf, addIcon, Notice, Editor } from 'obsidian';
 import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
@@ -15,7 +15,6 @@ import { RewriteCommand } from './src/core/commands/rewrite-command';
 import { MetadataCommand } from './src/core/commands/metadata-command';
 import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
-import { NovaWikilinkAutocomplete } from './src/ui/wikilink-suggest';
 import { SelectionContextMenu } from './src/ui/selection-context-menu';
 import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
@@ -134,12 +133,12 @@ export default class NovaPlugin extends Plugin {
 			addIcon('nova-supernova', SUPERNOVA_ICON_SVG);
 
 			this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
-			await this.aiProviderManager.initialize();
+			this.aiProviderManager.initialize();
 
 			// Initialize conversation manager and document engine
 			const dataStore = {
 				loadData: (key: string) => this.loadDataWithKey(key),
-				saveData: (key: string, data: any) => this.saveDataWithKey(key, data),
+				saveData: (key: string, data: unknown) => this.saveDataWithKey(key, data),
 				registerInterval: (intervalId: number) => this.registerInterval(intervalId)
 			};
 			this.conversationManager = new ConversationManager(dataStore);
@@ -182,8 +181,8 @@ export default class NovaPlugin extends Plugin {
 
 			// Note: Wikilink autocomplete is now handled directly in sidebar view
 
-			const ribbonIcon = this.addRibbonIcon('nova-star', 'Nova AI', (_evt: MouseEvent) => {
-				this.activateView();
+			this.addRibbonIcon('nova-star', 'Nova AI', (_evt: MouseEvent) => {
+				void this.activateView();
 			});
 
 			// Register selection-based commands
@@ -215,7 +214,7 @@ export default class NovaPlugin extends Plugin {
 			TONE_OPTIONS.forEach(tone => {
 				this.addCommand({
 					id: `make-${tone.id}`,
-					name: `Make ${tone.label}`,
+					name: `Make ${tone.label.charAt(0).toUpperCase() + tone.label.slice(1)}`,
 					editorCallback: async (editor: Editor) => {
 						await this.handleToneCommand(tone.id, editor);
 					}
@@ -234,7 +233,7 @@ export default class NovaPlugin extends Plugin {
 				id: 'open-sidebar',
 				name: 'Open sidebar',
 				callback: () => {
-					this.activateView();
+					void this.activateView();
 				}
 			});
 
@@ -343,21 +342,27 @@ export default class NovaPlugin extends Plugin {
 	/**
 	 * Deep merge two objects, preserving nested structures
 	 */
-	private deepMerge(target: any, source: any): any {
+	private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
 		if (!source) return target;
-		
+
 		const result = { ...target };
-		
+
 		for (const key in source) {
 			if (Object.prototype.hasOwnProperty.call(source, key)) {
-				if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-					result[key] = this.deepMerge(target[key] || {}, source[key]);
+				const sourceValue = source[key];
+				const targetValue = target[key];
+
+				if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
+					const targetObj = (targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue))
+						? targetValue as Record<string, unknown>
+						: {};
+					result[key] = this.deepMerge(targetObj, sourceValue as Record<string, unknown>);
 				} else {
-					result[key] = source[key];
+					result[key] = sourceValue;
 				}
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -367,7 +372,7 @@ export default class NovaPlugin extends Plugin {
 		
 		// Filter out settings for features that are not enabled
 		if (settingsToSave.features) {
-			const filteredFeatures: any = {};
+			const filteredFeatures: Record<string, unknown> = {};
 			
 			// Only include Commands settings if the feature is enabled
 			if (this.featureManager.isFeatureEnabled('commands') && settingsToSave.features.commands) {
@@ -440,7 +445,7 @@ export default class NovaPlugin extends Plugin {
 			await leaf?.setViewState({ type: VIEW_TYPE_NOVA_SIDEBAR, active: true });
 		}
 
-		workspace.revealLeaf(leaf!);
+		void workspace.revealLeaf(leaf!);
 		
 		// Store reference to sidebar view
 		if (leaf?.view instanceof NovaSidebarView) {
@@ -462,7 +467,7 @@ export default class NovaPlugin extends Plugin {
 			await this.selectionContextMenu.handleSelectionAction(actionId, editor, selectedText);
 		} catch (error) {
 			Logger.error('Error executing Nova selection command:', error);
-			new Notice('Failed to execute Nova action. Please try again.', 3000);
+			new Notice('Failed to execute Nova action, please try again', 3000);
 		}
 	}
 
@@ -481,19 +486,19 @@ export default class NovaPlugin extends Plugin {
 			await this.selectionContextMenu.handleSelectionAction('tone', editor, selectedText, toneId);
 		} catch (error) {
 			Logger.error('Error executing Nova tone command:', error);
-			new Notice('Failed to execute Nova action. Please try again.', 3000);
+			new Notice('Failed to execute Nova action, please try again', 3000);
 		}
 	}
 
 
 
 	// DataStore interface implementation for ConversationManager
-	async loadDataWithKey(key: string): Promise<any> {
+	async loadDataWithKey(key: string): Promise<unknown> {
 		const allData = await this.loadData();
 		return allData ? allData[key] : undefined;
 	}
 
-	async saveDataWithKey(key: string, data: any): Promise<void> {
+	async saveDataWithKey(key: string, data: unknown): Promise<void> {
 		const allData = await this.loadData() || {};
 		allData[key] = data;
 		return await this.saveData(allData);

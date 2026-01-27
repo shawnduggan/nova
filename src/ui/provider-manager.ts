@@ -1,6 +1,11 @@
+/**
+ * @file UIProviderManager - UI components for provider/model selection
+ */
+
 import { DropdownComponent, Platform } from 'obsidian';
 import NovaPlugin from '../../main';
 import { getAvailableModels } from '../ai/models';
+import { Logger } from '../utils/logger';
 
 /**
  * Handles provider dropdown and switching logic
@@ -242,9 +247,11 @@ export class ProviderManager {
 			await this.plugin.saveSettings();
 
 			// Update status display
-			this.updateProviderStatus();
+			this.updateProviderStatus().catch(error => {
+				Logger.error('Failed to update provider status:', error);
+			});
 
-		} catch (error) {
+		} catch (_) {
 			// Error switching provider - handled by UI feedback
 		}
 	}

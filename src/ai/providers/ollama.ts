@@ -1,14 +1,22 @@
+/**
+ * @file OllamaProvider - Local Ollama API integration
+ */
+
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { requestUrl } from 'obsidian';
+import { TimeoutManager } from '../../utils/timeout-manager';
+import { Logger } from '../../utils/logger';
 
 export class OllamaProvider implements AIProvider {
 	name = 'Ollama (Local)';
 	private config: ProviderConfig;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
@@ -50,10 +58,18 @@ export class OllamaProvider implements AIProvider {
 					temperature: options?.temperature || this.generalSettings.defaultTemperature,
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
-			})
+			}),
+			throw: false
 		});
 
 		if (response.status !== 200) {
+			Logger.error('Ollama API Error Details:', {
+				status: response.status,
+				headers: response.headers,
+				errorText: response.text,
+				model: model,
+				endpoint: `${baseUrl}/api/generate`
+			});
 			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 
@@ -71,7 +87,9 @@ export class OllamaProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };
@@ -99,10 +117,18 @@ export class OllamaProvider implements AIProvider {
 					temperature: options?.temperature || this.generalSettings.defaultTemperature,
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
-			})
+			}),
+			throw: false
 		});
 
 		if (response.status !== 200) {
+			Logger.error('Ollama API Error Details:', {
+				status: response.status,
+				headers: response.headers,
+				errorText: response.text,
+				model: model,
+				endpoint: `${baseUrl}/api/chat`
+			});
 			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
 		}
 
@@ -128,7 +154,9 @@ export class OllamaProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };

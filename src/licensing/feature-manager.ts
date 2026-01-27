@@ -1,3 +1,7 @@
+/**
+ * @file FeatureManager - Manages feature flags and Supernova access
+ */
+
 import { LicenseValidator } from './license-validator';
 import { SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings } from './types';
 import { SUPERNOVA_FEATURES, TimeGatedFeature } from './feature-config';

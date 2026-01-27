@@ -55,7 +55,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const command: EditCommand = {
                 action: 'metadata',
@@ -82,7 +82,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const command: EditCommand = {
                 action: 'metadata',
@@ -109,7 +109,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const command: EditCommand = {
                 action: 'metadata',
@@ -136,7 +136,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const command: EditCommand = {
                 action: 'metadata',
@@ -177,7 +177,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             // AI returns unparseable response
             const aiResponse = 'I cannot determine appropriate tags for this document.';
@@ -208,7 +208,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const aiResponse = '{"tags": ["programming", "react", "performance", "optimization", "hooks", "memoization"], "reasoning": "Added React-specific tags"}';
             mockProviderManager.complete.mockResolvedValue(aiResponse);
@@ -244,7 +244,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const aiResponse = '{"tags": ["existing", "machine-learning", "neural-networks", "deep-learning", "ai"], "reasoning": "Added ML-related tags"}';
             mockProviderManager.complete.mockResolvedValue(aiResponse);
@@ -273,7 +273,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const aiResponse = '{"tags": ["javascript", "nodejs"], "reasoning": "Consolidated duplicate tags"}';
             mockProviderManager.complete.mockResolvedValue(aiResponse);
@@ -302,7 +302,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             const aiResponse = '{"tags": ["react", "javascript", "frontend", "best-practices", "components"], "reasoning": "More specific tags"}';
             mockProviderManager.complete.mockResolvedValue(aiResponse);
@@ -325,7 +325,7 @@ describe('Tag Operations', () => {
         const mockFile: TFile = createMockTFile('test.md', 'test.md');
 
         beforeEach(() => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue({
+            mockDocumentEngine.getDocumentContext.mockReturnValue({
                 file: mockFile,
                 filename: 'test',
                 content: '---\ntags: []\n---\n# Test Document',
@@ -386,7 +386,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             // AI returns tags with spaces
             const aiResponse = '{"tags": ["Machine Learning", "Artificial Intelligence", "Deep Learning", "Neural Networks"]}';
@@ -416,7 +416,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             // AI returns metadata with spaces in tags
             const aiResponse = '{"tags": ["React Native", "Mobile Development"], "type": "tutorial"}';
@@ -446,7 +446,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             // AI returns YAML-like format with spaces in tags
             const aiResponse = 'tags: ["Vue Components", "Frontend Development", "User Interface"]';
@@ -504,7 +504,7 @@ describe('Tag Operations', () => {
                 surroundingLines: undefined
             };
 
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(documentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(documentContext);
 
             // AI returns all properties including tags, type, and status
             const aiResponse = '{"tags": ["updated tag", "new content"], "type": "article", "status": "published", "priority": "high"}';

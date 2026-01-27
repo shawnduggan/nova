@@ -1,3 +1,7 @@
+/**
+ * @file NovaSidebarView - Main sidebar view with chat interface
+ */
+
 import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition, DropdownComponent, Menu } from 'obsidian';
 import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
@@ -48,9 +52,9 @@ export class NovaSidebarView extends ItemView {
 	private get autoGrowTextarea() { return () => {}; }
 	
 	// Command system delegation
-	private _commandPickerItems: any[] = [];
+	private _commandPickerItems: HTMLElement[] = [];
 	private get commandPickerItems() { return this._commandPickerItems; }
-	private set commandPickerItems(value: any[]) { this._commandPickerItems = value; }
+	private set commandPickerItems(value: HTMLElement[]) { this._commandPickerItems = value; }
 	private _selectedCommandIndex: number = -1;
 	private get selectedCommandIndex() { return this._selectedCommandIndex; }
 	private set selectedCommandIndex(value: number) { this._selectedCommandIndex = value; }
@@ -80,6 +84,9 @@ export class NovaSidebarView extends ItemView {
 	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
 	private static readonly SCROLL_DELAY_MS = 50;
 	private static readonly FOCUS_DELAY_MS = 150;
+
+	// Thinking phrase rotation intervals - WeakMap for proper cleanup
+	private thinkingRotationIntervals = new WeakMap<HTMLElement, number>();
 	private static readonly HOVER_TIMEOUT_MS = 150;
 	private static readonly NOTICE_DURATION_MS = 5000;
 	
@@ -116,9 +123,10 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private onStreamingComplete(): void {
 		// Update document stats and context remaining
-		this.refreshAllStats();
+		// Using void to explicitly mark as intentional floating promise (fire-and-forget)
+		void this.refreshAllStats();
 		// Refresh context indicators
-		this.refreshContext();
+		void this.refreshContext();
 	}
 
 	async onOpen() {
@@ -143,9 +151,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Top row container for title and controls
 		const topRowEl = headerEl.createDiv({ cls: 'nova-header-top-row' });
-		
+
 		// Left side: Title with Nova icon
-		const titleEl = topRowEl.createEl('h4', { cls: 'nova-header-title' });
+		const titleEl = topRowEl.createDiv({ cls: 'nova-header-title' });
 		
 		// Use setIcon for the Nova icon (simpler and more reliable)
 		const iconEl = titleEl.createSpan();
@@ -158,7 +166,9 @@ export class NovaSidebarView extends ItemView {
 		
 		// Privacy indicator pill
 		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
-		this.updatePrivacyIndicator(privacyIndicator);
+		this.updatePrivacyIndicator(privacyIndicator).catch(error => {
+			Logger.error('Failed to update privacy indicator:', error);
+		});
 		
 		// Store reference for updates
 		this.privacyIndicator = privacyIndicator;
@@ -189,7 +199,9 @@ export class NovaSidebarView extends ItemView {
 		// Register event listener for active file changes
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
-				this.loadConversationForActiveFile();
+				this.loadConversationForActiveFile().catch(error => {
+					Logger.error('Failed to load conversation on file change:', error);
+				});
 			})
 		);
 		
@@ -204,7 +216,9 @@ export class NovaSidebarView extends ItemView {
 		this.setupEditorBlurListener();
 		
 		// Load conversation for current file
-		this.loadConversationForActiveFile();
+		this.loadConversationForActiveFile().catch(error => {
+			Logger.error('Failed to load conversation on open:', error);
+		});
 		
 		// Set completion callback on plugin's selection context menu
 		if (this.plugin.selectionContextMenu) {
@@ -221,7 +235,7 @@ export class NovaSidebarView extends ItemView {
 	/**
 	 * Track cursor position changes in the active editor (file-scoped)
 	 */
-	private trackCursorPosition(editor: any) {
+	private trackCursorPosition(editor: { getCursor: () => EditorPosition | null }) {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile || !editor) {
 			return;
@@ -258,7 +272,9 @@ export class NovaSidebarView extends ItemView {
 		const inputElement = this.inputHandler?.getTextArea()?.inputEl;
 		if (inputElement) {
 			this.registerDomEvent(inputElement, 'focus', () => {
-				this.refreshAllStats();
+				this.refreshAllStats().catch(error => {
+					Logger.error('Failed to refresh stats on input focus:', error);
+				});
 			});
 		}
 		
@@ -266,7 +282,9 @@ export class NovaSidebarView extends ItemView {
 		this.registerDomEvent(this.containerEl, 'mousedown', () => {
 			// Small delay to ensure click is processed
 			this.timeoutManager.addTimeout(() => {
-				this.refreshAllStats();
+				this.refreshAllStats().catch(error => {
+					Logger.error('Failed to refresh stats on sidebar click:', error);
+				});
 			}, 50);
 		});
 	}
@@ -274,22 +292,23 @@ export class NovaSidebarView extends ItemView {
 	async onClose() {
 		// Clean up provider dropdown event listener
 		// Cleanup dropdown component (handled by Obsidian)
+		await Promise.resolve(); // Keep async to match Obsidian's ItemView interface
 		this.providerDropdown = null;
-		
+
 		// Clean up wikilink autocomplete
 		if (this.wikilinkAutocomplete) {
 			this.wikilinkAutocomplete.destroy();
 		}
-		
+
 		// Clear debounce timeout (handled by TimeoutManager, but reset reference)
 		this.contextPreviewDebounceTimeout = null;
-		
+
 		// Clean up tracked event listeners
 		this.cleanupEventListeners();
-		
+
 		// Clear all timeouts
 		this.clearTimeouts();
-		
+
 		// Clean up DOM elements
 		this.cleanupDOMElements();
 	}
@@ -297,8 +316,8 @@ export class NovaSidebarView extends ItemView {
 	/**
 	 * Add event listener using Obsidian's registration system
 	 */
-	private addTrackedEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		this.registerDomEvent(element as HTMLElement, event as any, handler);
+	private addTrackedEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.registerDomEvent(element as HTMLElement, event, handler);
 	}
 	
 	/**
@@ -363,7 +382,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Pass sidebar view reference for context operations
 		this.inputHandler.setSidebarView(this);
-		this.contextManager.setSidebarView(this);
+		this.contextManager.setSidebarView({ addWarningMessage: this.addWarningMessage.bind(this) });
 		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
@@ -376,7 +395,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Set up send message callback
 		this.inputHandler.setOnSendMessage((message: string) => {
-			this.handleSend(message);
+			this.handleSend(message).catch(error => { Logger.error('Failed to handle send:', error); });
 		});
 		
 		// Create context indicator and preview using ContextManager
@@ -451,7 +470,7 @@ export class NovaSidebarView extends ItemView {
 
 		if (providerCommands[command]) {
 			const providerId = providerCommands[command];
-			await this.plugin.settingTab.setCurrentModel(providerId);
+			this.plugin.settingTab.setCurrentModel(providerId);
 			await this.plugin.saveSettings();
 			this.addSuccessMessage(`✓ Switched to ${this.getProviderWithModelDisplayName(providerId)}`);
 			return true;
@@ -586,7 +605,7 @@ export class NovaSidebarView extends ItemView {
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.hideCommandPicker();
 		// Trigger the command immediately
-		this.handleSend();
+		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
 	}
 
 	private getAvailableCommands(): Array<{trigger: string, name: string, description?: string}> {
@@ -700,7 +719,7 @@ export class NovaSidebarView extends ItemView {
 			}
 
 			this.registerDomEvent(item, 'click', () => {
-				this.executeCommandFromMenu(command.trigger);
+				this.executeCommandFromMenu(command.trigger).catch(error => { Logger.error('Failed to execute command from menu:', error); });
 			});
 		});
 
@@ -739,7 +758,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Execute regular command (provider switching, custom commands)
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
-		this.handleSend();
+		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
 	}
 
 
@@ -763,7 +782,7 @@ export class NovaSidebarView extends ItemView {
 	 */
 	private debouncedUpdateContextPreview(): void {
 		if (this.contextPreviewDebounceTimeout) {
-			window.clearTimeout(this.contextPreviewDebounceTimeout);
+			this.timeoutManager.removeTimeout(this.contextPreviewDebounceTimeout);
 		}
 		
 		this.contextPreviewDebounceTimeout = this.timeoutManager.addTimeout(() => {
@@ -997,8 +1016,8 @@ export class NovaSidebarView extends ItemView {
 			.setTooltip('Clear all documents from context')
 			.onClick(async () => {
 				if (this.currentFile) {
-					this.contextManager.clearPersistentContext(this.currentFile.path);
-					await this.refreshContext();
+					this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
+					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 				}
 			});
 		
@@ -1049,7 +1068,7 @@ export class NovaSidebarView extends ItemView {
 			
 			// Add read-only indicator
 			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
-			readOnlyEl.textContent = 'read-only';
+			readOnlyEl.textContent = 'Read-only';
 			readOnlyEl.addClass('nova-context-doc-readonly');
 			
 			// Mobile-optimized remove button with simple reliable icon
@@ -1064,8 +1083,8 @@ export class NovaSidebarView extends ItemView {
 			this.registerDomEvent(removeBtn, 'click', async (e: Event) => {
 				e.stopPropagation();
 				if (this.currentFile) {
-					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path);
-					await this.refreshContext();
+					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path).catch(error => { Logger.error('Failed to remove persistent doc:', error); });
+					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 				}
 			});
 			
@@ -1217,7 +1236,7 @@ export class NovaSidebarView extends ItemView {
 			
 			// Check token limit
 			if (multiDocContext?.isNearLimit) {
-				new Notice('⚠️ Approaching token limit. Consider removing some documents from context.', NovaSidebarView.NOTICE_DURATION_MS);
+				new Notice('⚠️ approaching token limit. Consider removing some documents from context', NovaSidebarView.NOTICE_DURATION_MS);
 			}
 		}
 
@@ -1231,8 +1250,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Disable send button during processing
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-		if (sendButton) sendButton.setDisabled(true);
+		this.inputHandler.sendButtonComponent?.setDisabled(true);
 
 		try {
 			// Store user message in conversation (will be restored via loadConversationHistory)
@@ -1262,7 +1280,7 @@ export class NovaSidebarView extends ItemView {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const selectedText = activeView?.editor?.getSelection();
 			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
-			const intent = await this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
+			const intent = this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
 			
 			// Get initial contextual thinking phrase
 			let contextualCommand: EditCommand | undefined;
@@ -1291,7 +1309,7 @@ export class NovaSidebarView extends ItemView {
 				response = await this.executeCommand(parsedCommand);
 			} else {
 				// Handle as conversation using PromptBuilder
-				const prompt = await this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
+				const prompt = this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
 				
 				// Add multi-document context if available
 				if (multiDocContext && multiDocContext.contextString) {
@@ -1390,14 +1408,13 @@ USER REQUEST: ${processedMessage}`;
 		} finally {
 			// Re-enable send button
 			// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-			if (sendButton) sendButton.setDisabled(false);
+			this.inputHandler.sendButtonComponent?.setDisabled(false);
 			// Refresh context indicator to show persistent documents
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
 	}
 
-	async insertTextIntoActiveNote(text: string) {
+	insertTextIntoActiveNote(text: string) {
 		const activeView = this.app.workspace.getActiveViewOfType(ItemView);
 		if (this.isMarkdownView(activeView)) {
 			const editor = activeView.editor;
@@ -1485,7 +1502,7 @@ USER REQUEST: ${processedMessage}`;
 					result = await this.executeEditCommandWithStreaming(command);
 					break;
 				case 'delete':
-					result = await this.plugin.deleteCommandHandler.execute(command);
+					result = this.plugin.deleteCommandHandler.execute(command);
 					break;
 				case 'grammar':
 					result = await this.executeGrammarCommandWithStreaming(command);
@@ -1497,7 +1514,7 @@ USER REQUEST: ${processedMessage}`;
 					result = await this.plugin.metadataCommandHandler.execute(command);
 					break;
 				default:
-					return `I don't understand the command "${command.action}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
+					return `I don't understand the command "${String(command.action)}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
 			}
 			
 			if (result.success) {
@@ -1527,7 +1544,7 @@ USER REQUEST: ${processedMessage}`;
 		this.isUserInitiatedProviderChange = false;
 		
 		// PHASE 3 FIX: Generate operation ID to prevent race conditions
-		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+		const operationId = Date.now().toString() + Math.random().toString(36).substring(2, 11);
 		this.currentFileLoadOperation = operationId;
 		
 		// If no active file, try to find the currently active view's file
@@ -1538,7 +1555,7 @@ USER REQUEST: ${processedMessage}`;
 			if (activeView && activeView.file) {
 				targetFile = activeView.file;
 			} else {
-				// Final fallback: any open markdown file
+				// Final fallback: first available open markdown file
 				const leaves = this.app.workspace.getLeavesOfType('markdown');
 				if (leaves.length > 0) {
 					const view = leaves[0].view;
@@ -1557,7 +1574,7 @@ USER REQUEST: ${processedMessage}`;
 			// Immediately clear context state to prevent bleeding
 			this.currentContext = null;
 			this.contextManager.setCurrentFile(null);
-			this.refreshContext();
+			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			this.addWelcomeMessage('Open a document to get started.');
 			return;
 		}
@@ -1580,7 +1597,7 @@ USER REQUEST: ${processedMessage}`;
 		this.updateContextIndicator();
 		
 		// Update document statistics in header
-		this.refreshAllStats();
+		this.refreshAllStats().catch(error => { Logger.error('Failed to refresh stats:', error); });
 		
 		// Immediately track cursor position for the newly active file
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1598,7 +1615,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		try {
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
-			await this.chatRenderer.loadConversationHistory(targetFile);
+			this.chatRenderer.loadConversationHistory(targetFile);
 			
 			// PHASE 3 FIX: Check again after async operation
 			if (this.currentFileLoadOperation !== operationId) {
@@ -1609,7 +1626,7 @@ USER REQUEST: ${processedMessage}`;
 			await this.contextManager.restoreContextAfterChatLoad(targetFile);
 			
 			// Refresh the context UI after restoration to remove any stale references
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
 			// Show document insights after loading conversation
 			await this.showDocumentInsights(targetFile);
@@ -1639,7 +1656,7 @@ USER REQUEST: ${processedMessage}`;
 				
 				// Clear token warnings
 				this.lastTokenWarnings = {};
-			} catch (error) {
+			} catch (_) {
 				// Failed to clear conversation - graceful fallback
 			}
 		}
@@ -1652,7 +1669,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Then refresh context to rebuild currentContext from persistent storage and update UI
 		if (this.currentFile) {
-			await this.refreshContext();
+			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
 	}
 
@@ -1666,7 +1683,7 @@ USER REQUEST: ${processedMessage}`;
 		await this.updateDocumentStats();
 		
 		// Refresh context to recalculate token counts with updated document content
-		await this.refreshContext();
+		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		
 		this.updateContextRemaining();
 	}
@@ -1706,7 +1723,7 @@ USER REQUEST: ${processedMessage}`;
 					statsEl.textContent = `~ ${readingTime} min read`;
 				}
 			}
-		} catch (error) {
+		} catch (_) {
 			// Silently fail - stats are optional
 		}
 	}
@@ -1743,7 +1760,7 @@ USER REQUEST: ${processedMessage}`;
 		let warningLevel: string;
 		let displayText: string;
 		let tooltipText: string;
-		
+
 		if (totalContextUsage) {
 			// Use new total context calculation
 			warningLevel = getContextWarningLevel(totalContextUsage);
@@ -1842,7 +1859,7 @@ USER REQUEST: ${processedMessage}`;
 					}, 50);
 				}
 			}
-		} catch (error) {
+		} catch (_) {
 			// Silently fail - analysis is optional
 		}
 	}
@@ -1852,9 +1869,9 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	async handleConsultationRequest(input: string): Promise<void> {
 		const activeFile = this.plugin.documentEngine.getActiveFile();
-		
+
 		// Get AI response using PromptBuilder but do NOT modify document
-		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
+		const prompt = this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
 		const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
 		
 		// Display response in chat only
@@ -1909,7 +1926,7 @@ USER REQUEST: ${processedMessage}`;
 	 * Process user input with intent detection integration
 	 */
 	async processUserInputWithIntent(input: string): Promise<void> {
-		const intent = await this.plugin.aiIntentClassifier.classifyIntent(input);
+		const intent = this.plugin.aiIntentClassifier.classifyIntent(input);
 		
 		switch (intent) {
 			case 'CHAT':
@@ -1930,9 +1947,9 @@ USER REQUEST: ${processedMessage}`;
 	// Public methods for testing
 	async sendMessage(message: string): Promise<void> {
 		const activeFile = this.plugin.documentEngine.getActiveFile();
-		
+
 		// Build prompt using PromptBuilder
-		const prompt = await this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
+		const prompt = this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
 		
 		// Try to parse as command first
 		const command = this.plugin.commandParser.parseCommand(message);
@@ -1957,7 +1974,7 @@ USER REQUEST: ${processedMessage}`;
 					await this.plugin.editCommandHandler.execute(command);
 					break;
 				case 'delete':
-					await this.plugin.deleteCommandHandler.execute(command);
+					this.plugin.deleteCommandHandler.execute(command);
 					break;
 				case 'grammar':
 					await this.plugin.grammarCommandHandler.execute(command);
@@ -1993,8 +2010,7 @@ USER REQUEST: ${processedMessage}`;
 	private async updateSendButtonState(): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 		// TODO: Add public getter method to InputHandler for sendButton access
-		const sendButton = this.inputHandler.sendButtonComponent;
-		if (sendButton) sendButton.setDisabled(!currentProviderType);
+		this.inputHandler.sendButtonComponent?.setDisabled(!currentProviderType);
 	}
 
 	/**
@@ -2062,12 +2078,12 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async refreshProviderStatus(): Promise<void> {
 		// Update privacy indicator if it exists
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
 
 		// Update send button state
-		this.updateSendButtonState();
+		this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 
 		// Update provider dropdown display
 		await this.refreshProviderDropdown();
@@ -2098,9 +2114,24 @@ USER REQUEST: ${processedMessage}`;
 	private async updateProviderOptions(): Promise<void> {
 		if (!this.providerDropdown) return;
 
+		// Check if mobile support is disabled on mobile
+		if (Platform.isMobile) {
+			const mobileModel = this.plugin.settings.platformSettings.mobile.selectedModel;
+			if (mobileModel === 'none') {
+				// Clear dropdown and add disabled message
+				this.providerDropdown.selectEl.empty();
+				const option = this.providerDropdown.selectEl.createEl('option');
+				option.value = '';
+				option.textContent = 'Mobile disabled';
+				option.disabled = true;
+				this.providerDropdown.setValue('');
+				return;
+			}
+		}
+
 		const currentProvider = await this.plugin.aiProviderManager.getCurrentProviderType();
 		const currentModel = this.plugin.aiProviderManager.getCurrentModel();
-		
+
 		// Clear existing options
 		this.providerDropdown.selectEl.empty();
 		
@@ -2109,14 +2140,13 @@ USER REQUEST: ${processedMessage}`;
 		
 		for (const [providerType, isAvailable] of providerAvailability) {
 			if (providerType === 'none' || !isAvailable) continue;
-			
+
 			// Check if provider has API key configured
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			const hasApiKey = providers[providerType]?.apiKey;
+			const providerConfig = this.plugin.settings.aiProviders[providerType];
+			const hasApiKey = providerConfig?.apiKey;
 			if (!hasApiKey && providerType !== 'ollama') continue;
-			
+
 			// Check if provider is connected
-			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
 			const providerStatus = providerConfig?.status;
 			if (!providerStatus || providerStatus.state !== 'connected') continue;
 			
@@ -2133,8 +2163,8 @@ USER REQUEST: ${processedMessage}`;
 			if (models.length === 0) {
 				// Provider without specific models (like Ollama)
 				const option = group.createEl('option');
-				option.value = `${providerType}-${providers[providerType]?.model || providerDisplayName}`;
-				option.textContent = providers[providerType]?.model || providerDisplayName;
+				option.value = `${providerType}-${providerConfig?.model || providerDisplayName}`;
+				option.textContent = providerConfig?.model || providerDisplayName;
 			} else {
 				// Provider with specific models
 				for (const model of models) {
@@ -2166,10 +2196,14 @@ USER REQUEST: ${processedMessage}`;
 			
 			// Set user-initiated flag to prevent spurious success messages
 			this.isUserInitiatedProviderChange = true;
-			
+
 			// Update the model in settings
-			await this.plugin.settingTab.setCurrentModel(model);
+			this.plugin.settingTab.setCurrentModel(model);
 			await this.plugin.saveSettings();
+			
+			// Refresh privacy indicator and context
+			await this.refreshProviderStatus();
+			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
 			// Show success message
 			const displayName = this.getModelDisplayName(provider, model);
@@ -2204,8 +2238,8 @@ USER REQUEST: ${processedMessage}`;
 	 * Get current model for a provider type
 	 */
 	private getCurrentModel(providerType: string): string {
-		const providers = this.plugin.settings.aiProviders as Record<string, any>;
-		const currentModel = providers[providerType]?.model;
+		const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+		const currentModel = providerConfig?.model;
 		
 		if (currentModel) {
 			return currentModel;
@@ -2250,13 +2284,13 @@ USER REQUEST: ${processedMessage}`;
 			// Update platform settings for persistence (this is what actually matters)
 			const platform = Platform.isMobile ? 'mobile' : 'desktop';
 			this.plugin.settings.platformSettings[platform].selectedModel = modelValue;
-			
+
 			// Also update provider model setting for consistency
-			const providers = this.plugin.settings.aiProviders as Record<string, any>;
-			if (providers[providerType]) {
-				providers[providerType].model = modelValue;
+			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			if (providerConfig) {
+				providerConfig.model = modelValue;
 			}
-			
+
 			// Show success message immediately (optimistic update)
 			const modelDisplayName = this.getModelDisplayName(providerType, modelValue);
 			const providerDisplayName = this.getProviderDisplayName(providerType);
@@ -2542,19 +2576,39 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider configuration events
 	 */
-	private handleProviderConfigured = async (_event: Event) => {
+	private handleProviderConfigured = async (event: Event) => {
+		const customEvent = event as CustomEvent;
+		const { provider, status } = customEvent.detail;
+
+		// If mobile was just enabled and no model is selected, select first available
+		if (provider === 'mobile-settings' && status === 'enabled' && Platform.isMobile) {
+			const currentModel = this.plugin.aiProviderManager.getCurrentModel();
+			if (!currentModel || currentModel === '') {
+				const firstAvailableModel = await this.getFirstAvailableModel();
+				if (firstAvailableModel) {
+					const providerType = getProviderTypeForModel(firstAvailableModel, this.plugin.settings);
+					if (providerType) {
+						this.switchToModel(providerType, firstAvailableModel);
+						await this.plugin.saveSettings();
+					}
+				}
+			}
+		}
+
 		// Update provider dropdown display
 		try {
 			await this.refreshProviderDropdown();
 		} catch (error) {
 			Logger.error('❌ Failed to update provider display after configuration:', error);
 		}
-		
+
 		// Update privacy indicator
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
-		
+
+		// Update send button state
+		await this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 	}
 
 	/**
@@ -2591,21 +2645,22 @@ USER REQUEST: ${processedMessage}`;
 		} catch (error) {
 			Logger.error('❌ Failed to update provider display after disconnection:', error);
 		}
-		
+
 		// Update privacy indicator
-		if ((this as any).privacyIndicator) {
-			await this.updatePrivacyIndicator((this as any).privacyIndicator);
+		if (this.privacyIndicator) {
+			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
-		
+
 	}
 
 	/**
 	 * Handle license update events
 	 */
-	private handleLicenseUpdated = async (_event: Event) => {
+	private handleLicenseUpdated = (_event: Event) => {
+		// Event parameter prefixed with _ to indicate intentionally unused
 		// const customEvent = event as CustomEvent;
 		// const { _hasLicense, _licenseKey, _action } = customEvent.detail;
-		
+
 		// Refresh Supernova UI when license status changes
 		try {
 			this.refreshSupernovaUI();
@@ -2628,7 +2683,7 @@ USER REQUEST: ${processedMessage}`;
 			if (providerType === 'none') continue; // Skip 'none' provider type
 			const isAvailable = providerAvailability.get(providerType);
 			// Also check if provider has been successfully tested
-			const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
+			const providerConfig = this.plugin.settings.aiProviders[providerType];
 			const providerStatus = providerConfig?.status;
 			if (isAvailable && providerStatus?.state === 'connected') {
 				const models = getAvailableModels(providerType, this.plugin.settings);
@@ -2662,14 +2717,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute add command with streaming support
 	 */
-	private async executeAddCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeAddCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2678,7 +2733,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2714,7 +2769,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming add command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2722,14 +2777,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute edit command with streaming support
 	 */
-	private async executeEditCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeEditCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2738,7 +2793,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2774,7 +2829,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming edit command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2782,14 +2837,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute rewrite command with streaming support
 	 */
-	private async executeRewriteCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeRewriteCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2798,7 +2853,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2834,7 +2889,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming rewrite command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2842,14 +2897,14 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Execute grammar command with streaming support
 	 */
-	private async executeGrammarCommandWithStreaming(command: EditCommand): Promise<any> {
+	private async executeGrammarCommandWithStreaming(command: EditCommand): Promise<EditResult> {
 		try {
 			// Get the active editor
 			const editor = this.plugin.documentEngine.getActiveEditor();
 			if (!editor) {
 				return {
 					success: false,
-					error: 'No active editor found'
+					error: 'No active editor found', editType: 'insert'
 				};
 			}
 
@@ -2858,7 +2913,7 @@ USER REQUEST: ${processedMessage}`;
 			if (!cursorPosition) {
 				return {
 					success: false,
-					error: 'Could not determine cursor position'
+					error: 'Could not determine cursor position', editType: 'insert'
 				};
 			}
 
@@ -2894,7 +2949,7 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('Error in streaming grammar command:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : 'Unknown error', editType: 'insert'
 			};
 		}
 	}
@@ -2963,14 +3018,14 @@ USER REQUEST: ${processedMessage}`;
 		// Update persistent context if we made any changes
 		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0 || currentFiles.length > 0) {
 			// Use ContextManager to update persistent context
-			this.contextManager.clearPersistentContext(this.currentFile.path);
+			this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
 			for (const doc of updatedPersistent) {
 				await this.contextManager.addDocument(doc.file);
 			}
 		}
 		
 		// Refresh context UI
-		await this.refreshContext();
+		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		
 		// Show a single comprehensive notification for better UX
 		// const totalFiles = filenames.length;
@@ -3074,7 +3129,7 @@ USER REQUEST: ${processedMessage}`;
 			const newPhrase = this.getContextualThinkingPhrase(command, messageText);
 			textEl.textContent = newPhrase;
 		}, 2000));
-		
+
 		// Store interval ID in WeakMap for proper cleanup
 		// Note: registerInterval handles automatic cleanup, but we still store for manual cleanup if needed
 		this.rotationIntervals.set(textEl, rotationInterval);

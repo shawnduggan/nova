@@ -1,6 +1,5 @@
 /**
- * Metadata command handler for Nova
- * Handles updating document properties/frontmatter
+ * @file MetadataCommand - Handles frontmatter and tag modifications
  */
 
 import { App } from 'obsidian';
@@ -52,8 +51,8 @@ export class MetadataCommand {
     /**
      * Filter AI updates to only include existing, non-protected fields
      */
-    private filterUpdatesForExistingFields(updates: Record<string, any>, existingFields: Set<string>): Record<string, any> {
-        const filteredUpdates: Record<string, any> = {};
+    private filterUpdatesForExistingFields(updates: Record<string, unknown>, existingFields: Set<string>): Record<string, unknown> {
+        const filteredUpdates: Record<string, unknown> = {};
         
         for (const [key, value] of Object.entries(updates)) {
             const normalizedKey = this.normalizeKey(key);
@@ -80,8 +79,8 @@ export class MetadataCommand {
     /**
      * Filter AI updates for general metadata operations - allows any non-protected field
      */
-    private filterUpdatesForMetadata(updates: Record<string, any>, existingFields: Set<string>): Record<string, any> {
-        const filteredUpdates: Record<string, any> = {};
+    private filterUpdatesForMetadata(updates: Record<string, unknown>, existingFields: Set<string>): Record<string, unknown> {
+        const filteredUpdates: Record<string, unknown> = {};
         
         for (const [key, value] of Object.entries(updates)) {
             // Skip protected fields
@@ -122,7 +121,7 @@ export class MetadataCommand {
     async execute(command: EditCommand): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -210,7 +209,7 @@ export class MetadataCommand {
     /**
      * Parse AI response to extract property updates
      */
-    private parsePropertyUpdates(response: string): Record<string, any> | null {
+    private parsePropertyUpdates(response: string): Record<string, unknown> | null {
         try {
             // Try to parse as JSON first (in code blocks)
             const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
@@ -231,7 +230,7 @@ export class MetadataCommand {
             }
             
             // Try to parse as YAML-like format
-            const updates: Record<string, any> = {};
+            const updates: Record<string, unknown> = {};
             const lines = response.split('\n');
             
             for (const line of lines) {
@@ -253,7 +252,7 @@ export class MetadataCommand {
                     }
                     
                     // Try to parse value as JSON (for arrays/objects)
-                    let value: any = valueString;
+                    let value: unknown = valueString;
                     try {
                         value = JSON.parse(valueString);
                     } catch {
@@ -267,7 +266,7 @@ export class MetadataCommand {
                     
                     // Normalize tag values if this is a tags field
                     if (this.normalizeKey(key) === 'tags' && Array.isArray(value)) {
-                        value = value.map((tag: any) => this.normalizeTagValue(String(tag)));
+                        value = value.map((tag: unknown) => this.normalizeTagValue(String(tag)));
                     } else if (this.normalizeKey(key) === 'tags' && typeof value === 'string') {
                         // Handle comma-separated tag strings
                         value = value.split(',').map(tag => this.normalizeTagValue(tag)).filter(t => t);
@@ -279,7 +278,7 @@ export class MetadataCommand {
             }
             
             return Object.keys(updates).length > 0 ? updates : null;
-        } catch (error) {
+        } catch (_) {
             // Failed to parse property updates - graceful fallback
             return null;
         }
@@ -288,8 +287,8 @@ export class MetadataCommand {
     /**
      * Normalize keys and filter out protected fields from updates
      */
-    private normalizeAndFilterUpdates(updates: Record<string, any>): Record<string, any> {
-        const filtered: Record<string, any> = {};
+    private normalizeAndFilterUpdates(updates: Record<string, unknown>): Record<string, unknown> {
+        const filtered: Record<string, unknown> = {};
         
         for (const [key, value] of Object.entries(updates)) {
             // Skip protected fields
@@ -301,7 +300,7 @@ export class MetadataCommand {
             
             // Normalize tag values if this is a tags field
             if (this.normalizeKey(key) === 'tags' && Array.isArray(value)) {
-                processedValue = value.map((tag: any) => this.normalizeTagValue(String(tag)));
+                processedValue = value.map((tag: unknown) => this.normalizeTagValue(String(tag)));
             } else if (this.normalizeKey(key) === 'tags' && typeof value === 'string') {
                 // Handle comma-separated tag strings
                 processedValue = value.split(',').map(tag => this.normalizeTagValue(tag)).filter(t => t);
@@ -317,7 +316,7 @@ export class MetadataCommand {
     /**
      * Update or create frontmatter in document content
      */
-    private updateFrontmatter(content: string, updates: Record<string, any>): string {
+    private updateFrontmatter(content: string, updates: Record<string, unknown>): string {
         const lines = content.split('\n');
         
         // Check if frontmatter exists
@@ -334,10 +333,10 @@ export class MetadataCommand {
                     continue; // Skip null/undefined values
                 }
                 
-                const formattedValue = typeof value === 'object' 
+                const formattedValue = (typeof value === 'object' && value !== null)
                     ? JSON.stringify(value)
-                    : String(value);
-                
+                    : String(value as string | number | boolean);
+
                 newFrontmatter.push(`${key}: ${formattedValue}`);
             }
             newFrontmatter.push('---');
@@ -364,7 +363,7 @@ export class MetadataCommand {
         }
         
         // Parse existing frontmatter and collect field names
-        const existingProps: Record<string, any> = {};
+        const existingProps: Record<string, unknown> = {};
         const existingFieldNames = new Set<string>();
         
         for (let i = 1; i < endIndex; i++) {
@@ -409,15 +408,15 @@ export class MetadataCommand {
                 continue;
             }
             processedKeys.add(normalizedKey);
-            
-            const formattedValue = typeof value === 'object' 
+
+            const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
-                : String(value);
-            
+                : String(value as string | number | boolean);
+
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
         newFrontmatter.push('---');
-        
+
         // Return updated content
         return [
             ...newFrontmatter,
@@ -428,7 +427,7 @@ export class MetadataCommand {
     /**
      * Update frontmatter specifically for tag operations - allows creating frontmatter for tags
      */
-    private updateFrontmatterForTags(content: string, updates: Record<string, any>): string {
+    private updateFrontmatterForTags(content: string, updates: Record<string, unknown>): string {
         const lines = content.split('\n');
         
         // Check if frontmatter exists
@@ -461,7 +460,7 @@ export class MetadataCommand {
         }
         
         // Parse existing frontmatter and collect field names
-        const existingProps: Record<string, any> = {};
+        const existingProps: Record<string, unknown> = {};
         const existingFieldNames = new Set<string>();
         
         for (let i = 1; i < endIndex; i++) {
@@ -506,15 +505,15 @@ export class MetadataCommand {
                 continue;
             }
             processedKeys.add(normalizedKey);
-            
-            const formattedValue = typeof value === 'object' 
+
+            const formattedValue = (typeof value === 'object' && value !== null)
                 ? JSON.stringify(value)
-                : String(value);
-            
+                : String(value as string | number | boolean);
+
             newFrontmatter.push(`${key}: ${formattedValue}`);
         }
         newFrontmatter.push('---');
-        
+
         // Return updated content
         return [
             ...newFrontmatter,
@@ -819,11 +818,11 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                     const parsed = JSON.parse(jsonMatch[0]);
                     if (parsed.tags && Array.isArray(parsed.tags)) {
                         return {
-                            tags: parsed.tags.map((t: any) => this.normalizeTagValue(String(t))).filter((t: string) => t),
+                            tags: parsed.tags.map((t: unknown) => this.normalizeTagValue(String(t))).filter((t: string) => t),
                             reasoning: parsed.reasoning
                         };
                     }
-                } catch (e) {
+                } catch (_) {
                     // JSON parse failed, continue to other formats
                 }
             }
@@ -919,7 +918,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
     /**
      * Generate success message based on updates
      */
-    private generateSuccessMessage(updates: Record<string, any>): string {
+    private generateSuccessMessage(updates: Record<string, unknown>): string {
         const keys = Object.keys(updates);
         if (keys.length === 0) return 'Metadata updated';
         

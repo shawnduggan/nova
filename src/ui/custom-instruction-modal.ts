@@ -1,6 +1,5 @@
 /**
- * Native custom instruction modal for Nova using Obsidian's Modal class
- * Simplified design following Obsidian's native patterns
+ * @file CustomInstructionModal - Modal for custom editing instructions
  */
 
 import { App, Modal, Setting, Plugin } from 'obsidian';
@@ -28,8 +27,8 @@ export class CustomInstructionModal extends Modal {
     /**
      * Register event listener using plugin's registration system
      */
-    private registerEventListener(element: HTMLElement, event: string, handler: EventListener): void {
-        this.plugin.registerDomEvent(element, event as any, handler);
+    private registerEventListener<K extends keyof HTMLElementEventMap>(element: HTMLElement, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+        this.plugin.registerDomEvent(element, event, handler);
     }
 
     onOpen() {
@@ -38,9 +37,10 @@ export class CustomInstructionModal extends Modal {
         
         // Use native modal styling
         this.modalEl.addClass('nova-custom-instruction-modal');
-        
+
         // Title
-        contentEl.createEl('h2', { text: 'Custom prompt' });
+        const titleDiv = contentEl.createDiv({ cls: 'modal-title' });
+        titleDiv.setText('Custom prompt');
 
         // Description
         new Setting(contentEl)
@@ -51,7 +51,7 @@ export class CustomInstructionModal extends Modal {
         const textAreaSetting = new Setting(contentEl)
             .addTextArea(text => {
                 text
-                    .setPlaceholder('e.g., "make this more persuasive", "add statistics", "write in bullet points"')
+                    .setPlaceholder('E.g., "make this more persuasive", "add statistics", "write in bullet points"')
                     .setValue(this.instruction)
                     .onChange(value => {
                         this.instruction = value;

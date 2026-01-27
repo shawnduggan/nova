@@ -1,11 +1,10 @@
 /**
- * Grammar command implementation for Nova
- * Handles fixing grammar and spelling at cursor position
+ * @file GrammarCommand - Handles grammar and spelling corrections
  */
 
 import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
-import { ContextBuilder } from '../context-builder';
+import { ContextBuilder, GeneratedPrompt } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
 import { StreamingCallback } from './add-command';
@@ -24,7 +23,7 @@ export class GrammarCommand {
     async execute(command: EditCommandType, streamingCallback?: StreamingCallback): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -88,7 +87,7 @@ export class GrammarCommand {
                     }
 
                     // Apply the grammar fix based on target
-                    result = await this.applyGrammarFix(command, documentContext, content);
+                    result = this.applyGrammarFix(command, documentContext, content);
                 }
 
                 // Log only failures as assistant messages
@@ -117,15 +116,15 @@ export class GrammarCommand {
     /**
      * Apply grammar fix based on command target
      */
-    private async applyGrammarFix(
+    private applyGrammarFix(
         command: EditCommandType,
         documentContext: DocumentContext,
         content: string
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'selection':
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'selection',
                         {
@@ -143,7 +142,7 @@ export class GrammarCommand {
 
             case 'document':
                 // Replace entire document with corrected version
-                return await this.documentEngine.setDocumentContent(content);
+                return this.documentEngine.setDocumentContent(content);
 
             case 'cursor':
                 // Grammar correction at cursor doesn't make much sense, 
@@ -165,7 +164,7 @@ export class GrammarCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid grammar target: ${command.target}`,
+                    error: `Invalid grammar target: ${String(command.target)}`,
                     editType: 'replace'
                 };
         }
@@ -210,7 +209,7 @@ export class GrammarCommand {
     private async executeWithStreaming(
         command: EditCommandType,
         documentContext: DocumentContext,
-        prompt: any,
+        prompt: GeneratedPrompt,
         streamingCallback: StreamingCallback
     ): Promise<EditResult> {
         try {

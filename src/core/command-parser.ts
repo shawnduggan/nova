@@ -1,6 +1,5 @@
 /**
- * Command parser for Nova
- * Converts natural language input into structured EditCommand objects
+ * @file CommandParser - Parses user input into structured edit commands
  */
 
 import { EditCommand, EditAction } from './types';

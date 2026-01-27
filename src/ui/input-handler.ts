@@ -1,3 +1,7 @@
+/**
+ * @file InputHandler - Handles text input and keyboard events
+ */
+
 import { ButtonComponent, TextAreaComponent, Notice, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { NovaWikilinkAutocomplete } from './wikilink-suggest';
@@ -22,7 +26,7 @@ export class InputHandler {
 	private static readonly FOCUS_DELAY_MS = 150;
 	private dropZoneOverlay: HTMLElement | null = null;
 	private isDragging: boolean = false;
-	private sidebarView: any; // Reference to NovaSidebarView for context operations
+	private sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> } | null = null; // Reference to NovaSidebarView for context operations
 	private timeoutManager = new TimeoutManager();
 
 	// Event cleanup is handled automatically by registerDomEvent
@@ -37,7 +41,7 @@ export class InputHandler {
 		this.contextManager = contextManager;
 	}
 
-	setSidebarView(sidebarView: any): void {
+	setSidebarView(sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> }): void {
 		this.sidebarView = sidebarView;
 		// Also pass to wikilink autocomplete if it exists
 		if (this.wikilinkAutocomplete) {
@@ -80,7 +84,7 @@ export class InputHandler {
 
 		// Create textarea
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('How can I help?');
+		this.textArea.setPlaceholder('How can i help?');
 		this.textArea.inputEl.addClass('nova-textarea-styled');
 
 		// Auto-grow functionality
@@ -126,7 +130,7 @@ export class InputHandler {
 
 			if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
 				event.preventDefault();
-				(this.commandSystem?.handleCommandPickerSelection() || false) || this.handleSend();
+				void ((this.commandSystem?.handleCommandPickerSelection() || false) || this.handleSend());
 			} else if (keyEvent.key === 'Escape') {
 				this.commandSystem?.hideCommandPicker();
 			} else if (keyEvent.key === 'ArrowUp' || keyEvent.key === 'ArrowDown') {
@@ -226,8 +230,8 @@ export class InputHandler {
 		this.autoGrowTextarea();
 	}
 
-	private addEventListener(element: EventTarget, event: string, handler: EventListener): void {
-		this.plugin.registerDomEvent(element as HTMLElement, event as any, handler);
+	private addEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
+		this.plugin.registerDomEvent(element as HTMLElement, event, handler);
 	}
 
 	private setupDragAndDrop(): void {
@@ -361,11 +365,14 @@ export class InputHandler {
 
 		// Add files to context if we got any
 		if (files.length > 0) {
-			this.addFilesToContext(files);
+			this.addFilesToContext(files).catch(error => {
+				Logger.error('Failed to add files to context:', error);
+			});
 		} else if (textPlainData && textPlainData.includes('obsidian://open?')) {
 			// User dropped something from Obsidian but no files were extracted
 			// This likely means they dropped non-markdown files
-			new Notice('Only markdown files can be added to context', 3000);
+			// eslint-disable-next-line obsidianmd/ui/sentence-case -- "Markdown" is a proper noun
+			new Notice('Only Markdown files can be added to context', 3000);
 		} else if (textPlainData && textPlainData.trim() && !textPlainData.includes('://')) {
 			// User dropped a folder (plain text path without protocol)
 			new Notice('Folders cannot be added to context. Please select individual files.', 3000);

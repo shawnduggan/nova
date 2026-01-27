@@ -1,6 +1,7 @@
 import { AIProviderManager } from '../../src/ai/provider-manager';
 import { NovaSettings } from '../../src/settings';
 import { ProviderType } from '../../src/ai/types';
+import { Logger } from '../../src/utils/logger';
 
 // Mock the Platform object for testing
 jest.mock('obsidian', () => ({
@@ -27,8 +28,7 @@ describe('Provider Dropdown Performance', () => {
 			},
 			general: {
 				defaultTemperature: 0.7,
-				defaultMaxTokens: 1000,
-				autoSave: true
+				defaultMaxTokens: 4000
 			},
 			commands: {
 				suggestionMode: 'balanced',
@@ -110,7 +110,7 @@ describe('Provider Dropdown Performance', () => {
 			});
 
 			// Should be faster than sequential calls due to parallelization
-			console.log('Parallel provider check duration:', duration, 'ms');
+			Logger.info('Parallel provider check duration:', duration, 'ms');
 		});
 	});
 });

@@ -1,5 +1,6 @@
-
-
+/**
+ * @file LicensingTypes - Type definitions for licensing system
+ */
 
 export interface SupernovaLicense {
 	email: string;

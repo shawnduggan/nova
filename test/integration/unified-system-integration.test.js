@@ -132,7 +132,7 @@ describe('Unified Message System Integration', () => {
         );
         
         // 2. Simulate conversation restoration
-        mockConversationManager.getRecentMessages.mockResolvedValue([
+        mockConversationManager.getRecentMessages.mockReturnValue([
             {
                 id: 'msg1',
                 role: 'system',
@@ -149,8 +149,8 @@ describe('Unified Message System Integration', () => {
         while (chatContainer.firstChild) {
             chatContainer.removeChild(chatContainer.firstChild);
         }
-        await chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
-        
+        chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
+
         // Verify restoration maintains styling
         const restoredEl = chatContainer.querySelector('.nova-message');
         expect(restoredEl).toBeTruthy();
@@ -178,7 +178,7 @@ describe('Unified Message System Integration', () => {
         );
         
         // 2. Simulate restoration after file switch
-        mockConversationManager.getRecentMessages.mockResolvedValue([
+        mockConversationManager.getRecentMessages.mockReturnValue([
             {
                 id: 'msg1',
                 role: 'system',
@@ -194,8 +194,8 @@ describe('Unified Message System Integration', () => {
         while (chatContainer.firstChild) {
             chatContainer.removeChild(chatContainer.firstChild);
         }
-        await chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
-        
+        chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
+
         // Verify restoration maintains bubble styling
         const restoredEl = chatContainer.querySelector('.nova-message');
         expect(restoredEl).toBeTruthy();
@@ -205,7 +205,7 @@ describe('Unified Message System Integration', () => {
 
     test('mixed conversation: regular messages and status messages', async () => {
         // Simulate a mixed conversation history
-        mockConversationManager.getRecentMessages.mockResolvedValue([
+        mockConversationManager.getRecentMessages.mockReturnValue([
             {
                 id: 'msg1',
                 role: 'user',
@@ -243,7 +243,7 @@ describe('Unified Message System Integration', () => {
         // Mock the addMessage method for regular messages
         chatRenderer.addMessage = jest.fn();
 
-        await chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
+        chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
 
         // Check that regular messages go through addMessage
         expect(chatRenderer.addMessage).toHaveBeenCalledWith('user', 'Hello Nova');

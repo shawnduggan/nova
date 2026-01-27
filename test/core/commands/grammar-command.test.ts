@@ -66,7 +66,7 @@ Content for section two.`,
         );
 
         // Setup default mocks
-        mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+        mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
         mockContextBuilder.buildPrompt.mockReturnValue({
             systemPrompt: 'Grammar correction system prompt',
             userPrompt: 'Grammar correction user prompt',
@@ -76,19 +76,21 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('This is the introduction paragraph with some corrections.');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'This is the introduction paragraph with some corrections.',
             editType: 'replace',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockResolvedValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: 'Corrected document content',
             editType: 'replace'
-        });
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
 
         // Mock conversation context methods
         mockDocumentEngine.getConversationContext.mockReturnValue('');
@@ -130,7 +132,7 @@ Content for section two.`,
         });
 
         it('should handle no active document', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(null);
 
             const command: EditCommandType = {
                 action: 'grammar',
@@ -150,7 +152,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: undefined
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithoutSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithoutSelection);
 
             const command: EditCommandType = {
                 action: 'grammar',
@@ -213,7 +215,7 @@ Content for section two.`,
         });
 
         it('should handle exceptions during execution', async () => {
-            mockDocumentEngine.getDocumentContext.mockRejectedValue(new Error('File system error'));
+            mockDocumentEngine.getDocumentContext.mockImplementation(() => { throw new Error('File system error'); });
 
             const command: EditCommandType = {
                 action: 'grammar',

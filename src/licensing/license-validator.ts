@@ -1,3 +1,7 @@
+/**
+ * @file LicenseValidator - Validates Supernova license keys
+ */
+
 import { SupernovaLicense, SupernovaValidationResult, LicenseError } from './types';
 import { CryptoService } from '../core/crypto-service';
 
@@ -72,10 +76,10 @@ export class LicenseValidator {
 				valid: true, 
 				license 
 			};
-		} catch (error) {
-			return { 
-				valid: false, 
-				error: LicenseError.MALFORMED_DATA 
+		} catch (_) {
+			return {
+				valid: false,
+				error: LicenseError.MALFORMED_DATA
 			};
 		}
 	}
@@ -115,13 +119,13 @@ export class LicenseValidator {
 
 			return {
 				email,
-				type: type as 'annual' | 'lifetime' | 'founding',
+				type,
 				expiresAt,
 				issuedAt,
 				signature,
 				licenseKey
 			};
-		} catch (error) {
+		} catch (_) {
 			return null;
 		}
 	}

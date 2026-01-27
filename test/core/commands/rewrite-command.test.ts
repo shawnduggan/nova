@@ -66,7 +66,7 @@ Content for section two.`,
         );
 
         // Setup default mocks
-        mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+        mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
         mockContextBuilder.buildPrompt.mockReturnValue({
             systemPrompt: 'Rewrite system prompt',
             userPrompt: 'Rewrite user prompt',
@@ -76,19 +76,21 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('This is a modern introduction paragraph with contemporary language.');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: 'This is a modern introduction paragraph with contemporary language.',
             editType: 'replace',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockResolvedValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: 'Rewritten document content',
             editType: 'replace'
-        });
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
 
         // Mock editor for direct editing operations
         const mockEditor = {
@@ -155,7 +157,7 @@ Content for section two.`,
         });
 
         it('should handle no active document', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(null);
 
             const command: EditCommandType = {
                 action: 'rewrite',
@@ -175,7 +177,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: undefined
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithoutSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithoutSelection);
 
             const command: EditCommandType = {
                 action: 'rewrite',

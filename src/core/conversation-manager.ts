@@ -1,6 +1,5 @@
 /**
- * Conversation Manager for Nova
- * Handles file-scoped conversation storage and retrieval
+ * @file ConversationManager - Manages file-scoped conversation storage
  */
 
 import { TFile } from 'obsidian';
@@ -8,8 +7,8 @@ import { ConversationData, ConversationMessage, EditCommand, EditResult, EditAct
 import { Logger } from '../utils/logger';
 
 export interface DataStore {
-    loadData(key: string): Promise<any>;
-    saveData(key: string, data: any): Promise<void>;
+    loadData(key: string): Promise<unknown>;
+    saveData(key: string, data: unknown): Promise<void>;
     registerInterval(intervalId: number): number;
 }
 
@@ -44,7 +43,7 @@ export class ConversationManager {
                         this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
                     } catch (error) {
                         // Skip corrupted individual conversations
-                        Logger.warn(`Skipped corrupted conversation for file: ${conversation?.filePath || 'unknown'}`, error);
+                        Logger.warn(`Skipped corrupted conversation for file: ${String(conversation?.filePath) || 'unknown'}`, error);
                     }
                 }
             }
@@ -57,60 +56,76 @@ export class ConversationManager {
     /**
      * Sanitize and validate conversation data
      */
-    private sanitizeConversationData(conversation: any): ConversationData {
+    private sanitizeConversationData(conversation: unknown): ConversationData {
+        // Type guard to ensure conversation is an object
+        if (!conversation || typeof conversation !== 'object') {
+            throw new Error('Invalid conversation data');
+        }
+
+        const conv = conversation as Record<string, unknown>;
+
         // Ensure required fields exist and are valid
-        if (!conversation.filePath || typeof conversation.filePath !== 'string') {
+        if (!conv.filePath || typeof conv.filePath !== 'string') {
             throw new Error('Invalid or missing filePath');
         }
 
         // Ensure messages array exists and is valid
-        const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
+        const messages = Array.isArray(conv.messages) ? conv.messages : [];
 
         // Ensure contextDocuments array exists and is valid
         let contextDocuments: ContextDocumentRef[] = [];
-        if (Array.isArray(conversation.contextDocuments)) {
-            contextDocuments = conversation.contextDocuments
-                .filter((doc: any) => this.isValidContextDocument(doc))
-                .map((doc: any) => this.sanitizeContextDocument(doc));
+        if (Array.isArray(conv.contextDocuments)) {
+            contextDocuments = conv.contextDocuments
+                .filter((doc: unknown) => this.isValidContextDocument(doc))
+                .map((doc: unknown) => this.sanitizeContextDocument(doc));
         }
 
         // Ensure basic structure
-        return {
-            filePath: conversation.filePath,
-            messages,
-            lastUpdated: typeof conversation.lastUpdated === 'number' ? conversation.lastUpdated : Date.now(),
-            contextDocuments,
-            metadata: conversation.metadata || {
-                editCount: 0,
-                commandFrequency: {
-                    add: 0,
-                    edit: 0,
-                    delete: 0,
-                    grammar: 0,
-                    rewrite: 0,
-                    metadata: 0
-                }
+        const metadataObj = conv.metadata && typeof conv.metadata === 'object' ? conv.metadata as {
+            editCount?: number;
+            commandFrequency?: Record<string, number>;
+        } : undefined;
+
+        const metadata = {
+            editCount: typeof metadataObj?.editCount === 'number' ? metadataObj.editCount : 0,
+            commandFrequency: metadataObj?.commandFrequency || {
+                add: 0,
+                edit: 0,
+                delete: 0,
+                grammar: 0,
+                rewrite: 0,
+                metadata: 0
             }
+        };
+
+        return {
+            filePath: conv.filePath,
+            messages,
+            lastUpdated: typeof conv.lastUpdated === 'number' ? conv.lastUpdated : Date.now(),
+            contextDocuments,
+            metadata
         };
     }
 
     /**
      * Validate context document structure
      */
-    private isValidContextDocument(doc: any): boolean {
-        return doc && 
-               typeof doc.path === 'string' && 
-               doc.path.trim().length > 0;
+    private isValidContextDocument(doc: unknown): boolean {
+        if (!doc || typeof doc !== 'object') return false;
+        const docObj = doc as Record<string, unknown>;
+        return typeof docObj.path === 'string' &&
+               docObj.path.trim().length > 0;
     }
 
     /**
      * Sanitize context document data
      */
-    private sanitizeContextDocument(doc: any): ContextDocumentRef {
+    private sanitizeContextDocument(doc: unknown): ContextDocumentRef {
+        const docObj = doc as Record<string, unknown>;
         return {
-            path: doc.path,
-            property: typeof doc.property === 'string' ? doc.property : undefined,
-            addedAt: typeof doc.addedAt === 'number' ? doc.addedAt : Date.now()
+            path: docObj.path as string,
+            property: typeof docObj.property === 'string' ? docObj.property : undefined,
+            addedAt: typeof docObj.addedAt === 'number' ? docObj.addedAt : Date.now()
         };
     }
 
@@ -388,7 +403,7 @@ export class ConversationManager {
      * Generate unique message ID
      */
     private generateMessageId(): string {
-        return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     /**
@@ -437,7 +452,9 @@ export class ConversationManager {
     private startPeriodicCleanup(): void {
         // Clean up every 24 hours
         this.cleanupInterval = this.dataStore.registerInterval(window.setInterval(() => {
-            this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000); // 7 days
+            this.cleanupOldConversations(7 * 24 * 60 * 60 * 1000).catch(error => {
+                Logger.error('Failed to cleanup old conversations:', error);
+            }); // 7 days
         }, 24 * 60 * 60 * 1000));
     }
 

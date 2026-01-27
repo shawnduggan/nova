@@ -1,3 +1,7 @@
+/**
+ * @file DocumentAnalyzer - Analyzes document structure and metadata
+ */
+
 export interface DocumentStructure {
 	headings: Array<{ level: number; text: string; isEmpty: boolean }>;
 	wordCount: number;

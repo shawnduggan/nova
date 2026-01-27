@@ -1,6 +1,5 @@
 /**
- * Delete command implementation for Nova
- * Handles removing content at cursor position
+ * @file DeleteCommand - Handles content removal
  */
 
 import { App } from 'obsidian';
@@ -16,10 +15,10 @@ export class DeleteCommand {
     /**
      * Execute delete command
      */
-    async execute(command: EditCommandType): Promise<EditResult> {
+    execute(command: EditCommandType): EditResult {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -39,7 +38,7 @@ export class DeleteCommand {
             }
 
             // Apply the deletion based on target
-            const result = await this.applyDeletion(command, documentContext);
+            const result = this.applyDeletion(command, documentContext);
             
             // Log only failures as assistant messages
             // Success will be handled by sidebar's success indicator
@@ -59,14 +58,14 @@ export class DeleteCommand {
     /**
      * Apply deletion based on command target
      */
-    private async applyDeletion(
+    private applyDeletion(
         command: EditCommandType,
         documentContext: DocumentContext
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'selection':
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         '',
                         'selection',
                         {
@@ -84,11 +83,11 @@ export class DeleteCommand {
 
             case 'cursor':
                 // Delete current line at cursor
-                return await this.documentEngine.deleteContent('line');
+                return this.documentEngine.deleteContent('line');
 
             case 'document':
                 // Clear entire document
-                return await this.documentEngine.setDocumentContent('');
+                return this.documentEngine.setDocumentContent('');
 
             case 'end':
                 // Remove trailing content (not typically used for delete)
@@ -101,7 +100,7 @@ export class DeleteCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid delete target: ${command.target}`,
+                    error: `Invalid delete target: ${String(command.target)}`,
                     editType: 'delete'
                 };
         }

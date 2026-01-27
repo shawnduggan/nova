@@ -1,23 +1,30 @@
+/**
+ * @file ClaudeProvider - Anthropic Claude API integration
+ */
+
 import { requestUrl } from 'obsidian';
 import { AIProvider, AIMessage, AIGenerationOptions, AIStreamResponse, ProviderConfig } from '../types';
 import { Logger } from '../../utils/logger';
+import { TimeoutManager } from '../../utils/timeout-manager';
 
 export class ClaudeProvider implements AIProvider {
 	name = 'Claude (Anthropic)';
 	private config: ProviderConfig;
 	private cachedModels: string[] | null = null;
 	private generalSettings: { defaultTemperature: number; defaultMaxTokens: number };
+	private timeoutManager: TimeoutManager;
 
-	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }) {
+	constructor(config: ProviderConfig, generalSettings: { defaultTemperature: number; defaultMaxTokens: number }, timeoutManager: TimeoutManager) {
 		this.config = config;
 		this.generalSettings = generalSettings;
+		this.timeoutManager = timeoutManager;
 	}
 
 	updateConfig(config: ProviderConfig) {
 		this.config = config;
 	}
 
-	async isAvailable(): Promise<boolean> {
+	isAvailable(): boolean {
 		return !!this.config.apiKey;
 	}
 
@@ -61,7 +68,8 @@ export class ClaudeProvider implements AIProvider {
 						'x-api-key': this.config.apiKey,
 						'anthropic-version': '2023-06-01'
 					},
-					body: requestBody
+					body: requestBody,
+					throw: false
 				});
 
 				if (response.status === 200) {
@@ -72,39 +80,40 @@ export class ClaudeProvider implements AIProvider {
 				// Check if it's a 500-level error that we should retry
 				if (response.status >= 500 && attempt < maxRetries) {
 					const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue; // Retry
 				}
+
+				// Log detailed error for debugging
+				Logger.error('Claude API Error Details:', {
+					status: response.status,
+					headers: response.headers,
+					errorText: response.text,
+					requestBody: JSON.parse(requestBody),
+					model: options?.model || this.config.model,
+					attempt: attempt + 1
+				});
 
 				// For all other errors or final attempt, throw error
 				throw new Error(`Claude API error: ${response.status} - ${response.text}`);
 
 			} catch (error) {
-				// Log full details for debugging 400 errors from requestUrl exceptions
-				if (error instanceof Error && error.message.includes('status 400')) {
-					Logger.error('Claude API 400 Error - Request Details:', {
-						requestBody: JSON.parse(requestBody),
-						errorMessage: error.message,
-						attempt: attempt + 1,
-						maxRetries: maxRetries + 1
-					});
-				}
-				
 				// Network/connection errors - retry if not final attempt
 				if (attempt < maxRetries && error instanceof Error && (
 					error.message.includes('Network error') || 
 					error.message.includes('Failed to connect')
 				)) {
 					const delay = baseDelay * Math.pow(2, attempt);
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await new Promise<void>(resolve => {
+						this.timeoutManager.addTimeout(() => resolve(), delay);
+					});
 					continue;
 				}
 				
 				// Re-throw the error if it's the final attempt or not a retryable error
-				if (error instanceof Error && error.message.startsWith('Claude API error:')) {
-					throw error; // Already formatted error
-				}
-				throw new Error(`Failed to connect to Claude API: ${error instanceof Error ? error.message : 'Network error'}`);
+				throw error;
 			}
 		}
 
@@ -128,7 +137,9 @@ export class ClaudeProvider implements AIProvider {
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
-			await new Promise(resolve => setTimeout(resolve, 20));
+			await new Promise<void>(resolve => {
+				this.timeoutManager.addTimeout(() => resolve(), 20);
+			});
 		}
 		
 		yield { content: '', done: true };

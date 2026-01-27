@@ -1,6 +1,8 @@
 /**
- * Centralized model definitions for all AI providers
+ * @file Models - Centralized model definitions for all AI providers
  */
+
+import type { NovaSettings } from '../settings';
 
 export interface ModelDefinition {
 	value: string;
@@ -8,13 +10,13 @@ export interface ModelDefinition {
 }
 
 export interface ModelConfig {
-	getAvailableModels(providerType: string, settings?: any): ModelDefinition[];
+	getAvailableModels(providerType: string, settings?: NovaSettings): ModelDefinition[];
 }
 
 /**
  * Get the provider type for a given model name by searching all providers
  */
-export function getProviderTypeForModel(modelName: string, settings?: any): string | null {
+export function getProviderTypeForModel(modelName: string, settings?: NovaSettings): string | null {
 	// Search all provider types for this model
 	const providerTypes = ['claude', 'openai', 'google', 'ollama'];
 	
@@ -33,27 +35,28 @@ export function getProviderTypeForModel(modelName: string, settings?: any): stri
 /**
  * Get available models for a provider
  */
-export function getAvailableModels(providerType: string, settings?: any): ModelDefinition[] {
+export function getAvailableModels(providerType: string, settings?: NovaSettings): ModelDefinition[] {
 	switch (providerType) {
 		case 'claude':
 			return [
-				{ value: 'claude-opus-4-1-20250805', label: 'Claude Opus 4.1' },
-				{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-				{ value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' }
+				{ value: 'claude-opus-4-5', label: 'Claude Opus 4.5' },
+				{ value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+				{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
+				{ value: 'claude-opus-4-1', label: 'Claude Opus 4.1' }
 			];
 		case 'openai':
 			return [
-				{ value: 'gpt-5-chat-latest', label: 'GPT-5 Chat' },
-				//{ value: 'gpt-5', label: 'GPT-5' },
-				//{ value: 'gpt-5-mini', label: 'GPT-5 Mini' },
-				//{ value: 'gpt-5-nano', label: 'GPT-5 Nano' },
-				{ value: 'gpt-4.1', label: 'GPT-4.1' },
-				{ value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-				{ value: 'gpt-4o', label: 'GPT-4o' },
-				{ value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+				{ value: 'gpt-5.2-2025-12-11', label: 'GPT-5.2' },
+				{ value: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
+				{ value: 'gpt-5.1', label: 'GPT-5.1' },
+				{ value: 'gpt-5-pro', label: 'GPT-5 Pro' },
+				{ value: 'gpt-5-mini', label: 'GPT-5 Mini' },
+				{ value: 'gpt-5-nano', label: 'GPT-5 Nano' },
+				{ value: 'gpt-5', label: 'GPT-5' }
 			];
 		case 'google':
 			return [
+				{ value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)' },
 				{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 				{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
 				{ value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite' }

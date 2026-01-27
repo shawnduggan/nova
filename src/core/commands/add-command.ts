@@ -1,11 +1,10 @@
 /**
- * Add command implementation for Nova
- * Handles adding new content to documents at cursor position
+ * @file AddCommand - Handles content insertion at cursor
  */
 
 import { App } from 'obsidian';
 import { DocumentEngine } from '../document-engine';
-import { ContextBuilder } from '../context-builder';
+import { ContextBuilder, GeneratedPrompt } from '../context-builder';
 import { AIProviderManager } from '../../ai/provider-manager';
 import { EditCommand as EditCommandType, EditResult, DocumentContext } from '../types';
 
@@ -27,7 +26,7 @@ export class AddCommand {
     async execute(command: EditCommandType, streamingCallback?: StreamingCallback): Promise<EditResult> {
         try {
             // Get document context
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 return {
                     success: false,
@@ -91,7 +90,7 @@ export class AddCommand {
                     }
 
                     // Apply the addition based on target
-                    result = await this.applyAddition(command, documentContext, content);
+                    result = this.applyAddition(command, documentContext, content);
                 }
 
                 // Log only failures as assistant messages
@@ -120,15 +119,15 @@ export class AddCommand {
     /**
      * Apply addition based on command target
      */
-    private async applyAddition(
+    private applyAddition(
         command: EditCommandType,
         documentContext: DocumentContext,
         content: string
-    ): Promise<EditResult> {
+    ): EditResult {
         switch (command.target) {
             case 'cursor':
                 // Insert content at cursor position
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'cursor',
                     {
@@ -139,7 +138,7 @@ export class AddCommand {
 
             case 'end':
                 // Append to end of document
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'end',
                     {
@@ -150,7 +149,7 @@ export class AddCommand {
 
             case 'document':
                 // Add to document (typically append to end)
-                return await this.documentEngine.applyEdit(
+                return this.documentEngine.applyEdit(
                     content,
                     'end',
                     {
@@ -162,7 +161,7 @@ export class AddCommand {
             case 'selection':
                 // Replace selection with new content
                 if (documentContext.selectedText) {
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'selection',
                         {
@@ -172,7 +171,7 @@ export class AddCommand {
                     );
                 } else {
                     // No selection, add at cursor instead
-                    return await this.documentEngine.applyEdit(
+                    return this.documentEngine.applyEdit(
                         content,
                         'cursor',
                         {
@@ -185,7 +184,7 @@ export class AddCommand {
             default:
                 return {
                     success: false,
-                    error: `Invalid add target: ${command.target}`,
+                    error: `Invalid add target: ${String(command.target)}`,
                     editType: 'insert'
                 };
         }
@@ -220,7 +219,7 @@ export class AddCommand {
     private async executeWithStreaming(
         command: EditCommandType,
         documentContext: DocumentContext,
-        prompt: any,
+        prompt: GeneratedPrompt,
         streamingCallback: StreamingCallback
     ): Promise<EditResult> {
         try {

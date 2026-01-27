@@ -1,6 +1,11 @@
+/**
+ * @file ChatRenderer - Renders conversation messages in sidebar
+ */
+
 import { TFile, setIcon } from 'obsidian';
 import NovaPlugin from '../../main';
 import { TimeoutManager } from '../utils/timeout-manager';
+import { Logger } from '../utils/logger';
 
 /**
  * Message options for unified message creation
@@ -63,10 +68,12 @@ export class ChatRenderer {
 			const activeFile = this.plugin.app.workspace.getActiveFile();
 			if (activeFile) {
 				this.plugin.conversationManager.addSystemMessage(
-					activeFile, 
+					activeFile,
 					content,
 					{ messageType: cssClass } // Store CSS class as metadata
-				);
+				).catch(error => {
+					Logger.error('Failed to save system message to conversation:', error);
+				});
 			}
 		}
 
@@ -102,7 +109,7 @@ export class ChatRenderer {
 				const iconEl = wrapper.createSpan();
 				
 				// Map viewBox patterns to icon names (based on common patterns)
-				svgMatch[1]; // viewBox - used for pattern matching below
+				void svgMatch[1]; // viewBox - used for pattern matching below
 				let iconName = 'info'; // default fallback
 				
 				if (content.includes('stroke-width="2"') && content.includes('circle')) {
@@ -166,7 +173,7 @@ export class ChatRenderer {
 		
 		// Add welcome text
 		const textP = contentDiv.createEl('p', { cls: 'nova-welcome-text' });
-		textP.textContent = "Hi! I'm Nova, your AI writing partner. Select any text and right-click to transform it directly, or chat with me to add content exactly where your cursor is.";
+		textP.textContent = "Hi! I'm Nova, your AI writing partner — select any text and right-click to transform it directly, or chat with me to add content where your cursor is";
 
 		this.scrollToBottom(true);
 	}
@@ -189,8 +196,8 @@ export class ChatRenderer {
 		}, ChatRenderer.SCROLL_DELAY_MS);
 	}
 
-	async loadConversationHistory(file: TFile): Promise<void> {
-		const messages = await this.plugin.conversationManager.getRecentMessages(file, 50);
+	loadConversationHistory(file: TFile): void {
+		const messages = this.plugin.conversationManager.getRecentMessages(file, 50);
 		
 		if (messages.length === 0) {
 			// No conversation exists - show welcome message
@@ -210,7 +217,7 @@ export class ChatRenderer {
 				this.renderMessageContent(contentEl, message.content);
 			} else {
 				// Regular user/assistant messages
-				this.addMessage(message.role as 'user' | 'assistant' | 'system', message.content);
+				this.addMessage(message.role, message.content);
 			}
 		}
 		

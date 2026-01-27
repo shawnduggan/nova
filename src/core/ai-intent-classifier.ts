@@ -1,6 +1,5 @@
 /**
- * AI Intent Classifier for Nova
- * Determines whether user input is a chat, metadata command, or content command
+ * @file AIIntentClassifier - AI-powered intent classification for ambiguous inputs
  */
 
 import { AIProviderManager } from '../ai/provider-manager';
@@ -21,7 +20,7 @@ export class AIIntentClassifier {
     /**
      * Classify user input into one of three intents
      */
-    async classifyIntent(userInput: string, _hasSelection: boolean = false): Promise<UserIntent> {
+    classifyIntent(userInput: string, _hasSelection: boolean = false): UserIntent {
         try {
             // Input validation
             if (!userInput || typeof userInput !== 'string') {

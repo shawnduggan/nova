@@ -165,6 +165,9 @@ describe('Streaming Completion Updates', () => {
 
         await (sidebar as any).executeAddCommandWithStreaming(command);
 
+        // Wait for microtask queue to flush (promises in onStreamingComplete use void)
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         // Stats, tokens, and context should all be updated after streaming
         expect(updateDocumentStatsSpy).toHaveBeenCalled();
         expect(updateTokenDisplaySpy).toHaveBeenCalled();

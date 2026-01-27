@@ -226,7 +226,7 @@ describe('ContextManager', () => {
 
 		it('should clear persistent context for file', () => {
 			contextManager.parseMessage('[[document1]]', 'test.md');
-			contextManager.clearPersistentContext('test.md');
+			void contextManager.clearPersistentContext('test.md');
 			const persistent = contextManager.getPersistentContext('test.md');
 			
 			expect(persistent).toHaveLength(0);
@@ -234,7 +234,7 @@ describe('ContextManager', () => {
 
 		it('should remove specific document from persistent context', () => {
 			contextManager.parseMessage('[[document1]] and [[document2]]', 'test.md');
-			contextManager.removePersistentDoc('test.md', 'document1.md');
+			void contextManager.removePersistentDoc('test.md', 'document1.md');
 			const persistent = contextManager.getPersistentContext('test.md');
 			
 			expect(persistent).toHaveLength(1);

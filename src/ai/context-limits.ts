@@ -1,3 +1,7 @@
+/**
+ * @file ContextLimits - Token and context window limits per AI model
+ */
+
 export interface ContextLimit {
     tokens: number;
     maxOutputTokens?: number;
@@ -12,33 +16,37 @@ export interface ProviderContextLimits {
 const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
     claude: {
         // Claude models - matching models.ts exactly
-        'claude-opus-4-1-20250805': { tokens: 200000, maxOutputTokens: 4096 },
-        'claude-sonnet-4-20250514': { tokens: 200000, maxOutputTokens: 4096 },
-        'claude-3-5-haiku-20241022': { tokens: 200000, maxOutputTokens: 4096 },
+        'claude-opus-4-5': { tokens: 200000, maxOutputTokens: 64000 },
+        'claude-sonnet-4-5': { tokens: 200000, maxOutputTokens: 64000 },
+        'claude-haiku-4-5': { tokens: 200000, maxOutputTokens: 64000 },
+        'claude-opus-4-1': { tokens: 200000, maxOutputTokens: 32000 },
         // Fallback for any Claude model
-        'default': { tokens: 200000, maxOutputTokens: 4096, fallback: true }
+        'default': { tokens: 200000, maxOutputTokens: 64000, fallback: true }
     },
     
     openai: {
         // OpenAI models - matching models.ts exactly
-        'gpt-5-chat-latest': { tokens: 128000, maxOutputTokens: 16384 },
-        'gpt-4.1': { tokens: 128000, maxOutputTokens: 16384 },
-        'gpt-4.1-mini': { tokens: 128000, maxOutputTokens: 16384 },
-        'gpt-4o': { tokens: 128000, maxOutputTokens: 16384 },
-        'gpt-4o-mini': { tokens: 128000, maxOutputTokens: 16384 },
-        
+        'gpt-5.2-2025-12-11': { tokens: 400000, maxOutputTokens: 128000 },
+        'gpt-5.1-chat-latest': { tokens: 400000, maxOutputTokens: 128000 },
+        'gpt-5.1': { tokens: 400000, maxOutputTokens: 128000 },
+        'gpt-5': { tokens: 400000, maxOutputTokens: 128000 },
+        'gpt-5-pro': { tokens: 400000, maxOutputTokens: 272000 },
+        'gpt-5-mini': { tokens: 400000, maxOutputTokens: 128000 },
+        'gpt-5-nano': { tokens: 400000, maxOutputTokens: 128000 },
+
         // Fallback for OpenAI models - assume GPT-4o capacity
-        'default': { tokens: 128000, maxOutputTokens: 4096, fallback: true }
+        'default': { tokens: 400000, maxOutputTokens: 128000, fallback: true }
     },
     
     google: {
         // Google models - matching models.ts exactly
-        'gemini-2.5-pro': { tokens: 1048576, maxOutputTokens: 8192 },
-        'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 8192 },
-        'gemini-2.5-flash-lite': { tokens: 1000000, maxOutputTokens: 8192 },
-           
+        'gemini-2.5-pro': { tokens: 1048576, maxOutputTokens: 65536 },
+        'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
+        'gemini-2.5-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },
+        'gemini-3-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
+
         // Fallback for Google models - assume modern Gemini capacity
-        'default': { tokens: 1000000, maxOutputTokens: 8192, fallback: true }
+        'default': { tokens: 1000000, maxOutputTokens: 65536, fallback: true }
     }
 };
 

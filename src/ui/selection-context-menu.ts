@@ -1,9 +1,8 @@
 /**
- * Selection-based context menu for Nova
- * Adds Nova submenu to Obsidian's right-click context menu when text is selected
+ * @file SelectionContextMenu - Context menu for text selection actions
  */
 
-import { App, Editor, Menu, MenuItem, Notice, MarkdownView } from 'obsidian';
+import { App, Editor, Menu, MenuItem, Notice, MarkdownView, EditorPosition } from 'obsidian';
 import NovaPlugin from '../../main';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
@@ -113,7 +112,9 @@ export class SelectionContextMenu {
                     .setTitle('Nova: ' + action.label)
                     .setIcon(action.icon || 'edit')
                     .onClick(() => {
-                        this.handleSelectionAction(action.id, editor, selectedText);
+                        this.handleSelectionAction(action.id, editor, selectedText).catch(error => {
+                            Logger.error('Failed to handle selection action:', error);
+                        });
                     });
             });
         });
@@ -153,9 +154,9 @@ export class SelectionContextMenu {
     private showToneSelectionModal(editor: Editor, selectedText: string): void {
         const modal = new ToneSelectionModal(
             this.app,
-            async (selectedTone: string) => {
+            (selectedTone: string) => {
                 // Execute tone change with the selected tone
-                await this.executeSelectionEdit('tone', editor, selectedText, selectedTone);
+                void this.executeSelectionEdit('tone', editor, selectedText, selectedTone);
             },
             () => {
                 // User cancelled, do nothing
@@ -171,9 +172,9 @@ export class SelectionContextMenu {
         const modal = new CustomInstructionModal(
             this.app,
             this.plugin,
-            async (instruction: string) => {
+            (instruction: string) => {
                 // Execute custom transformation with the instruction
-                await this.executeSelectionEdit('custom', editor, selectedText, instruction);
+                void this.executeSelectionEdit('custom', editor, selectedText, instruction);
             },
             () => {
                 // User cancelled, do nothing
@@ -320,7 +321,7 @@ export class SelectionContextMenu {
         }
     }
 
-    private animatedSelection: { from: any; to: any } | null = null;
+    private animatedSelection: { from: EditorPosition; to: EditorPosition } | null = null;
 
 
 
@@ -407,7 +408,7 @@ export class SelectionContextMenu {
             case 'longer': return 'Expanded';
             case 'shorter': return 'Condensed';
             case 'tone': return `Changed tone to ${customInstruction || 'formal'}`;
-            case 'custom': return `Applied "${customInstruction}"`;
+            case 'custom': return `Applied "${String(customInstruction)}"`;
             default: return 'Processed';
         }
     }

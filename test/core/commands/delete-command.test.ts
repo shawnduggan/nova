@@ -64,7 +64,7 @@ Content for section two.`,
         );
 
         // Setup default mocks
-        mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+        mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
         mockContextBuilder.buildPrompt.mockReturnValue({
             systemPrompt: 'System prompt',
             userPrompt: 'User prompt',
@@ -74,26 +74,29 @@ Content for section two.`,
         mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
         
         mockProviderManager.generateText.mockResolvedValue('AI analysis complete');
-        
-        mockDocumentEngine.applyEdit.mockResolvedValue({
+
+        const mockApplyEditResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete',
             appliedAt: { line: 2, ch: 0 }
-        });
-        
-        mockDocumentEngine.setDocumentContent.mockResolvedValue({
+        };
+        mockDocumentEngine.applyEdit.mockReturnValue(mockApplyEditResult);
+
+        const mockSetContentResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete'
-        });
-        
-        mockDocumentEngine.deleteContent.mockResolvedValue({
+        };
+        mockDocumentEngine.setDocumentContent.mockReturnValue(mockSetContentResult);
+
+        const mockDeleteContentResult: EditResult = {
             success: true,
             content: '',
             editType: 'delete',
             appliedAt: { line: 2, ch: 0 }
-        });
+        };
+        mockDocumentEngine.deleteContent.mockReturnValue(mockDeleteContentResult);
         
         const mockEditor = {
             replaceRange: jest.fn(),
@@ -144,7 +147,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: 'Text to delete'
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithSelection);
 
             const command: EditCommandType = {
                 action: 'delete',
@@ -189,7 +192,7 @@ Content for section two.`,
         });
 
         it('should handle no active document', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(null);
 
             const command: EditCommandType = {
                 action: 'delete',
@@ -209,7 +212,7 @@ Content for section two.`,
                 ...mockDocumentContext,
                 selectedText: undefined
             };
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(contextWithoutSelection);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(contextWithoutSelection);
 
             const command: EditCommandType = {
                 action: 'delete',
@@ -225,7 +228,7 @@ Content for section two.`,
 
 
         it('should handle exceptions during execution', async () => {
-            mockDocumentEngine.getDocumentContext.mockRejectedValue(new Error('File system error'));
+            mockDocumentEngine.getDocumentContext.mockImplementation(() => { throw new Error('File system error'); });
 
             const command: EditCommandType = {
                 action: 'delete',

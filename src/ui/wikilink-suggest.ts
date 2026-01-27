@@ -1,6 +1,5 @@
 /**
- * Native wikilink autocomplete for Nova textarea
- * Uses Obsidian's native FuzzySuggestModal for consistent UX
+ * @file WikilinkSuggest - Autocomplete for [[wikilinks]] in input
  */
 
 import { TFile, App, FuzzySuggestModal, FuzzyMatch, Plugin } from 'obsidian';
@@ -9,7 +8,7 @@ export class NovaWikilinkAutocomplete {
     private app: App;
     private plugin: Plugin;
     private textArea: HTMLTextAreaElement;
-    private sidebarView: any; // Reference to NovaSidebarView
+    private sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> } | null = null; // Reference to NovaSidebarView
     private lastTriggerPos: number = -1;
     private inputHandler!: (event: Event) => void;
 
@@ -20,7 +19,7 @@ export class NovaWikilinkAutocomplete {
         this.setupEventListeners();
     }
 
-    setSidebarView(sidebarView: any): void {
+    setSidebarView(sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> }): void {
         this.sidebarView = sidebarView;
     }
 
@@ -44,13 +43,13 @@ export class NovaWikilinkAutocomplete {
     }
 
     private showNativeFileModal(): void {
-        // Get current file from sidebar view
-        const currentFile = this.sidebarView?.currentFile || this.app.workspace.getActiveFile();
+        // Get current file from sidebar view or workspace
+        const currentFile = this.app.workspace.getActiveFile();
         
         const modal = new WikilinkFileModal(
             this.app,
-            async (file: TFile) => {
-                await this.selectFile(file);
+            (file: TFile) => {
+                void this.selectFile(file);
             },
             () => {
                 // User cancelled - reset trigger position
@@ -124,7 +123,7 @@ class WikilinkFileModal extends FuzzySuggestModal<TFile> {
     }
 
     onOpen(): void {
-        super.onOpen();
+        void super.onOpen();
         this.addInstructions();
     }
 

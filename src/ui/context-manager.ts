@@ -1,3 +1,7 @@
+/**
+ * @file ContextManager - Manages multi-document context in sidebar
+ */
+
 import { App, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { calculateContextUsage, ContextUsage } from '../core/context-calculator';
@@ -47,7 +51,7 @@ export class ContextManager {
 	private currentContext: MultiDocContext | null = null;
 	private currentFilePath: string | null = null; // Track current file for validation
 	private currentOperationId: string | null = null; // Track current async operation
-	private sidebarView: any; // Reference to NovaSidebarView for adding files
+	private sidebarView: { addWarningMessage: (message: string) => void } | null = null; // Reference to NovaSidebarView for adding files
 	private static readonly NOTICE_DURATION_MS = 5000;
 
 	constructor(plugin: NovaPlugin, app: App, container: HTMLElement) {
@@ -56,7 +60,7 @@ export class ContextManager {
 		this.container = container;
 	}
 
-	setSidebarView(sidebarView: any): void {
+	setSidebarView(sidebarView: { addWarningMessage: (message: string) => void }): void {
 		this.sidebarView = sidebarView;
 	}
 
@@ -129,7 +133,7 @@ export class ContextManager {
 		}
 
 		// Generate operation ID to prevent race conditions
-		const operationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+		const operationId = Date.now().toString() + Math.random().toString(36).substring(2, 11);
 		this.currentOperationId = operationId;
 		
 		// Track current file path for validation
@@ -228,7 +232,7 @@ export class ContextManager {
 			}
 
 			return context;
-		} catch (error) {
+		} catch (_) {
 			// Failed to build context - graceful fallback
 			return null;
 		}
@@ -419,7 +423,7 @@ export class ContextManager {
 					const currentContent = await this.app.vault.read(currentFile);
 					totalTokens += Math.ceil(currentContent.length / 4);
 				}
-			} catch (error) {
+			} catch (_) {
 				// Skip if can't read current file
 			}
 			
@@ -428,7 +432,7 @@ export class ContextManager {
 				try {
 					const content = await this.app.vault.read(doc.file);
 					totalTokens += Math.ceil(content.length / 4);
-				} catch (error) {
+				} catch (_) {
 					// Skip files that can't be read
 				}
 			}
@@ -451,7 +455,7 @@ export class ContextManager {
 
 			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
 
-		} catch (error) {
+		} catch (_) {
 			// Handle context build failures gracefully
 			this.currentContext = null;
 			this.hideContextIndicator();
@@ -622,7 +626,7 @@ export class ContextManager {
 				missingFiles,
 				totalCount: savedContextDocs.length
 			};
-		} catch (error) {
+		} catch (_) {
 			// Graceful fallback
 			return { validFiles: [], missingFiles: [], totalCount: 0 };
 		}
@@ -713,9 +717,11 @@ export class ContextManager {
 			}
 			
 			this.persistentContext.set(conversationFilePath, updatedPersistent);
-			
+
 			// Schedule async save to conversation manager
-			this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent);
+			this.schedulePersistenceUpdate(conversationFilePath, updatedPersistent).catch(error => {
+				Logger.error('Failed to persist context update:', error);
+			});
 		}
 
 		return { cleanedMessage, references };
@@ -738,7 +744,7 @@ export class ContextManager {
 				for (const [key, value] of Object.entries(cache.frontmatter)) {
 					// Format the property value (handle arrays, objects, etc.)
 					const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
-					contextParts.push(`- ${key}: ${formattedValue}`);
+					contextParts.push(`- ${key}: ${String(formattedValue)}`);
 				}
 			}
 			
@@ -772,7 +778,7 @@ export class ContextManager {
 			}
 			
 			return contextParts.join('\n');
-		} catch (error) {
+		} catch (_) {
 			// Failed to read full context - graceful fallback
 			return null;
 		}
@@ -795,14 +801,14 @@ export class ContextManager {
 				// Get specific property from frontmatter
 				const cache = this.app.metadataCache.getFileCache(file);
 				if (cache?.frontmatter && cache.frontmatter[property]) {
-					return `## ${file.basename} - ${property}\n${cache.frontmatter[property]}`;
+					return `## ${file.basename} - ${property}\n${String(cache.frontmatter[property])}`;
 				}
 				return null;
 			} else {
 				// Get full document context with metadata
 				return this.getFullDocumentContext(file);
 			}
-		} catch (error) {
+		} catch (_) {
 			// Failed to read context - graceful fallback
 			return null;
 		}
@@ -891,7 +897,7 @@ export class ContextManager {
 			if (this.currentFilePath && this.plugin.conversationManager) {
 				const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
 				if (currentFile) {
-					const conversation = await this.plugin.conversationManager.getConversation(currentFile);
+					const conversation = this.plugin.conversationManager.getConversation(currentFile);
 					conversationHistory = (conversation?.messages || []).map(msg => ({ content: msg.content }));
 				}
 			}

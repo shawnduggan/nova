@@ -1,5 +1,5 @@
 /**
- * Core types for Nova document engine
+ * @file CoreTypes - Type definitions for document editing and commands
  */
 
 import { EditorPosition, TFile } from 'obsidian';

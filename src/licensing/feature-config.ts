@@ -1,3 +1,7 @@
+/**
+ * @file FeatureConfig - Time-gated feature configuration
+ */
+
 export interface TimeGatedFeature {
     supernovaDate: string;  // YYYY-MM-DD format
     generalDate: string;   // YYYY-MM-DD format
@@ -15,8 +19,8 @@ export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
     // Commands - 3 month early access
     // TODO - update before release
     'commands': {
-        supernovaDate: '2025-10-31',  // Supernova early access
-        generalDate: '2026-02-01',   // General availability 
+        supernovaDate: '2026-04-01',  // Supernova early access
+        generalDate: '2026-07-01',   // General availability 
         description: 'Command system with / triggers, command button, and custom commands'
     }
 };

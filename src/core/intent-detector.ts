@@ -1,3 +1,7 @@
+/**
+ * @file IntentDetector - Classifies user input as editing vs consultation
+ */
+
 import { Logger } from '../utils/logger';
 
 export interface IntentClassification {

@@ -1,6 +1,5 @@
 /**
- * Context builder for Nova
- * Generates appropriate prompts for cursor-only editing
+ * @file ContextBuilder - Builds document context for AI prompts
  */
 
 import { EditCommand, DocumentContext, PromptConfig } from './types';

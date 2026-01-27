@@ -1,6 +1,5 @@
 /**
- * Utility for managing setTimeout with proper cleanup
- * Provides Obsidian-compliant timeout management without misusing registerInterval
+ * @file TimeoutManager - Obsidian-compliant timeout management
  */
 
 export class TimeoutManager {

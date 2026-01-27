@@ -1,3 +1,7 @@
+/**
+ * @file AITypes - Type definitions for AI providers, messages, and streaming
+ */
+
 export interface AIMessage {
 	role: 'user' | 'assistant' | 'system';
 	content: string;
@@ -11,7 +15,7 @@ export interface AIStreamResponse {
 
 export interface AIProvider {
 	name: string;
-	isAvailable(): Promise<boolean>;
+	isAvailable(): Promise<boolean> | boolean;
 	generateText(prompt: string, options?: AIGenerationOptions): Promise<string>;
 	generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse>;
 	chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string>;

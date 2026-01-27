@@ -61,7 +61,7 @@ describe('MetadataCommand', () => {
         };
 
         beforeEach(() => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(mockDocumentContext);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(mockDocumentContext);
             mockDocumentEngine.getConversationContext.mockReturnValue('');
             mockContextBuilder.buildPrompt.mockReturnValue({
                 systemPrompt: 'System prompt',
@@ -102,7 +102,7 @@ describe('MetadataCommand', () => {
         });
 
         it('should fail when no document context is available', async () => {
-            mockDocumentEngine.getDocumentContext.mockResolvedValue(null);
+            mockDocumentEngine.getDocumentContext.mockReturnValue(null);
 
             const result = await metadataCommand.execute(mockCommand);
 

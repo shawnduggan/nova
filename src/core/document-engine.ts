@@ -1,6 +1,5 @@
 /**
- * Core document engine for Nova
- * Handles all document manipulation and editor interactions
+ * @file DocumentEngine - Central hub for all document manipulation
  */
 
 import { App, Editor, MarkdownView, TFile, EditorPosition } from 'obsidian';
@@ -100,7 +99,7 @@ export class DocumentEngine {
     /**
      * Extract comprehensive document context
      */
-    async getDocumentContext(): Promise<DocumentContext | null> {
+    getDocumentContext(): DocumentContext | null {
         const file = this.getActiveFile();
         const editor = this.getActiveEditor();
         
@@ -176,11 +175,11 @@ export class DocumentEngine {
     /**
      * Apply an edit to the document
      */
-    async applyEdit(
+    applyEdit(
         content: string,
         position: 'cursor' | 'selection' | 'end' | { line: number; ch: number },
         options: EditOptions = {}
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         
@@ -266,9 +265,9 @@ export class DocumentEngine {
     /**
      * Delete content at cursor location
      */
-    async deleteContent(
+    deleteContent(
         target: 'selection' | 'line'
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         
@@ -328,19 +327,19 @@ export class DocumentEngine {
     /**
      * Get the full document content
      */
-    async getDocumentContent(): Promise<string | null> {
+    getDocumentContent(): string | null {
         const editor = this.getActiveEditor();
         if (!editor) return null;
-        
+
         return editor.getValue();
     }
 
     /**
      * Replace the entire document content
      */
-    async setDocumentContent(content: string): Promise<EditResult> {
+    setDocumentContent(content: string): EditResult {
         const editor = this.getActiveEditor();
-        
+
         if (!editor) {
             return {
                 success: false,
@@ -352,7 +351,7 @@ export class DocumentEngine {
         try {
             // Use editor interface to preserve cursor, selections, undo/redo
             editor.setValue(content);
-            
+
             return {
                 success: true,
                 content,
@@ -474,11 +473,11 @@ export class DocumentEngine {
      * Replace selected text with new content
      * Handles undo/redo properly and preserves cursor position
      */
-    async replaceSelection(
+    replaceSelection(
         newText: string,
         from?: EditorPosition,
         to?: EditorPosition
-    ): Promise<EditResult> {
+    ): EditResult {
         const editor = this.getActiveEditor();
         const file = this.getActiveFile();
         

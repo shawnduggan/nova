@@ -1,9 +1,8 @@
 /**
- * Centralized logging utility for Nova Plugin
- * Provides consistent logging with appropriate prefixes and levels
+ * @file Logger - Centralized logging utility with levels
  */
 
-/* eslint-disable no-console */
+ 
 
 export enum LogLevel {
     DEBUG = 0,
@@ -37,7 +36,7 @@ export class Logger {
      */
     static info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
-            console.log(`${Logger.PREFIX} ${message}`, ...args);
+            console.debug(`${Logger.PREFIX} ${message}`, ...args);
         }
     }
 
@@ -85,7 +84,7 @@ export class ScopedLogger {
 
     info(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.INFO) {
-            console.log(`${this.prefix} ${message}`, ...args);
+            console.debug(`${this.prefix} ${message}`, ...args);
         }
     }
 
@@ -101,3 +100,5 @@ export class ScopedLogger {
         }
     }
 }
+
+ 
