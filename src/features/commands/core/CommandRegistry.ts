@@ -38,7 +38,7 @@ export class CommandRegistry implements ICommandRegistry {
      * Build the command index without loading full command content
      * This allows fast discovery while keeping memory usage low
      */
-    async buildIndex(): Promise<void> {
+    buildIndex(): void {
         const now = Date.now();
         if (this.isIndexBuilt && (now - this.lastIndexTime) < this.INDEX_REFRESH_INTERVAL) {
             return;
@@ -59,7 +59,7 @@ export class CommandRegistry implements ICommandRegistry {
         let indexedCount = 0;
         for (const file of files) {
             try {
-                await this.indexCommandFile(file);
+                this.indexCommandFile(file);
                 indexedCount++;
             } catch (error) {
                 this.logger.error(`Failed to index command file ${file.path}:`, error);
@@ -74,7 +74,7 @@ export class CommandRegistry implements ICommandRegistry {
     /**
      * Index a single command file by reading only its frontmatter
      */
-    private async indexCommandFile(file: TFile): Promise<void> {
+    private indexCommandFile(file: TFile): void {
         const cache = this.plugin.app.metadataCache.getFileCache(file);
         const frontmatter = cache?.frontmatter;
         
@@ -109,7 +109,7 @@ export class CommandRegistry implements ICommandRegistry {
      * Load a command by ID with lazy loading and caching
      */
     async loadCommand(commandId: string): Promise<MarkdownCommand | null> {
-        await this.buildIndex();
+        this.buildIndex();
 
         // Check cache first
         const cached = this.commandCache.get(commandId);
@@ -126,11 +126,12 @@ export class CommandRegistry implements ICommandRegistry {
         }
 
         // Load from file
-        const file = this.plugin.app.vault.getAbstractFileByPath(filePath) as TFile;
-        if (!file) {
+        const abstractFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
+        if (!abstractFile || !(abstractFile instanceof TFile)) {
             this.logger.error(`Command file not found: ${filePath}`);
             return null;
         }
+        const file = abstractFile;
 
         try {
             const command = await this.loadCommandFromFile(file);
@@ -191,13 +192,16 @@ export class CommandRegistry implements ICommandRegistry {
             return [];
         }
 
-        return variablesData.map((varData: any) => ({
-            name: varData.name,
-            description: varData.description || '',
-            required: varData.required !== false,
-            defaultValue: varData.default,
-            resolver: varData.resolver || 'user_input'
-        }));
+        return variablesData.map((varData: unknown) => {
+            const data = varData as Record<string, unknown>;
+            return {
+                name: String(data.name ?? ''),
+                description: String(data.description ?? ''),
+                required: data.required !== false,
+                defaultValue: data.default !== undefined ? String(data.default) : undefined,
+                resolver: (data.resolver as TemplateVariable['resolver']) || 'user_input'
+            };
+        });
     }
 
     /**
@@ -233,7 +237,7 @@ export class CommandRegistry implements ICommandRegistry {
      * Get all available commands (loads all into memory - use sparingly)
      */
     async getAllCommands(): Promise<MarkdownCommand[]> {
-        await this.buildIndex();
+        this.buildIndex();
         
         const commands: MarkdownCommand[] = [];
         for (const commandId of this.commandIndex.keys()) {
@@ -250,7 +254,7 @@ export class CommandRegistry implements ICommandRegistry {
      * Get commands by category (lazy loaded)
      */
     async getCommandsByCategory(category: string): Promise<MarkdownCommand[]> {
-        await this.buildIndex();
+        this.buildIndex();
         
         const commandIds = this.categoryIndex.get(category) || [];
         const commands: MarkdownCommand[] = [];
@@ -269,7 +273,7 @@ export class CommandRegistry implements ICommandRegistry {
      * Search commands by query string
      */
     async searchCommands(query: string): Promise<MarkdownCommand[]> {
-        await this.buildIndex();
+        this.buildIndex();
         
         const lowerQuery = query.toLowerCase();
         const matchingIds = new Set<string>();
@@ -355,16 +359,16 @@ export class CommandRegistry implements ICommandRegistry {
     /**
      * Get list of available command IDs without loading full commands
      */
-    async getCommandIds(): Promise<string[]> {
-        await this.buildIndex();
+    getCommandIds(): string[] {
+        this.buildIndex();
         return Array.from(this.commandIndex.keys());
     }
 
     /**
      * Get available categories
      */
-    async getCategories(): Promise<string[]> {
-        await this.buildIndex();
+    getCategories(): string[] {
+        this.buildIndex();
         return Array.from(this.categoryIndex.keys());
     }
 

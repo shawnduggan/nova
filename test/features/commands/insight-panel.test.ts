@@ -46,7 +46,7 @@ describe('InsightPanel', () => {
                 }
             },
             smartVariableResolver: {
-                buildSmartContext: jest.fn().mockResolvedValue({
+                buildSmartContext: jest.fn().mockReturnValue({
                     selection: '',
                     document: 'Test document',
                     title: 'Test',
@@ -127,7 +127,12 @@ describe('InsightPanel', () => {
                     setProperty: jest.fn((prop, value) => {
                         mockCssProperties[prop] = value;
                     })
-                }
+                },
+                setCssProps: jest.fn((props: Record<string, string>) => {
+                    for (const [prop, value] of Object.entries(props)) {
+                        mockCssProperties[prop] = value;
+                    }
+                })
             } as any;
 
             mockScrollerEl = {
@@ -160,7 +165,7 @@ describe('InsightPanel', () => {
             // Should adjust top position to move panel up
             // overflow = 500 - 400 = 100
             // currentTop = 100, newTop = max(0, 100 - 100 - 10) = 0
-            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-top', '0px');
+            expect(mockPanel.setCssProps).toHaveBeenCalledWith({ '--panel-top': '0px' });
         });
 
         test('should adjust position when panel extends beyond left boundary', () => {
@@ -180,8 +185,10 @@ describe('InsightPanel', () => {
             adjustPosition(mockPanel, mockScrollerEl);
 
             // Should switch to right positioning
-            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-right', 'auto');
-            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-left', '30px');
+            expect(mockPanel.setCssProps).toHaveBeenCalledWith({
+                '--panel-right': 'auto',
+                '--panel-left': '30px'
+            });
         });
 
         test('should not adjust position when panel fits within boundaries', () => {
@@ -201,7 +208,7 @@ describe('InsightPanel', () => {
             adjustPosition(mockPanel, mockScrollerEl);
 
             // Should not make any positioning calls since panel fits
-            expect(mockPanel.style.setProperty).not.toHaveBeenCalled();
+            expect(mockPanel.setCssProps).not.toHaveBeenCalled();
         });
 
         test('should handle complex overflow scenarios', () => {
@@ -220,9 +227,12 @@ describe('InsightPanel', () => {
             const adjustPosition = (insightPanel as any).adjustPanelPosition.bind(insightPanel);
             adjustPosition(mockPanel, mockScrollerEl);
 
-            // Should handle both adjustments
-            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-top', '0px'); // Adjusted for bottom overflow
-            expect(mockPanel.style.setProperty).toHaveBeenCalledWith('--panel-left', '30px'); // Adjusted for left overflow
+            // Should handle both adjustments (called twice for top and left)
+            expect(mockPanel.setCssProps).toHaveBeenCalledWith({ '--panel-top': '0px' }); // Adjusted for bottom overflow
+            expect(mockPanel.setCssProps).toHaveBeenCalledWith({
+                '--panel-right': 'auto',
+                '--panel-left': '30px'
+            }); // Adjusted for left overflow
         });
     });
 
@@ -389,7 +399,7 @@ describe('InsightPanel', () => {
             (insightPanel as any).hidePanel = jest.fn();
 
             // Mock the smart context resolution
-            mockPlugin.smartVariableResolver.buildSmartContext.mockResolvedValue(mockContext);
+            mockPlugin.smartVariableResolver.buildSmartContext.mockReturnValue(mockContext);
 
             // Call private executeCommand method
             const executeCommand = (insightPanel as any).executeCommand.bind(insightPanel);
@@ -431,7 +441,7 @@ describe('InsightPanel', () => {
             (insightPanel as any).hidePanel = jest.fn();
 
             // Mock context resolution success but command execution failure
-            mockPlugin.smartVariableResolver.buildSmartContext.mockResolvedValue({});
+            mockPlugin.smartVariableResolver.buildSmartContext.mockReturnValue({});
             mockCommandEngine.executeCommand.mockRejectedValue(mockError);
 
             // Should not throw
@@ -446,7 +456,7 @@ describe('InsightPanel', () => {
             const mockCommand = createMockCommand('test-1', 'Test Command');
 
             // Mock context resolution failure
-            mockPlugin.smartVariableResolver.buildSmartContext.mockResolvedValue(null);
+            mockPlugin.smartVariableResolver.buildSmartContext.mockReturnValue(null);
 
             const executeCommand = (insightPanel as any).executeCommand.bind(insightPanel);
             await executeCommand(mockCommand);

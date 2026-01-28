@@ -346,7 +346,7 @@ export class StreamingManager {
                 
                 // Re-analyze margin indicators after streaming completes
                 if (this.plugin.marginIndicators?.analyzeCurrentContext) {
-                    this.plugin.marginIndicators.analyzeCurrentContext();
+                    void this.plugin.marginIndicators.analyzeCurrentContext();
                 }
                 
                 this.cleanup();

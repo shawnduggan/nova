@@ -176,7 +176,7 @@ export class CommandSystem {
 			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
 			
 			if (featureEnabled) {
-				this.showMarkdownCommandPicker(input);
+				void this.showMarkdownCommandPicker(input);
 			} else {
 				this.hideCommandPicker();
 			}
@@ -219,7 +219,7 @@ export class CommandSystem {
 			
 			if (input.startsWith('/')) {
 				// Handle markdown commands
-				this.handleMarkdownCommandSelection();
+				void this.handleMarkdownCommandSelection();
 				return true;
 			}
 		}
@@ -283,8 +283,8 @@ export class CommandSystem {
 		const modal = new CommandModal(
 			this.plugin.app,
 			commands,
-			async (command: MarkdownCommand) => {
-				await this.selectMarkdownCommand(command);
+			(command: MarkdownCommand) => {
+				void this.selectMarkdownCommand(command);
 			},
 			() => {
 				// User cancelled - clear the input trigger
@@ -312,7 +312,7 @@ export class CommandSystem {
 		
 		try {
 			// Build smart context
-			const context = await this.variableResolver.buildSmartContext();
+			const context = this.variableResolver.buildSmartContext();
 			if (!context) {
 				this.logger.warn('Could not build smart context for command execution');
 				return;

@@ -134,13 +134,16 @@ export class CommandEngine {
             return [];
         }
 
-        return variablesData.map(varData => ({
-            name: varData.name,
-            description: varData.description || '',
-            required: varData.required !== false,
-            defaultValue: varData.default,
-            resolver: varData.resolver || 'user_input'
-        }));
+        return variablesData.map((varData: unknown) => {
+            const data = varData as Record<string, unknown>;
+            return {
+                name: String(data.name ?? ''),
+                description: String(data.description ?? ''),
+                required: data.required !== false,
+                defaultValue: data.default !== undefined ? String(data.default) : undefined,
+                resolver: (data.resolver as TemplateVariable['resolver']) || 'user_input'
+            };
+        });
     }
 
     /**
@@ -206,7 +209,7 @@ export class CommandEngine {
             }
 
             // Resolve template variables
-            const resolvedVariables = await this.resolveVariables(command.variables, context);
+            const resolvedVariables = this.resolveVariables(command.variables, context);
             
             // Create execution context
             const executionContext: CommandExecutionContext = {
@@ -231,14 +234,14 @@ export class CommandEngine {
     /**
      * Resolve all template variables for the command
      */
-    private async resolveVariables(
-        variables: TemplateVariable[], 
+    private resolveVariables(
+        variables: TemplateVariable[],
         context: SmartContext
-    ): Promise<Record<string, string>> {
+    ): Record<string, string> {
         const resolved: Record<string, string> = {};
 
         for (const variable of variables) {
-            const value = await this.resolveVariable(variable, context);
+            const value = this.resolveVariable(variable, context);
             resolved[variable.name] = value;
         }
 
@@ -248,10 +251,10 @@ export class CommandEngine {
     /**
      * Resolve a single template variable
      */
-    private async resolveVariable(
-        variable: TemplateVariable, 
+    private resolveVariable(
+        variable: TemplateVariable,
         context: SmartContext
-    ): Promise<string> {
+    ): string {
         switch (variable.resolver) {
             case 'selection':
                 return context.selection || variable.defaultValue || '';
@@ -317,7 +320,7 @@ export class CommandEngine {
     ): Promise<void> {
         try {
             // Get document context from document engine
-            const documentContext = await this.documentEngine.getDocumentContext();
+            const documentContext = this.documentEngine.getDocumentContext();
             if (!documentContext) {
                 throw new Error('No active document found');
             }
@@ -361,7 +364,7 @@ export class CommandEngine {
             
             // Determine if we have a selection by comparing positions
             const hasSelection = (cursorFrom.line !== cursorTo.line || cursorFrom.ch !== cursorTo.ch);
-            const endPos = hasSelection ? cursorTo : null;
+            const endPos = hasSelection ? cursorTo : undefined;
             
             this.logger.debug(`Setting up streaming: hasSelection=${hasSelection}, selectionLength=${selection.length}, from=${cursorFrom.line}:${cursorFrom.ch}, to=${cursorTo.line}:${cursorTo.ch}`);
             
@@ -460,15 +463,15 @@ Transform each bullet point into well-developed sentences that flow naturally to
                 try {
                     await this.vault.create(commandPath, expandOutlineCommand);
                     this.logger.info('Created default expand-outline command');
-                    new Notice('Nova Commands: Created default command templates in Commands folder');
+                    new Notice('Created default command templates in commands folder');
                 } catch (error) {
                     this.logger.error('Failed to create default command file:', error);
-                    new Notice('Nova Commands: Failed to create default commands. Check file permissions.');
+                    new Notice('Failed to create default commands. Check file permissions.');
                 }
             }
         } catch (error) {
             this.logger.error('Failed to create default commands:', error);
-            new Notice('Nova Commands: Failed to initialize commands folder');
+            new Notice('Failed to initialize commands folder');
         }
     }
 

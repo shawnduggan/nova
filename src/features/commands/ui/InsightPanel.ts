@@ -170,10 +170,10 @@ export class InsightPanel {
         // Show appropriate title based on issue count
         if (opportunity.issueCount && opportunity.issueCount > 0) {
             if (opportunity.issueCount === 1) {
-                title.textContent = '1 Issue';
+                title.textContent = '1 issue';
             } else {
                 // Show count in title for consistent bold formatting
-                title.textContent = `${opportunity.issueCount} Issues`;
+                title.textContent = `${opportunity.issueCount} issues`;
             }
         } else {
             title.textContent = this.getOpportunityTitle(opportunity.type);
@@ -255,7 +255,7 @@ export class InsightPanel {
         // Register click handler for the entire option
         this.plugin.registerDomEvent(option, 'click', (event) => {
             event.stopPropagation();
-            this.executeCommand(command);
+            void this.executeCommand(command);
         });
     }
 
@@ -301,7 +301,7 @@ export class InsightPanel {
         // Register click handler for the specific fix
         this.plugin.registerDomEvent(option, 'click', (event) => {
             event.stopPropagation();
-            this.executeSpecificFix(issue, opportunity);
+            void this.executeSpecificFix(issue, opportunity);
         });
     }
 
@@ -342,7 +342,7 @@ export class InsightPanel {
         // Single click handler for all fixes
         this.plugin.registerDomEvent(option, 'click', (event) => {
             event.stopPropagation();
-            this.applyAllFixes(opportunity);
+            void this.applyAllFixes(opportunity);
         });
     }
 
@@ -427,9 +427,9 @@ export class InsightPanel {
 
         // Open full command modal (copy pattern from command-system.ts)
         const modal = new CommandSelectionModal(
-            this.plugin.app, 
+            this.plugin.app,
             opportunity.commands,
-            (command) => this.executeCommand(command)
+            (command) => { void this.executeCommand(command); }
         );
         modal.open();
     }
@@ -456,10 +456,10 @@ export class InsightPanel {
             this.hidePanel();
 
             // Auto-select the relevant line text before building context
-            await this.selectOpportunityText(editor, opportunity);
+            this.selectOpportunityText(editor, opportunity);
 
             // Build smart context for command execution (now with selected text)
-            const context = await this.plugin.smartVariableResolver?.buildSmartContext();
+            const context = this.plugin.smartVariableResolver?.buildSmartContext();
             if (!context) {
                 this.logger.error('Could not build smart context for command execution');
                 return;
@@ -473,7 +473,7 @@ export class InsightPanel {
                 // Clear all cache since command may affect multiple lines
                 this.plugin.marginIndicators.clearAnalysisCache();
                 // Trigger immediate re-analysis
-                this.plugin.marginIndicators.analyzeCurrentContext();
+                void this.plugin.marginIndicators.analyzeCurrentContext();
             }
         } catch (error) {
             this.logger.error(`Failed to execute command ${command.name}:`, error);
@@ -483,7 +483,7 @@ export class InsightPanel {
     /**
      * Execute a specific fix for a detected issue
      */
-    private async executeSpecificFix(issue: SpecificIssue, opportunity: IndicatorOpportunity): Promise<void> {
+    private executeSpecificFix(issue: SpecificIssue, opportunity: IndicatorOpportunity): void {
         this.logger.info(`Executing specific fix: ${issue.matchedText} → ${issue.suggestedFix}`);
         
         try {
@@ -518,7 +518,7 @@ export class InsightPanel {
                 // Clear the cache for the modified line so it gets re-analyzed
                 this.plugin.marginIndicators.clearLineCacheForLine(opportunity.line);
                 // Trigger immediate re-analysis
-                this.plugin.marginIndicators.analyzeCurrentContext();
+                void this.plugin.marginIndicators.analyzeCurrentContext();
             }
         } catch (error) {
             this.logger.error(`Failed to execute specific fix:`, error);
@@ -557,7 +557,7 @@ export class InsightPanel {
                 );
                 
                 // Build context and execute fix passive voice command
-                const context = await this.plugin.smartVariableResolver?.buildSmartContext();
+                const context = this.plugin.smartVariableResolver?.buildSmartContext();
                 if (context) {
                     // Create a fix passive voice command
                     const fixCommand: MarkdownCommand = {
@@ -607,9 +607,9 @@ export class InsightPanel {
             // Trigger immediate indicator refresh
             if (this.plugin.marginIndicators) {
                 this.plugin.marginIndicators.clearLineCacheForLine(opportunity.line);
-                this.plugin.marginIndicators.analyzeCurrentContext();
+                void this.plugin.marginIndicators.analyzeCurrentContext();
             }
-            
+
         } catch (error) {
             this.logger.error(`Failed to apply combined fixes:`, error);
         }
@@ -625,7 +625,7 @@ export class InsightPanel {
     /**
      * Select the appropriate text based on the opportunity context
      */
-    private async selectOpportunityText(editor: Editor, opportunity: IndicatorOpportunity): Promise<void> {
+    private selectOpportunityText(editor: Editor, opportunity: IndicatorOpportunity): void {
         try {
             const lineNumber = opportunity.line;
             
@@ -672,24 +672,28 @@ export class InsightPanel {
      * This is the proper approach for editor-relative positioning in CodeMirror 6.
      */
     private setInitialPanelPosition(panel: HTMLElement, top: number, right: number): void {
-        panel.style.setProperty('--panel-top', `${top}px`);
-        panel.style.setProperty('--panel-right', `${right}px`);
-        panel.style.setProperty('--panel-left', 'auto');
+        panel.setCssProps({
+            '--panel-top': `${top}px`,
+            '--panel-right': `${right}px`,
+            '--panel-left': 'auto'
+        });
     }
 
     /**
      * Update panel top position using CodeMirror coordinates
      */
     private updatePanelTop(panel: HTMLElement, top: number): void {
-        panel.style.setProperty('--panel-top', `${top}px`);
+        panel.setCssProps({ '--panel-top': `${top}px` });
     }
 
     /**
-     * Move panel to right side using CodeMirror coordinates  
+     * Move panel to right side using CodeMirror coordinates
      */
     private movePanelToRight(panel: HTMLElement, left: number): void {
-        panel.style.setProperty('--panel-right', 'auto');
-        panel.style.setProperty('--panel-left', `${left}px`);
+        panel.setCssProps({
+            '--panel-right': 'auto',
+            '--panel-left': `${left}px`
+        });
     }
 
     /**

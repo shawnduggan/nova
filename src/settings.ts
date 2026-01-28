@@ -239,10 +239,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Suggestion mode')
 			.setDesc('How aggressively to show command suggestions')
 			.addDropdown(dropdown => dropdown
-				.addOption('off', 'Off - No suggestions')
-				.addOption('minimal', 'Minimal - Only high-confidence suggestions')
-				.addOption('balanced', 'Balanced - Good suggestions (recommended)')
-				.addOption('aggressive', 'Aggressive - Show all suggestions')
+				.addOption('off', 'Off - no suggestions')
+				.addOption('minimal', 'Minimal - only high-confidence suggestions')
+				.addOption('balanced', 'Balanced - good suggestions (recommended)')
+				.addOption('aggressive', 'Aggressive - show all suggestions')
 				.setValue(this.plugin.settings.commands.suggestionMode)
 				.onChange(async (value) => {
 					this.plugin.settings.commands.suggestionMode = value as 'off' | 'minimal' | 'balanced' | 'aggressive';

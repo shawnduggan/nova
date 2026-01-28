@@ -19,7 +19,7 @@ export class SmartVariableResolver {
     /**
      * Build comprehensive smart context from the current editor state
      */
-    async buildSmartContext(): Promise<SmartContext | null> {
+    buildSmartContext(): SmartContext | null {
         const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
         if (!activeView || !activeView.editor) {
             this.logger.warn('No active markdown editor found');
@@ -43,7 +43,7 @@ export class SmartVariableResolver {
                 selection: selection,
                 document: document,
                 title: file.basename,
-                documentType: await this.detectDocumentType(document, file.path),
+                documentType: this.detectDocumentType(document, file.path),
                 cursorContext: this.getCursorContext(editor, cursor),
                 metrics: this.calculateMetrics(document),
                 audienceLevel: this.inferAudienceLevel(document)
@@ -66,7 +66,7 @@ export class SmartVariableResolver {
     /**
      * Detect the type of document based on content and metadata
      */
-    private async detectDocumentType(content: string, filePath: string): Promise<SmartContext['documentType']> {
+    private detectDocumentType(content: string, filePath: string): SmartContext['documentType'] {
         // Check file path patterns
         if (filePath.includes('/blog/') || filePath.includes('/posts/')) {
             return 'blog';
@@ -307,10 +307,10 @@ export class SmartVariableResolver {
     /**
      * Resolve a single variable using smart context
      */
-    async resolveVariable(
-        variable: TemplateVariable, 
+    resolveVariable(
+        variable: TemplateVariable,
         context: SmartContext
-    ): Promise<string> {
+    ): string {
         switch (variable.resolver) {
             case 'selection':
                 return context.selection || this.getSmartSelection(context) || variable.defaultValue || '';
@@ -383,15 +383,15 @@ export class SmartVariableResolver {
     /**
      * Resolve all variables for a command template
      */
-    async resolveAllVariables(
-        variables: TemplateVariable[], 
+    resolveAllVariables(
+        variables: TemplateVariable[],
         context: SmartContext
-    ): Promise<Record<string, string>> {
+    ): Record<string, string> {
         const resolved: Record<string, string> = {};
 
         for (const variable of variables) {
             try {
-                const value = await this.resolveVariable(variable, context);
+                const value = this.resolveVariable(variable, context);
                 resolved[variable.name] = value;
                 
                 this.logger.debug(`Resolved variable ${variable.name}:`, {

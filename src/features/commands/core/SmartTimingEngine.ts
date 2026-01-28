@@ -136,8 +136,8 @@ export class SmartTimingEngine {
     private lastAnalysisTime = 0;
     private currentDocumentType: DocumentType = 'unknown';
     
-    // Event subscribers
-    private subscribers = new Map<keyof TimingEvents, Array<(...args: any[]) => void>>();
+    // Event subscribers - uses generic callback storage that's cast at usage
+    private subscribers = new Map<keyof TimingEvents, TimingEvents[keyof TimingEvents][]>();
 
     constructor(plugin: NovaPlugin, variableResolver: SmartVariableResolver) {
         this.plugin = plugin;
@@ -283,7 +283,7 @@ export class SmartTimingEngine {
         key: K
     ): SmartTimingSettings[K] {
         const override = this.settings.documentTypeOverrides[this.currentDocumentType]?.[key];
-        return (override !== undefined ? override : this.settings[key]) as SmartTimingSettings[K];
+        return override !== undefined ? override : this.settings[key];
     }
 
     /**
@@ -348,11 +348,11 @@ export class SmartTimingEngine {
      * Emit timing event to subscribers
      */
     private emit<K extends keyof TimingEvents>(event: K, ...args: Parameters<TimingEvents[K]>): void {
-        const callbacks = this.subscribers.get(event);
+        const callbacks = this.subscribers.get(event) as TimingEvents[K][] | undefined;
         if (callbacks) {
             callbacks.forEach(callback => {
                 try {
-                    callback(...args);
+                    (callback as (...a: Parameters<TimingEvents[K]>) => void)(...args);
                 } catch (error) {
                     this.logger.error(`Error in timing event callback for ${event}:`, error);
                 }

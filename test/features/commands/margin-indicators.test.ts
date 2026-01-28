@@ -108,7 +108,7 @@ describe('MarginIndicators', () => {
 
         // Mock SmartVariableResolver
         mockVariableResolver = {
-            buildSmartContext: jest.fn().mockResolvedValue({
+            buildSmartContext: jest.fn().mockReturnValue({
                 selection: '',
                 document: 'Test document',
                 title: 'test.md',
@@ -121,7 +121,7 @@ describe('MarginIndicators', () => {
 
         // Mock CommandRegistry
         mockCommandRegistry = {
-            buildIndex: jest.fn().mockResolvedValue(undefined),
+            buildIndex: jest.fn(),
             getCommandsByCategory: jest.fn().mockImplementation((category) => {
                 const mockCommands = [
                     { id: `${category}-1`, name: `${category} Command 1`, description: 'Test command' },
@@ -159,7 +159,7 @@ describe('MarginIndicators', () => {
                     '+ Third bullet style'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
@@ -174,7 +174,7 @@ describe('MarginIndicators', () => {
                     'Perhaps this is the answer'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
@@ -190,7 +190,7 @@ describe('MarginIndicators', () => {
                     '#### Fourth Level Header'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
@@ -205,7 +205,7 @@ describe('MarginIndicators', () => {
                     'Regular prose should not trigger enhancement indicators.'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
@@ -222,7 +222,7 @@ describe('MarginIndicators', () => {
                     'The code has been reviewed by the team'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
@@ -238,7 +238,7 @@ describe('MarginIndicators', () => {
                     'This approach is rather complicated'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
@@ -253,7 +253,7 @@ describe('MarginIndicators', () => {
                     'We completed the project successfully'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
@@ -272,7 +272,7 @@ describe('MarginIndicators', () => {
                     'She realized the truth about the situation'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowTransformIndicators(context, line);
@@ -287,7 +287,7 @@ describe('MarginIndicators', () => {
                     'He picked up the phone and dialed the number'
                 ];
 
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const shouldShow = (marginIndicators as any).shouldShowTransformIndicators(context, line);
@@ -299,7 +299,7 @@ describe('MarginIndicators', () => {
         describe('Metrics Opportunities', () => {
             test('should show metrics for documents over 500 words', async () => {
                 const context = {
-                    ...await mockVariableResolver.buildSmartContext(),
+                    ...mockVariableResolver.buildSmartContext(),
                     metrics: { wordCount: 750 }
                 };
 
@@ -309,7 +309,7 @@ describe('MarginIndicators', () => {
 
             test('should NOT show metrics for short documents', async () => {
                 const context = {
-                    ...await mockVariableResolver.buildSmartContext(),
+                    ...mockVariableResolver.buildSmartContext(),
                     metrics: { wordCount: 250 }
                 };
 
@@ -321,7 +321,7 @@ describe('MarginIndicators', () => {
         describe('Edge Cases', () => {
             test('should handle empty lines', async () => {
                 const testLines = ['', '   ', '\t\t'];
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 for (const line of testLines) {
                     const enhancementShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
@@ -336,7 +336,7 @@ describe('MarginIndicators', () => {
 
             test('should handle very long lines', async () => {
                 const longLine = 'This is a very long line that exceeds normal paragraph length and should be handled appropriately by the detection system without causing performance issues or false positives in the analysis engine.';
-                const context = await mockVariableResolver.buildSmartContext();
+                const context = mockVariableResolver.buildSmartContext();
                 
                 // Should not trigger just because it's long
                 const shouldShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, longLine);
@@ -486,7 +486,7 @@ describe('MarginIndicators', () => {
             (marginIndicators as any).activeEditor = mockEditor;
             (marginIndicators as any).activeView = mockView;
 
-            const context = await mockVariableResolver.buildSmartContext();
+            const context = mockVariableResolver.buildSmartContext();
             
             // Test individual line detection to verify logic works
             const line2Result = (marginIndicators as any).shouldShowEnhancementIndicators(context, testDocument[2]); // Bullet
@@ -535,7 +535,7 @@ describe('MarginIndicators', () => {
                 to: testDocument.length - 1
             });
 
-            const context = await mockVariableResolver.buildSmartContext();
+            const context = mockVariableResolver.buildSmartContext();
             
             // Get all opportunities detected
             const opportunities = await (marginIndicators as any).findOpportunities(context);
@@ -585,7 +585,7 @@ describe('MarginIndicators', () => {
                 'This is a paragraph that contains passive voice constructions and very weak language that really needs improvement.' // multiple quickfix issues
             ];
 
-            const context = await mockVariableResolver.buildSmartContext();
+            const context = mockVariableResolver.buildSmartContext();
             
             for (let i = 0; i < multiIssueLines.length; i++) {
                 const line = multiIssueLines[i];
@@ -695,7 +695,7 @@ describe('MarginIndicators', () => {
                 (marginIndicators as any).activeView = mockView;
                 
                 // Mock context with blog document type
-                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                mockVariableResolver.buildSmartContext.mockReturnValueOnce({
                     selection: '',
                     document: '# Blog Post\n\nThis is a blog post.',
                     title: 'Blog Post',
@@ -728,7 +728,7 @@ describe('MarginIndicators', () => {
                 (marginIndicators as any).activeView = mockView;
                 
                 // Mock context with academic document type
-                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                mockVariableResolver.buildSmartContext.mockReturnValueOnce({
                     selection: '',
                     document: '# Research Paper\n\nThis is an academic paper.',
                     title: 'Research Paper',
@@ -761,7 +761,7 @@ describe('MarginIndicators', () => {
                 (marginIndicators as any).activeView = mockView;
                 
                 // Mock context with any document type
-                mockVariableResolver.buildSmartContext.mockResolvedValueOnce({
+                mockVariableResolver.buildSmartContext.mockReturnValueOnce({
                     selection: '',
                     document: '# Any Document\n\nThis is any type.',
                     title: 'Any Document',

@@ -92,7 +92,7 @@ export class MarginIndicators {
         this.logger.info('Commands discovered');
 
         // Build command index for fast lookup
-        await this.commandRegistry.buildIndex();
+        this.commandRegistry.buildIndex();
         this.logger.info('Command index built');
         
         // Set up SmartTimingEngine subscriptions
@@ -131,7 +131,7 @@ export class MarginIndicators {
                     // The SmartTimingEngine handles the scheduling
                 } else {
                     // Immediate analysis requested (e.g., after scroll)
-                    this.analyzeCurrentContext();
+                    void this.analyzeCurrentContext();
                 }
             } else {
                 this.logger.debug(`Timing decision to hide: ${decision.reason}`);
@@ -149,7 +149,7 @@ export class MarginIndicators {
             this.logger.debug(`Analysis scheduled in ${delay}ms`);
             // Schedule our actual analysis to run after the delay
             this.timeoutManager.addTimeout(() => {
-                this.analyzeCurrentContext();
+                void this.analyzeCurrentContext();
             }, delay);
         });
     }
@@ -157,7 +157,7 @@ export class MarginIndicators {
     /**
      * Handle active editor changes
      */
-    private async onActiveEditorChange(): Promise<void> {
+    private onActiveEditorChange(): void {
         // Clean up previous editor
         this.cleanupCurrentEditor();
 
@@ -180,13 +180,13 @@ export class MarginIndicators {
 
         this.activeView = activeView;
         this.activeEditor = activeView.editor;
-        
+
         // Set up CodeMirror indicator manager
         this.setupCodeMirrorManager();
-        
+
         if (this.enabled) {
             this.setupEditorListeners();
-            this.analyzeCurrentContext(); // Immediate analysis on editor change
+            void this.analyzeCurrentContext(); // Immediate analysis on editor change
         }
     }
 
@@ -228,13 +228,13 @@ export class MarginIndicators {
     /**
      * Handle editor input events
      */
-    private async onEditorInput(): Promise<void> {
+    private onEditorInput(): void {
         // Clear cache when document changes
         this.clearAnalysisCache();
 
         // Update document type for context-aware timing
         if (this.activeView?.file) {
-            const context = await this.variableResolver.buildSmartContext();
+            const context = this.variableResolver.buildSmartContext();
             if (context) {
                 this.smartTimingEngine.setDocumentType(context.documentType);
             }
@@ -263,7 +263,7 @@ export class MarginIndicators {
             this.logger.debug('Analyzing context for margin indicators...');
             
             // Build smart context
-            const context = await this.variableResolver.buildSmartContext();
+            const context = this.variableResolver.buildSmartContext();
             if (!context) {
                 this.logger.warn('No smart context available');
                 return;
@@ -287,8 +287,8 @@ export class MarginIndicators {
             });
 
             // Get current line for analysis
-            const cursor = this.activeEditor!.getCursor();
-            const currentLine = this.activeEditor!.getLine(cursor.line);
+            const cursor = this.activeEditor.getCursor();
+            const currentLine = this.activeEditor.getLine(cursor.line);
             this.logger.debug(`Analyzing line ${cursor.line}: "${currentLine}"`);
 
             // Find opportunities
@@ -761,13 +761,15 @@ export class MarginIndicators {
         
         try {
             // Get the CodeMirror EditorView from the Obsidian editor
-            const cm = (this.activeView.editor as any).cm as EditorView;
+            const editorWithCm = this.activeView.editor as { cm?: EditorView };
+            const cm = editorWithCm.cm;
             if (cm) {
                 this.indicatorManager = new CodeMirrorIndicatorManager(cm);
-                
+
                 // Set up event listener for indicator clicks
-                this.plugin.registerDomEvent(document, 'nova-indicator-click' as any, (event: CustomEvent) => {
-                    const { opportunity, element } = event.detail;
+                this.plugin.registerDomEvent(document, 'nova-indicator-click' as keyof DocumentEventMap, (event: Event) => {
+                    const customEvent = event as CustomEvent;
+                    const { opportunity, element } = customEvent.detail;
                     this.onIndicatorClick(opportunity, element);
                 });
                 
@@ -896,7 +898,7 @@ export class MarginIndicators {
             this.setEnabled(false);
         } else {
             this.setEnabled(true);
-            this.analyzeCurrentContext(); // Re-analyze with new intensity
+            void this.analyzeCurrentContext(); // Re-analyze with new intensity
         }
         
         this.logger.info(`MarginIndicators intensity set to: ${level}`);
