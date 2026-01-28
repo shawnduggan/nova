@@ -86,8 +86,12 @@ export class MarginIndicators {
      */
     async init(): Promise<void> {
         this.logger.info('Initializing MarginIndicators');
-        
-        // Ensure command index is built
+
+        // Discover commands (creates Commands folder and default commands if needed)
+        await this.commandEngine.discoverCommands();
+        this.logger.info('Commands discovered');
+
+        // Build command index for fast lookup
         await this.commandRegistry.buildIndex();
         this.logger.info('Command index built');
         
