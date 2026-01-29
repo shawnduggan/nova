@@ -452,7 +452,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addErrorMessage('Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
+			this.addErrorMessage('Smart Fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
 			return true;
 		}
 
@@ -674,7 +674,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
-			this.addErrorMessage('Commands are currently in early access for Supernova supporters. Available to all users September 30, 2025.');
+			this.addErrorMessage('Smart Fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
 			return;
 		}
 
@@ -2359,7 +2359,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		const mode = this.plugin.settings.commands.suggestionMode;
 		const modeConfig = this.getCommandModeConfig(mode);
-		this.commandsButton.setTooltip(`Commands: ${modeConfig.label} (click to change)`);
+		this.commandsButton.setTooltip(`Smart Fill: ${modeConfig.label} (click to change)`);
 	}
 
 	/**

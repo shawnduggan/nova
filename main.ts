@@ -234,10 +234,10 @@ export default class NovaPlugin extends Plugin {
 				}
 			});
 
-			// Register /fill command for Nova markers
+			// Register /fill command for Nova placeholders
 			this.addCommand({
-				id: 'fill-markers',
-				name: 'Fill markers (/fill)',
+				id: 'fill-placeholders',
+				name: 'Fill placeholders (/fill)',
 				editorCallback: async () => {
 					await this.commandEngine.executeFill();
 				}

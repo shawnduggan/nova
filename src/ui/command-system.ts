@@ -52,7 +52,7 @@ export class CommandSystem {
 	createCommandButton(inputRow: HTMLElement): ButtonComponent {
 		this.commandButton = new ButtonComponent(inputRow);
 		this.commandButton.setIcon('zap');
-		this.commandButton.setTooltip('Commands');
+		this.commandButton.setTooltip('Smart Fill');
 		this.commandButton.onClick(() => this.toggleCommandMenu());
 		this.commandButton.buttonEl.addClass('nova-command-button-styled');
 		if (!this.shouldShowCommandButton()) {
@@ -270,10 +270,10 @@ export class CommandSystem {
 		// Create the single /fill command
 		const fillCommand: MarkdownCommand = {
 			id: 'fill',
-			name: 'Fill markers',
-			description: 'Fill all <!-- nova: --> markers in the document',
+			name: 'Fill placeholders',
+			description: 'Fill all <!-- nova: --> placeholders in the document',
 			template: '',
-			keywords: ['fill', 'markers', 'nova'],
+			keywords: ['fill', 'placeholders', 'nova'],
 			category: 'writing',
 			iconType: '📝',
 			variables: []
@@ -337,7 +337,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		this.onSelectCallback = onSelect;
 		this.onCancelCallback = onCancel;
 
-		this.setPlaceholder('Type /fill to fill markers...');
+		this.setPlaceholder('Type /fill to fill placeholders...');
 	}
 
 	onOpen(): void {
@@ -351,7 +351,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 
 		const useInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		useInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↵' });
-		useInstruction.createSpan({ text: 'to fill markers' });
+		useInstruction.createSpan({ text: 'to fill placeholders' });
 
 		const escInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		escInstruction.createSpan({ cls: 'prompt-instruction-command', text: 'esc' });

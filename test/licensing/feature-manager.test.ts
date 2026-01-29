@@ -106,7 +106,7 @@ describe('FeatureManager', () => {
 		test('should support debug mode for development', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2026-06-01', // Future date where all features are available
+				overrideDate: '2026-08-01', // Future date where supernova features are available
 				forceSupernova: true
 			};
 
@@ -120,13 +120,13 @@ describe('FeatureManager', () => {
 		test('should allow date override for testing', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2025-08-01', // Date before commands general availability
+				overrideDate: '2026-08-01', // Date before commands general availability
 				forceSupernova: false
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
 
-			// Commands should not be available yet (general date is 2025-09-30)
+			// Commands should not be available yet (general date is 2026-10-01)
 			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
 		});
 

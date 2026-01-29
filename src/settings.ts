@@ -131,7 +131,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			{ id: 'getting-started', label: 'Getting started' },
 			{ id: 'general', label: 'General' },
 			{ id: 'providers', label: 'AI providers' },
-			{ id: 'commands', label: 'Commands' },
+			{ id: 'commands', label: 'Smart Fill' },
 			{ id: 'supernova', label: 'Supernova' }
 		];
 
@@ -227,7 +227,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createCommandsTabContent(container: HTMLElement): void {
 		// Main section heading
-		new Setting(container).setName('Command suggestions').setHeading();
+		new Setting(container).setName('Smart Fill').setHeading();
 		container.createEl('hr', { cls: 'nova-section-divider' });
 		
 		// Description
@@ -265,12 +265,12 @@ export class NovaSettingTab extends PluginSettingTab {
 		// /fill command info
 		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
 		new Setting(container)
-			.setName('Using markers')
+			.setName('Using placeholders')
 			.setHeading();
 
 		const markerInfo = container.createDiv({ cls: 'nova-setting-description' });
 		markerInfo.innerHTML = `
-			<p>Add <code>&lt;!-- nova: your instruction --&gt;</code> markers in your document, then use the <strong>/fill</strong> command (or Command Palette: "Fill markers") to generate content for all markers at once.</p>
+			<p>Add <code>&lt;!-- nova: your instruction --&gt;</code> placeholders in your document, then use the <strong>/fill</strong> command (or Command Palette: "Fill placeholders") to generate content for all placeholders at once.</p>
 			<p><strong>Example:</strong></p>
 			<pre>&lt;!-- nova: Write a compelling introduction about AI --&gt;</pre>
 		`;
@@ -923,7 +923,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		// Add validation button separately
 		new Setting(licenseContainer)
-			.setDesc('Validate your supernova license key')
+			.setDesc('Validate your Supernova license key')
 			.addButton(button => {
 				button.setButtonText('Validate license')
 					.onClick(async () => {
@@ -978,7 +978,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
 		const infoCard = supernovaInfo.createDiv({ cls: 'nova-info-card' });
 		const cardTitle4 = infoCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle4.setText('Become a supernova supporter');
+		cardTitle4.setText('Become a Supernova supporter');
 		const description = infoCard.createEl('p');
 		description.textContent = 'Support Nova development and get early access to new features. All features eventually become free for everyone.';
 		
@@ -1053,8 +1053,8 @@ export class NovaSettingTab extends PluginSettingTab {
 					}));
 
 			new Setting(debugContainer)
-				.setName('Force supernova status')
-				.setDesc('Override supernova supporter status for testing')
+				.setName('Force Supernova status')
+				.setDesc('Override Supernova supporter status for testing')
 				.addToggle(toggle => toggle
 					.setValue(this.plugin.settings.licensing.debugSettings.forceSupernova || false)
 					.onChange(async (value) => {
@@ -1454,8 +1454,8 @@ export class NovaSettingTab extends PluginSettingTab {
 			title.textContent = 'Supernova supporter feature';
 			
 			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
-			description.textContent = 'Custom commands are currently available to supernova supporters. They will be available to all users on ';
-			description.createEl('strong', { text: 'October 1, 2025' });
+			description.textContent = 'Smart Fill is currently available to Supernova supporters. It will be available to all users on ';
+			description.createEl('strong', { text: 'January 1, 2026' });
 			description.appendText('.');
 			return;
 		}

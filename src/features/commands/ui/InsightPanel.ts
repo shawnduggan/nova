@@ -214,7 +214,7 @@ export class InsightPanel {
         const header = option.createDiv({ cls: 'nova-command-option-header' });
 
         const instructionText = header.createDiv({ cls: 'nova-marker-instruction' });
-        const instruction = opportunity.specificIssues?.[0]?.description || 'Marker';
+        const instruction = opportunity.specificIssues?.[0]?.description || 'Placeholder';
         instructionText.textContent = instruction.length > 60 ? instruction.substring(0, 57) + '...' : instruction;
 
         const actionButton = header.createSpan({
@@ -233,7 +233,7 @@ export class InsightPanel {
 
         // Description
         const description = option.createDiv({ cls: CSS_CLASSES.COMMAND_DESCRIPTION });
-        description.textContent = 'Use /fill command to generate content for this marker';
+        description.textContent = 'Use /fill command to generate content for this placeholder';
 
         // Register click handler to run /fill
         this.plugin.registerDomEvent(option, 'click', (event) => {

@@ -90,7 +90,7 @@ export class CommandEngine {
         const markers = this.detectMarkers(documentContext.content);
 
         if (markers.length === 0) {
-            new Notice('No markers found in document');
+            new Notice('No placeholders found in document');
             return;
         }
 
@@ -109,10 +109,10 @@ export class CommandEngine {
         try {
             // Execute the fill with streaming
             await this.executeWithStreamingForFill(prompt, markers, documentContext.content);
-            new Notice(`Filled ${markers.length} marker${markers.length > 1 ? 's' : ''}`);
+            new Notice(`Filled ${markers.length} placeholder${markers.length > 1 ? 's' : ''}`);
         } catch (error) {
             this.logger.error('Failed to execute /fill:', error);
-            new Notice('Failed to fill markers: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            new Notice('Failed to fill placeholders: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     }
 

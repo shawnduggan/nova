@@ -90,7 +90,7 @@ Nova knows about document structure, headings, and flow. Chat with cursor precis
 
 ### Writing Craft Infrastructure
 
-Place `<!-- nova: your instruction -->` markers anywhere in your document, then use `/fill` to generate content for all markers at once. Build structured documents with AI assistance exactly where you need it.
+Place `<!-- nova: your instruction -->` placeholders anywhere in your document, then use `/fill` to generate content for all placeholders at once. Build structured documents with AI assistance exactly where you need it.
 
 This isn't just AI assistance. It's writing craft amplification.
 
@@ -161,7 +161,7 @@ Nova started with the radical idea that AI should edit where you tell it to, not
 
 🌠 Early Access for Supernova Supporters
 
-- 🧠 **Marker System** – Place `<!-- nova: instruction -->` markers in your document, then use `/fill` to generate content. Get writing insights with margin indicators that highlight passive voice, weak words, and improvement opportunities.  
+- 🧠 **Smart Fill** – Place `<!-- nova: instruction -->` placeholders in your document, then use `/fill` to generate content. Get writing insights with margin indicators that highlight passive voice, weak words, and improvement opportunities.  
 - 🎯 **Writing Modes** – Instantly shift tone (e.g. blog → academic) based on context — no prompt engineering required.  
 - 🎨 **Style Mirroring** – AI that writes like *you*, not like ChatGPT. Your tone, your voice, your vocabulary.  
 - 🚀 **Smart Autocomplete** – Finish your thoughts before you finish typing. Like GitHub Copilot for prose.

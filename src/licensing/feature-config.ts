@@ -19,8 +19,8 @@ export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
     // Commands - 3 month early access
     // TODO - update before release
     'commands': {
-        supernovaDate: '2026-04-01',  // Supernova early access
-        generalDate: '2026-07-01',   // General availability 
-        description: 'Command system with / triggers, command button, and custom commands'
+        supernovaDate: '2026-07-01',  // Supernova early access
+        generalDate: '2026-10-01',   // General availability
+        description: 'Smart Fill with / triggers and placeholders'
     }
 };
