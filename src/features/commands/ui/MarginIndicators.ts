@@ -1,6 +1,7 @@
 /**
  * MarginIndicators - Intelligent margin indicators for command suggestions
  * Shows contextual command hints in the editor margin with progressive disclosure
+ * Now supports `<!-- nova: instruction -->` markers for the /fill command
  */
 
 import { MarkdownView, Editor } from 'obsidian';
@@ -8,8 +9,7 @@ import { EditorView } from '@codemirror/view';
 import { Logger } from '../../../utils/logger';
 import { TimeoutManager } from '../../../utils/timeout-manager';
 import { SmartVariableResolver } from '../core/SmartVariableResolver';
-import { CommandRegistry } from '../core/CommandRegistry';
-import { CommandEngine } from '../core/CommandEngine';
+import { CommandEngine, MarkerInsight } from '../core/CommandEngine';
 import { SmartTimingEngine } from '../core/SmartTimingEngine';
 import { InsightPanel } from './InsightPanel';
 import { CodeMirrorIndicatorManager } from './codemirror-decorations';
@@ -39,7 +39,6 @@ interface IndicatorOpportunity {
 export class MarginIndicators {
     private plugin: NovaPlugin;
     private variableResolver: SmartVariableResolver;
-    private commandRegistry: CommandRegistry;
     private commandEngine: CommandEngine;
     private smartTimingEngine: SmartTimingEngine;
     public insightPanel: InsightPanel;
@@ -51,7 +50,7 @@ export class MarginIndicators {
     private activeView: MarkdownView | null = null;
     private indicatorManager: CodeMirrorIndicatorManager | null = null;
     private currentOpportunities: IndicatorOpportunity[] = [];
-    
+
     // Performance optimization - line-level caching
     private lineAnalysisCache = new Map<number, { hash: string; opportunities: IndicatorOpportunity[] }>();
     private documentHash = '';
@@ -59,24 +58,22 @@ export class MarginIndicators {
     // Settings
     private enabled = true;
     private intensityLevel: 'off' | 'minimal' | 'balanced' | 'aggressive' = 'balanced';
-    
+
     // Performance limits
     private readonly MAX_INDICATORS = 20; // Maximum indicators to show at once
 
     constructor(
         plugin: NovaPlugin,
         variableResolver: SmartVariableResolver,
-        commandRegistry: CommandRegistry,
         commandEngine: CommandEngine,
         smartTimingEngine: SmartTimingEngine
     ) {
         this.plugin = plugin;
         this.variableResolver = variableResolver;
-        this.commandRegistry = commandRegistry;
         this.commandEngine = commandEngine;
         this.smartTimingEngine = smartTimingEngine;
         this.insightPanel = new InsightPanel(plugin, commandEngine);
-        
+
         // Initialize settings from plugin configuration
         this.updateSettings();
     }
@@ -84,20 +81,12 @@ export class MarginIndicators {
     /**
      * Initialize the margin indicators system
      */
-    async init(): Promise<void> {
+    init(): void {
         this.logger.info('Initializing MarginIndicators');
 
-        // Discover commands (creates Commands folder and default commands if needed)
-        await this.commandEngine.discoverCommands();
-        this.logger.info('Commands discovered');
-
-        // Build command index for fast lookup
-        this.commandRegistry.buildIndex();
-        this.logger.info('Command index built');
-        
         // Set up SmartTimingEngine subscriptions
         this.setupTimingEventListeners();
-        
+
         // Register for workspace events
         this.plugin.registerEvent(
             this.plugin.app.workspace.on('active-leaf-change', () => {
@@ -105,7 +94,7 @@ export class MarginIndicators {
             })
         );
 
-        // Register for file change events  
+        // Register for file change events
         this.plugin.registerEvent(
             this.plugin.app.workspace.on('file-open', () => {
                 this.onActiveEditorChange();
@@ -114,7 +103,7 @@ export class MarginIndicators {
 
         // Initialize with current active editor
         this.onActiveEditorChange();
-        
+
         this.logger.info('MarginIndicators initialized');
     }
 
@@ -256,24 +245,16 @@ export class MarginIndicators {
     /**
      * Analyze current context and show relevant indicators
      */
-    public async analyzeCurrentContext(): Promise<void> {
+    public analyzeCurrentContext(): void {
         if (!this.activeEditor || !this.enabled) return;
 
         try {
             this.logger.debug('Analyzing context for margin indicators...');
-            
+
             // Build smart context
             const context = this.variableResolver.buildSmartContext();
             if (!context) {
                 this.logger.warn('No smart context available');
-                return;
-            }
-
-            // Check if document type is enabled for analysis
-            const enabledTypes = this.plugin.settings.commands?.enabledDocumentTypes || [];
-            if (enabledTypes.length > 0 && !enabledTypes.includes(context.documentType)) {
-                this.logger.debug(`Document type '${context.documentType}' is not enabled for progressive disclosure`);
-                this.clearIndicators();
                 return;
             }
 
@@ -291,20 +272,13 @@ export class MarginIndicators {
             const currentLine = this.activeEditor.getLine(cursor.line);
             this.logger.debug(`Analyzing line ${cursor.line}: "${currentLine}"`);
 
-            // Find opportunities
-            const opportunities = await this.findOpportunities(context);
+            // Find opportunities (including markers)
+            const opportunities = this.findOpportunities(context);
             this.logger.debug(`Found ${opportunities.length} opportunities:`, opportunities.map(o => `Line ${o.line}: ${o.type} (${o.confidence})`));
-            
-            // Debug: Log all available commands for each category
-            const categoryChecks = ['enhancement', 'quickfix', 'analysis', 'transform'];
-            for (const category of categoryChecks) {
-                const commands = await this.getCommandsByCategory(category);
-                this.logger.debug(`Commands available for ${category}: ${commands.length}`, commands.map(c => c.name));
-            }
-            
+
             // Update indicators
             this.updateIndicators(opportunities);
-            
+
         } catch (error) {
             this.logger.error('Failed to analyze context for indicators:', error);
         }
@@ -312,118 +286,99 @@ export class MarginIndicators {
 
     /**
      * Find command opportunities based on context
+     * Now includes marker detection for `<!-- nova: instruction -->` patterns
      */
-    private async findOpportunities(context: SmartContext): Promise<IndicatorOpportunity[]> {
+    private findOpportunities(context: SmartContext): IndicatorOpportunity[] {
         const opportunities: IndicatorOpportunity[] = [];
-        
+
         // Get visible lines range
         const visibleRange = this.getVisibleLineRange();
         this.logger.debug(`Analyzing lines ${visibleRange.from} to ${visibleRange.to}`);
-        
-        
-        // Pre-load all command categories for efficiency
-        const [enhancementCommands, quickFixCommands, metricsCommands, transformCommands] = await Promise.all([
-            this.getCommandsByCategory('enhancement'),
-            this.getCommandsByCategory('quickfix'),
-            this.getCommandsByCategory('analysis'),
-            this.getCommandsByCategory('transform')
-        ]);
-        
-        // Debug command availability
-        this.logger.debug(`Commands available - Enhancement: ${enhancementCommands.length}, QuickFix: ${quickFixCommands.length}, Metrics: ${metricsCommands.length}, Transform: ${transformCommands.length}`);
-        
-        // Handle missing commands gracefully 
-        // Note: When commands aren't loaded, we still want to show indicators for user feedback
-        // but we should log this condition for debugging
-        if (enhancementCommands.length === 0) this.logger.warn('No enhancement commands loaded from registry');
-        if (quickFixCommands.length === 0) this.logger.warn('No quickfix commands loaded from registry');
-        if (metricsCommands.length === 0) this.logger.warn('No metrics commands loaded from registry');
-        if (transformCommands.length === 0) this.logger.warn('No transform commands loaded from registry');
-        
-        // Use the commands directly - the detection logic will handle empty arrays
-        const activeEnhancementCommands = enhancementCommands;
-        const activeQuickFixCommands = quickFixCommands;
-        const activeMetricsCommands = metricsCommands;
-        const activeTransformCommands = transformCommands;
-        
-        // Analyze each visible line (with caching)
+
+        // First, detect any markers in the document
+        const documentContent = context.document;
+        const markers = this.commandEngine.detectMarkers(documentContent);
+
+        // Add marker-based opportunities
+        for (const marker of markers) {
+            // Only show if marker is in visible range
+            if (marker.line >= visibleRange.from && marker.line <= visibleRange.to) {
+                opportunities.push({
+                    line: marker.line,
+                    column: this.getMarginColumn(),
+                    type: 'enhancement',
+                    icon: '📝',
+                    commands: [], // No commands needed - markers use /fill
+                    confidence: 1.0, // High confidence for explicit markers
+                    specificIssues: [{
+                        matchedText: `<!-- nova: ${marker.instruction.substring(0, 30)}${marker.instruction.length > 30 ? '...' : ''} -->`,
+                        startIndex: marker.position,
+                        endIndex: marker.position + marker.length,
+                        description: marker.instruction,
+                        suggestedFix: 'Use /fill to generate content'
+                    }],
+                    issueCount: 1
+                });
+            }
+        }
+
+        // Analyze each visible line for writing quality issues (with caching)
         for (let lineNumber = visibleRange.from; lineNumber <= visibleRange.to; lineNumber++) {
             const lineText = this.activeEditor!.getLine(lineNumber);
             if (!lineText || lineText.trim().length === 0) continue;
-            
+
+            // Skip lines that are markers (already handled above)
+            if (lineText.match(/<!--\s*nova:/i)) continue;
+
             // Check cache first
             const lineHash = this.hashLine(lineText);
             const cached = this.lineAnalysisCache.get(lineNumber);
-            
+
             if (cached && cached.hash === lineHash) {
                 // Use cached results
                 opportunities.push(...cached.opportunities);
                 continue;
             }
-            
+
             // Analyze line and cache results
             const lineOpportunities: IndicatorOpportunity[] = [];
-            
-            // Enhancement opportunities (💡)
-            if (this.shouldShowEnhancementIndicators(context, lineText)) {
-                lineOpportunities.push({
-                    line: lineNumber,
-                    column: this.getMarginColumn(),
-                    type: 'enhancement',
-                    icon: '💡',
-                    commands: activeEnhancementCommands.slice(0, 3),
-                    confidence: this.calculateConfidence(context, 'enhancement')
-                });
-            }
 
-            // Quick fix opportunities (⚡) - Enhanced with specific issue detection
+            // Quick fix opportunities (⚡) - Writing quality issues
             const quickFixIssues = this.findQuickFixIssues(context, lineText);
             if (quickFixIssues.length > 0) {
                 const issueCount = quickFixIssues.length;
-                
+
                 lineOpportunities.push({
                     line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'quickfix',
                     icon: '⚡',
-                    commands: activeQuickFixCommands.slice(0, 2),
+                    commands: [], // Commands are embedded in specificIssues
                     confidence: this.calculateConfidence(context, 'quickfix'),
                     specificIssues: quickFixIssues,
                     issueCount
                 });
             }
 
-            // Transformation opportunities (✨)
+            // Transformation opportunities (✨) - "show don't tell"
             if (this.shouldShowTransformIndicators(context, lineText)) {
                 lineOpportunities.push({
                     line: lineNumber,
                     column: this.getMarginColumn(),
                     type: 'transform',
                     icon: '✨',
-                    commands: activeTransformCommands.slice(0, 3),
+                    commands: [],
                     confidence: this.calculateConfidence(context, 'transform')
                 });
             }
-            
+
             // Cache the results
             this.lineAnalysisCache.set(lineNumber, {
                 hash: lineHash,
                 opportunities: lineOpportunities
             });
-            
+
             opportunities.push(...lineOpportunities);
-        }
-        
-        // Metrics opportunities (📊) - document-level, place at top
-        if (this.shouldShowMetricsIndicators(context)) {
-            opportunities.push({
-                line: Math.max(0, visibleRange.from),
-                column: this.getMarginColumn(),
-                type: 'metrics',
-                icon: '📊',
-                commands: activeMetricsCommands.slice(0, 2),
-                confidence: this.calculateConfidence(context, 'metrics')
-            });
         }
 
         // Filter by intensity level and confidence
@@ -650,27 +605,6 @@ export class MarginIndicators {
         if (currentLine.match(/\b(felt|thought|believed|knew|realized)\b/)) return true;
         
         return false;
-    }
-
-    /**
-     * Get commands by category from registry
-     */
-    private async getCommandsByCategory(category: string): Promise<MarkdownCommand[]> {
-        try {
-            // Map our indicator categories to command categories
-            const categoryMap: Record<string, string> = {
-                'enhancement': 'writing',
-                'quickfix': 'editing',
-                'analysis': 'analysis',
-                'transform': 'transformation'
-            };
-            
-            const commandCategory = categoryMap[category] || 'writing';
-            return await this.commandRegistry.getCommandsByCategory(commandCategory);
-        } catch (error) {
-            this.logger.error(`Failed to get commands for category ${category}:`, error);
-            return [];
-        }
     }
 
     /**

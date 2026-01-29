@@ -5,7 +5,6 @@
 
 import { MarginIndicators } from '../../../src/features/commands/ui/MarginIndicators';
 import { SmartVariableResolver } from '../../../src/features/commands/core/SmartVariableResolver';
-import { CommandRegistry } from '../../../src/features/commands/core/CommandRegistry';
 import { CommandEngine } from '../../../src/features/commands/core/CommandEngine';
 import { SmartTimingEngine } from '../../../src/features/commands/core/SmartTimingEngine';
 import type { SmartContext } from '../../../src/features/commands/types';
@@ -36,7 +35,6 @@ describe('MarginIndicators', () => {
     let marginIndicators: MarginIndicators;
     let mockPlugin: any;
     let mockVariableResolver: any;
-    let mockCommandRegistry: any;
     let mockCommandEngine: any;
     let mockSmartTimingEngine: any;
     let mockEditor: any;
@@ -119,21 +117,11 @@ describe('MarginIndicators', () => {
             } as SmartContext)
         };
 
-        // Mock CommandRegistry
-        mockCommandRegistry = {
-            buildIndex: jest.fn(),
-            getCommandsByCategory: jest.fn().mockImplementation((category) => {
-                const mockCommands = [
-                    { id: `${category}-1`, name: `${category} Command 1`, description: 'Test command' },
-                    { id: `${category}-2`, name: `${category} Command 2`, description: 'Test command' }
-                ];
-                return Promise.resolve(mockCommands);
-            })
-        };
-
         // Mock CommandEngine
         mockCommandEngine = {
-            executeCommand: jest.fn().mockResolvedValue(undefined)
+            executeCommand: jest.fn().mockResolvedValue(undefined),
+            executeFill: jest.fn().mockResolvedValue(undefined),
+            detectMarkers: jest.fn().mockReturnValue([])
         };
 
         // Mock SmartTimingEngine
@@ -147,7 +135,7 @@ describe('MarginIndicators', () => {
             cleanup: jest.fn()
         };
 
-        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandRegistry, mockCommandEngine, mockSmartTimingEngine);
+        marginIndicators = new MarginIndicators(mockPlugin, mockVariableResolver, mockCommandEngine, mockSmartTimingEngine);
     });
 
     describe('Opportunity Detection', () => {
@@ -538,7 +526,7 @@ describe('MarginIndicators', () => {
             const context = mockVariableResolver.buildSmartContext();
             
             // Get all opportunities detected
-            const opportunities = await (marginIndicators as any).findOpportunities(context);
+            const opportunities = (marginIndicators as any).findOpportunities(context);
             
             // Analyze each line that should have opportunities
             const expectedLines = [2, 3, 5, 7, 9, 11];
@@ -586,29 +574,148 @@ describe('MarginIndicators', () => {
             ];
 
             const context = mockVariableResolver.buildSmartContext();
-            
+
             for (let i = 0; i < multiIssueLines.length; i++) {
                 const line = multiIssueLines[i];
                 const lineNumber = i + 5; // Start from line 5
-                
+
                 // Mock a single line document
                 mockEditor.getLine.mockImplementation((lineNum: number) => lineNum === lineNumber ? line : '');
                 mockEditor.lineCount.mockReturnValue(lineNumber + 1);
-                
+
                 (marginIndicators as any).activeEditor = mockEditor;
                 (marginIndicators as any).activeView = mockView;
-                
-                const opportunities = await (marginIndicators as any).findOpportunities(context);
-                
+
+                const opportunities = (marginIndicators as any).findOpportunities(context);
+
                 // Count how many opportunities are on this line
                 const opportunitiesForLine = opportunities.filter((o: any) => o.line === lineNumber);
                 console.log(`Line ${lineNumber}: "${line.substring(0, 50)}..." -> ${opportunitiesForLine.length} opportunities`);
                 console.log('Types:', opportunitiesForLine.map((o: any) => o.type));
-                
+
                 // Multiple opportunities on same line should only create one indicator per type
                 const uniqueTypes = new Set(opportunitiesForLine.map((o: any) => o.type));
                 expect(opportunitiesForLine.length).toBe(uniqueTypes.size);
             }
+        });
+
+        test('should detect Nova markers in document', async () => {
+            const testDocument = [
+                '# Document with Markers',
+                '',
+                '<!-- nova: Write an introduction about AI -->',
+                '',
+                'Some regular content here.',
+                '',
+                '<!-- nova: Expand these bullets:',
+                '- Time blocking',
+                '- Notification batching',
+                '-->',
+            ];
+
+            // Mock the editor to return our test lines
+            mockEditor.getLine.mockImplementation((lineNum: number) => testDocument[lineNum] || '');
+            mockEditor.lineCount.mockReturnValue(testDocument.length);
+
+            (marginIndicators as any).activeEditor = mockEditor;
+            (marginIndicators as any).activeView = mockView;
+
+            // Mock getVisibleLineRange to return the full document range
+            (marginIndicators as any).getVisibleLineRange = jest.fn().mockReturnValue({
+                from: 0,
+                to: testDocument.length - 1
+            });
+
+            // Mock detectMarkers to return markers
+            const docContent = testDocument.join('\n');
+            mockCommandEngine.detectMarkers.mockReturnValue([
+                {
+                    line: 2,
+                    endLine: 2,
+                    instruction: 'Write an introduction about AI',
+                    position: docContent.indexOf('<!-- nova: Write'),
+                    length: '<!-- nova: Write an introduction about AI -->'.length
+                },
+                {
+                    line: 6,
+                    endLine: 9,
+                    instruction: 'Expand these bullets:\n- Time blocking\n- Notification batching',
+                    position: docContent.indexOf('<!-- nova: Expand'),
+                    length: '<!-- nova: Expand these bullets:\n- Time blocking\n- Notification batching\n-->'.length
+                }
+            ]);
+
+            // Mock context with the document
+            mockVariableResolver.buildSmartContext.mockReturnValueOnce({
+                selection: '',
+                document: docContent,
+                title: 'test.md',
+                documentType: 'unknown',
+                cursorContext: '',
+                metrics: { wordCount: 100 },
+                audienceLevel: 'general'
+            });
+
+            const context = mockVariableResolver.buildSmartContext();
+            const opportunities = (marginIndicators as any).findOpportunities(context);
+
+            // Should have opportunities for markers
+            const markerOpportunities = opportunities.filter((o: any) => o.icon === '📝');
+            expect(markerOpportunities.length).toBe(2);
+
+            // Check first marker
+            const firstMarker = markerOpportunities.find((o: any) => o.line === 2);
+            expect(firstMarker).toBeDefined();
+            expect(firstMarker?.confidence).toBe(1.0);
+
+            // Check second marker (multi-line)
+            const secondMarker = markerOpportunities.find((o: any) => o.line === 6);
+            expect(secondMarker).toBeDefined();
+        });
+
+        test('should skip marker lines for regular writing analysis', async () => {
+            const testDocument = [
+                '<!-- nova: Generate content -->',  // Should NOT get writing analysis
+                'I think this is unclear.',  // Should get writing analysis
+            ];
+
+            mockEditor.getLine.mockImplementation((lineNum: number) => testDocument[lineNum] || '');
+            mockEditor.lineCount.mockReturnValue(testDocument.length);
+
+            (marginIndicators as any).activeEditor = mockEditor;
+            (marginIndicators as any).activeView = mockView;
+
+            (marginIndicators as any).getVisibleLineRange = jest.fn().mockReturnValue({
+                from: 0,
+                to: testDocument.length - 1
+            });
+
+            const docContent = testDocument.join('\n');
+            mockCommandEngine.detectMarkers.mockReturnValue([{
+                line: 0,
+                endLine: 0,
+                instruction: 'Generate content',
+                position: 0,
+                length: testDocument[0].length
+            }]);
+
+            mockVariableResolver.buildSmartContext.mockReturnValueOnce({
+                selection: '',
+                document: docContent,
+                title: 'test.md',
+                documentType: 'unknown',
+                cursorContext: '',
+                metrics: { wordCount: 10 },
+                audienceLevel: 'general'
+            });
+
+            const context = mockVariableResolver.buildSmartContext();
+            const opportunities = (marginIndicators as any).findOpportunities(context);
+
+            // Line 0 should only have marker opportunity, not writing analysis
+            const line0Opportunities = opportunities.filter((o: any) => o.line === 0);
+            expect(line0Opportunities.length).toBe(1);
+            expect(line0Opportunities[0].icon).toBe('📝');
         });
     });
 
@@ -680,53 +787,18 @@ describe('MarginIndicators', () => {
             });
         });
 
-        describe('Document Type Filtering', () => {
-            test('should respect enabled document types setting', async () => {
+        describe('Document Type Handling', () => {
+            test('should proceed with analysis for all document types', async () => {
                 // Mock workspace to return mock view
                 mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
-                
-                // Set enabled types to exclude 'blog'
-                mockPlugin.settings.commands.enabledDocumentTypes = ['academic', 'technical'];
+
                 mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
-                
+
                 // Update settings to apply changes
                 marginIndicators.updateSettings();
                 (marginIndicators as any).activeEditor = mockEditor;
                 (marginIndicators as any).activeView = mockView;
-                
-                // Mock context with blog document type
-                mockVariableResolver.buildSmartContext.mockReturnValueOnce({
-                    selection: '',
-                    document: '# Blog Post\n\nThis is a blog post.',
-                    title: 'Blog Post',
-                    documentType: 'blog',
-                    cursorContext: { before: '', after: '' },
-                    metrics: { wordCount: 7, paragraphCount: 1 },
-                    audienceLevel: 'general'
-                });
 
-                // Spy on clearIndicators
-                const clearSpy = jest.spyOn(marginIndicators, 'clearIndicators');
-                
-                // Should early return and clear indicators
-                await (marginIndicators as any).analyzeCurrentContext();
-                
-                expect(clearSpy).toHaveBeenCalled();
-            });
-
-            test('should proceed with analysis for enabled document types', async () => {
-                // Mock workspace to return mock view
-                mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
-                
-                // Set enabled types to include 'academic'
-                mockPlugin.settings.commands.enabledDocumentTypes = ['academic', 'technical'];
-                mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
-                
-                // Update settings to apply changes
-                marginIndicators.updateSettings();
-                (marginIndicators as any).activeEditor = mockEditor;
-                (marginIndicators as any).activeView = mockView;
-                
                 // Mock context with academic document type
                 mockVariableResolver.buildSmartContext.mockReturnValueOnce({
                     selection: '',
@@ -740,44 +812,11 @@ describe('MarginIndicators', () => {
 
                 // Spy on SmartTimingEngine.setDocumentType
                 const setDocTypeSpy = jest.spyOn(mockSmartTimingEngine, 'setDocumentType');
-                
+
                 // Should proceed and set document type
-                await (marginIndicators as any).analyzeCurrentContext();
-                
+                (marginIndicators as any).analyzeCurrentContext();
+
                 expect(setDocTypeSpy).toHaveBeenCalledWith('academic');
-            });
-
-            test('should allow all types when enabledDocumentTypes is empty', async () => {
-                // Mock workspace to return mock view
-                mockPlugin.app.workspace.getActiveViewOfType.mockReturnValue(mockView);
-                
-                // Set enabled types to empty array
-                mockPlugin.settings.commands.enabledDocumentTypes = [];
-                mockPlugin.settings.commands.suggestionMode = 'balanced'; // Ensure enabled
-                
-                // Update settings to apply changes
-                marginIndicators.updateSettings();
-                (marginIndicators as any).activeEditor = mockEditor;
-                (marginIndicators as any).activeView = mockView;
-                
-                // Mock context with any document type
-                mockVariableResolver.buildSmartContext.mockReturnValueOnce({
-                    selection: '',
-                    document: '# Any Document\n\nThis is any type.',
-                    title: 'Any Document',
-                    documentType: 'creative',
-                    cursorContext: { before: '', after: '' },
-                    metrics: { wordCount: 6, paragraphCount: 1 },
-                    audienceLevel: 'general'
-                });
-
-                // Spy on SmartTimingEngine.setDocumentType
-                const setDocTypeSpy = jest.spyOn(mockSmartTimingEngine, 'setDocumentType');
-                
-                // Should proceed when empty array (allows all)
-                await (marginIndicators as any).analyzeCurrentContext();
-                
-                expect(setDocTypeSpy).toHaveBeenCalledWith('creative');
             });
         });
 

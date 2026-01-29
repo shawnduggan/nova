@@ -1,43 +1,44 @@
 /**
- * CommandEngine - Core system for loading and executing markdown-based commands
- * Handles command discovery, template processing, and execution coordination
+ * CommandEngine - Core system for executing commands and the /fill command
+ * Handles template processing and AI execution coordination
  */
 
-import { TFile, Vault, App, Notice } from 'obsidian';
+import { Notice } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import { StreamingManager } from '../../../ui/streaming-manager';
 import { AIProviderManager } from '../../../ai/provider-manager';
 import { ContextBuilder } from '../../../core/context-builder';
 import { DocumentEngine } from '../../../core/document-engine';
-import type { 
-    MarkdownCommand, 
-    CommandExecutionContext, 
+import type {
+    MarkdownCommand,
+    CommandExecutionContext,
     SmartContext,
     ExecutionOptions,
     TemplateVariable
 } from '../types';
 import type NovaPlugin from '../../../../main';
 
+/**
+ * Marker detected in document for /fill command
+ */
+export interface MarkerInsight {
+    line: number;
+    endLine: number;
+    instruction: string;
+    position: number;
+    length: number;
+}
+
 export class CommandEngine {
     private plugin: NovaPlugin;
-    private app: App;
-    private vault: Vault;
     private streamingManager: StreamingManager;
     private providerManager: AIProviderManager;
     private contextBuilder: ContextBuilder;
     private documentEngine: DocumentEngine;
     private logger = Logger.scope('CommandEngine');
-    
-    // Command discovery cache
-    private commandsFolder = 'Commands';
-    private loadedCommands = new Map<string, MarkdownCommand>();
-    private lastScanTime = 0;
-    private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
     constructor(plugin: NovaPlugin) {
         this.plugin = plugin;
-        this.app = plugin.app;
-        this.vault = plugin.app.vault;
         this.streamingManager = new StreamingManager(plugin);
         this.providerManager = plugin.aiProviderManager;
         this.contextBuilder = plugin.contextBuilder;
@@ -45,114 +46,193 @@ export class CommandEngine {
     }
 
     /**
-     * Discover and load all commands from the Commands folder
+     * Detect all `<!-- nova: instruction -->` markers in document content
      */
-    async discoverCommands(): Promise<MarkdownCommand[]> {
-        const now = Date.now();
-        if (now - this.lastScanTime < this.CACHE_DURATION && this.loadedCommands.size > 0) {
-            return Array.from(this.loadedCommands.values());
+    detectMarkers(content: string): MarkerInsight[] {
+        const markerPattern = /<!--\s*nova:\s*([\s\S]+?)\s*-->/gi;
+        const markers: MarkerInsight[] = [];
+
+        let match;
+        while ((match = markerPattern.exec(content)) !== null) {
+            const startLine = this.getLineNumber(content, match.index);
+            const endLine = this.getLineNumber(content, match.index + match[0].length);
+
+            markers.push({
+                line: startLine,
+                endLine: endLine,
+                instruction: match[1].trim(),
+                position: match.index,
+                length: match[0].length
+            });
         }
 
-        this.logger.info('Scanning for commands in Commands folder...');
-        
-        const commandsFolder = this.vault.getAbstractFileByPath(this.commandsFolder);
-        if (!commandsFolder) {
-            this.logger.warn('Commands folder not found, creating default commands');
-            await this.createDefaultCommands();
-            return this.discoverCommands(); // Retry after creating defaults
+        return markers;
+    }
+
+    /**
+     * Get line number for a character position in content
+     */
+    private getLineNumber(content: string, position: number): number {
+        const beforePosition = content.substring(0, position);
+        return beforePosition.split('\n').length - 1;
+    }
+
+    /**
+     * Execute /fill command - find all markers and fill them in a single AI pass
+     */
+    async executeFill(): Promise<void> {
+        const documentContext = this.documentEngine.getDocumentContext();
+        if (!documentContext) {
+            new Notice('No active document found');
+            return;
         }
 
-        const commands: MarkdownCommand[] = [];
-        const files = this.vault.getMarkdownFiles().filter(file => 
-            file.path.startsWith(this.commandsFolder + '/')
+        const markers = this.detectMarkers(documentContext.content);
+
+        if (markers.length === 0) {
+            new Notice('No markers found in document');
+            return;
+        }
+
+        this.logger.info(`Found ${markers.length} markers to fill`);
+
+        // Build combined prompt for all markers
+        const prompt = this.buildFillPrompt(documentContext.content, markers);
+
+        // Get the active editor
+        const activeEditor = this.documentEngine.getActiveEditor();
+        if (!activeEditor) {
+            new Notice('No active editor available');
+            return;
+        }
+
+        try {
+            // Execute the fill with streaming
+            await this.executeWithStreamingForFill(prompt, markers, documentContext.content);
+            new Notice(`Filled ${markers.length} marker${markers.length > 1 ? 's' : ''}`);
+        } catch (error) {
+            this.logger.error('Failed to execute /fill:', error);
+            new Notice('Failed to fill markers: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        }
+    }
+
+    /**
+     * Build prompt for filling all markers
+     */
+    private buildFillPrompt(content: string, markers: MarkerInsight[]): string {
+        const markerInstructions = markers.map((marker, index) =>
+            `[MARKER ${index + 1}] Line ${marker.line + 1}: ${marker.instruction}`
+        ).join('\n');
+
+        return `You are helping a writer fill in placeholder markers in their document.
+
+The document contains ${markers.length} marker(s) that need content generated. Each marker is in the format <!-- nova: instruction -->.
+
+Here are the markers and their instructions:
+${markerInstructions}
+
+Document context (for reference):
+---
+${content}
+---
+
+IMPORTANT INSTRUCTIONS:
+1. Generate content for EACH marker based on its instruction
+2. Return your response in the EXACT format below, with each marker's content clearly labeled
+3. The content should fit naturally with the surrounding document context
+4. Do NOT include the marker comments in your response - just the generated content
+
+Response format:
+[MARKER 1]
+(generated content for marker 1)
+
+[MARKER 2]
+(generated content for marker 2)
+
+... and so on for each marker.
+
+Generate the content now:`;
+    }
+
+    /**
+     * Execute fill with streaming and replace markers
+     */
+    private async executeWithStreamingForFill(
+        prompt: string,
+        markers: MarkerInsight[],
+        originalContent: string
+    ): Promise<void> {
+        const activeEditor = this.documentEngine.getActiveEditor();
+        if (!activeEditor) {
+            throw new Error('No active editor available');
+        }
+
+        // Get AI response (non-streaming for fill since we need to parse it)
+        const response = await this.providerManager.generateText(
+            prompt,
+            {
+                systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
+                temperature: 0.7,
+                maxTokens: 4000
+            }
         );
 
-        for (const file of files) {
-            try {
-                const command = await this.loadCommandFromFile(file);
-                if (command) {
-                    commands.push(command);
-                    this.loadedCommands.set(command.id, command);
-                }
-            } catch (error) {
-                this.logger.error(`Failed to load command from ${file.path}:`, error);
+        // Parse the response to extract content for each marker
+        const markerContents = this.parseMarkerResponse(response, markers.length);
+
+        // Replace markers from end to start to preserve positions
+        let newContent = originalContent;
+        for (let i = markers.length - 1; i >= 0; i--) {
+            const marker = markers[i];
+            const content = markerContents[i] || '[Content generation failed]';
+
+            newContent = newContent.substring(0, marker.position) +
+                        content +
+                        newContent.substring(marker.position + marker.length);
+        }
+
+        // Replace entire document content
+        const lastLine = activeEditor.lastLine();
+        const lastLineLength = activeEditor.getLine(lastLine).length;
+        activeEditor.replaceRange(
+            newContent,
+            { line: 0, ch: 0 },
+            { line: lastLine, ch: lastLineLength }
+        );
+    }
+
+    /**
+     * Parse AI response to extract content for each marker
+     */
+    private parseMarkerResponse(response: string, markerCount: number): string[] {
+        const contents: string[] = [];
+
+        for (let i = 1; i <= markerCount; i++) {
+            const startPattern = new RegExp(`\\[MARKER ${i}\\]\\s*\\n?`, 'i');
+            const endPattern = i < markerCount
+                ? new RegExp(`\\[MARKER ${i + 1}\\]`, 'i')
+                : null;
+
+            const startMatch = startPattern.exec(response);
+            if (!startMatch) {
+                contents.push('');
+                continue;
             }
+
+            const startIndex = startMatch.index + startMatch[0].length;
+            let endIndex = response.length;
+
+            if (endPattern) {
+                const endMatch = endPattern.exec(response.substring(startIndex));
+                if (endMatch) {
+                    endIndex = startIndex + endMatch.index;
+                }
+            }
+
+            contents.push(response.substring(startIndex, endIndex).trim());
         }
 
-        this.lastScanTime = now;
-        this.logger.info(`Loaded ${commands.length} commands`);
-        return commands;
-    }
-
-    /**
-     * Load a single command from a markdown file
-     */
-    private async loadCommandFromFile(file: TFile): Promise<MarkdownCommand | null> {
-        const content = await this.vault.read(file);
-        const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-        
-        if (!frontmatter || !frontmatter.nova_command) {
-            this.logger.debug(`Skipping ${file.name} - not a Nova command`);
-            return null;
-        }
-
-        // Parse frontmatter for command metadata
-        const command: MarkdownCommand = {
-            id: frontmatter.id || file.basename,
-            name: frontmatter.name || file.basename,
-            description: frontmatter.description || 'No description provided',
-            template: this.extractTemplate(content),
-            example: frontmatter.example,
-            keywords: Array.isArray(frontmatter.keywords) ? frontmatter.keywords : [],
-            category: frontmatter.category || 'writing',
-            iconType: frontmatter.icon || '💡',
-            variables: this.parseVariables(frontmatter.variables || []),
-            filePath: file.path
-        };
-
-        this.validateCommand(command);
-        return command;
-    }
-
-    /**
-     * Extract the template content from the markdown file
-     * Everything after the frontmatter is considered the template
-     */
-    private extractTemplate(content: string): string {
-        const frontmatterEnd = content.indexOf('---', 3);
-        if (frontmatterEnd === -1) {
-            return content;
-        }
-        return content.substring(frontmatterEnd + 3).trim();
-    }
-
-    /**
-     * Parse template variables from frontmatter
-     */
-    private parseVariables(variablesData: unknown[]): TemplateVariable[] {
-        if (!Array.isArray(variablesData)) {
-            return [];
-        }
-
-        return variablesData.map((varData: unknown) => {
-            const data = varData as Record<string, unknown>;
-            return {
-                name: String(data.name ?? ''),
-                description: String(data.description ?? ''),
-                required: data.required !== false,
-                defaultValue: data.default !== undefined ? String(data.default) : undefined,
-                resolver: (data.resolver as TemplateVariable['resolver']) || 'user_input'
-            };
-        });
-    }
-
-    /**
-     * Validate that a command has required fields
-     */
-    private validateCommand(command: MarkdownCommand): void {
-        if (!command.id || !command.name || !command.template) {
-            throw new Error(`Invalid command: missing required fields (id, name, template)`);
-        }
+        return contents;
     }
 
     /**
@@ -412,106 +492,10 @@ export class CommandEngine {
         }
     }
 
-
-    /**
-     * Create default command templates if Commands folder doesn't exist
-     */
-    private async createDefaultCommands(): Promise<void> {
-        this.logger.info('Creating default command templates...');
-        
-        try {
-            // Create Commands folder
-            await this.vault.createFolder(this.commandsFolder).catch((error) => {
-                // Folder might already exist, only log if it's a different error
-                if (!error.message?.includes('already exists')) {
-                    this.logger.warn('Failed to create Commands folder:', error);
-                }
-            });
-
-            // Create expand-outline command as example
-            const expandOutlineCommand = `---
-nova_command: true
-id: expand-outline
-name: Expand Outline
-description: Transform bullet points into flowing prose
-category: writing
-icon: ✨
-keywords: [expand, outline, bullets, prose, develop]
-variables:
-  - name: text
-    description: Text to expand
-    resolver: selection
-    required: true
-  - name: style
-    description: Expansion style
-    resolver: user_input
-    default: detailed
-    required: false
-example: "Select bullet points and use /expand-outline to convert to paragraphs"
----
-
-Please expand the following outline into flowing prose:
-
-{text}
-
-Style: {style}
-
-Transform each bullet point into well-developed sentences that flow naturally together. Maintain the logical structure while creating smooth transitions between ideas.`;
-
-            const commandPath = `${this.commandsFolder}/expand-outline.md`;
-            if (!this.vault.getAbstractFileByPath(commandPath)) {
-                try {
-                    await this.vault.create(commandPath, expandOutlineCommand);
-                    this.logger.info('Created default expand-outline command');
-                    new Notice('Created default command templates in commands folder');
-                } catch (error) {
-                    this.logger.error('Failed to create default command file:', error);
-                    new Notice('Failed to create default commands. Check file permissions.');
-                }
-            }
-        } catch (error) {
-            this.logger.error('Failed to create default commands:', error);
-            new Notice('Failed to initialize commands folder');
-        }
-    }
-
-    /**
-     * Clear the command cache to force reload
-     */
-    clearCache(): void {
-        this.loadedCommands.clear();
-        this.lastScanTime = 0;
-        this.logger.info('Command cache cleared');
-    }
-
-    /**
-     * Get a command by ID
-     */
-    async getCommand(id: string): Promise<MarkdownCommand | null> {
-        const commands = await this.discoverCommands();
-        return commands.find(cmd => cmd.id === id) || null;
-    }
-
-    /**
-     * Search commands by query
-     */
-    async searchCommands(query: string): Promise<MarkdownCommand[]> {
-        const commands = await this.discoverCommands();
-        const lowerQuery = query.toLowerCase();
-        
-        return commands.filter(cmd => 
-            cmd.name.toLowerCase().includes(lowerQuery) ||
-            cmd.description.toLowerCase().includes(lowerQuery) ||
-            cmd.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))
-        );
-    }
-
     /**
      * Cleanup method for plugin unload
      */
     cleanup(): void {
-        this.loadedCommands.clear();
-        this.lastScanTime = 0;
         this.logger.info('CommandEngine cleaned up');
     }
 }

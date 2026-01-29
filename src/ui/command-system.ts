@@ -1,24 +1,15 @@
 /**
  * @file CommandSystem - Handles slash command detection and picker UI
+ * Simplified to support single /fill command for Nova markers
  */
 
 import { ButtonComponent, TextAreaComponent, Platform, FuzzySuggestModal, FuzzyMatch, App } from 'obsidian';
 import NovaPlugin from '../../main';
 import { CommandEngine } from '../features/commands/core/CommandEngine';
-import { CommandRegistry } from '../features/commands/core/CommandRegistry';
 import { SmartVariableResolver } from '../features/commands/core/SmartVariableResolver';
 import { Logger } from '../utils/logger';
 import type { MarkdownCommand } from '../features/commands/types';
 import { TimeoutManager } from '../utils/timeout-manager';
-
-interface StructuredCommand {
-	name: string;
-	description: string;
-	command: string;
-	template: string;
-	example: string;
-	keywords: string[];
-}
 
 
 /**
@@ -38,7 +29,6 @@ export class CommandSystem {
 
 	// Nova Commands System integration
 	private commandEngine: CommandEngine;
-	private commandRegistry: CommandRegistry;
 	private variableResolver: SmartVariableResolver;
 	private logger = Logger.scope('CommandSystem');
 
@@ -46,10 +36,9 @@ export class CommandSystem {
 		this.plugin = plugin;
 		this.container = container;
 		this.textArea = textArea;
-		
+
 		// Use shared Nova Commands components from main plugin (they may not be available yet)
 		this.commandEngine = plugin.commandEngine;
-		this.commandRegistry = plugin.commandRegistry;
 		this.variableResolver = plugin.smartVariableResolver;
 	}
 
@@ -232,21 +221,28 @@ export class CommandSystem {
 	private async handleMarkdownCommandSelection(): Promise<void> {
 		const input = this.textArea.getValue();
 		const filterText = input.slice(1).toLowerCase(); // Remove "/"
-		
+
 		try {
-			const allCommands = await this.commandRegistry.searchCommands(filterText);
-			const exactMatches = allCommands.filter(cmd => 
-				cmd.id.toLowerCase().includes(filterText) ||
-				cmd.name.toLowerCase().includes(filterText)
-			);
-			const filtered = exactMatches.slice(0, 8);
-			
-			if (this.selectedCommandIndex < filtered.length) {
-				const selectedCmd = filtered[this.selectedCommandIndex];
-				await this.selectMarkdownCommand(selectedCmd);
+			// Only /fill command is available now
+			if ('fill'.includes(filterText) && this.selectedCommandIndex === 0) {
+				await this.executeFillCommand();
 			}
 		} catch (error) {
 			this.logger.error('Error in markdown command selection:', error);
+		}
+	}
+
+	/**
+	 * Execute the /fill command
+	 */
+	private async executeFillCommand(): Promise<void> {
+		this.hideCommandPicker();
+		this.textArea.setValue('');
+
+		try {
+			await this.commandEngine.executeFill();
+		} catch (error) {
+			this.logger.error('Failed to execute /fill:', error);
 		}
 	}
 
@@ -262,29 +258,32 @@ export class CommandSystem {
 
 
 	/**
-	 * Show native command modal for "/" trigger (like wikilink modal)
+	 * Show command modal for "/" trigger - simplified to show /fill
 	 */
-	private async showMarkdownCommandPicker(_input: string): Promise<void> {
+	private showMarkdownCommandPicker(_input: string): void {
 		// Ensure we have the latest references to Nova Commands components
-		if (!this.commandRegistry) {
+		if (!this.commandEngine) {
 			this.commandEngine = this.plugin.commandEngine;
-			this.commandRegistry = this.plugin.commandRegistry;
 			this.variableResolver = this.plugin.smartVariableResolver;
 		}
-		
-		if (!this.commandRegistry) {
-			this.logger.warn('CommandRegistry not available yet');
-			return;
-		}
 
-		// Load commands first, then pass to modal (like WikilinkFileModal pattern)
-		const commands = await this.commandRegistry.getAllCommands();
-		
+		// Create the single /fill command
+		const fillCommand: MarkdownCommand = {
+			id: 'fill',
+			name: 'Fill markers',
+			description: 'Fill all <!-- nova: --> markers in the document',
+			template: '',
+			keywords: ['fill', 'markers', 'nova'],
+			category: 'writing',
+			iconType: '📝',
+			variables: []
+		};
+
 		const modal = new CommandModal(
 			this.plugin.app,
-			commands,
-			(command: MarkdownCommand) => {
-				void this.selectMarkdownCommand(command);
+			[fillCommand],
+			() => {
+				void this.executeFillCommand();
 			},
 			() => {
 				// User cancelled - clear the input trigger
@@ -297,43 +296,6 @@ export class CommandSystem {
 		modal.open();
 	}
 
-	/**
-	 * Execute a selected markdown command
-	 */
-	private async selectMarkdownCommand(command: MarkdownCommand): Promise<void> {
-		this.hideCommandPicker();
-		
-		// Ensure we have the latest references to Nova Commands components
-		if (!this.variableResolver || !this.commandEngine) {
-			this.commandEngine = this.plugin.commandEngine;
-			this.commandRegistry = this.plugin.commandRegistry;
-			this.variableResolver = this.plugin.smartVariableResolver;
-		}
-		
-		try {
-			// Build smart context
-			const context = this.variableResolver.buildSmartContext();
-			if (!context) {
-				this.logger.warn('Could not build smart context for command execution');
-				return;
-			}
-
-			// Clear the input (remove the trigger)
-			this.textArea.setValue('');
-			
-			// Execute the command
-			await this.commandEngine.executeCommand(command, context, {
-				outputMode: 'replace',
-				showProgress: true
-			});
-			
-		} catch (error) {
-			this.logger.error(`Failed to execute command ${command.name}:`, error);
-			// Show error message to user
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			this.textArea.setValue(`Error executing ${command.name}: ${errorMessage}`);
-		}
-	}
 
 	cleanup(): void {
 		// Clean up timeouts
@@ -342,9 +304,6 @@ export class CommandSystem {
 		// Clean up Nova Commands components
 		if (this.commandEngine) {
 			this.commandEngine.cleanup();
-		}
-		if (this.commandRegistry) {
-			this.commandRegistry.cleanup();
 		}
 
 		if (this.commandMenu) {
@@ -360,28 +319,25 @@ export class CommandSystem {
 
 /**
  * Native Obsidian command modal for "/" selection
- * Uses the same pattern as WikilinkFileModal for consistency
+ * Simplified to show /fill command
  */
 class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
-	private onSelectCallback: (command: MarkdownCommand) => void;
+	private onSelectCallback: () => void;
 	private onCancelCallback?: () => void;
 	private allCommands: MarkdownCommand[] = [];
 
 	constructor(
 		app: App,
 		commands: MarkdownCommand[],
-		onSelect: (command: MarkdownCommand) => void,
+		onSelect: () => void,
 		onCancel?: () => void
 	) {
 		super(app);
 		this.allCommands = commands;
 		this.onSelectCallback = onSelect;
 		this.onCancelCallback = onCancel;
-		
-		this.setPlaceholder('Search commands...');
-		
-		// Sort by name for consistent ordering
-		this.allCommands.sort((a, b) => a.name.localeCompare(b.name));
+
+		this.setPlaceholder('Type /fill to fill markers...');
 	}
 
 	onOpen(): void {
@@ -392,14 +348,10 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 	private addInstructions(): void {
 		// Add the instruction footer like native Obsidian modals
 		const instructionsEl = this.modalEl.createDiv({ cls: 'prompt-instructions' });
-		
-		const navInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
-		navInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↑↓' });
-		navInstruction.createSpan({ text: 'to navigate' });
 
 		const useInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		useInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↵' });
-		useInstruction.createSpan({ text: 'to use' });
+		useInstruction.createSpan({ text: 'to fill markers' });
 
 		const escInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		escInstruction.createSpan({ cls: 'prompt-instruction-command', text: 'esc' });
@@ -414,16 +366,16 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		return command.name;
 	}
 
-	onChooseItem(command: MarkdownCommand): void {
-		this.onSelectCallback(command);
+	onChooseItem(_command: MarkdownCommand): void {
+		this.onSelectCallback();
 	}
 
 	renderSuggestion(match: FuzzyMatch<MarkdownCommand>, el: HTMLElement): void {
 		const command = match.item;
-		
+
 		// Create container with native Obsidian suggestion styling
 		const container = el.createDiv({ cls: 'suggestion-content' });
-		
+
 		// Title with icon
 		const title = container.createDiv({ cls: 'suggestion-title' });
 		if (command.iconType) {
@@ -431,18 +383,12 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 			icon.textContent = command.iconType;
 		}
 		const titleText = title.createSpan();
-		titleText.textContent = command.name;
-		
+		titleText.textContent = `/fill - ${command.name}`;
+
 		// Description
 		if (command.description) {
 			const note = container.createDiv({ cls: 'suggestion-note' });
 			note.textContent = command.description;
-		}
-		
-		// Category as auxiliary info
-		if (command.category) {
-			const aux = container.createDiv({ cls: 'suggestion-aux' });
-			aux.textContent = command.category;
 		}
 	}
 

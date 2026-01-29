@@ -186,8 +186,10 @@ export class InsightPanel {
     private createContent(panel: HTMLElement, opportunity: IndicatorOpportunity): void {
         const content = panel.createDiv({ cls: CSS_CLASSES.PANEL_CONTENT });
 
-        // Check if we have multiple issues that need combined fixing
-        if (opportunity.specificIssues && opportunity.specificIssues.length > 1) {
+        // Check if this is a marker opportunity (indicated by icon 📝 and suggestedFix containing /fill)
+        if (opportunity.icon === '📝' && opportunity.specificIssues?.length === 1) {
+            this.createMarkerOption(content, opportunity);
+        } else if (opportunity.specificIssues && opportunity.specificIssues.length > 1) {
             // ONLY show combined fix option - no individual fixes to prevent broken grammar
             this.createCombinedFixOption(content, opportunity);
         } else if (opportunity.specificIssues?.length === 1) {
@@ -200,6 +202,45 @@ export class InsightPanel {
                 this.createCommandOption(content, command);
             }
         }
+    }
+
+    /**
+     * Create option for Nova marker (<!-- nova: instruction -->)
+     */
+    private createMarkerOption(container: HTMLElement, opportunity: IndicatorOpportunity): void {
+        const option = container.createDiv({ cls: CSS_CLASSES.COMMAND_OPTION });
+
+        // Header shows the marker instruction
+        const header = option.createDiv({ cls: 'nova-command-option-header' });
+
+        const instructionText = header.createDiv({ cls: 'nova-marker-instruction' });
+        const instruction = opportunity.specificIssues?.[0]?.description || 'Marker';
+        instructionText.textContent = instruction.length > 60 ? instruction.substring(0, 57) + '...' : instruction;
+
+        const actionButton = header.createSpan({
+            cls: CSS_CLASSES.COMMAND_ACTION,
+            text: 'Fill'
+        });
+
+        // On mobile, add class for always-visible styling
+        if (Platform.isMobile) {
+            actionButton.addClass('mobile-visible');
+        }
+
+        // Add accessibility attributes
+        actionButton.setAttr('role', 'button');
+        actionButton.setAttr('tabindex', '0');
+
+        // Description
+        const description = option.createDiv({ cls: CSS_CLASSES.COMMAND_DESCRIPTION });
+        description.textContent = 'Use /fill command to generate content for this marker';
+
+        // Register click handler to run /fill
+        this.plugin.registerDomEvent(option, 'click', (event) => {
+            event.stopPropagation();
+            this.hidePanel();
+            void this.commandEngine.executeFill();
+        });
     }
 
     /**

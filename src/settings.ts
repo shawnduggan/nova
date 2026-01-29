@@ -234,10 +234,10 @@ export class NovaSettingTab extends PluginSettingTab {
 		const description = container.createDiv({ cls: 'nova-setting-description' });
 		description.textContent = 'Control when and how Nova shows intelligent command suggestions while you write.';
 		
-		// Suggestion Mode - Main control
+		// Suggestion Mode - Main control (insight sensitivity)
 		new Setting(container)
-			.setName('Suggestion mode')
-			.setDesc('How aggressively to show command suggestions')
+			.setName('Insight sensitivity')
+			.setDesc('How aggressively to show writing improvement suggestions')
 			.addDropdown(dropdown => dropdown
 				.addOption('off', 'Off - no suggestions')
 				.addOption('minimal', 'Minimal - only high-confidence suggestions')
@@ -261,118 +261,19 @@ export class NovaSettingTab extends PluginSettingTab {
 					}
 				})
 			);
-		
-		// Response Time
-		new Setting(container)
-			.setName('Response time')
-			.setDesc('How quickly suggestions appear after you stop typing')
-			.addDropdown(dropdown => dropdown
-				.addOption('fast', 'Fast - 1.5 seconds')
-				.addOption('normal', 'Normal - 3 seconds')
-				.addOption('relaxed', 'Relaxed - 5 seconds')
-				.setValue(this.plugin.settings.commands.responseTime)
-				.onChange(async (value) => {
-					this.plugin.settings.commands.responseTime = value as 'fast' | 'normal' | 'relaxed';
-					await this.plugin.saveSettings();
-					if (this.plugin.smartTimingEngine) {
-						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
-						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
-					}
-				})
-			);
-		
-		// Hide While Typing
-		new Setting(container)
-			.setName('Hide while typing fast')
-			.setDesc('Hide suggestions when typing faster than 30 words per minute')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.commands.hideWhileTyping)
-				.onChange(async (value) => {
-					this.plugin.settings.commands.hideWhileTyping = value;
-					await this.plugin.saveSettings();
-					if (this.plugin.smartTimingEngine) {
-						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
-						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
-					}
-				})
-			);
-		
-		// Document Types Section
+
+		// /fill command info
 		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
 		new Setting(container)
-			.setName('Document types')
+			.setName('Using markers')
 			.setHeading();
-		
-		const docTypesDescription = container.createDiv({ cls: 'nova-setting-description' });
-		docTypesDescription.textContent = 'Choose which document types should show command suggestions. When none are selected, all types are enabled.';
-		
-		// Document Type Checkboxes
-		const documentTypes = [
-			{ key: 'blog', label: 'Blog posts', desc: 'Blog posts and articles' },
-			{ key: 'academic', label: 'Academic', desc: 'Research papers and academic writing' },
-			{ key: 'technical', label: 'Technical', desc: 'Documentation and technical writing' },
-			{ key: 'creative', label: 'Creative', desc: 'Stories, novels, and creative writing' },
-			{ key: 'notes', label: 'Notes', desc: 'Personal notes and quick thoughts' }
-		];
-		
-		documentTypes.forEach(docType => {
-			new Setting(container)
-				.setName(docType.label)
-				.setDesc(docType.desc)
-				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.commands.enabledDocumentTypes.length === 0 || 
-							this.plugin.settings.commands.enabledDocumentTypes.includes(docType.key))
-					.onChange(async (value) => {
-						const currentTypes = [...this.plugin.settings.commands.enabledDocumentTypes];
-						
-						if (value) {
-							// Add type if not present
-							if (!currentTypes.includes(docType.key)) {
-								currentTypes.push(docType.key);
-							}
-						} else {
-							// Remove type
-							const index = currentTypes.indexOf(docType.key);
-							if (index > -1) {
-								currentTypes.splice(index, 1);
-							}
-						}
-						
-						this.plugin.settings.commands.enabledDocumentTypes = currentTypes;
-						await this.plugin.saveSettings();
-						
-						// Update components
-						if (this.plugin.marginIndicators) {
-							this.plugin.marginIndicators.updateSettings();
-						}
-						if (this.plugin.smartTimingEngine) {
-							const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
-							this.plugin.smartTimingEngine.updateSettings(legacyTiming);
-						}
-					})
-				);
-		});
-		
-		// Advanced Settings Section
-		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
-		new Setting(container)
-			.setName('Advanced')
-			.setHeading();
-		
-		const advancedDescription = container.createDiv({ cls: 'nova-setting-description' });
-		advancedDescription.textContent = 'Additional options for power users and customization.';
-		
-		// Test Settings Button
-		new Setting(container)
-			.setName('Test current settings')
-			.setDesc('See how your current settings affect command suggestions')
-			.addButton(button => button
-				.setButtonText('Open test document')
-				.setTooltip('Creates a sample document to test your command settings')
-				.onClick(async () => {
-					await this.createTestDocument();
-				})
-			);
+
+		const markerInfo = container.createDiv({ cls: 'nova-setting-description' });
+		markerInfo.innerHTML = `
+			<p>Add <code>&lt;!-- nova: your instruction --&gt;</code> markers in your document, then use the <strong>/fill</strong> command (or Command Palette: "Fill markers") to generate content for all markers at once.</p>
+			<p><strong>Example:</strong></p>
+			<pre>&lt;!-- nova: Write a compelling introduction about AI --&gt;</pre>
+		`;
 	}
 
 	private createGettingStartedTabContent(container: HTMLElement): void {

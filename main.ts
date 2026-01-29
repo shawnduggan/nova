@@ -21,7 +21,6 @@ import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
 import { Logger } from './src/utils/logger';
 import { CommandEngine } from './src/features/commands/core/CommandEngine';
-import { CommandRegistry } from './src/features/commands/core/CommandRegistry';
 import { SmartVariableResolver } from './src/features/commands/core/SmartVariableResolver';
 import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngine';
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
@@ -82,7 +81,6 @@ export default class NovaPlugin extends Plugin {
 	sidebarView!: NovaSidebarView;
 	selectionContextMenu!: SelectionContextMenu;
 	commandEngine!: CommandEngine;
-	commandRegistry!: CommandRegistry;
 	smartVariableResolver!: SmartVariableResolver;
 	smartTimingEngine!: SmartTimingEngine;
 	marginIndicators!: MarginIndicators;
@@ -117,7 +115,7 @@ export default class NovaPlugin extends Plugin {
 				// Initialize Nova Commands components
 				try {
 					if (this.marginIndicators) {
-						await this.marginIndicators.init();
+						this.marginIndicators.init();
 						Logger.info('Nova Commands system initialized successfully');
 					} else {
 						Logger.error('MarginIndicators component not available - check main plugin initialization');
@@ -167,8 +165,7 @@ export default class NovaPlugin extends Plugin {
 			this.smartTimingEngine.updateSettings(legacyTimingSettings);
 			
 			this.commandEngine = new CommandEngine(this);
-			this.commandRegistry = new CommandRegistry(this, this.commandEngine);
-			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandRegistry, this.commandEngine, this.smartTimingEngine);
+			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandEngine, this.smartTimingEngine);
 			
 			// Register CodeMirror extension for margin indicators
 			this.registerEditorExtension(createIndicatorExtension());
@@ -237,6 +234,15 @@ export default class NovaPlugin extends Plugin {
 				}
 			});
 
+			// Register /fill command for Nova markers
+			this.addCommand({
+				id: 'fill-markers',
+				name: 'Fill markers (/fill)',
+				editorCallback: async () => {
+					await this.commandEngine.executeFill();
+				}
+			});
+
 			// Initialize selection context menu
 			this.selectionContextMenu = new SelectionContextMenu(this.app, this);
 			this.selectionContextMenu.register();
@@ -258,7 +264,6 @@ export default class NovaPlugin extends Plugin {
 		this.settingTab?.cleanup();
 		this.marginIndicators?.cleanup();
 		this.commandEngine?.cleanup();
-		this.commandRegistry?.cleanup();
 	}
 
 	/**
