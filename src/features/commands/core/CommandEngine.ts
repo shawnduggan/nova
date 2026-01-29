@@ -78,7 +78,60 @@ export class CommandEngine {
     }
 
     /**
-     * Execute /fill command - find all markers and fill them in a single AI pass
+     * Execute fill for a single marker at a specific line
+     */
+    async executeFillSingle(lineNumber: number): Promise<void> {
+        const documentContext = this.documentEngine.getDocumentContext();
+        if (!documentContext) {
+            new Notice('No active document found');
+            return;
+        }
+
+        const markers = this.detectMarkers(documentContext.content);
+        const targetMarker = markers.find(m => m.line === lineNumber);
+
+        if (!targetMarker) {
+            new Notice('No placeholder found at this line');
+            return;
+        }
+
+        this.logger.info(`Filling single marker at line ${lineNumber + 1}`);
+
+        const activeEditor = this.documentEngine.getActiveEditor();
+        if (!activeEditor) {
+            new Notice('No active editor available');
+            return;
+        }
+
+        try {
+            // Show thinking notice for duration of fill operation
+            this.streamingManager.showThinkingNotice('edit', 'notice');
+
+            await this.fillSingleMarkerInternal(targetMarker, documentContext.content, activeEditor);
+
+            // Hide thinking notice when complete
+            this.streamingManager.stopAnimation();
+
+            // Display success message in chat UI
+            const chatMessage = `Filled placeholder at line ${targetMarker.line + 1}: ${targetMarker.instruction}`;
+
+            if (this.plugin.sidebarView?.chatRenderer) {
+                this.plugin.sidebarView.chatRenderer.addSuccessMessage(chatMessage, true);
+            }
+
+            // Also record to conversation
+            await this.documentEngine.addSystemMessage(chatMessage);
+
+            new Notice('Filled placeholder');
+        } catch (error) {
+            this.streamingManager.stopAnimation();
+            this.logger.error('Failed to fill single marker:', error);
+            new Notice('Failed to fill placeholder: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        }
+    }
+
+    /**
+     * Execute /fill command - fill all markers sequentially with progressive context
      */
     async executeFill(): Promise<void> {
         const documentContext = this.documentEngine.getDocumentContext();
@@ -94,26 +147,128 @@ export class CommandEngine {
             return;
         }
 
-        this.logger.info(`Found ${markers.length} markers to fill`);
-
-        // Build combined prompt for all markers
-        const prompt = this.buildFillPrompt(documentContext.content, markers);
-
-        // Get the active editor
         const activeEditor = this.documentEngine.getActiveEditor();
         if (!activeEditor) {
             new Notice('No active editor available');
             return;
         }
 
+        this.logger.info(`Found ${markers.length} markers to fill sequentially`);
+        this.streamingManager.showThinkingNotice('edit', 'notice');
+
         try {
-            // Execute the fill with streaming
-            await this.executeWithStreamingForFill(prompt, markers, documentContext.content);
-            new Notice(`Filled ${markers.length} placeholder${markers.length > 1 ? 's' : ''}`);
+            const filledMarkers: MarkerInsight[] = [];
+
+            // Fill markers one at a time (in document order)
+            for (const originalMarker of markers) {
+                // Get fresh document content (includes previous fills)
+                const freshContent = activeEditor.getValue();
+                const freshMarkers = this.detectMarkers(freshContent);
+
+                // Find this marker in the fresh content by matching instruction
+                const currentMarker = freshMarkers.find(m => m.instruction === originalMarker.instruction);
+
+                if (currentMarker) {
+                    await this.fillSingleMarkerInternal(currentMarker, freshContent, activeEditor);
+                    filledMarkers.push(originalMarker);
+                }
+            }
+
+            // All fills complete - stop the thinking notice
+            this.streamingManager.stopAnimation();
+
+            // Display success message
+            const markerSummary = filledMarkers.map((m, i) => `${i + 1}. Line ${m.line + 1}: ${m.instruction}`).join('\n');
+            const chatMessage = `Filled ${filledMarkers.length} placeholder${filledMarkers.length > 1 ? 's' : ''}:\n${markerSummary}`;
+
+            if (this.plugin.sidebarView?.chatRenderer) {
+                this.plugin.sidebarView.chatRenderer.addSuccessMessage(chatMessage, true);
+            }
+            await this.documentEngine.addSystemMessage(chatMessage);
+            new Notice(`Filled ${filledMarkers.length} placeholder${filledMarkers.length > 1 ? 's' : ''}`);
+
         } catch (error) {
+            this.streamingManager.stopAnimation();
             this.logger.error('Failed to execute /fill:', error);
             new Notice('Failed to fill placeholders: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
+    }
+
+    /**
+     * Fill a single marker with AI-generated content (internal helper)
+     * Used by both executeFillSingle and executeFill
+     */
+    private async fillSingleMarkerInternal(
+        marker: MarkerInsight,
+        content: string,
+        activeEditor: import('obsidian').Editor
+    ): Promise<void> {
+        // Get surrounding context (a few lines before and after)
+        const lines = content.split('\n');
+        const contextStart = Math.max(0, marker.line - 3);
+        const contextEnd = Math.min(lines.length, marker.line + 4);
+        const surroundingContext = lines.slice(contextStart, contextEnd).join('\n');
+
+        // Build prompt for single marker
+        const prompt = `You are helping a writer fill in a placeholder marker in their document.
+
+TASK: Generate content for this ONE specific instruction:
+"${marker.instruction}"
+
+Surrounding context for reference (the marker is on line ${marker.line + 1}):
+---
+${surroundingContext}
+---
+
+CRITICAL INSTRUCTIONS:
+1. Generate content ONLY for the instruction: "${marker.instruction}"
+2. Do NOT generate content for any other markers you see in the context
+3. Return ONLY the generated content - no explanations, no marker comments, no wrapper text
+4. The content should be concise and fit naturally with the surrounding text
+
+Generate the content now:`;
+
+        // Calculate positions for marker replacement
+        const startPos = activeEditor.offsetToPos(marker.position);
+        const endPos = activeEditor.offsetToPos(marker.position + marker.length);
+
+        // Start streaming to replace the marker
+        const streaming = this.streamingManager.startStreaming(
+            activeEditor,
+            startPos,
+            endPos,
+            {
+                animationMode: 'inline',
+                scrollBehavior: 'smooth'
+            }
+        );
+
+        // Get AI response with streaming
+        let fullContent = '';
+        const stream = this.providerManager.generateTextStream(
+            prompt,
+            {
+                systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
+                temperature: 0.7,
+                maxTokens: 2000
+            }
+        );
+
+        // Handle streaming updates
+        for await (const chunk of stream) {
+            if (chunk.content) {
+                fullContent += chunk.content;
+                streaming.updateStream(fullContent, false);
+            }
+        }
+
+        // Complete the stream (finalizes cursor position)
+        streaming.updateStream(fullContent, true);
+
+        // Note: NOT calling streaming.stopStream() here - it would stop the thinking notice
+        // The calling method (executeFill/executeFillSingle) manages the notice lifecycle
+
+        this.logger.debug('AI response for marker fill completed, length:', fullContent.length);
     }
 
     /**
@@ -177,6 +332,11 @@ Generate the content now:`;
             }
         );
 
+        // Debug logging for response
+        this.logger.debug('AI response for /fill:', response);
+        this.logger.debug('Response length:', response.length);
+        this.logger.debug('Marker count:', markers.length);
+
         // Parse the response to extract content for each marker
         const markerContents = this.parseMarkerResponse(response, markers.length);
 
@@ -185,6 +345,11 @@ Generate the content now:`;
         for (let i = markers.length - 1; i >= 0; i--) {
             const marker = markers[i];
             const content = markerContents[i] || '[Content generation failed]';
+
+            // Log error if content generation failed for this marker
+            if (!markerContents[i]) {
+                this.logger.error(`Content generation failed for marker ${i + 1} (line ${marker.line + 1}): "${marker.instruction}"`);
+            }
 
             newContent = newContent.substring(0, marker.position) +
                         content +
@@ -207,25 +372,59 @@ Generate the content now:`;
     private parseMarkerResponse(response: string, markerCount: number): string[] {
         const contents: string[] = [];
 
-        for (let i = 1; i <= markerCount; i++) {
-            const startPattern = new RegExp(`\\[MARKER ${i}\\]\\s*\\n?`, 'i');
-            const endPattern = i < markerCount
-                ? new RegExp(`\\[MARKER ${i + 1}\\]`, 'i')
-                : null;
+        // For single marker, use entire response if no marker pattern found
+        if (markerCount === 1) {
+            const markerPattern = /\[MARKER\s*1\]/i;
+            if (markerPattern.test(response)) {
+                // Has marker wrapper - extract content after it
+                const match = response.match(/\[MARKER\s*1\]\s*\n?([\s\S]*)/i);
+                contents.push(match ? match[1].trim() : response.trim());
+            } else {
+                // No wrapper - use entire response
+                this.logger.debug('Single marker: no wrapper found, using entire response');
+                contents.push(response.trim());
+            }
+            return contents;
+        }
 
-            const startMatch = startPattern.exec(response);
-            if (!startMatch) {
+        // For multiple markers, use flexible matching
+        for (let i = 1; i <= markerCount; i++) {
+            // Try multiple patterns
+            const patterns = [
+                new RegExp(`\\[MARKER\\s*${i}\\]\\s*\\n?`, 'i'),
+                new RegExp(`\\*\\*\\[MARKER\\s*${i}\\]\\*\\*\\s*\\n?`, 'i'),
+                new RegExp(`MARKER\\s*${i}:?\\s*\\n?`, 'i'),
+            ];
+
+            let startIndex = -1;
+            let matchLength = 0;
+
+            for (const pattern of patterns) {
+                const match = pattern.exec(response);
+                if (match) {
+                    startIndex = match.index + match[0].length;
+                    matchLength = match[0].length;
+                    break;
+                }
+            }
+
+            if (startIndex === -1) {
+                this.logger.warn(`Could not find MARKER ${i} in response`);
                 contents.push('');
                 continue;
             }
 
-            const startIndex = startMatch.index + startMatch[0].length;
+            // Find end (next marker or end of string)
             let endIndex = response.length;
-
-            if (endPattern) {
-                const endMatch = endPattern.exec(response.substring(startIndex));
-                if (endMatch) {
-                    endIndex = startIndex + endMatch.index;
+            if (i < markerCount) {
+                for (const pattern of patterns.map(p =>
+                    new RegExp(p.source.replace(String(i), String(i + 1)), 'i')
+                )) {
+                    const endMatch = pattern.exec(response.substring(startIndex));
+                    if (endMatch) {
+                        endIndex = startIndex + endMatch.index;
+                        break;
+                    }
                 }
             }
 

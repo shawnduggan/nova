@@ -295,14 +295,17 @@ export class MarginIndicators {
         const visibleRange = this.getVisibleLineRange();
         this.logger.debug(`Analyzing lines ${visibleRange.from} to ${visibleRange.to}`);
 
-        // First, detect any markers in the document
-        const documentContent = context.document;
-        const markers = this.commandEngine.detectMarkers(documentContent);
+        // First, detect any markers in the document (if both features are enabled)
+        // Fill markers require BOTH margin indicators AND Smart Fill to be enabled
+        const smartFillEnabled = this.plugin.featureManager?.isFeatureEnabled('commands') ?? true;
 
-        // Add marker-based opportunities
-        for (const marker of markers) {
-            // Only show if marker is in visible range
-            if (marker.line >= visibleRange.from && marker.line <= visibleRange.to) {
+        if (this.enabled && smartFillEnabled) {
+            const documentContent = context.document;
+            const markers = this.commandEngine.detectMarkers(documentContent);
+
+            // Add marker-based opportunities (show regardless of visible range when enabled)
+            // Fill markers are explicit user-placed markers that need to be clickable
+            for (const marker of markers) {
                 opportunities.push({
                     line: marker.line,
                     column: this.getMarginColumn(),
@@ -723,17 +726,32 @@ export class MarginIndicators {
      */
     private onIndicatorClick(opportunity: IndicatorOpportunity, clickedElement: HTMLElement): void {
         this.logger.info(`Clicked indicator: ${opportunity.type} with ${opportunity.commands.length} commands`);
-        
+
         if (!this.activeView) {
             this.logger.warn('No active view available for InsightPanel');
             return;
         }
 
-        // Show InsightPanel with full intelligence
-        if (opportunity.commands.length > 0) {
+        // Check if this is a fill opportunity (marker-based)
+        const isFillOpportunity = opportunity.icon === '📝' ||
+            opportunity.specificIssues?.some(issue => issue.suggestedFix?.includes('/fill'));
+
+        if (isFillOpportunity) {
+            // Execute fill for just this specific marker
+            this.logger.info(`Executing fill for single marker at line ${opportunity.line + 1}`);
+            void this.commandEngine.executeFillSingle(opportunity.line);
+            return;
+        }
+
+        // Show InsightPanel with full intelligence for other opportunities
+        // For quickfix opportunities, the commands are in specificIssues, not commands array
+        const hasCommands = opportunity.commands.length > 0;
+        const hasSpecificIssues = (opportunity.specificIssues?.length ?? 0) > 0;
+
+        if (hasCommands || hasSpecificIssues) {
             this.insightPanel.showPanel(opportunity, clickedElement, this.activeView);
         } else {
-            this.logger.warn(`No commands available for ${opportunity.type} opportunity`);
+            this.logger.warn(`No commands or issues available for ${opportunity.type} opportunity`);
         }
     }
 

@@ -432,18 +432,18 @@ export class StreamingManager {
      * Clean up all internal state
      */
     private cleanup(): void {
-        // Stop notice animation if it's running
-        this.stopDotsAnimation();
-        
+        // Don't stop notice animation here - let caller control it
+        // This allows multi-fill operations to keep the notice visible across fills
+
         // Clear scroll throttle timeout
         if (this.scrollThrottleTimeout) {
             this.timeoutManager.removeTimeout(this.scrollThrottleTimeout);
             this.scrollThrottleTimeout = null;
         }
-        
+
         // Clear all timeouts
         this.timeoutManager.clearAll();
-        
+
         this.currentStreamingEndPos = null;
         this.streamingStartPos = null;
         this.originalPosition = null;

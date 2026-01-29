@@ -376,16 +376,11 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		// Create container with native Obsidian suggestion styling
 		const container = el.createDiv({ cls: 'suggestion-content' });
 
-		// Title with icon
+		// Title - cleaner without emoji
 		const title = container.createDiv({ cls: 'suggestion-title' });
-		if (command.iconType) {
-			const icon = title.createSpan({ cls: 'suggestion-flair' });
-			icon.textContent = command.iconType;
-		}
-		const titleText = title.createSpan();
-		titleText.textContent = `/fill - ${command.name}`;
+		title.textContent = `/${command.id}`;
 
-		// Description
+		// Description as note
 		if (command.description) {
 			const note = container.createDiv({ cls: 'suggestion-note' });
 			note.textContent = command.description;
