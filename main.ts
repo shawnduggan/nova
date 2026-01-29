@@ -26,6 +26,8 @@ import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngin
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
 import { createIndicatorExtension } from './src/features/commands/ui/codemirror-decorations';
 import { toSmartTimingSettings } from './src/features/commands/types';
+import type { StateField } from '@codemirror/state';
+import type { DecorationSet } from '@codemirror/view';
 
 // Nova icon - main plugin icon
 const NOVA_ICON_SVG = `
@@ -84,6 +86,7 @@ export default class NovaPlugin extends Plugin {
 	smartVariableResolver!: SmartVariableResolver;
 	smartTimingEngine!: SmartTimingEngine;
 	marginIndicators!: MarginIndicators;
+	indicatorStateField!: StateField<{ decorations: DecorationSet; opportunities: Map<number, unknown> }>;
 
 	async onload() {
 		try {
@@ -165,10 +168,13 @@ export default class NovaPlugin extends Plugin {
 			this.smartTimingEngine.updateSettings(legacyTimingSettings);
 			
 			this.commandEngine = new CommandEngine(this);
+
+			// Create CodeMirror extension for margin indicators
+			const { extension, stateField } = createIndicatorExtension(this);
+			this.indicatorStateField = stateField;
+			this.registerEditorExtension(extension);
+
 			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandEngine, this.smartTimingEngine);
-			
-			// Register CodeMirror extension for margin indicators
-			this.registerEditorExtension(createIndicatorExtension());
 			Logger.info('Nova Commands system components created successfully');
 
 			this.registerView(

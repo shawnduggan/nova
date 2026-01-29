@@ -8,6 +8,7 @@ import { EditorView, Decoration, DecorationSet, WidgetType } from '@codemirror/v
 import { Platform } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import type { MarkdownCommand } from '../types';
+import type NovaPlugin from '../../../../main';
 
 // Types
 interface IndicatorOpportunity {
@@ -38,13 +39,11 @@ export const clearIndicatorsEffect = StateEffect.define<void>();
  */
 class IndicatorWidget extends WidgetType {
     private logger = Logger.scope('IndicatorWidget');
-    private clickHandler?: (event: MouseEvent) => void;
-    private mouseEnterHandler?: (event: MouseEvent) => void;
-    private mouseLeaveHandler?: (event: MouseEvent) => void;
 
     constructor(
         private opportunity: IndicatorOpportunity,
-        private onIndicatorClick: (opportunity: IndicatorOpportunity, element: HTMLElement) => void
+        private onIndicatorClick: (opportunity: IndicatorOpportunity, element: HTMLElement) => void,
+        private plugin: NovaPlugin
     ) {
         super();
     }
@@ -64,9 +63,9 @@ class IndicatorWidget extends WidgetType {
             indicator.setAttribute('data-count', this.opportunity.issueCount.toString());
             indicator.textContent = this.opportunity.icon + this.opportunity.issueCount;
         }
-        
-        // Add click handler
-        this.clickHandler = (event: MouseEvent) => {
+
+        // Use Obsidian's registerDomEvent for proper cleanup
+        this.plugin.registerDomEvent(indicator, 'click', (event: MouseEvent) => {
             event.preventDefault();
             event.stopPropagation();
 
@@ -77,19 +76,16 @@ class IndicatorWidget extends WidgetType {
 
             this.onIndicatorClick(this.opportunity, indicator);
             this.logger.debug(`Indicator clicked for line ${this.opportunity.line}`);
-        };
-        indicator.addEventListener('click', this.clickHandler);
-        
+        });
+
         // Add hover class for CSS transitions
-        this.mouseEnterHandler = () => {
+        this.plugin.registerDomEvent(indicator, 'mouseenter', () => {
             indicator.addClass('hover');
-        };
-        indicator.addEventListener('mouseenter', this.mouseEnterHandler);
-        
-        this.mouseLeaveHandler = () => {
+        });
+
+        this.plugin.registerDomEvent(indicator, 'mouseleave', () => {
             indicator.removeClass('hover');
-        };
-        indicator.addEventListener('mouseleave', this.mouseLeaveHandler);
+        });
 
         this.logger.debug(`Created indicator widget for line ${this.opportunity.line}, type: ${this.opportunity.type}`);
         
@@ -124,34 +120,24 @@ class IndicatorWidget extends WidgetType {
 
     /**
      * Destroy the widget (cleanup)
+     * Note: Event listeners registered via plugin.registerDomEvent() are automatically
+     * cleaned up when the plugin unloads, so no manual cleanup needed here.
      */
     destroy(dom: HTMLElement): void {
-        // Remove event listeners to prevent memory leaks
-        if (this.clickHandler) {
-            dom.removeEventListener('click', this.clickHandler);
-            this.clickHandler = undefined;
-        }
-        if (this.mouseEnterHandler) {
-            dom.removeEventListener('mouseenter', this.mouseEnterHandler);
-            this.mouseEnterHandler = undefined;
-        }
-        if (this.mouseLeaveHandler) {
-            dom.removeEventListener('mouseleave', this.mouseLeaveHandler);
-            this.mouseLeaveHandler = undefined;
-        }
-        
-        this.logger.debug(`Destroyed indicator widget for line ${this.opportunity.line} with proper cleanup`);
+        this.logger.debug(`Destroyed indicator widget for line ${this.opportunity.line}`);
     }
 }
 
 /**
- * StateField for managing margin indicator decorations
+ * Factory function to create StateField for managing margin indicator decorations
+ * Takes plugin instance for proper event registration
  */
-export const indicatorStateField = StateField.define<{
-    decorations: DecorationSet;
-    opportunities: Map<number, IndicatorOpportunity>;
-}>({
-    create(): { decorations: DecorationSet; opportunities: Map<number, IndicatorOpportunity> } {
+function createIndicatorStateField(plugin: NovaPlugin) {
+    return StateField.define<{
+        decorations: DecorationSet;
+        opportunities: Map<number, IndicatorOpportunity>;
+    }>({
+        create(): { decorations: DecorationSet; opportunities: Map<number, IndicatorOpportunity> } {
         return {
             decorations: Decoration.none,
             opportunities: new Map()
@@ -177,7 +163,7 @@ export const indicatorStateField = StateField.define<{
                 const line = transaction.newDoc.line(lineNum);
                 const pos = line.to; // Position at end of line
                 
-                // Create widget decoration
+                // Create widget decoration with plugin instance for proper event registration
                 const decoration = Decoration.widget({
                     widget: new IndicatorWidget(opportunity, (opp, element) => {
                         // Dispatch custom event for handling clicks
@@ -186,7 +172,7 @@ export const indicatorStateField = StateField.define<{
                             detail: { opportunity: opp, element },
                             bubbles: true
                         }));
-                    }),
+                    }, plugin),
                     side: 1, // Position after the line content
                     block: false
                 });
@@ -226,14 +212,19 @@ export const indicatorStateField = StateField.define<{
         return { decorations, opportunities };
     },
 
-    provide: field => EditorView.decorations.from(field, state => state.decorations)
-});
+        provide: field => EditorView.decorations.from(field, state => state.decorations)
+    });
+}
 
 /**
  * Extension for margin indicators
+ * Takes plugin instance for proper event listener registration
+ * Returns both the extension and the state field for use with CodeMirrorIndicatorManager
  */
-export function createIndicatorExtension() {
-    return [
+export function createIndicatorExtension(plugin: NovaPlugin) {
+    const indicatorStateField = createIndicatorStateField(plugin);
+
+    const extension = [
         indicatorStateField,
         
         // Theme for styling indicators
@@ -271,6 +262,11 @@ export function createIndicatorExtension() {
             }
         })
     ];
+
+    return {
+        extension,
+        stateField: indicatorStateField
+    };
 }
 
 /**
@@ -279,7 +275,10 @@ export function createIndicatorExtension() {
 export class CodeMirrorIndicatorManager {
     private logger = Logger.scope('CodeMirrorIndicatorManager');
 
-    constructor(private view: EditorView) {}
+    constructor(
+        private view: EditorView,
+        private stateField: StateField<{ decorations: DecorationSet; opportunities: Map<number, IndicatorOpportunity> }>
+    ) {}
 
     /**
      * Add or update an indicator
@@ -315,7 +314,7 @@ export class CodeMirrorIndicatorManager {
      * Get current opportunities
      */
     getOpportunities(): Map<number, IndicatorOpportunity> {
-        return this.view.state.field(indicatorStateField).opportunities;
+        return this.view.state.field(this.stateField).opportunities;
     }
 
     /**

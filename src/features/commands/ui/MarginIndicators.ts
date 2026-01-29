@@ -701,7 +701,7 @@ export class MarginIndicators {
             const editorWithCm = this.activeView.editor as { cm?: EditorView };
             const cm = editorWithCm.cm;
             if (cm) {
-                this.indicatorManager = new CodeMirrorIndicatorManager(cm);
+                this.indicatorManager = new CodeMirrorIndicatorManager(cm, this.plugin.indicatorStateField);
 
                 // Set up event listener for indicator clicks
                 this.plugin.registerDomEvent(document, 'nova-indicator-click' as keyof DocumentEventMap, (event: Event) => {
