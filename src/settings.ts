@@ -93,7 +93,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
-	private activeTab: 'getting-started' | 'general' | 'providers' | 'commands' | 'supernova' | 'debug' = 'getting-started';
+	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
 	private tabContainer: HTMLElement | null = null;
 	private contentContainer: HTMLElement | null = null;
 	private timeoutManager = new TimeoutManager();
@@ -131,7 +131,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			{ id: 'getting-started', label: 'Getting started' },
 			{ id: 'general', label: 'General' },
 			{ id: 'providers', label: 'AI providers' },
-			{ id: 'commands', label: 'Smart Fill' },
 			{ id: 'supernova', label: 'Supernova' }
 		];
 
@@ -153,7 +152,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 	}
 
-	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'commands' | 'supernova' | 'debug'): void {
+	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug'): void {
 		this.activeTab = tabId;
 		this.updateTabStates();
 		this.updateTabContent();
@@ -204,9 +203,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			case 'providers':
 				this.createProvidersTabContent(this.contentContainer);
 				break;
-			case 'commands':
-				this.createCommandsTabContent(this.contentContainer);
-				break;
 			case 'supernova':
 				this.createSupernovaTabContent(this.contentContainer);
 				break;
@@ -223,57 +219,6 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createProvidersTabContent(container: HTMLElement): void {
 		this.createProviderSettings(container);
-	}
-
-	private createCommandsTabContent(container: HTMLElement): void {
-		// Main section heading
-		new Setting(container).setName('Smart Fill').setHeading();
-		container.createEl('hr', { cls: 'nova-section-divider' });
-		
-		// Description
-		const description = container.createDiv({ cls: 'nova-setting-description' });
-		description.textContent = 'Control when and how Nova shows intelligent command suggestions while you write.';
-		
-		// Suggestion Mode - Main control (insight sensitivity)
-		new Setting(container)
-			.setName('Insight sensitivity')
-			.setDesc('How aggressively to show writing improvement suggestions')
-			.addDropdown(dropdown => dropdown
-				.addOption('off', 'Off - no suggestions')
-				.addOption('minimal', 'Minimal - only high-confidence suggestions')
-				.addOption('balanced', 'Balanced - good suggestions (recommended)')
-				.addOption('aggressive', 'Aggressive - show all suggestions')
-				.setValue(this.plugin.settings.commands.suggestionMode)
-				.onChange(async (value) => {
-					this.plugin.settings.commands.suggestionMode = value as 'off' | 'minimal' | 'balanced' | 'aggressive';
-					await this.plugin.saveSettings();
-					// Notify components of settings change
-					if (this.plugin.marginIndicators) {
-						this.plugin.marginIndicators.updateSettings();
-					}
-					if (this.plugin.smartTimingEngine) {
-						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
-						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
-					}
-					// Update sidebar button
-					if (this.plugin.sidebarView) {
-						this.plugin.sidebarView.updateCommandsButton();
-					}
-				})
-			);
-
-		// /fill command info
-		container.createEl('hr', { cls: 'nova-section-divider nova-section-divider--spaced' });
-		new Setting(container)
-			.setName('Using placeholders')
-			.setHeading();
-
-		const markerInfo = container.createDiv({ cls: 'nova-setting-description' });
-		markerInfo.innerHTML = `
-			<p>Add <code>&lt;!-- nova: your instruction --&gt;</code> placeholders in your document, then use the <strong>/fill</strong> command (or Command Palette: "Fill placeholders") to generate content for all placeholders at once.</p>
-			<p><strong>Example:</strong></p>
-			<pre>&lt;!-- nova: Write a compelling introduction about AI --&gt;</pre>
-		`;
 	}
 
 	private createGettingStartedTabContent(container: HTMLElement): void {
@@ -380,14 +325,16 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Privacy info card
 		const privacyCard = infoEl.createDiv({ cls: 'nova-info-card' });
 		const cardTitle2 = privacyCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle2.setText('🔒 your privacy matters');
+		cardTitle2.createSpan({ text: '🔒 ' });
+		cardTitle2.appendText('Your privacy matters');
 		const privacyText = privacyCard.createEl('p');
 		privacyText.textContent = 'Nova respects your privacy and gives you full control over how your data is handled. All AI providers are accessed using your own API keys, so your content stays between you and your chosen AI service.';
 		
 		// Mobile support info card
 		const mobileCard = infoEl.createDiv({ cls: 'nova-info-card' });
 		const cardTitle3 = mobileCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle3.setText('📱 mobile support');
+		cardTitle3.createSpan({ text: '📱 ' });
+		cardTitle3.appendText('Mobile support');
 		const mobileText = mobileCard.createEl('p');
 		mobileText.textContent = 'Mobile support is disabled by default to protect your privacy. When enabled, Nova provides identical selection-based editing capabilities across desktop and mobile with cloud-based AI providers';
 		
@@ -1162,7 +1109,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(coreSection)
 			.setName('Core')
 			.setHeading();
-		
+
 		// Section spacing handled by CSS class
 
 		new Setting(coreSection)
@@ -1188,6 +1135,34 @@ export class NovaSettingTab extends PluginSettingTab {
 					this.plugin.settings.general.defaultMaxTokens = value;
 					await this.plugin.saveSettings();
 				}));
+
+		// Insight sensitivity setting
+		new Setting(coreSection)
+			.setName('Insight sensitivity')
+			.setDesc('How aggressively to show writing improvement suggestions in margin indicators')
+			.addDropdown(dropdown => dropdown
+				.addOption('off', 'Off - no suggestions')
+				.addOption('minimal', 'Minimal - only high-confidence suggestions')
+				.addOption('balanced', 'Balanced - good suggestions (recommended)')
+				.addOption('aggressive', 'Aggressive - show all suggestions')
+				.setValue(this.plugin.settings.commands.suggestionMode)
+				.onChange(async (value) => {
+					this.plugin.settings.commands.suggestionMode = value as 'off' | 'minimal' | 'balanced' | 'aggressive';
+					await this.plugin.saveSettings();
+					// Notify components of settings change
+					if (this.plugin.marginIndicators) {
+						this.plugin.marginIndicators.updateSettings();
+					}
+					if (this.plugin.smartTimingEngine) {
+						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
+						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
+					}
+					// Update sidebar button
+					if (this.plugin.sidebarView) {
+						this.plugin.sidebarView.updateCommandsButton();
+					}
+				})
+			);
 
 	}
 
