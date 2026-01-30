@@ -224,6 +224,11 @@ export class OpenAIProvider implements AIProvider {
 		// Split result into smaller chunks for consistent typewriter effect
 		const chunkSize = 3; // Characters per chunk
 		for (let i = 0; i < result.length; i += chunkSize) {
+			// Check if operation was aborted
+			if (options?.signal?.aborted) {
+				return; // Exit generator early
+			}
+
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect

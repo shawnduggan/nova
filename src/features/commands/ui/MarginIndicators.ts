@@ -739,7 +739,7 @@ export class MarginIndicators {
             // Execute fill for just this specific marker
             this.logger.info(`Executing fill for single marker at line ${opportunity.line + 1}`);
             const instruction = opportunity.specificIssues?.[0]?.description;
-            void this.commandEngine.executeFillSingle(opportunity.line, instruction);
+            void this.plugin.executeFillSingleWithProcessingState(opportunity.line, instruction);
             return;
         }
 

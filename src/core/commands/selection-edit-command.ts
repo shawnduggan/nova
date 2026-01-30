@@ -66,11 +66,12 @@ export class SelectionEditCommand {
      * Execute a selection-based edit action with streaming
      */
     async executeStreaming(
-        action: string, 
-        editor: Editor, 
-        selectedText: string, 
+        action: string,
+        editor: Editor,
+        selectedText: string,
         onChunk: (chunk: string, isComplete: boolean) => void,
-        customInstruction?: string
+        customInstruction?: string,
+        signal?: AbortSignal
     ): Promise<SelectionEditResult> {
         try {
             // Get selection range for later replacement
@@ -81,26 +82,32 @@ export class SelectionEditCommand {
 
             // Generate prompt based on action
             const prompt = this.buildPrompt(action, selectedText, customInstruction);
-            
+
             let fullResponse = '';
-            
-            // Stream AI response
+
+            // Stream AI response with signal for cancellation
             const stream = this.plugin.aiProviderManager.generateTextStream(prompt.userPrompt, {
-                systemPrompt: prompt.systemPrompt
+                systemPrompt: prompt.systemPrompt,
+                signal: signal
             });
 
             for await (const chunk of stream) {
+                // Check if operation was aborted
+                if (signal?.aborted) {
+                    break;
+                }
+
                 if (chunk.error) {
                     throw new Error(chunk.error);
                 }
-                
+
                 fullResponse += chunk.content;
-                
+
                 // Pass through all chunks without modification
                 if (fullResponse.trim().length > 0 || chunk.done) {
                     onChunk(fullResponse, chunk.done);
                 }
-                
+
                 if (chunk.done) {
                     break;
                 }
@@ -110,7 +117,7 @@ export class SelectionEditCommand {
             if (!fullResponse.trim()) {
                 return {
                     success: false,
-                    error: 'AI provider returned empty response',
+                    error: signal?.aborted ? 'Operation canceled' : 'AI provider returned empty response',
                     originalRange: selectionRange
                 };
             }

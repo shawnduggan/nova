@@ -36,6 +36,7 @@ export class CommandEngine {
     private contextBuilder: ContextBuilder;
     private documentEngine: DocumentEngine;
     private logger = Logger.scope('CommandEngine');
+    private abortController: AbortController | null = null;
 
     constructor(plugin: NovaPlugin) {
         this.plugin = plugin;
@@ -82,6 +83,7 @@ export class CommandEngine {
      * Uses full document context for better coherence
      */
     async executeFillSingle(lineNumber: number, instruction?: string): Promise<void> {
+
         const documentContext = this.documentEngine.getDocumentContext();
         if (!documentContext) {
             new Notice('No active document found');
@@ -107,6 +109,10 @@ export class CommandEngine {
             new Notice('No active editor available');
             return;
         }
+
+        // Create abort controller for this operation
+        this.abortController = new AbortController();
+        const signal = this.abortController.signal;
 
         try {
             // Show thinking notice for duration of fill operation
@@ -137,12 +143,17 @@ export class CommandEngine {
                 {
                     systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
                     temperature: 0.7,
-                    maxTokens: 2000
+                    maxTokens: 2000,
+                    signal: signal
                 }
             );
 
             // Handle streaming updates
             for await (const chunk of stream) {
+                if (signal.aborted) {
+                    streaming.stopStream();
+                    break;
+                }
                 if (chunk.content) {
                     fullContent += chunk.content;
                     streaming.updateStream(fullContent, false);
@@ -150,12 +161,26 @@ export class CommandEngine {
             }
 
             // Complete the stream (finalizes cursor position)
-            streaming.updateStream(fullContent, true);
+            if (!signal.aborted) {
+                streaming.updateStream(fullContent, true);
+                new Notice('Filled placeholder');
+            } else {
+                // Show canceled message in chat (matching context menu format)
+                // Message must be >30 chars for bubble format, don't include ❌ (auto-added)
+                try {
+                    const sidebarView = this.plugin.getCurrentSidebarView();
+                    if (sidebarView?.chatRenderer) {
+                        sidebarView.chatRenderer.addErrorMessage('Operation canceled: fill placeholder', true);
+                    }
+                } catch (error) {
+                    this.logger.warn('Failed to add cancel message to chat:', error);
+                }
+                new Notice('Fill canceled');
+            }
 
             // Hide thinking notice when complete
             this.streamingManager.stopAnimation();
 
-            new Notice('Filled placeholder');
         } catch (error) {
             this.streamingManager.stopAnimation();
             this.logger.error('Failed to fill single marker:', error);
@@ -170,6 +195,8 @@ export class CommandEngine {
                     true
                 );
             }
+        } finally {
+            this.abortController = null;
         }
     }
 
@@ -177,6 +204,7 @@ export class CommandEngine {
      * Execute /fill command - fill all markers sequentially with streaming typewriter effect
      */
     async executeFill(): Promise<void> {
+
         const documentContext = this.documentEngine.getDocumentContext();
         if (!documentContext) {
             new Notice('No active document found');
@@ -198,6 +226,10 @@ export class CommandEngine {
 
         this.logger.info(`Found ${markers.length} markers to fill sequentially with streaming`);
 
+        // Create abort controller for this batch operation
+        this.abortController = new AbortController();
+        const signal = this.abortController.signal;
+
         // Process markers top-to-bottom for natural reading order
         const sortedMarkers = [...markers].sort((a, b) => a.position - b.position);
 
@@ -206,119 +238,154 @@ export class CommandEngine {
         const filledMarkers: MarkerInsight[] = [];
         const filledInstructions = new Set<string>(); // Track filled markers by instruction
 
-        for (let i = 0; i < sortedMarkers.length; i++) {
-            const markerNum = i + 1;
-
-            try {
-                // Re-detect markers after each fill to get updated positions
-                // (positions shift as we fill from top to bottom)
-                const currentDocContext = this.documentEngine.getDocumentContext();
-                if (!currentDocContext) {
-                    throw new Error('Document context lost during batch fill');
+        try {
+            for (let i = 0; i < sortedMarkers.length; i++) {
+                // Check if operation was aborted
+                if (signal.aborted) {
+                    break; // Exit marker loop
                 }
 
-                const currentMarkers = this.detectMarkers(currentDocContext.content);
+                const markerNum = i + 1;
 
-                // Find the next unfilled marker (by instruction)
-                const unfilledMarker = currentMarkers.find(m => !filledInstructions.has(m.instruction));
+                try {
+                    // Re-detect markers after each fill to get updated positions
+                    // (positions shift as we fill from top to bottom)
+                    const currentDocContext = this.documentEngine.getDocumentContext();
+                    if (!currentDocContext) {
+                        throw new Error('Document context lost during batch fill');
+                    }
 
-                if (!unfilledMarker) {
-                    // All remaining markers have been filled
-                    break;
+                    const currentMarkers = this.detectMarkers(currentDocContext.content);
+
+                    // Find the next unfilled marker (by instruction)
+                    const unfilledMarker = currentMarkers.find(m => !filledInstructions.has(m.instruction));
+
+                    if (!unfilledMarker) {
+                        // All remaining markers have been filled
+                        break;
+                    }
+
+                    this.logger.info(`Filling marker ${markerNum}/${sortedMarkers.length} at line ${unfilledMarker.line + 1}: ${unfilledMarker.instruction}`);
+
+                    // Show thinking notice for this marker
+                    this.streamingManager.showThinkingNotice('edit', 'notice');
+
+                    const prompt = this.buildSingleFillPrompt(currentDocContext.content, unfilledMarker);
+
+                    // Calculate positions for marker replacement
+                    const startPos = activeEditor.offsetToPos(unfilledMarker.position);
+                    const endPos = activeEditor.offsetToPos(unfilledMarker.position + unfilledMarker.length);
+
+                    // Start streaming to replace the marker with typewriter effect
+                    const streaming = this.streamingManager.startStreaming(
+                        activeEditor,
+                        startPos,
+                        endPos,
+                        {
+                            animationMode: 'inline',
+                            scrollBehavior: 'smooth'
+                        }
+                    );
+
+                    // Get AI response with streaming
+                    let fullContent = '';
+                    const stream = this.providerManager.generateTextStream(
+                        prompt,
+                        {
+                            systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
+                            temperature: 0.7,
+                            maxTokens: 2000,
+                            signal: signal
+                        }
+                    );
+
+                    // Handle streaming updates with typewriter effect
+                    for await (const chunk of stream) {
+                        if (signal.aborted) {
+                            streaming.stopStream();
+                            break;
+                        }
+                        if (chunk.content) {
+                            fullContent += chunk.content;
+                            streaming.updateStream(fullContent, false);
+                        }
+                    }
+
+                    // Complete the stream if not aborted
+                    if (!signal.aborted) {
+                        streaming.updateStream(fullContent, true);
+                        this.streamingManager.stopAnimation();
+
+                        // Mark this marker as filled
+                        filledInstructions.add(unfilledMarker.instruction);
+                        successCount++;
+                        filledMarkers.push(unfilledMarker);
+                    } else {
+                        // Aborted during streaming
+                        this.streamingManager.stopAnimation();
+                        break;
+                    }
+
+                } catch (error) {
+                    this.streamingManager.stopAnimation();
+                    this.logger.error(`Failed to fill marker ${markerNum}:`, error);
+
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+                    // Show error in chat for this specific marker
+                    if (this.plugin.sidebarView?.chatRenderer) {
+                        this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                            `Failed to fill placeholder ${markerNum}/${sortedMarkers.length}: ${errorMessage}`,
+                            true
+                        );
+                    }
+
+                    failCount++;
+                    // Continue with next marker despite error
                 }
+            }
 
-                this.logger.info(`Filling marker ${markerNum}/${sortedMarkers.length} at line ${unfilledMarker.line + 1}: ${unfilledMarker.instruction}`);
-
-                // Show thinking notice for this marker
-                this.streamingManager.showThinkingNotice('edit', 'notice');
-
-                const prompt = this.buildSingleFillPrompt(currentDocContext.content, unfilledMarker);
-
-                // Calculate positions for marker replacement
-                const startPos = activeEditor.offsetToPos(unfilledMarker.position);
-                const endPos = activeEditor.offsetToPos(unfilledMarker.position + unfilledMarker.length);
-
-                // Start streaming to replace the marker with typewriter effect
-                const streaming = this.streamingManager.startStreaming(
-                    activeEditor,
-                    startPos,
-                    endPos,
-                    {
-                        animationMode: 'inline',
-                        scrollBehavior: 'smooth'
+            // Show final summary in Notice only
+            if (signal.aborted) {
+                // Show canceled message in chat (matching context menu format)
+                // Message must be >30 chars for bubble format, don't include ❌ (auto-added)
+                try {
+                    const sidebarView = this.plugin.getCurrentSidebarView();
+                    if (sidebarView?.chatRenderer) {
+                        sidebarView.chatRenderer.addErrorMessage(
+                            `Operation canceled: fill (${successCount} of ${sortedMarkers.length} completed)`,
+                            true
+                        );
                     }
-                );
-
-                // Get AI response with streaming
-                let fullContent = '';
-                const stream = this.providerManager.generateTextStream(
-                    prompt,
-                    {
-                        systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
-                        temperature: 0.7,
-                        maxTokens: 2000
-                    }
-                );
-
-                // Handle streaming updates with typewriter effect
-                for await (const chunk of stream) {
-                    if (chunk.content) {
-                        fullContent += chunk.content;
-                        streaming.updateStream(fullContent, false);
-                    }
+                } catch (error) {
+                    this.logger.warn('Failed to add cancel message to chat:', error);
                 }
+                new Notice(`Fill canceled (${successCount} of ${sortedMarkers.length} completed)`);
+            } else if (successCount > 0 && failCount === 0) {
+                new Notice(`Filled ${successCount} placeholder${successCount > 1 ? 's' : ''}`);
+            } else if (successCount > 0 && failCount > 0) {
+                new Notice(`Filled ${successCount}/${successCount + failCount} placeholders (${failCount} failed)`);
 
-                // Complete the stream
-                streaming.updateStream(fullContent, true);
-                this.streamingManager.stopAnimation();
-
-                // Mark this marker as filled
-                filledInstructions.add(unfilledMarker.instruction);
-                successCount++;
-                filledMarkers.push(unfilledMarker);
-
-            } catch (error) {
-                this.streamingManager.stopAnimation();
-                this.logger.error(`Failed to fill marker ${markerNum}:`, error);
-
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-                // Show error in chat for this specific marker
+                // Show summary error in chat if some failed
                 if (this.plugin.sidebarView?.chatRenderer) {
                     this.plugin.sidebarView.chatRenderer.addErrorMessage(
-                        `Failed to fill placeholder ${markerNum}/${sortedMarkers.length}: ${errorMessage}`,
+                        `Batch fill completed with errors: ${successCount} succeeded, ${failCount} failed`,
                         true
                     );
                 }
+            } else {
+                new Notice('Failed to fill placeholders');
 
-                failCount++;
-                // Continue with next marker despite error
+                // Show error in chat if all failed
+                if (this.plugin.sidebarView?.chatRenderer) {
+                    this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                        'Failed to fill all placeholders',
+                        true
+                    );
+                }
             }
-        }
-
-        // Show final summary in Notice only
-        if (successCount > 0 && failCount === 0) {
-            new Notice(`Filled ${successCount} placeholder${successCount > 1 ? 's' : ''}`);
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(`Filled ${successCount}/${successCount + failCount} placeholders (${failCount} failed)`);
-
-            // Show summary error in chat if some failed
-            if (this.plugin.sidebarView?.chatRenderer) {
-                this.plugin.sidebarView.chatRenderer.addErrorMessage(
-                    `Batch fill completed with errors: ${successCount} succeeded, ${failCount} failed`,
-                    true
-                );
-            }
-        } else {
-            new Notice('Failed to fill placeholders');
-
-            // Show error in chat if all failed
-            if (this.plugin.sidebarView?.chatRenderer) {
-                this.plugin.sidebarView.chatRenderer.addErrorMessage(
-                    'Failed to fill all placeholders',
-                    true
-                );
-            }
+        } finally {
+            this.abortController = null;
         }
     }
 
@@ -601,6 +668,14 @@ Generate the content now:`;
             new Notice(`Failed to execute ${context.command.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             throw error;
         }
+    }
+
+    /**
+     * Cancel the current ongoing operation
+     */
+    cancelCurrentOperation(): void {
+        this.abortController?.abort();
+        this.streamingManager.stopAnimation();
     }
 
     /**

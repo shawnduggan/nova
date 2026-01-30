@@ -236,10 +236,10 @@ export class InsightPanel {
         description.textContent = 'Use /fill command to generate content for this placeholder';
 
         // Register click handler to run /fill
-        this.plugin.registerDomEvent(option, 'click', (event) => {
+        this.plugin.registerDomEvent(option, 'click', async (event) => {
             event.stopPropagation();
             this.hidePanel();
-            void this.commandEngine.executeFill();
+            await this.plugin.executeFilWithProcessingState();
         });
     }
 

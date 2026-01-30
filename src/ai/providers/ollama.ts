@@ -80,10 +80,15 @@ export class OllamaProvider implements AIProvider {
 	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		// Get the full response from Ollama, then simulate streaming with consistent chunking
 		const result = await this.generateText(prompt, options);
-		
+
 		// Split result into smaller chunks for consistent typewriter effect
 		const chunkSize = 3; // Characters per chunk
 		for (let i = 0; i < result.length; i += chunkSize) {
+			// Check if operation was aborted
+			if (options?.signal?.aborted) {
+				return; // Exit generator early
+			}
+
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
@@ -91,7 +96,7 @@ export class OllamaProvider implements AIProvider {
 				this.timeoutManager.addTimeout(() => resolve(), 20);
 			});
 		}
-		
+
 		yield { content: '', done: true };
 	}
 
@@ -147,10 +152,15 @@ export class OllamaProvider implements AIProvider {
 	async *chatCompletionStream(messages: AIMessage[], options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		// Get the full response from Ollama, then simulate streaming with consistent chunking
 		const result = await this.chatCompletion(messages, options);
-		
+
 		// Split result into smaller chunks for consistent typewriter effect
 		const chunkSize = 3; // Characters per chunk
 		for (let i = 0; i < result.length; i += chunkSize) {
+			// Check if operation was aborted
+			if (options?.signal?.aborted) {
+				return; // Exit generator early
+			}
+
 			const chunk = result.slice(i, i + chunkSize);
 			yield { content: chunk, done: false };
 			// Small delay between chunks to create smooth typewriter effect
@@ -158,7 +168,7 @@ export class OllamaProvider implements AIProvider {
 				this.timeoutManager.addTimeout(() => resolve(), 20);
 			});
 		}
-		
+
 		yield { content: '', done: true };
 	}
 }

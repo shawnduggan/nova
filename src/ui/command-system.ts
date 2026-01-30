@@ -238,12 +238,7 @@ export class CommandSystem {
 	private async executeFillCommand(): Promise<void> {
 		this.hideCommandPicker();
 		this.textArea.setValue('');
-
-		try {
-			await this.commandEngine.executeFill();
-		} catch (error) {
-			this.logger.error('Failed to execute /fill:', error);
-		}
+		await this.plugin.executeFilWithProcessingState();
 	}
 
 	private updateCommandPickerSelection(): void {

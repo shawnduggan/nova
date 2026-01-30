@@ -120,19 +120,20 @@ export class AIProviderManager {
 		return provider.generateText(prompt, enhancedOptions);
 	}
 
-	async *generateTextStream(prompt: string, _options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
+	async *generateTextStream(prompt: string, options?: AIGenerationOptions): AsyncGenerator<AIStreamResponse> {
 		const provider = await this.getAvailableProvider();
 		if (!provider) {
 			throw new Error('Nova is disabled or no AI provider is available');
 		}
-		
-		// Always use global settings with model-specific token limits
+
+		// Merge incoming options (including signal) with global settings
 		const enhancedOptions: AIGenerationOptions = {
 			temperature: this.getDefaultTemperature(),
 			maxTokens: this.getModelSpecificMaxTokens(),
-			model: this.getSelectedModel()
+			model: this.getSelectedModel(),
+			...options  // Merge incoming options to preserve signal and other fields
 		};
-		
+
 		yield* provider.generateTextStream(prompt, enhancedOptions);
 	}
 

@@ -36,7 +36,7 @@ export class NovaSidebarView extends ItemView {
 	private isUserInitiatedProviderChange: boolean = false;
 	
 	// New architecture components
-	private inputHandler!: InputHandler;
+	public inputHandler!: InputHandler;
 	private commandSystem!: CommandSystem;
 	private contextManager!: ContextManager;
 	public chatRenderer!: ChatRenderer;
@@ -77,8 +77,10 @@ export class NovaSidebarView extends ItemView {
 	
 	// Document drawer state (transient - always starts closed on file switch)
 	private isDrawerOpen: boolean = false;
-	
-	
+
+	// Abort controller for cancelling ongoing AI operations
+	private currentAbortController: AbortController | null = null;
+
 	// Performance optimization - debouncing and timing constants
 	private contextPreviewDebounceTimeout: number | null = null;
 	private static readonly CONTEXT_PREVIEW_DEBOUNCE_MS = 300;
@@ -389,7 +391,7 @@ export class NovaSidebarView extends ItemView {
 		
 		// Always create CommandSystem - FeatureManager handles enablement
 		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
-		
+
 		// Connect the CommandSystem to the InputHandler
 		this.inputHandler.setCommandSystem(this.commandSystem);
 		
@@ -397,10 +399,16 @@ export class NovaSidebarView extends ItemView {
 		this.inputHandler.setOnSendMessage((message: string) => {
 			this.handleSend(message).catch(error => { Logger.error('Failed to handle send:', error); });
 		});
-		
+
+		// Set up cancel operation callback
+		this.inputHandler.setOnCancelOperation(() => {
+			this.currentAbortController?.abort();
+			this.plugin.cancelAllOperations();
+		});
+
 		// Create context indicator and preview using ContextManager
 		this.contextManager.createContextIndicator();
-		
+
 	}
 
 
@@ -1247,10 +1255,13 @@ export class NovaSidebarView extends ItemView {
 		if (this.contextPreview) {
 			this.contextPreview.removeClass('show');
 		}
-		
-		// Disable send button during processing
-		// TODO: Add public getter method to InputHandler for sendButton access
-		this.inputHandler.sendButtonComponent?.setDisabled(true);
+
+		// Create abort controller for this operation
+		this.currentAbortController = new AbortController();
+
+		// Set processing state (shows stop button)
+		console.log('[Nova SidebarView] Calling setProcessingState(true)');
+		this.inputHandler.setProcessingState(true);
 
 		try {
 			// Store user message in conversation (will be restored via loadConversationHistory)
@@ -1340,9 +1351,24 @@ USER REQUEST: ${processedMessage}`;
 					// Get AI response using the provider manager
 					response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt, {
 						temperature: prompt.config.temperature,
-						maxTokens: prompt.config.maxTokens
+						maxTokens: prompt.config.maxTokens,
+						signal: this.currentAbortController.signal
 					});
 				}
+			}
+
+			// Check if operation was aborted
+			if (this.currentAbortController.signal.aborted) {
+				// Remove loading indicator with proper cleanup
+				const loadingTextSpan = loadingEl.querySelector('span');
+				if (loadingTextSpan) {
+					this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+				}
+				loadingEl.remove();
+
+				// Show canceled message
+				this.chatRenderer.addStatusMessage('Response canceled', { type: 'pill', variant: 'system' });
+				return;
 			}
 			
 			// Remove loading indicator with proper cleanup
@@ -1385,30 +1411,38 @@ USER REQUEST: ${processedMessage}`;
 				loadingEl.remove();
 			}
 			
-			// Format error message based on error type
-			const errorMessage = (error as Error).message;
-			let displayMessage: string;
-			
-			// Check if it's a provider-specific error
-			if (errorMessage.includes('Google API error')) {
-				// Google API errors already have helpful context from our improved error handling
-				displayMessage = errorMessage;
-			} else if (errorMessage.includes('OpenAI API error')) {
-				displayMessage = errorMessage;
-			} else if (errorMessage.includes('API key')) {
-				displayMessage = `${errorMessage}. Please check your settings.`;
-			} else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-				displayMessage = 'Network error. Please check your internet connection and try again.';
+			// Check if this was an abort error
+			if (this.currentAbortController?.signal.aborted || (error as Error).name === 'AbortError') {
+				this.chatRenderer.addStatusMessage('Response canceled', { type: 'pill', variant: 'system' });
 			} else {
-				// Generic error
-				displayMessage = `Sorry, I encountered an error: ${errorMessage}`;
+				// Format error message based on error type
+				const errorMessage = (error as Error).message;
+				let displayMessage: string;
+
+				// Check if it's a provider-specific error
+				if (errorMessage.includes('Google API error')) {
+					// Google API errors already have helpful context from our improved error handling
+					displayMessage = errorMessage;
+				} else if (errorMessage.includes('OpenAI API error')) {
+					displayMessage = errorMessage;
+				} else if (errorMessage.includes('API key')) {
+					displayMessage = `${errorMessage}. Please check your settings.`;
+				} else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+					displayMessage = 'Network error. Please check your internet connection and try again.';
+				} else {
+					// Generic error
+					displayMessage = `Sorry, I encountered an error: ${errorMessage}`;
+				}
+
+				this.addErrorMessage(displayMessage);
 			}
-			
-			this.addErrorMessage(displayMessage);
 		} finally {
-			// Re-enable send button
-			// TODO: Add public getter method to InputHandler for sendButton access
-			this.inputHandler.sendButtonComponent?.setDisabled(false);
+			// Reset processing state (shows send button)
+			console.log('[Nova SidebarView] Calling setProcessingState(false)');
+			this.inputHandler.setProcessingState(false);
+			this.currentAbortController = null;
+			// Update button state based on provider availability
+			await this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 			// Refresh context indicator to show persistent documents
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 		}
@@ -2008,6 +2042,10 @@ USER REQUEST: ${processedMessage}`;
 	 * Update send button enabled/disabled state based on provider availability
 	 */
 	private async updateSendButtonState(): Promise<void> {
+		// Don't update button state if we're currently processing - the processing state takes precedence
+		if (this.currentAbortController) {
+			return;
+		}
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
 		// TODO: Add public getter method to InputHandler for sendButton access
 		this.inputHandler.sendButtonComponent?.setDisabled(!currentProviderType);

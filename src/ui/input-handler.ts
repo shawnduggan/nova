@@ -28,6 +28,8 @@ export class InputHandler {
 	private isDragging: boolean = false;
 	private sidebarView: { addFilesToContext: (filenames: string[]) => Promise<void> } | null = null; // Reference to NovaSidebarView for context operations
 	private timeoutManager = new TimeoutManager();
+	private isProcessing = false;
+	private onCancelOperation?: () => void;
 
 	// Event cleanup is handled automatically by registerDomEvent
 
@@ -121,7 +123,7 @@ export class InputHandler {
 		this.sendButton = new ButtonComponent(this.inputRow);
 		this.sendButton.setIcon('send');
 		this.sendButton.setTooltip('Send message');
-		this.sendButton.onClick(() => this.handleSend());
+		this.sendButton.onClick(() => this.handleButtonClick());
 		this.sendButton.buttonEl.addClass('nova-send-button-styled');
 
 		// Enter key handling and command/section picker
@@ -161,6 +163,30 @@ export class InputHandler {
 				this.textArea.inputEl.focus();
 			}
 		}, InputHandler.FOCUS_DELAY_MS);
+	}
+
+	setProcessingState(processing: boolean): void {
+		this.isProcessing = processing;
+		if (processing) {
+			this.sendButton.setIcon('square');
+			this.sendButton.setTooltip('Stop response');
+		} else {
+			this.sendButton.setIcon('send');
+			this.sendButton.setTooltip('Send message');
+		}
+		this.sendButton.setDisabled(false); // Always clickable
+	}
+
+	setOnCancelOperation(callback: () => void): void {
+		this.onCancelOperation = callback;
+	}
+
+	private handleButtonClick(): void {
+		if (this.isProcessing) {
+			this.onCancelOperation?.();
+		} else {
+			this.handleSend();
+		}
 	}
 
 	private handleSend(): void {

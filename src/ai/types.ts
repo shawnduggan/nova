@@ -31,6 +31,7 @@ export interface AIGenerationOptions {
 	maxTokens?: number;
 	model?: string;
 	systemPrompt?: string;
+	signal?: AbortSignal;
 }
 
 export interface ProviderConfig {

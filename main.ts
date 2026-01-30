@@ -245,7 +245,7 @@ export default class NovaPlugin extends Plugin {
 				id: 'fill-placeholders',
 				name: 'Fill placeholders (/fill)',
 				editorCallback: async () => {
-					await this.commandEngine.executeFill();
+					await this.executeFilWithProcessingState();
 				}
 			});
 
@@ -443,6 +443,65 @@ export default class NovaPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Get the current sidebar view from the workspace (dynamic lookup)
+	 * This is more reliable than using the cached this.sidebarView
+	 */
+	getCurrentSidebarView(): NovaSidebarView | null {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
+		if (leaves.length > 0 && leaves[0].view instanceof NovaSidebarView) {
+			return leaves[0].view;
+		}
+		return null;
+	}
+
+	/**
+	 * Execute an async operation with automatic processing state management
+	 * Consolidates the pattern of setting processing state before/after operations
+	 */
+	private async executeWithProcessingState<T>(operation: () => Promise<T>): Promise<T> {
+		const sidebarView = this.getCurrentSidebarView();
+
+		if (sidebarView?.inputHandler) {
+			sidebarView.inputHandler.setProcessingState(true);
+		}
+
+		try {
+			return await operation();
+		} finally {
+			const sidebarView = this.getCurrentSidebarView();
+			if (sidebarView?.inputHandler) {
+				sidebarView.inputHandler.setProcessingState(false);
+			}
+		}
+	}
+
+	/**
+	 * Execute fill with automatic processing state management
+	 * This is the single source of truth for all fill operations
+	 */
+	async executeFilWithProcessingState(): Promise<void> {
+		await this.executeWithProcessingState(() => this.commandEngine.executeFill());
+	}
+
+	/**
+	 * Execute fill single with automatic processing state management
+	 */
+	async executeFillSingleWithProcessingState(lineNumber: number, instruction?: string): Promise<void> {
+		await this.executeWithProcessingState(() => this.commandEngine.executeFillSingle(lineNumber, instruction));
+	}
+
+	/**
+	 * Cancel all ongoing operations (fill commands and selection edits)
+	 */
+	cancelAllOperations(): void {
+		// Cancel command engine operations (fill commands)
+		this.commandEngine?.cancelCurrentOperation();
+
+		// Cancel selection context menu operations (improve writing, etc.)
+		this.selectionContextMenu?.cancelCurrentOperation();
+	}
+
 	async activateView() {
 		const { workspace } = this.app;
 
@@ -457,7 +516,7 @@ export default class NovaPlugin extends Plugin {
 		}
 
 		void workspace.revealLeaf(leaf!);
-		
+
 		// Store reference to sidebar view
 		if (leaf?.view instanceof NovaSidebarView) {
 			this.sidebarView = leaf.view;

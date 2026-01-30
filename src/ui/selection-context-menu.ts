@@ -55,6 +55,7 @@ export class SelectionContextMenu {
     private selectionEditCommand: SelectionEditCommand;
     private completionCallback?: () => void;
     private streamingManager: StreamingManager;
+    private abortController: AbortController | null = null;
 
     constructor(
         private app: App,
@@ -187,20 +188,30 @@ export class SelectionContextMenu {
      * Execute the selection edit command with streaming
      */
     private async executeSelectionEdit(
-        actionId: string, 
-        editor: Editor, 
-        selectedText: string, 
+        actionId: string,
+        editor: Editor,
+        selectedText: string,
         customInstruction?: string
     ): Promise<void> {
+        // Create abort controller for this operation
+        this.abortController = new AbortController();
+        const signal = this.abortController.signal;
+
+        // Set processing state to show stop button
+        const sidebarView = this.plugin.getCurrentSidebarView();
+        if (sidebarView?.inputHandler) {
+            sidebarView.inputHandler.setProcessingState(true);
+        }
+
         // Start selection animation
         this.startSelectionAnimation(editor);
-        
+
         // Store original selection range
         const originalRange = {
             from: editor.getCursor('from'),
             to: editor.getCursor('to')
         };
-        
+
         try {
             // Start the unified streaming system with notice animations
             const { updateStream, stopStream } = this.streamingManager.startStreaming(
@@ -215,46 +226,71 @@ export class SelectionContextMenu {
 
             // Show notice thinking animation
             this.streamingManager.showThinkingNotice(actionId as ActionType, 'notice');
-            
-            // Use streaming to progressively replace text
+
+            // Use streaming to progressively replace text with cancellation support
             const result = await this.selectionEditCommand.executeStreaming(
-                actionId, 
-                editor, 
+                actionId,
+                editor,
                 selectedText,
                 (chunk: string, isComplete: boolean) => {
+                    // Check abort in chunk handler
+                    if (signal.aborted) {
+                        stopStream();
+                        return;
+                    }
                     // Use unified streaming system
                     updateStream(chunk, isComplete);
                 },
-                customInstruction
+                customInstruction,
+                signal
             );
 
             // Stop streaming when done
             stopStream();
-            
+
             if (result.success) {
-                const actionName = this.getActionDisplayName(actionId);
-                new Notice(`Text ${actionName} successfully`, 2000);
-                
-                // Add success message to chat
-                this.addSuccessChatMessage(actionId, selectedText, customInstruction);
+                if (!signal.aborted) {
+                    const actionName = this.getActionDisplayName(actionId);
+                    new Notice(`Text ${actionName} successfully`, 2000);
+
+                    // Add success message to chat
+                    this.addSuccessChatMessage(actionId, selectedText, customInstruction);
+                } else {
+                    new Notice('Operation canceled', 2000);
+                    // Add cancel message to chat
+                    this.addCancelChatMessage(actionId);
+                }
             } else {
-                new Notice(`${result.error || 'Failed to process text'}`, 3000);
-                // Add failure message to chat
-                this.addFailureChatMessage(actionId, result.error || 'Failed to process text');
-                
+                // Check if this is a cancellation vs a real error
+                if (signal.aborted || result.error === 'Operation canceled') {
+                    new Notice('Operation canceled', 2000);
+                    this.addCancelChatMessage(actionId);
+                } else {
+                    new Notice(`${result.error || 'Failed to process text'}`, 3000);
+                    // Add failure message to chat
+                    this.addFailureChatMessage(actionId, result.error || 'Failed to process text');
+                }
+
                 // Restore original text when streaming fails
                 this.restoreOriginalText(editor);
             }
         } catch (error) {
             Logger.error('Error in streaming selection edit:', error);
             new Notice('Failed to execute Nova action. Please try again.', 3000);
-            
+
             // Restore original text on complete failure
             this.restoreOriginalText(editor);
         } finally {
             // Always stop animations and clean up
             this.stopSelectionAnimation();
             this.streamingManager.stopAnimation();
+            this.abortController = null;
+
+            // Clear processing state
+            const sidebarView = this.plugin.getCurrentSidebarView();
+            if (sidebarView?.inputHandler) {
+                sidebarView.inputHandler.setProcessingState(false);
+            }
         }
     }
 
@@ -387,15 +423,49 @@ export class SelectionContextMenu {
                     else if (actionName === 'expanded') verbForm = 'expand';
                     else if (actionName === 'transformed') verbForm = 'transform';
                     else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
-                    
-                    const message = `✗ Failed to ${verbForm} text: ${errorMessage}`;
-                    
+
+                    // Don't add ✗ since addErrorMessage adds ❌ emoji
+                    const message = `Failed to ${verbForm} text: ${errorMessage}`;
+
                     // Use unified system with persistence
                     view.chatRenderer.addErrorMessage(message, true);
                 }
             }
         } catch (error) {
             Logger.warn('Failed to add error chat message:', error);
+        }
+    }
+
+    /**
+     * Add cancellation message to chat
+     */
+    private addCancelChatMessage(actionId: string): void {
+        try {
+            // Find the active Nova sidebar view and add message to chat
+            const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
+            if (leaves.length > 0) {
+                const view = leaves[0].view;
+                // Use instanceof check for consistency
+                if (view instanceof NovaSidebarView && view.chatRenderer) {
+                    const actionName = this.getActionDisplayName(actionId);
+                    // Convert past tense to infinitive form properly
+                    let verbForm = actionName;
+                    if (actionName === 'condensed') verbForm = 'condense';
+                    else if (actionName === 'improved') verbForm = 'improve';
+                    else if (actionName === 'expanded') verbForm = 'expand';
+                    else if (actionName === 'transformed') verbForm = 'transform';
+                    else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
+
+                    // Message must be >30 chars for bubble format (not pill)
+                    // Don't include ❌ - addErrorMessage adds it automatically
+                    const message = `Operation canceled: ${verbForm} text`;
+
+                    // Use unified system with persistence
+                    view.chatRenderer.addErrorMessage(message, true);
+                }
+            }
+        } catch (error) {
+            Logger.warn('Failed to add cancel chat message:', error);
         }
     }
 
@@ -411,5 +481,13 @@ export class SelectionContextMenu {
             case 'custom': return `Applied "${String(customInstruction)}"`;
             default: return 'Processed';
         }
+    }
+
+    /**
+     * Cancel the current ongoing operation
+     */
+    cancelCurrentOperation(): void {
+        this.abortController?.abort();
+        this.streamingManager.stopAnimation();
     }
 }
