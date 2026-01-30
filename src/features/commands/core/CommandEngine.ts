@@ -80,7 +80,7 @@ export class CommandEngine {
     /**
      * Execute fill for a single marker at a specific line
      */
-    async executeFillSingle(lineNumber: number): Promise<void> {
+    async executeFillSingle(lineNumber: number, instruction?: string): Promise<void> {
         const documentContext = this.documentEngine.getDocumentContext();
         if (!documentContext) {
             new Notice('No active document found');
@@ -88,7 +88,11 @@ export class CommandEngine {
         }
 
         const markers = this.detectMarkers(documentContext.content);
-        const targetMarker = markers.find(m => m.line === lineNumber);
+
+        // Search by instruction first (more reliable), fall back to line number
+        const targetMarker = instruction
+            ? markers.find(m => m.instruction === instruction)
+            : markers.find(m => m.line === lineNumber);
 
         if (!targetMarker) {
             new Notice('No placeholder found at this line');
