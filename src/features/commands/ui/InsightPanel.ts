@@ -1,5 +1,5 @@
 /**
- * InsightPanel - Full intelligence panel for command selection
+ * @file InsightPanel - Full intelligence panel for command selection
  * Shows multiple approach options with clear action buttons
  * Positioned near text without covering content
  */

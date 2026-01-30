@@ -1,5 +1,5 @@
 /**
- * CommandEngine - Core system for executing commands and the /fill command
+ * @file CommandEngine - Core system for executing commands and the /fill command
  * Handles template processing and AI execution coordination
  */
 

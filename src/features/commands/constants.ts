@@ -1,5 +1,5 @@
 /**
- * Constants for Nova Commands system
+ * @file Constants for Nova Commands system
  * Centralized configuration to avoid magic numbers
  */
 

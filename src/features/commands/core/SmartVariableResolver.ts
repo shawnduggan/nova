@@ -1,5 +1,5 @@
 /**
- * SmartVariableResolver - Intelligent resolution of template variables
+ * @file SmartVariableResolver - Intelligent resolution of template variables
  * Handles context-aware variable resolution based on cursor position, selection, and document analysis
  */
 

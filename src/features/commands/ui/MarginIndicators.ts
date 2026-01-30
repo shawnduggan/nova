@@ -1,5 +1,5 @@
 /**
- * MarginIndicators - Intelligent margin indicators for command suggestions
+ * @file MarginIndicators - Intelligent margin indicators for command suggestions
  * Shows contextual command hints in the editor margin with progressive disclosure
  * Now supports `<!-- nova: instruction -->` markers for the /fill command
  */

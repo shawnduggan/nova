@@ -1,5 +1,5 @@
 /**
- * SmartTimingEngine - Centralized timing service for command features
+ * @file SmartTimingEngine - Centralized timing service for command features
  * Manages typing speed detection, debouncing, and intelligent timing decisions
  */
 

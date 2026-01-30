@@ -1,5 +1,5 @@
 /**
- * Type definitions for the Nova Commands system
+ * @file Type definitions for the Nova Commands system
  * Supports markdown-based commands with progressive disclosure UI
  */
 

@@ -1,5 +1,5 @@
 /**
- * CodeMirror decorations for margin indicators
+ * @file CodeMirror decorations for margin indicators
  * Proper implementation using CodeMirror's decoration system
  */
 
