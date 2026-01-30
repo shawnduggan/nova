@@ -1260,7 +1260,6 @@ export class NovaSidebarView extends ItemView {
 		this.currentAbortController = new AbortController();
 
 		// Set processing state (shows stop button)
-		console.log('[Nova SidebarView] Calling setProcessingState(true)');
 		this.inputHandler.setProcessingState(true);
 
 		try {
@@ -1438,7 +1437,6 @@ USER REQUEST: ${processedMessage}`;
 			}
 		} finally {
 			// Reset processing state (shows send button)
-			console.log('[Nova SidebarView] Calling setProcessingState(false)');
 			this.inputHandler.setProcessingState(false);
 			this.currentAbortController = null;
 			// Update button state based on provider availability
