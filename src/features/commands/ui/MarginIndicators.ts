@@ -101,6 +101,13 @@ export class MarginIndicators {
             })
         );
 
+        // Set up global event listener for indicator clicks (once only)
+        this.plugin.registerDomEvent(document, 'nova-indicator-click' as keyof DocumentEventMap, (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { opportunity, element } = customEvent.detail;
+            this.onIndicatorClick(opportunity, element);
+        });
+
         // Initialize with current active editor
         this.onActiveEditorChange();
 
@@ -695,21 +702,13 @@ export class MarginIndicators {
             this.indicatorManager = null;
             return;
         }
-        
+
         try {
             // Get the CodeMirror EditorView from the Obsidian editor
             const editorWithCm = this.activeView.editor as { cm?: EditorView };
             const cm = editorWithCm.cm;
             if (cm) {
                 this.indicatorManager = new CodeMirrorIndicatorManager(cm, this.plugin.indicatorStateField);
-
-                // Set up event listener for indicator clicks
-                this.plugin.registerDomEvent(document, 'nova-indicator-click' as keyof DocumentEventMap, (event: Event) => {
-                    const customEvent = event as CustomEvent;
-                    const { opportunity, element } = customEvent.detail;
-                    this.onIndicatorClick(opportunity, element);
-                });
-                
                 this.logger.debug('Set up CodeMirror indicator manager');
             } else {
                 this.logger.warn('Could not access CodeMirror EditorView');

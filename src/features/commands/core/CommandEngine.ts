@@ -79,6 +79,7 @@ export class CommandEngine {
 
     /**
      * Execute fill for a single marker at a specific line
+     * Uses full document context for better coherence
      */
     async executeFillSingle(lineNumber: number, instruction?: string): Promise<void> {
         const documentContext = this.documentEngine.getDocumentContext();
@@ -111,31 +112,69 @@ export class CommandEngine {
             // Show thinking notice for duration of fill operation
             this.streamingManager.showThinkingNotice('edit', 'notice');
 
-            await this.fillSingleMarkerInternal(targetMarker, documentContext.content, activeEditor);
+            // Build prompt with full document context
+            const prompt = this.buildSingleFillPrompt(documentContext.content, targetMarker);
+
+            // Calculate positions for marker replacement
+            const startPos = activeEditor.offsetToPos(targetMarker.position);
+            const endPos = activeEditor.offsetToPos(targetMarker.position + targetMarker.length);
+
+            // Start streaming to replace the marker
+            const streaming = this.streamingManager.startStreaming(
+                activeEditor,
+                startPos,
+                endPos,
+                {
+                    animationMode: 'inline',
+                    scrollBehavior: 'smooth'
+                }
+            );
+
+            // Get AI response with streaming
+            let fullContent = '';
+            const stream = this.providerManager.generateTextStream(
+                prompt,
+                {
+                    systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
+                    temperature: 0.7,
+                    maxTokens: 2000
+                }
+            );
+
+            // Handle streaming updates
+            for await (const chunk of stream) {
+                if (chunk.content) {
+                    fullContent += chunk.content;
+                    streaming.updateStream(fullContent, false);
+                }
+            }
+
+            // Complete the stream (finalizes cursor position)
+            streaming.updateStream(fullContent, true);
 
             // Hide thinking notice when complete
             this.streamingManager.stopAnimation();
-
-            // Display success message in chat UI
-            const chatMessage = `Filled placeholder at line ${targetMarker.line + 1}: ${targetMarker.instruction}`;
-
-            if (this.plugin.sidebarView?.chatRenderer) {
-                this.plugin.sidebarView.chatRenderer.addSuccessMessage(chatMessage, true);
-            }
-
-            // Also record to conversation
-            await this.documentEngine.addSystemMessage(chatMessage);
 
             new Notice('Filled placeholder');
         } catch (error) {
             this.streamingManager.stopAnimation();
             this.logger.error('Failed to fill single marker:', error);
-            new Notice('Failed to fill placeholder: ' + (error instanceof Error ? error.message : 'Unknown error'));
+
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            new Notice('Failed to fill placeholder: ' + errorMessage);
+
+            // Display error in chat
+            if (this.plugin.sidebarView?.chatRenderer) {
+                this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                    `Failed to fill placeholder at line ${targetMarker.line + 1}: ${errorMessage}`,
+                    true
+                );
+            }
         }
     }
 
     /**
-     * Execute /fill command - fill all markers sequentially with progressive context
+     * Execute /fill command - fill all markers sequentially with streaming typewriter effect
      */
     async executeFill(): Promise<void> {
         const documentContext = this.documentEngine.getDocumentContext();
@@ -157,286 +196,155 @@ export class CommandEngine {
             return;
         }
 
-        this.logger.info(`Found ${markers.length} markers to fill sequentially`);
-        this.streamingManager.showThinkingNotice('edit', 'notice');
+        this.logger.info(`Found ${markers.length} markers to fill sequentially with streaming`);
 
-        try {
-            const filledMarkers: MarkerInsight[] = [];
+        // Process markers top-to-bottom for natural reading order
+        const sortedMarkers = [...markers].sort((a, b) => a.position - b.position);
 
-            // Fill markers one at a time (in document order)
-            for (const originalMarker of markers) {
-                // Get fresh document content (includes previous fills)
-                const freshContent = activeEditor.getValue();
-                const freshMarkers = this.detectMarkers(freshContent);
+        let successCount = 0;
+        let failCount = 0;
+        const filledMarkers: MarkerInsight[] = [];
+        const filledInstructions = new Set<string>(); // Track filled markers by instruction
 
-                // Find this marker in the fresh content by matching instruction
-                const currentMarker = freshMarkers.find(m => m.instruction === originalMarker.instruction);
+        for (let i = 0; i < sortedMarkers.length; i++) {
+            const markerNum = i + 1;
 
-                if (currentMarker) {
-                    await this.fillSingleMarkerInternal(currentMarker, freshContent, activeEditor);
-                    filledMarkers.push(originalMarker);
+            try {
+                // Re-detect markers after each fill to get updated positions
+                // (positions shift as we fill from top to bottom)
+                const currentDocContext = this.documentEngine.getDocumentContext();
+                if (!currentDocContext) {
+                    throw new Error('Document context lost during batch fill');
                 }
+
+                const currentMarkers = this.detectMarkers(currentDocContext.content);
+
+                // Find the next unfilled marker (by instruction)
+                const unfilledMarker = currentMarkers.find(m => !filledInstructions.has(m.instruction));
+
+                if (!unfilledMarker) {
+                    // All remaining markers have been filled
+                    break;
+                }
+
+                this.logger.info(`Filling marker ${markerNum}/${sortedMarkers.length} at line ${unfilledMarker.line + 1}: ${unfilledMarker.instruction}`);
+
+                // Show thinking notice for this marker
+                this.streamingManager.showThinkingNotice('edit', 'notice');
+
+                const prompt = this.buildSingleFillPrompt(currentDocContext.content, unfilledMarker);
+
+                // Calculate positions for marker replacement
+                const startPos = activeEditor.offsetToPos(unfilledMarker.position);
+                const endPos = activeEditor.offsetToPos(unfilledMarker.position + unfilledMarker.length);
+
+                // Start streaming to replace the marker with typewriter effect
+                const streaming = this.streamingManager.startStreaming(
+                    activeEditor,
+                    startPos,
+                    endPos,
+                    {
+                        animationMode: 'inline',
+                        scrollBehavior: 'smooth'
+                    }
+                );
+
+                // Get AI response with streaming
+                let fullContent = '';
+                const stream = this.providerManager.generateTextStream(
+                    prompt,
+                    {
+                        systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
+                        temperature: 0.7,
+                        maxTokens: 2000
+                    }
+                );
+
+                // Handle streaming updates with typewriter effect
+                for await (const chunk of stream) {
+                    if (chunk.content) {
+                        fullContent += chunk.content;
+                        streaming.updateStream(fullContent, false);
+                    }
+                }
+
+                // Complete the stream
+                streaming.updateStream(fullContent, true);
+                this.streamingManager.stopAnimation();
+
+                // Mark this marker as filled
+                filledInstructions.add(unfilledMarker.instruction);
+                successCount++;
+                filledMarkers.push(unfilledMarker);
+
+            } catch (error) {
+                this.streamingManager.stopAnimation();
+                this.logger.error(`Failed to fill marker ${markerNum}:`, error);
+
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+                // Show error in chat for this specific marker
+                if (this.plugin.sidebarView?.chatRenderer) {
+                    this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                        `Failed to fill placeholder ${markerNum}/${sortedMarkers.length}: ${errorMessage}`,
+                        true
+                    );
+                }
+
+                failCount++;
+                // Continue with next marker despite error
             }
+        }
 
-            // All fills complete - stop the thinking notice
-            this.streamingManager.stopAnimation();
+        // Show final summary in Notice only
+        if (successCount > 0 && failCount === 0) {
+            new Notice(`Filled ${successCount} placeholder${successCount > 1 ? 's' : ''}`);
+        } else if (successCount > 0 && failCount > 0) {
+            new Notice(`Filled ${successCount}/${successCount + failCount} placeholders (${failCount} failed)`);
 
-            // Display success message
-            const markerSummary = filledMarkers.map((m, i) => `${i + 1}. Line ${m.line + 1}: ${m.instruction}`).join('\n');
-            const chatMessage = `Filled ${filledMarkers.length} placeholder${filledMarkers.length > 1 ? 's' : ''}:\n${markerSummary}`;
-
+            // Show summary error in chat if some failed
             if (this.plugin.sidebarView?.chatRenderer) {
-                this.plugin.sidebarView.chatRenderer.addSuccessMessage(chatMessage, true);
+                this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                    `Batch fill completed with errors: ${successCount} succeeded, ${failCount} failed`,
+                    true
+                );
             }
-            await this.documentEngine.addSystemMessage(chatMessage);
-            new Notice(`Filled ${filledMarkers.length} placeholder${filledMarkers.length > 1 ? 's' : ''}`);
+        } else {
+            new Notice('Failed to fill placeholders');
 
-        } catch (error) {
-            this.streamingManager.stopAnimation();
-            this.logger.error('Failed to execute /fill:', error);
-            new Notice('Failed to fill placeholders: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            // Show error in chat if all failed
+            if (this.plugin.sidebarView?.chatRenderer) {
+                this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                    'Failed to fill all placeholders',
+                    true
+                );
+            }
         }
     }
 
     /**
-     * Fill a single marker with AI-generated content (internal helper)
-     * Used by both executeFillSingle and executeFill
+     * Build prompt for filling a single marker with full document context
      */
-    private async fillSingleMarkerInternal(
-        marker: MarkerInsight,
-        content: string,
-        activeEditor: import('obsidian').Editor
-    ): Promise<void> {
-        // Get surrounding context (a few lines before and after)
-        const lines = content.split('\n');
-        const contextStart = Math.max(0, marker.line - 3);
-        const contextEnd = Math.min(lines.length, marker.line + 4);
-        const surroundingContext = lines.slice(contextStart, contextEnd).join('\n');
+    private buildSingleFillPrompt(document: string, marker: MarkerInsight): string {
+        return `You are helping a writer fill in a placeholder marker in their document.
 
-        // Build prompt for single marker
-        const prompt = `You are helping a writer fill in a placeholder marker in their document.
-
-TASK: Generate content for this ONE specific instruction:
+TASK: Generate content for this specific instruction:
 "${marker.instruction}"
 
-Surrounding context for reference (the marker is on line ${marker.line + 1}):
+Here is the full document for context:
 ---
-${surroundingContext}
+${document}
 ---
 
 CRITICAL INSTRUCTIONS:
 1. Generate content ONLY for the instruction: "${marker.instruction}"
-2. Do NOT generate content for any other markers you see in the context
+2. Consider the full document context to ensure coherence
 3. Return ONLY the generated content - no explanations, no marker comments, no wrapper text
-4. The content should be concise and fit naturally with the surrounding text
-
-Generate the content now:`;
-
-        // Calculate positions for marker replacement
-        const startPos = activeEditor.offsetToPos(marker.position);
-        const endPos = activeEditor.offsetToPos(marker.position + marker.length);
-
-        // Start streaming to replace the marker
-        const streaming = this.streamingManager.startStreaming(
-            activeEditor,
-            startPos,
-            endPos,
-            {
-                animationMode: 'inline',
-                scrollBehavior: 'smooth'
-            }
-        );
-
-        // Get AI response with streaming
-        let fullContent = '';
-        const stream = this.providerManager.generateTextStream(
-            prompt,
-            {
-                systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
-                temperature: 0.7,
-                maxTokens: 2000
-            }
-        );
-
-        // Handle streaming updates
-        for await (const chunk of stream) {
-            if (chunk.content) {
-                fullContent += chunk.content;
-                streaming.updateStream(fullContent, false);
-            }
-        }
-
-        // Complete the stream (finalizes cursor position)
-        streaming.updateStream(fullContent, true);
-
-        // Note: NOT calling streaming.stopStream() here - it would stop the thinking notice
-        // The calling method (executeFill/executeFillSingle) manages the notice lifecycle
-
-        this.logger.debug('AI response for marker fill completed, length:', fullContent.length);
-    }
-
-    /**
-     * Build prompt for filling all markers
-     */
-    private buildFillPrompt(content: string, markers: MarkerInsight[]): string {
-        const markerInstructions = markers.map((marker, index) =>
-            `[MARKER ${index + 1}] Line ${marker.line + 1}: ${marker.instruction}`
-        ).join('\n');
-
-        return `You are helping a writer fill in placeholder markers in their document.
-
-The document contains ${markers.length} marker(s) that need content generated. Each marker is in the format <!-- nova: instruction -->.
-
-Here are the markers and their instructions:
-${markerInstructions}
-
-Document context (for reference):
----
-${content}
----
-
-IMPORTANT INSTRUCTIONS:
-1. Generate content for EACH marker based on its instruction
-2. Return your response in the EXACT format below, with each marker's content clearly labeled
-3. The content should fit naturally with the surrounding document context
-4. Do NOT include the marker comments in your response - just the generated content
-
-Response format:
-[MARKER 1]
-(generated content for marker 1)
-
-[MARKER 2]
-(generated content for marker 2)
-
-... and so on for each marker.
+4. The content should match the document's style and tone
 
 Generate the content now:`;
     }
 
-    /**
-     * Execute fill with streaming and replace markers
-     */
-    private async executeWithStreamingForFill(
-        prompt: string,
-        markers: MarkerInsight[],
-        originalContent: string
-    ): Promise<void> {
-        const activeEditor = this.documentEngine.getActiveEditor();
-        if (!activeEditor) {
-            throw new Error('No active editor available');
-        }
-
-        // Get AI response (non-streaming for fill since we need to parse it)
-        const response = await this.providerManager.generateText(
-            prompt,
-            {
-                systemPrompt: 'You are a helpful writing assistant. Generate high-quality content that matches the style and tone of the surrounding document.',
-                temperature: 0.7,
-                maxTokens: 4000
-            }
-        );
-
-        // Debug logging for response
-        this.logger.debug('AI response for /fill:', response);
-        this.logger.debug('Response length:', response.length);
-        this.logger.debug('Marker count:', markers.length);
-
-        // Parse the response to extract content for each marker
-        const markerContents = this.parseMarkerResponse(response, markers.length);
-
-        // Replace markers from end to start to preserve positions
-        let newContent = originalContent;
-        for (let i = markers.length - 1; i >= 0; i--) {
-            const marker = markers[i];
-            const content = markerContents[i] || '[Content generation failed]';
-
-            // Log error if content generation failed for this marker
-            if (!markerContents[i]) {
-                this.logger.error(`Content generation failed for marker ${i + 1} (line ${marker.line + 1}): "${marker.instruction}"`);
-            }
-
-            newContent = newContent.substring(0, marker.position) +
-                        content +
-                        newContent.substring(marker.position + marker.length);
-        }
-
-        // Replace entire document content
-        const lastLine = activeEditor.lastLine();
-        const lastLineLength = activeEditor.getLine(lastLine).length;
-        activeEditor.replaceRange(
-            newContent,
-            { line: 0, ch: 0 },
-            { line: lastLine, ch: lastLineLength }
-        );
-    }
-
-    /**
-     * Parse AI response to extract content for each marker
-     */
-    private parseMarkerResponse(response: string, markerCount: number): string[] {
-        const contents: string[] = [];
-
-        // For single marker, use entire response if no marker pattern found
-        if (markerCount === 1) {
-            const markerPattern = /\[MARKER\s*1\]/i;
-            if (markerPattern.test(response)) {
-                // Has marker wrapper - extract content after it
-                const match = response.match(/\[MARKER\s*1\]\s*\n?([\s\S]*)/i);
-                contents.push(match ? match[1].trim() : response.trim());
-            } else {
-                // No wrapper - use entire response
-                this.logger.debug('Single marker: no wrapper found, using entire response');
-                contents.push(response.trim());
-            }
-            return contents;
-        }
-
-        // For multiple markers, use flexible matching
-        for (let i = 1; i <= markerCount; i++) {
-            // Try multiple patterns
-            const patterns = [
-                new RegExp(`\\[MARKER\\s*${i}\\]\\s*\\n?`, 'i'),
-                new RegExp(`\\*\\*\\[MARKER\\s*${i}\\]\\*\\*\\s*\\n?`, 'i'),
-                new RegExp(`MARKER\\s*${i}:?\\s*\\n?`, 'i'),
-            ];
-
-            let startIndex = -1;
-            let matchLength = 0;
-
-            for (const pattern of patterns) {
-                const match = pattern.exec(response);
-                if (match) {
-                    startIndex = match.index + match[0].length;
-                    matchLength = match[0].length;
-                    break;
-                }
-            }
-
-            if (startIndex === -1) {
-                this.logger.warn(`Could not find MARKER ${i} in response`);
-                contents.push('');
-                continue;
-            }
-
-            // Find end (next marker or end of string)
-            let endIndex = response.length;
-            if (i < markerCount) {
-                for (const pattern of patterns.map(p =>
-                    new RegExp(p.source.replace(String(i), String(i + 1)), 'i')
-                )) {
-                    const endMatch = pattern.exec(response.substring(startIndex));
-                    if (endMatch) {
-                        endIndex = startIndex + endMatch.index;
-                        break;
-                    }
-                }
-            }
-
-            contents.push(response.substring(startIndex, endIndex).trim());
-        }
-
-        return contents;
-    }
 
     /**
      * Validate command and context before execution

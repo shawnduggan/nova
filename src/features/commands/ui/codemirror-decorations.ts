@@ -52,12 +52,15 @@ class IndicatorWidget extends WidgetType {
         const indicator = document.createElement('span');
         indicator.className = 'nova-margin-indicator';
         indicator.textContent = this.opportunity.icon;
-        
+
         // Add data attributes for styling and identification
         indicator.setAttribute('data-type', this.opportunity.type);
         indicator.setAttribute('data-line', this.opportunity.line.toString());
         indicator.setAttribute('data-confidence', this.opportunity.confidence.toString());
-        
+
+        // Add tooltip/title attribute
+        indicator.setAttribute('title', this.getTooltipText());
+
         // Add issue count if present
         if (this.opportunity.issueCount && this.opportunity.issueCount > 1) {
             indicator.setAttribute('data-count', this.opportunity.issueCount.toString());
@@ -88,8 +91,24 @@ class IndicatorWidget extends WidgetType {
         });
 
         this.logger.debug(`Created indicator widget for line ${this.opportunity.line}, type: ${this.opportunity.type}`);
-        
+
         return indicator;
+    }
+
+    /**
+     * Get tooltip text based on opportunity type
+     */
+    private getTooltipText(): string {
+        if (this.opportunity.icon === '📝') {
+            return 'Click to fill this placeholder with AI';
+        }
+        if (this.opportunity.icon === '⚡') {
+            return 'Click to fix writing quality issues';
+        }
+        if (this.opportunity.icon === '✨') {
+            return 'Click for transformation suggestions';
+        }
+        return this.opportunity.type || 'Click for suggestions';
     }
 
     /**
