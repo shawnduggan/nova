@@ -2402,7 +2402,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		const mode = this.plugin.settings.commands.suggestionMode;
 		const modeConfig = this.getCommandModeConfig(mode);
-		this.commandsButton.setTooltip(`Smart Fill: ${modeConfig.label} (click to change)`);
+		this.commandsButton.setTooltip(`Insight sensitivity: ${modeConfig.label} (click to change)`);
 	}
 
 	/**

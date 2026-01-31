@@ -3369,15 +3369,15 @@
 }
 
 .nova-commands-quick-button.commands-mode-minimal {
-    color: var(--text-accent);
+    color: var(--text-normal);
 }
 
 .nova-commands-quick-button.commands-mode-balanced {
-    color: var(--interactive-accent);
+    color: var(--text-normal);
 }
 
 .nova-commands-quick-button.commands-mode-aggressive {
-    color: var(--text-error, var(--interactive-accent));
+    color: var(--text-normal);
 }
 
 /* Mobile optimizations - Hide commands button entirely on mobile */
