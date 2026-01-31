@@ -166,15 +166,6 @@ export class NovaSidebarView extends ItemView {
 		// Right side: Provider status and Clear button
 		const rightContainer = topRowEl.createDiv({ cls: 'nova-header-right-container' });
 		
-		// Privacy indicator pill
-		const privacyIndicator = rightContainer.createDiv({ cls: 'nova-privacy-indicator' });
-		this.updatePrivacyIndicator(privacyIndicator).catch(error => {
-			Logger.error('Failed to update privacy indicator:', error);
-		});
-		
-		// Store reference for updates
-		this.privacyIndicator = privacyIndicator;
-		
 		// All users can switch providers freely
 		await this.createProviderDropdown(rightContainer);
 		
@@ -1780,11 +1771,27 @@ USER REQUEST: ${processedMessage}`;
 		if (!statsEl) {
 			statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 		}
-		
-		// Ensure token element exists (right side)
-		let tokenEl = statsContainer.querySelector('.nova-token-usage') as HTMLElement;
+
+		// Ensure right container exists for privacy + token (right side)
+		let rightContainer = statsContainer.querySelector('.nova-stats-right-container') as HTMLElement;
+		if (!rightContainer) {
+			rightContainer = statsContainer.createEl('div', { cls: 'nova-stats-right-container' });
+		}
+
+		// Ensure privacy indicator exists (inside right container)
+		let privacyEl = rightContainer.querySelector('.nova-privacy-indicator') as HTMLElement;
+		if (!privacyEl) {
+			privacyEl = rightContainer.createEl('div', { cls: 'nova-privacy-indicator' });
+			this.privacyIndicator = privacyEl;
+			this.updatePrivacyIndicator(privacyEl).catch(error => {
+				Logger.error('Failed to update privacy indicator:', error);
+			});
+		}
+
+		// Ensure token element exists (inside right container)
+		let tokenEl = rightContainer.querySelector('.nova-token-usage') as HTMLElement;
 		if (!tokenEl) {
-			tokenEl = statsContainer.createEl('div', { cls: 'nova-token-usage' });
+			tokenEl = rightContainer.createEl('div', { cls: 'nova-token-usage' });
 		}
 		
 		// Get total context usage if available, otherwise fall back to old calculation

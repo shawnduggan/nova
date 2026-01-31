@@ -2213,17 +2213,11 @@
     min-width: 0; /* Prevent flex overflow */
 }
 
-/* Mobile responsive privacy indicator positioning */
-.is-mobile .nova-header .nova-privacy-indicator {
-    position: absolute;
-    bottom: 3px; /* Align to bottom edge of header */
-    right: 70px; /* Keep perfect horizontal position */
-    z-index: 10;
-}
-
-/* Ensure header is the positioning context on mobile */
-.is-mobile .nova-header {
-    position: relative;
+/* Right side container for privacy indicator and token usage */
+.nova-stats-right-container {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
 }
 
 /* Document Stats Analytics Text */
