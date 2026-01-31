@@ -70,7 +70,7 @@ export class CommandSystem {
 	}
 
 	shouldShowCommandButton(): boolean {
-		return Platform.isMobile && this.plugin.featureManager.isFeatureEnabled('commands') && (this.plugin.settings.features?.commands?.showCommandButton ?? true);
+		return Platform.isMobile && this.plugin.featureManager.isFeatureEnabled('smartfill') && (this.plugin.settings.features?.smartfill?.showCommandButton ?? true);
 	}
 
 	updateCommandButtonVisibility(): void {
@@ -162,7 +162,7 @@ export class CommandSystem {
 		// Check for "/" trigger (Nova markdown commands)
 		if (input.startsWith('/')) {
 			// Nova markdown command trigger detected - check if feature is enabled
-			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('commands');
+			const featureEnabled = this.plugin.featureManager.isFeatureEnabled('smartfill');
 			
 			if (featureEnabled) {
 				void this.showMarkdownCommandPicker(input);
@@ -265,8 +265,8 @@ export class CommandSystem {
 		// Create the single /fill command
 		const fillCommand: MarkdownCommand = {
 			id: 'fill',
-			name: 'Fill placeholders',
-			description: 'Fill all <!-- nova: --> placeholders in the document',
+			name: 'Smart Fill',
+			description: 'Smart Fill all <!-- nova: --> placeholders in the document',
 			template: '',
 			keywords: ['fill', 'placeholders', 'nova'],
 			category: 'writing',
@@ -332,7 +332,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		this.onSelectCallback = onSelect;
 		this.onCancelCallback = onCancel;
 
-		this.setPlaceholder('Type /fill to fill placeholders...');
+		this.setPlaceholder('Type /fill for Smart Fill...');
 	}
 
 	onOpen(): void {
@@ -346,7 +346,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 
 		const useInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		useInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↵' });
-		useInstruction.createSpan({ text: 'to fill placeholders' });
+		useInstruction.createSpan({ text: 'to Smart Fill' });
 
 		const escInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		escInstruction.createSpan({ cls: 'prompt-instruction-command', text: 'esc' });

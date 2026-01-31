@@ -16,11 +16,11 @@ describe('FeatureManager', () => {
 	describe('Time-Gated Features', () => {
 		test('should have time-gated features disabled before general availability', () => {
 			// Commands feature is not yet generally available (future date in config)
-			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(false);
 		});
 
 		test('should provide detailed access information for time-gated features', () => {
-			const commandsAccess = featureManager.checkFeatureAccess('commands');
+			const commandsAccess = featureManager.checkFeatureAccess('smartfill');
 			
 			expect(commandsAccess.allowed).toBe(false);
 			expect(commandsAccess.isSupernovaFeature).toBe(true);
@@ -98,7 +98,7 @@ describe('FeatureManager', () => {
 			// Only time-gated features are tracked - commands is not yet available
 			expect(summary.enabled.length).toBe(0);
 			expect(summary.comingSoon.length).toBe(1); // Only commands feature
-			expect(summary.comingSoon[0].key).toBe('commands');
+			expect(summary.comingSoon[0].key).toBe('smartfill');
 		});
 	});
 
@@ -113,21 +113,21 @@ describe('FeatureManager', () => {
 			featureManager.updateDebugSettings(debugSettings);
 
 			// With debug mode, time-gated features should be available
-			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(true);
 			expect(featureManager.isSupernovaSupporter()).toBe(true);
 		});
 
 		test('should allow date override for testing', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2026-08-01', // Date before commands general availability
+				overrideDate: '2026-06-01', // Date before smartfill general availability
 				forceSupernova: false
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
 
-			// Commands should not be available yet (general date is 2026-10-01)
-			expect(featureManager.isFeatureEnabled('commands')).toBe(false);
+			// Smart Fill should not be available yet (general date is 2026-08-01)
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(false);
 		});
 
 		test('should return debug settings', () => {
@@ -158,7 +158,7 @@ describe('FeatureManager', () => {
 			const catalystFeatures = featureManager.getSupernovaFeatures();
 
 			expect(catalystFeatures.length).toBe(1); // Only commands feature
-			expect(catalystFeatures.some(f => f.key === 'commands')).toBe(true);
+			expect(catalystFeatures.some(f => f.key === 'smartfill')).toBe(true);
 			
 			// All should be time-gated and early access only
 			catalystFeatures.forEach(feature => {
@@ -260,7 +260,7 @@ describe('FeatureManager', () => {
 			await featureManager.updateSupernovaLicense(catalystLicense);
 
 			// Get the actual Supernova date from config and add 1 day
-			const commandsConfig = SUPERNOVA_FEATURES['commands'];
+			const commandsConfig = SUPERNOVA_FEATURES['smartfill'];
 			const supernovaDate = new Date(commandsConfig.supernovaDate);
 			supernovaDate.setDate(supernovaDate.getDate() + 1);
 			const overrideDate = supernovaDate.toISOString().split('T')[0];
@@ -274,12 +274,12 @@ describe('FeatureManager', () => {
 			featureManager.updateDebugSettings(debugSettings);
 
 			// Time-gated features should be available for Supernova supporters
-			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(true);
 		});
 
 		test('should handle general availability dates correctly', () => {
 			// Get the actual general date from config and add 1 day
-			const commandsConfig = SUPERNOVA_FEATURES['commands'];
+			const commandsConfig = SUPERNOVA_FEATURES['smartfill'];
 			const generalDate = new Date(commandsConfig.generalDate);
 			generalDate.setDate(generalDate.getDate() + 1);
 			const overrideDate = generalDate.toISOString().split('T')[0];
@@ -293,7 +293,7 @@ describe('FeatureManager', () => {
 			featureManager.updateDebugSettings(debugSettings);
 
 			// All features should be available to everyone
-			expect(featureManager.isFeatureEnabled('commands')).toBe(true);
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(true);
 		});
 	});
 });

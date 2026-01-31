@@ -459,7 +459,7 @@ export class NovaSidebarView extends ItemView {
 
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
-		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			this.addErrorMessage('Smart Fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
 			return true;
 		}
@@ -485,8 +485,8 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Check for custom commands (if feature enabled)
-		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
-			const customCommand = this.plugin.settings.features?.commands?.customCommands?.find(cmd => cmd.trigger === command);
+		if (this.plugin.featureManager.isFeatureEnabled('smartfill')) {
+			const customCommand = this.plugin.settings.features?.smartfill?.customCommands?.find(cmd => cmd.trigger === command);
 			if (customCommand) {
 				// Execute custom command
 				this.inputHandler.getTextArea().setValue(customCommand.template);
@@ -509,7 +509,7 @@ export class NovaSidebarView extends ItemView {
 	private handleInputChange(): void {
 		const value = this.inputHandler.getTextArea().getValue();
 		
-		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('commands')) {
+		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			const query = value.slice(1).toLowerCase();
 			this.showCommandPicker(query);
 		} else {
@@ -650,8 +650,8 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Add custom commands if feature is enabled
-		if (this.plugin.featureManager.isFeatureEnabled('commands')) {
-			const customCommands = this.plugin.settings.features?.commands?.customCommands || [];
+		if (this.plugin.featureManager.isFeatureEnabled('smartfill')) {
+			const customCommands = this.plugin.settings.features?.smartfill?.customCommands || [];
 			if (customCommands.length > 0) {
 				commands.push({ trigger: '---', name: '─────────────', description: 'Custom Commands' });
 				customCommands.forEach(cmd => {
@@ -681,7 +681,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private toggleCommandMenu(): void {
-		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			this.addErrorMessage('Smart Fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
 			return;
 		}
@@ -2595,10 +2595,10 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private shouldShowCommandButton(): boolean {
 		// Command button is gated behind the commands feature 
-		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			return false;
 		}
-		return this.plugin.settings.features?.commands?.showCommandButton ?? true;
+		return this.plugin.settings.features?.smartfill?.showCommandButton ?? true;
 	}
 
 	/**

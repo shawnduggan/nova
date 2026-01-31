@@ -219,7 +219,7 @@ export class InsightPanel {
 
         const actionButton = header.createSpan({
             cls: CSS_CLASSES.COMMAND_ACTION,
-            text: 'Fill'
+            text: 'Smart Fill'
         });
 
         // On mobile, add class for always-visible styling

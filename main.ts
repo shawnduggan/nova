@@ -242,10 +242,27 @@ export default class NovaPlugin extends Plugin {
 
 			// Register /fill command for Nova placeholders
 			this.addCommand({
-				id: 'fill-placeholders',
-				name: 'Fill placeholders (/fill)',
-				editorCallback: async () => {
-					await this.executeFilWithProcessingState();
+				id: 'smartfill',
+				name: 'Smart Fill (/fill)',
+				checkCallback: (checking: boolean) => {
+					try {
+						const featureEnabled = this.featureManager?.isFeatureEnabled('smartfill') ?? false;
+
+						if (checking) {
+							return featureEnabled;
+						}
+
+						// Don't execute if feature is disabled (safety check)
+						if (!featureEnabled) {
+							return false;
+						}
+
+						void this.executeFilWithProcessingState();
+						return true;
+					} catch {
+						// Defensive: don't let errors corrupt command state
+						return false;
+					}
 				}
 			});
 
@@ -342,7 +359,7 @@ export default class NovaPlugin extends Plugin {
 				Logger.error('Failed to decrypt license keys:', error);
 			}
 		}
-		
+
 		// Always use default debugSettings (transitory for development sessions)
 		if (this.settings.licensing) {
 			this.settings.licensing.debugSettings = DEFAULT_SETTINGS.licensing.debugSettings;
@@ -350,9 +367,9 @@ export default class NovaPlugin extends Plugin {
 	}
 
 
-	/**
-	 * Deep merge two objects, preserving nested structures
-	 */
+/**
+ * Deep merge two objects, preserving nested structures
+ */
 	private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
 		if (!source) return target;
 
@@ -384,12 +401,12 @@ export default class NovaPlugin extends Plugin {
 		// Filter out settings for features that are not enabled
 		if (settingsToSave.features) {
 			const filteredFeatures: Record<string, unknown> = {};
-			
-			// Only include Commands settings if the feature is enabled
-			if (this.featureManager.isFeatureEnabled('commands') && settingsToSave.features.commands) {
-				filteredFeatures.commands = settingsToSave.features.commands;
+
+			// Only include Smart Fill settings if the feature is enabled
+			if (this.featureManager.isFeatureEnabled('smartfill') && settingsToSave.features.smartfill) {
+				filteredFeatures.smartfill = settingsToSave.features.smartfill;
 			}
-			
+
 			// Set features to filtered object, or remove it if empty
 			if (Object.keys(filteredFeatures).length > 0) {
 				settingsToSave.features = filteredFeatures;

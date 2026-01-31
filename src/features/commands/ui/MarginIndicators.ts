@@ -304,7 +304,7 @@ export class MarginIndicators {
 
         // First, detect any markers in the document (if both features are enabled)
         // Fill markers require BOTH margin indicators AND Smart Fill to be enabled
-        const smartFillEnabled = this.plugin.featureManager?.isFeatureEnabled('commands') ?? true;
+        const smartFillEnabled = this.plugin.featureManager?.isFeatureEnabled('smartfill') ?? true;
 
         if (this.enabled && smartFillEnabled) {
             const documentContent = context.document;

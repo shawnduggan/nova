@@ -38,7 +38,7 @@ export interface NovaSettings {
 	};
 	commands: CommandSuggestionsSettings;
 	features?: {
-		commands?: {
+		smartfill?: {
 			customCommands: CustomCommand[];
 			showCommandButton: boolean;
 		};
@@ -1421,7 +1421,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		// Feature availability check
-		if (!this.plugin.featureManager.isFeatureEnabled('commands')) {
+		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			const noticeEl = containerEl.createDiv({ cls: 'nova-feature-notice' });
 			const noticeDiv = noticeEl.createDiv({ cls: 'nova-feature-card' });
 
@@ -1447,11 +1447,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Show command button in chat (mobile)')
 			.setDesc('Show the commands button beside the send button for mobile quick access to Nova commands and selection actions')
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.features?.commands?.showCommandButton ?? true)
+				.setValue(this.plugin.settings.features?.smartfill?.showCommandButton ?? true)
 			.onChange(async (value) => {
 				if (!this.plugin.settings.features) this.plugin.settings.features = {};
-				if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
-				this.plugin.settings.features.commands.showCommandButton = value;
+				if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
+				this.plugin.settings.features.smartfill.showCommandButton = value;
 					await this.plugin.saveSettings();
 					
 					// Find and refresh sidebar view
@@ -1487,7 +1487,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (existingList) existingList.remove();
 
 		const commandsList = container.createDiv({ cls: 'nova-commands-list' });
-		const commands = this.plugin.settings.features?.commands?.customCommands || [];
+		const commands = this.plugin.settings.features?.smartfill?.customCommands || [];
 
 		if (commands.length === 0) {
 			const emptyEl = commandsList.createDiv({ cls: 'nova-commands-empty' });
@@ -1542,7 +1542,7 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private showEditCommandDialog(index: number) {
-		const command = this.plugin.settings.features?.commands?.customCommands?.[index];
+		const command = this.plugin.settings.features?.smartfill?.customCommands?.[index];
 		if (command) {
 			this.showCommandDialog(command, index);
 		}
@@ -1555,13 +1555,13 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (editIndex !== undefined) {
 					// Edit existing command
 					if (!this.plugin.settings.features) this.plugin.settings.features = {};
-					if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
-					this.plugin.settings.features.commands.customCommands[editIndex] = result;
+					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
+					this.plugin.settings.features.smartfill.customCommands[editIndex] = result;
 				} else {
 					// Add new command
 					if (!this.plugin.settings.features) this.plugin.settings.features = {};
-					if (!this.plugin.settings.features.commands) this.plugin.settings.features.commands = { customCommands: [], showCommandButton: true };
-					this.plugin.settings.features.commands.customCommands.push(result);
+					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
+					this.plugin.settings.features.smartfill.customCommands.push(result);
 				}
 
 				this.plugin.saveSettings().catch(error => {
@@ -1575,16 +1575,16 @@ export class NovaSettingTab extends PluginSettingTab {
 	}
 
 	private deleteCommand(index: number) {
-		if (!this.plugin.settings.features?.commands?.customCommands) return;
+		if (!this.plugin.settings.features?.smartfill?.customCommands) return;
 
-		const command = this.plugin.settings.features.commands.customCommands[index];
+		const command = this.plugin.settings.features.smartfill.customCommands[index];
 		new ConfirmModal(
 			this.app,
 			this.plugin,
 			`Delete command "${command.name}" (${command.trigger})?`,
 			() => {
-				if (!this.plugin.settings.features?.commands?.customCommands) return;
-				this.plugin.settings.features.commands.customCommands.splice(index, 1);
+				if (!this.plugin.settings.features?.smartfill?.customCommands) return;
+				this.plugin.settings.features.smartfill.customCommands.splice(index, 1);
 				this.plugin.saveSettings().catch(error => {
 					Logger.error('Failed to save settings after deleting command:', error);
 				});

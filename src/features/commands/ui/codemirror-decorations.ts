@@ -100,7 +100,7 @@ class IndicatorWidget extends WidgetType {
      */
     private getTooltipText(): string {
         if (this.opportunity.icon === '📝') {
-            return 'Click to fill this placeholder with AI';
+            return 'Click to Smart Fill this placeholder with AI';
         }
         if (this.opportunity.icon === '⚡') {
             return 'Click to fix writing quality issues';
