@@ -1,98 +1,57 @@
-# Nova – Your Writing Partner That Actually Understands Where Ideas Belong
+# Nova – AI Writing for Obsidian
 
-**The first AI that transforms your thoughts exactly where you think them.**
+AI writing assistant that edits text in place. Select any text, apply a transformation, and watch it change with real-time streaming. No chat windows, no copy-paste.
 
-Stop fighting with AI about where your edits should go. Nova uses your cursor position to understand intent – select any text, and watch it transform in place with real-time streaming that turns writing into thinking out loud.
+**Privacy-first**: Use local AI (Ollama, LM Studio) or your own API keys (Claude, OpenAI, Gemini). Nova never sees your content.
 
-For writers who refuse to compromise on precision
-Every edit lands exactly where you intend
-Your thoughts stay yours — local AI or your own keys, your own rules
-Every writing feature becomes free forever, with paid supporters receiving early access to new features
-
-Nova isn't just an AI assistant — it's a seamless writing tool. It stays out of your way so your ideas can flow.
-
----
-
-## The Writing Problem Everyone Accepts (But Shouldn’t)
-
-Every writer knows this frustration:
-
-**You**: “Make this paragraph more academic”  
-**AI**: Edits something, somewhere, maybe the right thing  
-**You**: “Wait, where did it put that? Let me hunt through the response…”
-
-This isn’t writing. This is wrestling with technology.
-
-Nova solves the problem every other AI tool ignores: you shouldn’t have to guess where your edits will land.
-
----
-
-## How Nova Works
-
-### Select. Transform. Continue.
-
-Your new writing workflow is straightforward:
-
-1. Select any text in your document
-2. Right-click → Choose your transformation
-3. Watch it change exactly in place with real-time streaming
-4. Keep writing like the AI was never there
-
-No chat windows. No copy-paste chaos. No hunting for edits.
-
-Just pure writing flow.
-
-Prefer to write from scratch? Just place your cursor and say what you want.  
-Nova understands your intent and writes exactly where you're thinking — no chatbox, no distractions.
-
-### Writing That Feels Like Thinking
-
-**Before Nova**: Interrupt your flow → Copy text → Switch to AI → Hope it understands → Copy result back → Find where it goes → Fix formatting → Resume writing (if you can remember what you were thinking)
-**With Nova**: Highlight text → Watch it improve in real-time → Continue your thought
-
-The difference isn't just smoother — it's significant.
-
----
-
-## Built for Writers Who Take Their Craft Seriously
-
-### Academic Writers
-
-Transform research notes into publication-ready content. Select a rough methodology section, right-click “Academic Tone,” and watch it become scholarly prose without losing your insights.
-
-### Creative Writers
-
-Turn character sketches into vivid descriptions. Transform dialogue to match character voice. Expand scenes without losing narrative flow.
-
-### Business Writers
-
-Convert meeting rambles into executive summaries. Transform technical explanations for different audiences. Polish proposals while preserving your strategy.
-
-### Personal Knowledge Builders
-
-Turn fleeting thoughts into structured insights. Transform reading notes into learning synthesis. Build your second brain with writing that matches your thinking.
+**Free core features**: All writing functionality works with your own keys. Paid supporters get early access to experimental features (3-6 months) before they become free.
 
 ---
 
 ## How It Works
 
-### Surgical Precision
+### Selection-Based Editing
 
-Nova doesn't guess where you want edits. You select exactly what needs work, and that's exactly what transforms. Selection-based editing means 100% accuracy, every time.
+Select text → Right-click → Choose transformation → Watch it change in place. The AI edits exactly what you selected, nothing else.
 
-### Real-time Streaming
+### Chat with Cursor Awareness
 
-Watch your ideas evolve in real-time. Nova streams transformations letter-by-letter, so you see your thoughts taking shape. It feels less like using AI and more like writing with AI assistance.
+Ask for content at your cursor position. "Add a methodology section here" writes exactly where your cursor is, not in a separate chat window.
 
-### Context That Understands Documents
+### Document Context
 
-Nova knows about document structure, headings, and flow. Chat with cursor precision: “Add a methodology section here” and Nova writes exactly at your cursor with perfect formatting.
+Nova reads your full document to generate content that flows with existing structure and style.
 
-### Writing Assistance
+### Smart Fill - AI Placeholders for Structured Documents
 
-Place `<!-- nova: your instruction -->` placeholders anywhere in your document, then use `/fill` to generate content for all placeholders at once. Build structured documents with AI assistance exactly where you need it.
+Use `<!-- nova: instruction -->` comments as AI placeholders. Place them throughout your document, then generate all sections at once.
 
-This isn't just AI assistance. It's writing assistance designed for precision and flow.
+**Example:**
+```markdown
+## Executive Summary
+<!-- nova: Write compelling 2-sentence summary -->
+
+## Problem Statement
+<!-- nova: Describe the problem in 150 words -->
+```
+
+**How it works:**
+1. Place `<!-- nova: instruction -->` placeholders in your document
+2. Generate content using any method:
+   - Type `/fill` in your document (generates all placeholders)
+   - Open command palette (Cmd/Ctrl+P) → "Smart Fill" (generates all)
+   - Click margin indicators (📝) to fill individual placeholders
+3. Nova streams content that matches your document's context and style
+
+**Features:**
+- Processes placeholders sequentially (top to bottom) with real-time streaming
+- Uses full document context for coherent content
+- Margin indicators (📝) show placeholder locations and enable click-to-fill
+- Writing insights detect passive voice and weak words
+
+**Works with Templater**
+
+Smart Fill pairs naturally with the Templater plugin. Use Templater for dynamic values (dates, file names, metadata) and Nova placeholders for AI-generated content. Insert a template, then generate all sections with `/fill` or command palette.
 
 ---
 
@@ -153,19 +112,16 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 
 ---
 
-## Where Nova Is Headed
+## Roadmap
 
-Nova started with the core principle that AI should edit where you tell it to, not where it guesses. But this is just the beginning.
+**Smart Fill** (Available Now) – AI placeholders for structured documents. Early access for Supernova supporters.
 
-Early Access for Supernova Supporters
+**Coming Soon** (Early Access → Free Tier):
+- **Writing Modes** – Context-aware tone shifting (blog → academic)
+- **Style Mirroring** – AI that matches your writing voice
+- **Smart Autocomplete** – Sentence completion for prose
 
-- **Smart Fill** – Place `<!-- nova: instruction -->` placeholders in your document, then use `/fill` to generate content. Get writing insights with margin indicators that highlight passive voice, weak words, and improvement opportunities.
-- **Writing Modes** – Instantly shift tone (e.g. blog → academic) based on context — no prompt engineering required.
-- **Style Mirroring** – AI that writes like *you*, not like ChatGPT. Your tone, your voice, your vocabulary.
-- **Smart Autocomplete** – Finish your thoughts before you finish typing. Like GitHub Copilot for prose.
-
-These features provide building blocks for AI-powered writing.
-Supernova supporters get 3-6 months early access to test and refine features before they graduate to the free tier. Help shape what writing with AI becomes next.
+Supernova supporters get 3-6 months early access before features become free.
 
 ---
 

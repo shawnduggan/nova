@@ -21,6 +21,20 @@
 
 ## CRITICAL RULES — VIOLATION = IMMEDIATE STOP
 
+### Verification First (ZERO TOLERANCE FOR HALLUCINATION)
+- **NEVER document features without verifying they exist in the codebase**
+- **NEVER assume keyboard shortcuts, commands, or API methods exist**
+- **ALWAYS use Grep/Read to verify before documenting**
+- **If you cannot find it in the code, it does not exist**
+- **When documenting**: Read the actual implementation first, then describe what you found
+- **When uncertain**: Say "I need to verify this in the codebase" and search before answering
+
+**Example violations:**
+- ❌ Documenting "Cmd+. cancels operations" without finding the registered command
+- ❌ Claiming a feature works a certain way based on assumption
+- ❌ Describing UI elements or workflows you haven't verified in code
+- ✅ Grep for command registration → Read implementation → Document actual behavior
+
 ### Git Control (USER OWNS ALL COMMITS)
 - **NEVER auto-commit** — Wait for explicit "commit this" instruction
 - **NEVER commit without showing the proposed message first** — User MUST approve
@@ -107,6 +121,9 @@ npm run lint:fix      # Auto-fix ESLint issues
 
 | Situation | Action | Tool |
 |-----------|--------|------|
+| Documenting a feature? | Verify in codebase FIRST | Grep/Read implementation |
+| User asks "how does X work?" | Search code, then describe | Grep → Read → Explain |
+| Uncertain if feature exists? | Search before answering | Grep for it, or say "not found" |
 | Existing pattern? | Follow it exactly | Grep/Read + skills |
 | Breaking interface? | STOP and ask | User decision required |
 | Compliance question? | Check rules, then audit | This file → `/project:compliance` |
