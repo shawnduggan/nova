@@ -22,7 +22,7 @@ Ask for content at your cursor position. "Add a methodology section here" writes
 
 Nova reads your full document to generate content that flows with existing structure and style.
 
-### Smart Fill - AI Placeholders for Structured Documents
+### Smart fill — AI placeholders for structured documents
 
 Use `<!-- nova: instruction -->` comments as AI placeholders. Place them throughout your document, then generate all sections at once.
 
@@ -39,7 +39,8 @@ Use `<!-- nova: instruction -->` comments as AI placeholders. Place them through
 1. Place `<!-- nova: instruction -->` placeholders in your document
 2. Generate content using any method:
    - Type `/fill` in your document (generates all placeholders)
-   - Open command palette (Cmd/Ctrl+P) → "Smart Fill" (generates all)
+   - Open command palette (Cmd/Ctrl+P) → "Smart fill" (generates all)
+   - Right-click in editor → "Nova: Smart fill" (generates all)
    - Click margin indicators (📝) to fill individual placeholders
 3. Nova streams content that matches your document's context and style
 
@@ -51,7 +52,7 @@ Use `<!-- nova: instruction -->` comments as AI placeholders. Place them through
 
 **Works with Templater**
 
-Smart Fill pairs naturally with the Templater plugin. Use Templater for dynamic values (dates, file names, metadata) and Nova placeholders for AI-generated content. Insert a template, then generate all sections with `/fill` or command palette.
+Smart fill pairs naturally with the Templater plugin. Use Templater for dynamic values (dates, file names, metadata) and Nova placeholders for AI-generated content. Insert a template, then generate all sections with `/fill` or command palette.
 
 ---
 
@@ -114,7 +115,7 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 
 ## Roadmap
 
-**Smart Fill** (Available Now) – AI placeholders for structured documents. Early access for Supernova supporters.
+**Smart fill** (March 2026) – AI placeholders for structured documents. Supernova early access March 2026, free for all May 2026.
 
 **Coming Soon** (Early Access → Free Tier):
 - **Writing Modes** – Context-aware tone shifting (blog → academic)
