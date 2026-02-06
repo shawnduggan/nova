@@ -52,7 +52,7 @@ export class CommandSystem {
 	createCommandButton(inputRow: HTMLElement): ButtonComponent {
 		this.commandButton = new ButtonComponent(inputRow);
 		this.commandButton.setIcon('zap');
-		this.commandButton.setTooltip('Smart Fill');
+		this.commandButton.setTooltip('Smart fill');
 		this.commandButton.onClick(() => this.toggleCommandMenu());
 		this.commandButton.buttonEl.addClass('nova-command-button-styled');
 		if (!this.shouldShowCommandButton()) {
@@ -253,7 +253,7 @@ export class CommandSystem {
 
 
 	/**
-	 * Show command modal for "/" trigger - simplified to show /fill
+	 * Show command modal for "/" trigger - shows /fill
 	 */
 	private showMarkdownCommandPicker(_input: string): void {
 		// Ensure we have the latest references to Nova Commands components
@@ -262,11 +262,11 @@ export class CommandSystem {
 			this.variableResolver = this.plugin.smartVariableResolver;
 		}
 
-		// Create the single /fill command
+		// Create the /fill command
 		const fillCommand: MarkdownCommand = {
 			id: 'fill',
-			name: 'Smart Fill',
-			description: 'Smart Fill all <!-- nova: --> placeholders in the document',
+			name: 'Smart fill',
+			description: 'Smart fill all <!-- nova: --> placeholders in the document',
 			template: '',
 			keywords: ['fill', 'placeholders', 'nova'],
 			category: 'writing',
@@ -277,8 +277,10 @@ export class CommandSystem {
 		const modal = new CommandModal(
 			this.plugin.app,
 			[fillCommand],
-			() => {
-				void this.executeFillCommand();
+			(command: MarkdownCommand) => {
+				if (command.id === 'fill') {
+					void this.executeFillCommand();
+				}
 			},
 			() => {
 				// User cancelled - clear the input trigger
@@ -314,17 +316,18 @@ export class CommandSystem {
 
 /**
  * Native Obsidian command modal for "/" selection
- * Simplified to show /fill command
+ * Shows Smart Fill commands (/fill)
  */
 class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
-	private onSelectCallback: () => void;
+	private onSelectCallback: (command: MarkdownCommand) => void;
 	private onCancelCallback?: () => void;
 	private allCommands: MarkdownCommand[] = [];
+	private wasItemChosen = false;
 
 	constructor(
 		app: App,
 		commands: MarkdownCommand[],
-		onSelect: () => void,
+		onSelect: (command: MarkdownCommand) => void,
 		onCancel?: () => void
 	) {
 		super(app);
@@ -332,7 +335,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		this.onSelectCallback = onSelect;
 		this.onCancelCallback = onCancel;
 
-		this.setPlaceholder('Type /fill for Smart Fill...');
+		this.setPlaceholder('Type a command...');
 	}
 
 	onOpen(): void {
@@ -346,7 +349,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 
 		const useInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		useInstruction.createSpan({ cls: 'prompt-instruction-command', text: '↵' });
-		useInstruction.createSpan({ text: 'to Smart Fill' });
+		useInstruction.createSpan({ text: 'to select' });
 
 		const escInstruction = instructionsEl.createDiv({ cls: 'prompt-instruction' });
 		escInstruction.createSpan({ cls: 'prompt-instruction-command', text: 'esc' });
@@ -361,8 +364,9 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 		return command.name;
 	}
 
-	onChooseItem(_command: MarkdownCommand): void {
-		this.onSelectCallback();
+	onChooseItem(command: MarkdownCommand): void {
+		this.wasItemChosen = true;
+		this.onSelectCallback(command);
 	}
 
 	renderSuggestion(match: FuzzyMatch<MarkdownCommand>, el: HTMLElement): void {
@@ -384,7 +388,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 
 	onClose(): void {
 		super.onClose();
-		if (this.onCancelCallback) {
+		if (!this.wasItemChosen && this.onCancelCallback) {
 			this.onCancelCallback();
 		}
 	}

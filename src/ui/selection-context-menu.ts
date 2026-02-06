@@ -4,6 +4,7 @@
 
 import { App, Editor, Menu, MenuItem, Notice, MarkdownView, EditorPosition } from 'obsidian';
 import NovaPlugin from '../../main';
+import { insertSmartFillPlaceholder } from '../features/commands/core/CommandEngine';
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
@@ -97,30 +98,53 @@ export class SelectionContextMenu {
      */
     private addNovaSubmenu(menu: Menu, editor: Editor): void {
         const selectedText = editor.getSelection();
-        
-        // Only show Nova submenu when text is selected
-        if (!selectedText || selectedText.trim().length === 0) {
-            return;
+        const smartfillEnabled = this.plugin.featureManager?.isFeatureEnabled('smartfill') ?? false;
+        const hasSelection = selectedText && selectedText.trim().length > 0;
+
+        if (!hasSelection && !smartfillEnabled) {
+            return;  // Nothing to show
         }
 
-        // Add separator before Nova submenu for visual clarity
         menu.addSeparator();
 
-        // Create Nova action items directly (no standalone Nova item)
-        SELECTION_ACTIONS.forEach(action => {
+        // Insert placeholder (always available when smartfill enabled)
+        if (smartfillEnabled) {
             menu.addItem((item: MenuItem) => {
                 item
-                    .setTitle('Nova: ' + action.label)
-                    .setIcon(action.icon || 'edit')
+                    .setTitle('Nova: ' + 'Insert placeholder')
+                    .setIcon('plus-circle')
                     .onClick(() => {
-                        this.handleSelectionAction(action.id, editor, selectedText).catch(error => {
-                            Logger.error('Failed to handle selection action:', error);
-                        });
+                        insertSmartFillPlaceholder(editor);
                     });
             });
-        });
-        
-        // Add separator after Nova items for visual clarity
+
+            // Smart Fill — execute /fill on all placeholders
+            menu.addItem((item: MenuItem) => {
+                item
+                    .setTitle('Nova: ' + 'Smart fill')
+                    .setIcon('wand')
+                    .onClick(() => {
+                        void this.plugin.executeFilWithProcessingState();
+                    });
+            });
+        }
+
+        // Selection-based actions (only when text selected)
+        if (hasSelection) {
+            SELECTION_ACTIONS.forEach(action => {
+                menu.addItem((item: MenuItem) => {
+                    item
+                        .setTitle('Nova: ' + action.label)
+                        .setIcon(action.icon || 'edit')
+                        .onClick(() => {
+                            this.handleSelectionAction(action.id, editor, selectedText).catch(error => {
+                                Logger.error('Failed to handle selection action:', error);
+                            });
+                        });
+                });
+            });
+        }
+
         menu.addSeparator();
     }
 

@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, addIcon, Notice, Editor } from 'obsidian';
+import { Plugin, WorkspaceLeaf, addIcon, Notice, Editor, MarkdownView } from 'obsidian';
 import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
@@ -20,7 +20,7 @@ import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
 import { Logger } from './src/utils/logger';
-import { CommandEngine } from './src/features/commands/core/CommandEngine';
+import { CommandEngine, insertSmartFillPlaceholder } from './src/features/commands/core/CommandEngine';
 import { SmartVariableResolver } from './src/features/commands/core/SmartVariableResolver';
 import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngine';
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
@@ -243,7 +243,7 @@ export default class NovaPlugin extends Plugin {
 			// Register /fill command for Nova placeholders
 			this.addCommand({
 				id: 'smartfill',
-				name: 'Smart Fill (/fill)',
+				name: 'Smart fill (/fill)',
 				checkCallback: (checking: boolean) => {
 					try {
 						const featureEnabled = this.featureManager?.isFeatureEnabled('smartfill') ?? false;
@@ -263,6 +263,21 @@ export default class NovaPlugin extends Plugin {
 						// Defensive: don't let errors corrupt command state
 						return false;
 					}
+				}
+			});
+
+			this.addCommand({
+				id: 'insert-placeholder',
+				name: 'Insert smart fill placeholder',
+				checkCallback: (checking: boolean) => {
+					const featureEnabled = this.featureManager?.isFeatureEnabled('smartfill') ?? false;
+					if (checking) return featureEnabled;
+					if (!featureEnabled) return false;
+					const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (view?.editor) {
+						insertSmartFillPlaceholder(view.editor);
+					}
+					return true;
 				}
 			});
 

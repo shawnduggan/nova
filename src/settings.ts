@@ -1429,7 +1429,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			title.textContent = 'Supernova supporter feature';
 			
 			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
-			description.textContent = 'Smart Fill is currently available to Supernova supporters. It will be available to all users on ';
+			description.textContent = 'Smart fill is currently available to Supernova supporters. It will be available to all users on ';
 			description.createEl('strong', { text: 'January 1, 2026' });
 			description.appendText('.');
 			return;

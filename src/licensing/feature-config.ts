@@ -21,6 +21,6 @@ export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
     'smartfill': {
         supernovaDate: '2026-03-01',  // Supernova early access
         generalDate: '2026-05-01',   // General availability
-        description: 'Smart Fill with / triggers and placeholders'
+        description: 'Smart fill with / triggers and placeholders'
     }
 };

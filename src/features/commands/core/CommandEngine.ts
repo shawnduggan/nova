@@ -3,7 +3,7 @@
  * Handles template processing and AI execution coordination
  */
 
-import { Notice } from 'obsidian';
+import { Notice, type Editor } from 'obsidian';
 import { Logger } from '../../../utils/logger';
 import { StreamingManager } from '../../../ui/streaming-manager';
 import { AIProviderManager } from '../../../ai/provider-manager';
@@ -27,6 +27,23 @@ export interface MarkerInsight {
     instruction: string;
     position: number;
     length: number;
+}
+
+/**
+ * Insert a `<!-- nova: Replace this text -->` placeholder at the cursor
+ * and select "Replace this text" so the user can immediately type their instruction.
+ */
+export function insertSmartFillPlaceholder(editor: Editor): void {
+    const cursor = editor.getCursor();
+    const placeholder = '<!-- nova: Replace this text -->';
+    editor.replaceRange(placeholder, cursor);
+    // Select "Replace this text" so user can type over it
+    const startCh = cursor.ch + '<!-- nova: '.length;
+    const endCh = startCh + 'Replace this text'.length;
+    editor.setSelection(
+        { line: cursor.line, ch: startCh },
+        { line: cursor.line, ch: endCh }
+    );
 }
 
 export class CommandEngine {
