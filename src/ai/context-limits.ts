@@ -19,7 +19,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
         'claude-opus-4-5': { tokens: 200000, maxOutputTokens: 64000 },
         'claude-sonnet-4-5': { tokens: 200000, maxOutputTokens: 64000 },
         'claude-haiku-4-5': { tokens: 200000, maxOutputTokens: 64000 },
-        'claude-opus-4-1': { tokens: 200000, maxOutputTokens: 32000 },
+        'claude-opus-4-6': { tokens: 200000, maxOutputTokens: 128000 },
         // Fallback for any Claude model
         'default': { tokens: 200000, maxOutputTokens: 64000, fallback: true }
     },

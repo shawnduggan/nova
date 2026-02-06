@@ -44,7 +44,7 @@ export class ClaudeProvider implements AIProvider {
 		}
 
 		const requestBody = JSON.stringify({
-			model: options?.model || this.config.model || 'claude-3-5-haiku-latest',
+			model: options?.model || this.config.model || 'claude-haiku-4-5-20251001',
 			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
 			temperature: options?.temperature || this.generalSettings.defaultTemperature,
 			system: options?.systemPrompt,
@@ -176,7 +176,7 @@ export class ClaudeProvider implements AIProvider {
 					'anthropic-version': '2023-06-01'
 				},
 				body: JSON.stringify({
-					model: 'claude-3-5-haiku-latest',
+					model: 'claude-haiku-4-5-20251001',
 					max_tokens: 1,
 					messages: [{ role: 'user', content: 'test' }]
 				})
@@ -188,11 +188,9 @@ export class ClaudeProvider implements AIProvider {
 
 			// Return current available models (from API docs)
 			const models = [
-				'claude-opus-4-20250514',
-				'claude-sonnet-4-20250514',
-				'claude-3-7-sonnet-latest',
-				'claude-3-5-sonnet-latest',
-				'claude-3-5-haiku-latest'
+				'claude-opus-4-6',
+				'claude-sonnet-4-5-20250929',
+				'claude-haiku-4-5-20251001'
 			];
 
 			this.cachedModels = models;
