@@ -10,11 +10,11 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
    ```
    Abort if build fails, tests fail, or uncommitted changes exist.
 
-2. **Write in-app release notes**
+2. **Write release notes**
    - Determine the upcoming version (read current from package.json, apply bump type)
    - Review `git log` since last tag to build the changelog
    - Add an entry to `RELEASE_NOTES` in `src/release-notes.ts` for the new version
-   - Format: user-friendly markdown shown in a full-page tab inside Obsidian
+   - Format: user-friendly markdown — this content is shown both in-app (Obsidian tab) and on GitHub
    - Prune old entries if more than 5 exist
    - Commit: `docs(release-notes): add notes for [VERSION]`
    - Run `npm run build` to verify the change compiles
@@ -34,24 +34,15 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
    ```
 
 6. **Create GitHub release**
+   Use the same release notes content from `src/release-notes.ts` (the entry written in step 2) as the `--notes` body:
    ```bash
    gh release create [VERSION] main.js manifest.json styles.css \
-     --title "[VERSION]" --notes "[CHANGELOG]"
+     --title "[VERSION]" --notes "[RELEASE_NOTES content for VERSION]"
    ```
-
-## Release Notes Format
-
-```markdown
-## Changes
-
-- [Type]: [Description]
-- [Type]: [Description]
-```
-
-Types: Add, Fix, Update, Remove, Refactor
 
 ## Important
 
+- Release notes are single-sourced: `src/release-notes.ts` feeds both the in-app page and the GitHub release
 - Verify all quality gates pass before releasing
 - Review git log since last tag for changelog items
 - Include main.js, manifest.json, styles.css in release assets
