@@ -120,13 +120,13 @@ describe('FeatureManager', () => {
 		test('should allow date override for testing', () => {
 			const debugSettings: DebugSettings = {
 				enabled: true,
-				overrideDate: '2026-04-01', // Date before smartfill general availability
+				overrideDate: '2026-03-01', // Date before smartfill general availability
 				forceSupernova: false
 			};
 
 			featureManager.updateDebugSettings(debugSettings);
 
-			// Smart Fill should not be available yet (general date is 2026-05-01)
+			// Smart Fill should not be available yet (general date is 2026-04-01)
 			expect(featureManager.isFeatureEnabled('smartfill')).toBe(false);
 		});
 

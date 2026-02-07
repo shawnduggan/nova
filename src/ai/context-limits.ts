@@ -44,6 +44,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
         'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
         'gemini-2.5-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },
         'gemini-3-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
+        'gemini-3-flash-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 
         // Fallback for Google models - assume modern Gemini capacity
         'default': { tokens: 1000000, maxOutputTokens: 65536, fallback: true }
