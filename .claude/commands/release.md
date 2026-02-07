@@ -28,12 +28,18 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
 4. **Get new version**
    Extract version from package.json for subsequent steps.
 
-5. **Push with tags**
+5. **Production build**
+   ```bash
+   npm run build:prod
+   ```
+   This ensures main.js is production-optimized before attaching to the release.
+
+6. **Push with tags**
    ```bash
    git push origin main --tags
    ```
 
-6. **Create GitHub release**
+7. **Create GitHub release**
    Use the same release notes content from `src/release-notes.ts` (the entry written in step 2) as the `--notes` body:
    ```bash
    gh release create [VERSION] main.js manifest.json styles.css \
