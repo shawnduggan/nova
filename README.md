@@ -4,7 +4,7 @@ AI writing assistant that edits text in place. Select any text, apply a transfor
 
 **Privacy-first**: Use local AI (Ollama, LM Studio) or your own API keys (Claude, OpenAI, Gemini). Nova never sees your content.
 
-**Free core features**: All writing functionality works with your own keys. Paid supporters get early access to experimental features (3-6 months) before they become free.
+**Free core features**: All writing functionality works with your own keys. Paid supporters get early access to experimental features (1-2 months) before they become free.
 
 ---
 
@@ -83,7 +83,7 @@ Every core writing feature works with your own API keys:
 
 Support development if Nova improves your writing:
 
-- Early access to new features (3-6 months before general release)
+- Early access to new features (1-2 months before general release)
 - Priority support and feature requests
 - Community of serious writers
 - Sustainable development 
@@ -92,7 +92,7 @@ Support development if Nova improves your writing:
 
 ### Payment & Early Access
 
-**Nova is free to use** with all core features included. **Some advanced features require payment for early access** during the Supernova supporter period (3-6 months) before graduating to the free tier.
+**Nova is free to use** with all core features included. **Some advanced features require payment for early access** during the Supernova supporter period (1-2 months) before graduating to the free tier.
 
 **Plugin includes promotional messages** for Supernova support within the settings interface, clearly separated in a dedicated "Supernova" tab.
 
@@ -122,7 +122,7 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 - **Style Mirroring** – AI that matches your writing voice
 - **Smart Autocomplete** – Sentence completion for prose
 
-Supernova supporters get 3-6 months early access before features become free.
+Supernova supporters get 1-2 months early access before features become free.
 
 ---
 
