@@ -144,7 +144,7 @@ main.js
 
 # Tool directories
 .serena/
-.claude/
+.claude/settings.local.json
 
 # Personal files
 backup-claude.sh

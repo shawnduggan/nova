@@ -1,7 +1,7 @@
 ---
 name: nova-codebase
 description: Auto-generated Nova codebase map. Regenerate with /project:sync-codebase
-generated: 2026-01-30
+generated: 2026-02-07
 ---
 
 # Nova Codebase Map
@@ -15,10 +15,10 @@ generated: 2026-01-30
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `context-limits.ts` | Token and context window limits per AI model | `ContextLimit`, `ProviderContextLimits`, `getContextLimit()`, `getProviderContextLimits()`, `getModelMaxOutputTokens()` |
+| `context-limits.ts` | Token and context window limits per AI model | `ContextLimit`, `ProviderContextLimits`, `getContextLimit()`, `getProviderContextLimits()`, `getModelMaxOutputTokens()`, `hasKnownContextLimit()` |
 | `models.ts` | Centralized model definitions for all AI providers | `ModelDefinition`, `ModelConfig`, `getProviderTypeForModel()`, `getAvailableModels()` |
 | `provider-manager.ts` | Manages AI provider instances and model selection | `AIProviderManager` |
-| `types.ts` | Type definitions for AI providers, messages, and streaming | `AIMessage`, `AIStreamResponse`, `AIProvider`, `AIGenerationOptions`, `ProviderConfig`, `ProviderType`, `PlatformSettings` |
+| `types.ts` | Type definitions for AI providers, messages, and streaming | `AIMessage`, `AIStreamResponse`, `AIProvider`, `AIGenerationOptions`, `ProviderConfig`, `AIProviderSettings`, `ProviderType`, `PlatformSettings` |
 
 ### src/ai/providers/
 
@@ -36,14 +36,14 @@ generated: 2026-01-30
 | `ai-intent-classifier.ts` | AI-powered intent classification for ambiguous inputs | `UserIntent`, `AIIntentClassifier` |
 | `command-parser.ts` | Parses user input into structured edit commands | `CommandParser` |
 | `context-builder.ts` | Builds document context for AI prompts | `GeneratedPrompt`, `ContextBuilder` |
-| `context-calculator.ts` | Calculates token usage and context limits | `ContextUsage`, `estimateTokens()`, `calculateContextUsage()`, `getContextWarningLevel()`, `formatContextUsage()`, `getContextTooltip()` |
+| `context-calculator.ts` | Calculates token usage and context limits | `ContextUsage`, `estimateTokens()`, `calculateContextUsage()`, `getRemainingContextPercentage()`, `getContextWarningLevel()`, `formatContextUsage()`, `getContextTooltip()` |
 | `conversation-manager.ts` | Manages file-scoped conversation storage | `DataStore`, `ConversationManager` |
 | `crypto-service.ts` | Encrypts/decrypts sensitive data like API keys | `CryptoService` |
 | `document-analysis.ts` | Analyzes document structure and metadata | `DocumentStructure`, `DocumentAnalyzer` |
 | `document-engine.ts` | Central hub for all document manipulation | `DocumentEngine` |
 | `intent-detector.ts` | Classifies user input as editing vs consultation | `IntentClassification`, `IntentDetector` |
 | `prompt-builder.ts` | Builds system and user prompts for AI | `PromptBuilder` |
-| `types.ts` | Type definitions for document editing and commands | `EditAction`, `EditCommand`, `DocumentContext`, `HeadingInfo`, `EditResult`, `ConversationMessage`, `ContextDocumentRef`, `ConversationData` |
+| `types.ts` | Type definitions for document editing and commands | `EditAction`, `EditCommand`, `DocumentContext`, `HeadingInfo`, `EditResult`, `EditOptions`, `DocumentSection`, `PromptConfig`, `ConversationMessage`, `ContextDocumentRef`, `ConversationData` |
 
 ### src/core/commands/
 
@@ -62,13 +62,13 @@ generated: 2026-01-30
 | File | Description | Key Exports |
 |------|-------------|-------------|
 | `constants.ts` | Constants for Nova Commands system | `INSIGHT_PANEL`, `MARGIN_INDICATORS`, `UI`, `COMMANDS`, `OPPORTUNITY_TITLES`, `CSS_CLASSES`, `CM_SELECTORS` |
-| `types.ts` | Type definitions for the Nova Commands system | `MarkdownCommand`, `TemplateVariable`, `SmartContext`, `CommandExecutionContext`, `ExecutionOptions`, `CommandSuggestionsSettings`, `TimingDecision`, `TypingMetrics` |
+| `types.ts` | Type definitions for the Nova Commands system | `MarkdownCommand`, `TemplateVariable`, `SmartContext`, `CommandExecutionContext`, `ExecutionOptions`, `DocumentType`, `CommandSuggestionsSettings`, `TimingDecision`, `TypingMetrics`, `CommandRegistry`, `InsightDetection` |
 
 ### src/features/commands/core/
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `CommandEngine.ts` | Core system for executing commands and the /fill command | `MarkerInsight`, `CommandEngine` |
+| `CommandEngine.ts` | Core system for executing commands and the /fill command | `MarkerInsight`, `insertSmartFillPlaceholder()`, `CommandEngine` |
 | `SmartTimingEngine.ts` | Centralized timing service for command features | `TimingEvents`, `SmartTimingEngine` |
 | `SmartVariableResolver.ts` | Intelligent resolution of template variables | `SmartVariableResolver` |
 
@@ -76,9 +76,9 @@ generated: 2026-01-30
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `InsightPanel.ts` | Full intelligence panel for command selection | `InsightPanel` |
-| `MarginIndicators.ts` | Intelligent margin indicators for command suggestions | `MarginIndicators` |
-| `codemirror-decorations.ts` | CodeMirror decorations for margin indicators | `addIndicatorEffect`, `removeIndicatorEffect`, `clearIndicatorsEffect` |
+| `InsightPanel.ts` | Full intelligence panel for command selection | `SpecificIssue`, `IndicatorOpportunity`, `InsightPanel` |
+| `MarginIndicators.ts` | Intelligent margin indicators for command suggestions | `SpecificIssue`, `IndicatorOpportunity`, `MarginIndicators` |
+| `codemirror-decorations.ts` | CodeMirror decorations for margin indicators | `IndicatorOpportunity`, `addIndicatorEffect`, `removeIndicatorEffect`, `clearIndicatorsEffect`, `IndicatorWidget`, `CodeMirrorIndicatorManager` |
 
 ### src/licensing/
 
@@ -87,13 +87,13 @@ generated: 2026-01-30
 | `feature-config.ts` | Time-gated feature configuration | `TimeGatedFeature`, `SUPERNOVA_FEATURES` |
 | `feature-manager.ts` | Manages feature flags and Supernova access | `FeatureManager` |
 | `license-validator.ts` | Validates Supernova license keys | `LicenseValidator` |
-| `types.ts` | Type definitions for licensing system | `SupernovaLicense`, `SupernovaValidationResult`, `FeatureFlag`, `FeatureAccessResult`, `DebugSettings` |
+| `types.ts` | Type definitions for licensing system | `SupernovaLicense`, `SupernovaValidationResult`, `LicenseError`, `FeatureFlag`, `FeatureAccessResult`, `DebugSettings` |
 
 ### src/ui/
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `chat-renderer.ts` | Renders conversation messages in sidebar | `ChatRenderer` |
+| `chat-renderer.ts` | Renders conversation messages in sidebar | `ChatRenderer`, `MessageOptions` |
 | `command-system.ts` | Handles slash command detection and picker UI | `CommandSystem` |
 | `context-manager.ts` | Manages multi-document context in sidebar | `DocumentReference`, `MultiDocContext`, `ContextManager` |
 | `custom-command-modal.ts` | Modal for creating/editing custom commands | `CustomCommandModal` |
@@ -110,15 +110,15 @@ generated: 2026-01-30
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `logger.ts` | Centralized logging utility with levels | `Logger`, `ScopedLogger`, `LogLevel` |
+| `logger.ts` | Centralized logging utility with levels | `LogLevel`, `Logger`, `ScopedLogger` |
 | `timeout-manager.ts` | Obsidian-compliant timeout management | `TimeoutManager` |
 
 ### src/ (root)
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `constants.ts` | Shared constants and magic strings | `NOVA_CONVERSATIONS_STORAGE_KEY`, `VIEW_TYPE_NOVA_SIDEBAR`, `NOVA_*`, `FEATURE_COMMANDS`, `PROVIDER_*` |
-| `settings.ts` | Plugin settings UI and configuration | `CustomCommand`, `NovaSettings`, `DEFAULT_SETTINGS`, `NovaSettingTab` |
+| `constants.ts` | Shared constants and magic strings | `NOVA_CONVERSATIONS_STORAGE_KEY`, `VIEW_TYPE_NOVA_SIDEBAR`, `NOVA_STAR_ICON`, `NOVA_SUPERNOVA_ICON`, `PROVIDER_*`, `CHATGPT_ALIAS`, `GEMINI_ALIAS` |
+| `settings.ts` | Plugin settings UI and configuration | `CustomCommand`, `NovaSettings`, `DEFAULT_SETTINGS`, `NovaSettingTab`, `ConfirmModal` |
 
 ## Component Dependencies
 
@@ -129,20 +129,15 @@ generated: 2026-01-30
 - `./providers/claude`, `./providers/openai`, `./providers/google`, `./providers/ollama`
 - `./models` - getProviderTypeForModel
 - `./context-limits` - getModelMaxOutputTokens
-- `../settings` - NovaSettings
-- `../licensing/feature-manager` - FeatureManager
-- `../utils/timeout-manager` - TimeoutManager
 
 **providers/*.ts** import from:
 - `../types` - AIProvider, AIMessage, AIStreamResponse, ProviderConfig
-- `../../utils/logger` - Logger
-- `../../utils/timeout-manager` - TimeoutManager
 - `obsidian` - requestUrl
 
 ### Core Layer (src/core/)
 
 **document-engine.ts** imports from:
-- `./types` - DocumentContext, EditResult, EditCommand
+- `./types` - DocumentContext, EditResult, EditCommand, HeadingInfo, EditOptions
 - `./conversation-manager` - ConversationManager, DataStore
 - `../utils/logger` - Logger
 - `obsidian` - App, Editor, MarkdownView, TFile, EditorPosition
@@ -152,7 +147,12 @@ generated: 2026-01-30
 - `./document-engine` - DocumentEngine
 - `./conversation-manager` - ConversationManager
 - `./command-parser` - CommandParser
-- `./types` - EditCommand, DocumentContext, ConversationMessage
+- `./types` - EditCommand, DocumentContext, PromptConfig, ConversationMessage
+
+**ai-intent-classifier.ts** imports from:
+- `../ai/provider-manager` - AIProviderManager
+- `../utils/logger` - Logger
+- `./intent-detector` - IntentDetector
 
 **commands/*.ts** import from:
 - `../document-engine` - DocumentEngine
@@ -168,7 +168,12 @@ generated: 2026-01-30
 - `../../../ai/provider-manager` - AIProviderManager
 - `../../../core/context-builder` - ContextBuilder
 - `../../../core/document-engine` - DocumentEngine
-- `../types` - MarkdownCommand, CommandExecutionContext, SmartContext
+- `../types` - MarkdownCommand, CommandExecutionContext, SmartContext, ExecutionOptions, TemplateVariable
+
+**core/SmartTimingEngine.ts** imports from:
+- `../../../utils/logger` - Logger
+- `./SmartVariableResolver` - SmartVariableResolver
+- `../types` - DocumentType, SmartTimingSettings, TimingDecision, TypingMetrics
 
 **ui/MarginIndicators.ts** imports from:
 - `../core/SmartVariableResolver` - SmartVariableResolver
@@ -194,11 +199,31 @@ generated: 2026-01-30
 - `../features/commands/core/CommandEngine` - CommandEngine
 - `../features/commands/core/SmartVariableResolver` - SmartVariableResolver
 - `../features/commands/types` - MarkdownCommand
+- `../utils/logger`, `../utils/timeout-manager`
 
 **streaming-manager.ts** imports from:
 - `../utils/logger` - Logger
 - `../utils/timeout-manager` - TimeoutManager
 - `obsidian` - Editor, Notice, EditorPosition
+
+**selection-context-menu.ts** imports from:
+- `../features/commands/core/CommandEngine` - CommandEngine
+- `../core/commands/selection-edit-command` - SelectionEditCommand
+- `./tone-selection-modal` - ToneSelectionModal
+- `./custom-instruction-modal` - CustomInstructionModal
+- `./sidebar-view`, `./streaming-manager`
+- `../utils/logger`
+
+### Licensing Layer (src/licensing/)
+
+**license-validator.ts** imports from:
+- `./types` - SupernovaLicense, SupernovaValidationResult, LicenseError
+- `../core/crypto-service` - CryptoService
+
+**feature-manager.ts** imports from:
+- `./license-validator` - LicenseValidator
+- `./types` - SupernovaLicense, FeatureFlag, FeatureAccessResult, DebugSettings
+- `./feature-config` - SUPERNOVA_FEATURES, TimeGatedFeature
 
 ## Architectural Layers
 
@@ -239,16 +264,16 @@ generated: 2026-01-30
 
 | Commit | Summary |
 |--------|---------|
-| 1509417 | fix(compliance): remove console.log statements for plugin store readiness |
-| dedc167 | feat(cancel): add cancellation support for all LLM operations |
-| a6dc0e2 | fix(commands): improve Smart Fill UX with tooltips, sequential streaming, and error handling |
-| d473eb5 | fix(commands): resolve "No placeholder found" error on fill icon click |
-| cdfbd3b | fix(compliance): replace addEventListener with registerDomEvent in CodeMirror widgets |
-| 4aaf608 | fix(commands): resolve notice disappearing during multi-fill + revert icon |
-| 9b1b824 | refactor(settings): consolidate Smart Fill tab into General |
-| 0d24637 | docs(readme): adopt professional tone matching website voice |
-| 77335fe | refactor(commands): rebrand Commands to Smart Fill |
-| 968339a | refactor(commands): simplify to marker-based /fill command |
+| b56bd00 | 1.1.0 |
+| a18c728 | fix(claude): reorder Opus 4.6 to top of model list and update legacy model IDs |
+| 3cd4821 | docs(readme): update Smart fill casing, dates, and context menu entry |
+| 02baccd | feat(smartfill): add Smart fill to right-click context menu |
+| cbd5222 | chore(smartfill): move availability dates earlier (Mar 1 / May 1) |
+| 8063fe1 | docs(readme): revise tone and add Smart Fill documentation |
+| 9884fb0 | fix(smartfill): align button tooltip and icon color with settings terminology |
+| ce80bfe | refactor(ui): anchor privacy indicator next to token usage |
+| 43fb160 | refactor(smartfill): rename "commands" feature to "smartfill" and fix palette bug |
+| 5eecbb6 | chore(codebase): add @file headers to commands feature files |
 
 ---
 
