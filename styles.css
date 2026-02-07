@@ -4131,3 +4131,10 @@
 .nova-show-more-button:hover {
     background: var(--background-modifier-hover);
 }
+
+/* Release Notes View */
+.nova-release-notes {
+    padding: var(--size-4-8) var(--size-4-6);
+    max-width: 700px;
+    margin: 0 auto;
+}

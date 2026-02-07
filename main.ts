@@ -2,6 +2,9 @@ import { Plugin, WorkspaceLeaf, addIcon, Notice, Editor, MarkdownView } from 'ob
 import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
+import { ReleaseNotesView, VIEW_TYPE_RELEASE_NOTES } from './src/ui/release-notes-view';
+import { getReleaseNotes } from './src/release-notes';
+import { isVersionNewer } from './src/utils/version';
 import { DocumentEngine } from './src/core/document-engine';
 import { ContextBuilder } from './src/core/context-builder';
 import { CommandParser } from './src/core/command-parser';
@@ -87,6 +90,8 @@ export default class NovaPlugin extends Plugin {
 	smartTimingEngine!: SmartTimingEngine;
 	marginIndicators!: MarginIndicators;
 	indicatorStateField!: StateField<{ decorations: DecorationSet; opportunities: Map<number, unknown> }>;
+	private pendingReleaseNotes: string | null = null;
+	private pendingReleaseVersion: string | null = null;
 
 	async onload() {
 		try {
@@ -107,12 +112,12 @@ export default class NovaPlugin extends Plugin {
 
 			// Dispatch license update event to refresh Supernova UI after startup
 			this.app.workspace.onLayoutReady(async () => {
-				document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-					detail: { 
+				document.dispatchEvent(new CustomEvent('nova-license-updated', {
+					detail: {
 						hasLicense: this.featureManager.isSupernovaSupporter(),
 						licenseKey: this.settings.licensing.supernovaLicenseKey,
 						action: 'startup'
-					} 
+					}
 				}));
 
 				// Initialize Nova Commands components
@@ -126,6 +131,9 @@ export default class NovaPlugin extends Plugin {
 				} catch (error) {
 					Logger.error('Failed to initialize Nova Commands system:', error);
 				}
+
+				// Check for release notes after update
+				await this.checkAndShowReleaseNotes();
 			});
 
 
@@ -180,6 +188,11 @@ export default class NovaPlugin extends Plugin {
 			this.registerView(
 				VIEW_TYPE_NOVA_SIDEBAR,
 				(leaf) => new NovaSidebarView(leaf, this)
+			);
+
+			this.registerView(
+				VIEW_TYPE_RELEASE_NOTES,
+				(leaf) => new ReleaseNotesView(leaf, this.pendingReleaseNotes ?? '', this.pendingReleaseVersion ?? '')
 			);
 
 			// Note: Wikilink autocomplete is now handled directly in sidebar view
@@ -305,6 +318,46 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	/**
+	 * Show release notes tab when the plugin has been updated.
+	 * - Fresh install (no lastSeenVersion): silently record version
+	 * - Setting disabled: skip
+	 * - Same or older version: skip
+	 * - No notes for this version: silently update version
+	 */
+	private async checkAndShowReleaseNotes(): Promise<void> {
+		const currentVersion = this.manifest.version;
+		const lastSeen = this.settings.general.lastSeenVersion;
+
+		// Fresh install — just record version, don't show anything
+		if (!lastSeen) {
+			this.settings.general.lastSeenVersion = currentVersion;
+			await this.saveSettings();
+			return;
+		}
+
+		if (!this.settings.general.showReleaseNotes) return;
+		if (!isVersionNewer(currentVersion, lastSeen)) return;
+
+		const notes = getReleaseNotes(currentVersion);
+		if (!notes) {
+			// No notes authored for this version — update silently
+			this.settings.general.lastSeenVersion = currentVersion;
+			await this.saveSettings();
+			return;
+		}
+
+		// Store content so the registerView factory can pick it up
+		this.pendingReleaseNotes = notes;
+		this.pendingReleaseVersion = currentVersion;
+
+		const leaf = this.app.workspace.getLeaf('tab');
+		await leaf.setViewState({ type: VIEW_TYPE_RELEASE_NOTES, active: true });
+
+		this.settings.general.lastSeenVersion = currentVersion;
+		await this.saveSettings();
+	}
+
+	/**
 	 * Register global event handlers for InsightPanel dismiss functionality
 	 * These handlers are registered once and check if a panel is active before acting
 	 */
@@ -338,6 +391,11 @@ export default class NovaPlugin extends Plugin {
 		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 		
+		// Manually merge general settings to ensure new fields get defaults
+		if (savedData?.general) {
+			this.settings.general = Object.assign({}, DEFAULT_SETTINGS.general, savedData.general);
+		}
+
 		// Manually merge platformSettings to ensure saved model selections are preserved
 		if (savedData?.platformSettings) {
 			this.settings.platformSettings = {

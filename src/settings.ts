@@ -31,6 +31,8 @@ export interface NovaSettings {
 	general: {
 		defaultTemperature: number;
 		defaultMaxTokens: number;
+		showReleaseNotes: boolean;
+		lastSeenVersion: string;
 	};
 	licensing: {
 		supernovaLicenseKey: string;
@@ -73,7 +75,9 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 	},
 	general: {
 		defaultTemperature: 0.7,
-		defaultMaxTokens: 4000
+		defaultMaxTokens: 4000,
+		showReleaseNotes: true,
+		lastSeenVersion: ''
 	},
 	licensing: {
 		supernovaLicenseKey: '',
@@ -1163,6 +1167,16 @@ export class NovaSettingTab extends PluginSettingTab {
 					}
 				})
 			);
+
+		new Setting(coreSection)
+			.setName('Show release notes')
+			.setDesc('Display what\'s new after plugin updates')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.general.showReleaseNotes)
+				.onChange(async (value) => {
+					this.plugin.settings.general.showReleaseNotes = value;
+					await this.plugin.saveSettings();
+				}));
 
 	}
 
