@@ -73,7 +73,7 @@ These patterns will **REJECT your plugin submission**:
 
 ## ARCHITECTURE — NON-NEGOTIABLE
 
-- **Event-driven only**: Use `StateManager.emit()` — NEVER direct method calls between components
+- **Communication**: Direct injection for dependencies, Obsidian workspace events for cross-plugin communication. Direct method calls between tightly-coupled components are acceptable. Decoupling is a case-by-case decision, not a blanket rule.
 - **Explicit initialization**: No side effects in constructors — use `init()` methods
 - **Constants file**: All strings/selectors in `constants.ts`
 
@@ -147,6 +147,14 @@ type(scope): description
 **Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
 ❌ No AI attribution in commits
+
+---
+
+## VERSIONING & BRANCHING
+
+- **No `v` prefix** on tags, releases, or branch names. Obsidian's store and release process breaks with `v`-prefixed tags.
+- Tags and releases use bare version numbers: `1.1.2`, `1.2.0` — never `v1.1.2`
+- Feature branches named for the version: `1.1.2`, `1.2` — main matches the live store release
 
 ---
 

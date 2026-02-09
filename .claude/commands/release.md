@@ -48,6 +48,7 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
 
 ## Important
 
+- **No `v` prefix on tags or release titles.** Obsidian's store and release process breaks with `v`-prefixed tags. Tags must be bare version numbers (e.g. `1.1.2`, not `v1.1.2`).
 - Release notes are single-sourced: `src/release-notes.ts` feeds both the in-app page and the GitHub release
 - Verify all quality gates pass before releasing
 - Review git log since last tag for changelog items
