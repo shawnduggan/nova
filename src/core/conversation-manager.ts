@@ -27,6 +27,7 @@ export class ConversationManager {
      * Must be called after construction before using context document methods.
      */
     async init(): Promise<void> {
+        if (this.cleanupInterval !== null) return;
         await this.loadConversations();
         this.startPeriodicCleanup();
     }
