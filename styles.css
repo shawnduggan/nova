@@ -3551,6 +3551,70 @@
 }
 
 /* Custom Instruction Modal Styles */
+.nova-custom-history-section {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    margin-bottom: var(--size-4-3);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nova-custom-history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+    padding: var(--size-4-2) var(--size-4-3);
+    cursor: pointer;
+    transition: background-color 100ms ease;
+}
+
+.nova-custom-history-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-custom-history-icon {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.nova-custom-history-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.nova-custom-history-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-ui-small);
+}
+
+.nova-custom-history-remove {
+    flex-shrink: 0;
+    opacity: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: opacity 100ms ease, color 100ms ease;
+}
+
+.nova-custom-history-remove svg {
+    width: 14px;
+    height: 14px;
+}
+
+.nova-custom-history-item:hover .nova-custom-history-remove {
+    opacity: 1;
+}
+
+.nova-custom-history-remove:hover {
+    color: var(--interactive-accent);
+}
+
 .nova-custom-textarea {
     width: 100%;
     min-height: 100px;

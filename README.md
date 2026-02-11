@@ -1,6 +1,6 @@
 # Nova – AI Writing for Obsidian
 
-AI writing assistant that edits text in place. Select any text, apply a transformation, and watch it change with real-time streaming. No chat windows, no copy-paste.
+AI editor for Obsidian that sharpens your writing in place. Select text, refine it, challenge your own thinking — without leaving your document. Not a generator. An editor.
 
 **Privacy-first**: Use local AI (Ollama, LM Studio) or your own API keys (Claude, OpenAI, Gemini). Nova never sees your content.
 
@@ -14,13 +14,9 @@ AI writing assistant that edits text in place. Select any text, apply a transfor
 
 Select text → Right-click → Choose transformation → Watch it change in place. The AI edits exactly what you selected, nothing else.
 
-### Chat with Cursor Awareness
+### Challenge Your Thinking
 
-Ask for content at your cursor position. "Add a methodology section here" writes exactly where your cursor is, not in a separate chat window.
-
-### Document Context
-
-Nova reads your full document to generate content that flows with existing structure and style.
+Select any argument or claim → Right-click → "Challenge This." Nova identifies logical gaps, unsupported claims, and counter-arguments. It doesn't rewrite — it asks the hard questions so you can write better.
 
 ### Smart fill — AI placeholders for structured documents
 
@@ -54,6 +50,14 @@ Use `<!-- nova: instruction -->` comments as AI placeholders. Place them through
 
 Smart fill pairs naturally with the Templater plugin. Use Templater for dynamic values (dates, file names, metadata) and Nova placeholders for AI-generated content. Insert a template, then generate all sections with `/fill` or command palette.
 
+### Chat with Cursor Awareness
+
+Ask for content at your cursor position. "Add a methodology section here" writes exactly where your cursor is, not in a separate chat window.
+
+### Document Context
+
+Nova reads your full document to generate content that flows with existing structure and style.
+
 ---
 
 ## Privacy That Matches Your Principles
@@ -62,7 +66,7 @@ Smart fill pairs naturally with the Templater plugin. Use Templater for dynamic 
 
 **Your Keys, Your Control**: Cloud AI uses YOUR keys – Claude, OpenAI, Gemini. Nova never sees your content, never stores your conversations.
 
-**Zero Analytics**: No tracking, no usage analytics, no “telemetry.” What you write stays between you and your chosen AI provider.
+**Zero Analytics**: No tracking, no usage analytics, no "telemetry." What you write stays between you and your chosen AI provider.
 
 *Privacy-first writing for people who chose Obsidian for the same reason.*
 
@@ -86,7 +90,7 @@ Support development if Nova improves your writing:
 - Early access to new features (1-2 months before general release)
 - Priority support and feature requests
 - Community of serious writers
-- Sustainable development 
+- Sustainable development
 
 *Philosophy: Thoughtful tools for the modern writer. All features graduate to free tier after Supernova early access period. Support only if it changes how you write.*
 
@@ -115,12 +119,10 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 
 ## Roadmap
 
-**Smart fill** (March 2026) – AI placeholders for structured documents. Supernova early access March 2026, free for all May 2026.
-
 **Coming Soon** (Early Access → Free Tier):
+- **Context-Aware Editing** – AI that reads your linked notes automatically
 - **Writing Modes** – Context-aware tone shifting (blog → academic)
 - **Style Mirroring** – AI that matches your writing voice
-- **Smart Autocomplete** – Sentence completion for prose
 
 Supernova supporters get 1-2 months early access before features become free.
 

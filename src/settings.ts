@@ -33,6 +33,7 @@ export interface NovaSettings {
 		defaultMaxTokens: number;
 		showReleaseNotes: boolean;
 		lastSeenVersion: string;
+		customPromptHistory: string[];
 	};
 	licensing: {
 		supernovaLicenseKey: string;
@@ -77,7 +78,8 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		defaultTemperature: 0.7,
 		defaultMaxTokens: 4000,
 		showReleaseNotes: true,
-		lastSeenVersion: ''
+		lastSeenVersion: '',
+		customPromptHistory: []
 	},
 	licensing: {
 		supernovaLicenseKey: '',

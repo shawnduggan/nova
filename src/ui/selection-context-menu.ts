@@ -11,6 +11,7 @@ import { CustomInstructionModal } from './custom-instruction-modal';
 import { NovaSidebarView } from './sidebar-view';
 import { StreamingManager, ActionType } from './streaming-manager';
 import { Logger } from '../utils/logger';
+import { CHALLENGE_SYSTEM_PROMPT } from '../constants';
 
 export interface SelectionAction {
     id: string;
@@ -43,6 +44,12 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
         label: 'Change tone',
         icon: 'palette',
         description: 'Adjust writing style and tone'
+    },
+    {
+        id: 'challenge',
+        label: 'Challenge this',
+        icon: 'shield-question',
+        description: 'Critical analysis sent to sidebar chat'
     },
     {
         id: 'custom',
@@ -160,6 +167,11 @@ export class SelectionContextMenu {
                 return;
             }
             
+            if (actionId === 'challenge') {
+                await this.executeChallengeAction(editor, selectedText);
+                return;
+            }
+
             if (actionId === 'custom' && !customInstruction) {
                 this.showCustomInstructionModal(editor, selectedText);
                 return;
@@ -319,6 +331,89 @@ export class SelectionContextMenu {
     }
 
     /**
+     * Execute "Challenge This" — sends critical analysis to sidebar chat
+     * Unlike other actions, this does NOT replace the selected text
+     */
+    private async executeChallengeAction(_editor: Editor, selectedText: string): Promise<void> {
+        // Create abort controller for this operation
+        this.abortController = new AbortController();
+        const signal = this.abortController.signal;
+
+        const sidebarView = this.plugin.getCurrentSidebarView();
+        if (!sidebarView) {
+            new Notice('Open the Nova sidebar first to use challenge this', 3000);
+            return;
+        }
+
+        // Set processing state to show stop button
+        sidebarView.inputHandler.setProcessingState(true);
+
+        // Show thinking notice
+        this.streamingManager.showThinkingNotice('challenge' as ActionType, 'notice');
+
+        // Add user message to chat
+        const truncatedText = selectedText.length > 100
+            ? selectedText.substring(0, 100) + '...'
+            : selectedText;
+        const userMessage = `Challenge this: "${truncatedText}"`;
+        sidebarView.chatRenderer.addMessage('user', userMessage);
+
+        // Persist user message
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+            await this.plugin.conversationManager.addUserMessage(activeFile, userMessage, undefined);
+        }
+
+        try {
+            // Build messages for the AI
+            const messages = [
+                { role: 'system' as const, content: CHALLENGE_SYSTEM_PROMPT },
+                { role: 'user' as const, content: selectedText }
+            ];
+
+            // Get response from AI (non-streaming, matching existing chat pattern)
+            const response = await this.plugin.aiProviderManager.chatCompletion(messages, {
+                signal
+            });
+
+            if (signal.aborted) {
+                sidebarView.chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
+                return;
+            }
+
+            // Stop thinking notice
+            this.streamingManager.stopAnimation();
+
+            // Add assistant response to chat
+            sidebarView.chatRenderer.addMessage('assistant', response);
+
+            // Persist assistant response
+            if (activeFile) {
+                await this.plugin.conversationManager.addAssistantMessage(activeFile, response, undefined);
+            }
+        } catch (error) {
+            this.streamingManager.stopAnimation();
+
+            if (signal.aborted || (error as Error).name === 'AbortError') {
+                sidebarView.chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
+            } else {
+                Logger.error('Challenge This failed:', error);
+                const errorMessage = (error as Error).message || 'Failed to analyze text';
+                sidebarView.chatRenderer.addErrorMessage(`Challenge failed: ${errorMessage}`, true);
+            }
+        } finally {
+            this.streamingManager.stopAnimation();
+            this.abortController = null;
+
+            // Clear processing state
+            const view = this.plugin.getCurrentSidebarView();
+            if (view?.inputHandler) {
+                view.inputHandler.setProcessingState(false);
+            }
+        }
+    }
+
+    /**
      * Restore original text if streaming fails completely
      */
     private restoreOriginalText(_editor: Editor): void {
@@ -396,6 +491,7 @@ export class SelectionContextMenu {
             case 'longer': return 'expanded';
             case 'shorter': return 'condensed';
             case 'tone': return 'tone adjusted';
+            case 'challenge': return 'challenged';
             case 'custom': return 'transformed';
             default: return 'processed';
         }
@@ -502,6 +598,7 @@ export class SelectionContextMenu {
             case 'longer': return 'Expanded';
             case 'shorter': return 'Condensed';
             case 'tone': return `Changed tone to ${customInstruction || 'formal'}`;
+            case 'challenge': return 'Challenged';
             case 'custom': return `Applied "${String(customInstruction)}"`;
             default: return 'Processed';
         }

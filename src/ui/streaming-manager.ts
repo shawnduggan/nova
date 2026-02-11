@@ -15,7 +15,7 @@ export interface StreamingOptions {
     scrollBehavior?: 'smooth' | 'instant'; // Scroll animation style (default: 'smooth')
 }
 
-export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
+export type ActionType = 'improve' | 'longer' | 'shorter' | 'tone' | 'custom' | 'challenge' | 'chat' | 'add' | 'edit' | 'rewrite' | 'grammar' | 'delete';
 
 export class StreamingManager {
     private plugin: NovaPlugin;
@@ -96,6 +96,12 @@ export class StreamingManager {
             'interpreting...',
             'exploring...',
             'evaluating...'
+        ],
+        'challenge': [
+            'analyzing...',
+            'examining...',
+            'questioning...',
+            'scrutinizing...'
         ],
         'chat': [
             'composing...',
