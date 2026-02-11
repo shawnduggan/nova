@@ -6,6 +6,17 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.1.2': [
+		'## What\'s New in Nova 1.1.2',
+		'',
+		'### Stability & Reliability',
+		'This release focuses on internal stability improvements that make Nova more reliable:',
+		'',
+		'- **Improved plugin lifecycle** — Event listeners now register at the correct time during sidebar initialization, preventing potential issues on first load',
+		'- **Better timer management** — All internal timers are now properly tracked for clean plugin shutdown',
+		'- **Safer startup sequence** — Conversation data loading no longer races with plugin initialization',
+		'- **Reduced memory usage** — Eliminated a redundant internal component that was being created twice',
+	].join('\n'),
 	'1.1.1': [
 		'## What\'s New in Nova 1.1.1',
 		'',
