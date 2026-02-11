@@ -11,7 +11,7 @@ Nova is an AI writing plugin for Obsidian that enables direct, in-place editing.
 
 - **Direct document manipulation**: Edits happen in documents, not external interfaces
 - **Surgical precision**: AI edits exactly where users specify
-- **Event-driven architecture**: Components communicate via StateManager events
+- **Direct injection**: Components receive dependencies via constructors
 - **Privacy-first**: Local AI emphasis, user controls their API keys
 - **Streaming-first**: All AI operations support streaming for responsive UX
 
@@ -27,29 +27,46 @@ All TypeScript files MUST have a standardized header comment:
 
 This enables automated codebase documentation. Run `/project:sync-codebase` after adding new files.
 
-## State Management
+## Communication Patterns
 
-Nova uses event-driven architecture via StateManager. Components NEVER call methods on each other directly.
+Nova uses several communication patterns depending on the relationship between components:
+
+### Constructor Injection (primary pattern)
+Components receive their dependencies via constructor parameters. This is the default for tightly-coupled components.
 
 ```typescript
-// CORRECT: Event-driven communication
-this.stateManager.emit('conversation-updated', { conversationId, messages });
-this.stateManager.on('conversation-updated', (data) => this.handleUpdate(data));
-
-// WRONG: Direct coupling
-this.sidebarView.refreshConversation(conversationId);
-this.conversationManager.getConversation();
+// Core services receive dependencies at construction
+this.promptBuilder = new PromptBuilder(this.documentEngine, this.conversationManager);
+this.documentEngine = new DocumentEngine(this.app, this.conversationManager);
 ```
 
-### Key Events
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `conversation-updated` | `{ conversationId, messages }` | Conversation state changed |
-| `provider-changed` | `{ provider, model }` | AI provider switched |
-| `context-updated` | `{ documents, tokens }` | Document context modified |
-| `streaming-start` | `{ messageId }` | AI response streaming begins |
-| `streaming-end` | `{ messageId, content }` | AI response complete |
-| `streaming-error` | `{ messageId, error }` | Streaming failed |
+### Direct Method Calls
+Tightly-coupled components call methods on each other directly. Decoupling is a case-by-case decision, not a blanket rule.
+
+```typescript
+// Direct calls between related components are fine
+const conversation = this.conversationManager.getConversation(file);
+const context = this.documentEngine.getDocumentContext(editor, file);
+```
+
+### Obsidian Workspace Events
+Cross-plugin and layout-level communication uses Obsidian's built-in workspace events.
+
+```typescript
+this.app.workspace.on('file-open', (file) => this.handleFileOpen(file));
+this.app.workspace.on('layout-change', () => this.handleLayoutChange());
+```
+
+### Custom DOM Events
+Lightweight cross-component notifications (e.g., settings changes, license updates) use CustomEvent on `document`.
+
+```typescript
+// Dispatch
+document.dispatchEvent(new CustomEvent('nova-provider-configured', { detail: { provider } }));
+
+// Listen (always via registerDomEvent for cleanup)
+this.registerDomEvent(document, 'nova-provider-configured', this.handleProviderConfigured.bind(this));
+```
 
 ## Obsidian Compliance (BLOCKING)
 
@@ -73,7 +90,6 @@ These patterns will **REJECT plugin store submission**:
 ```typescript
 export class MyComponent {
   private plugin: NovaPlugin;
-  private stateManager: StateManager;
   private containerEl: HTMLElement;
 
   constructor(plugin: NovaPlugin, containerEl: HTMLElement) {
@@ -86,7 +102,6 @@ export class MyComponent {
     // All setup happens here
     this.buildUI();
     this.registerEvents();
-    this.subscribeToState();
   }
 
   private buildUI(): void {
@@ -102,13 +117,6 @@ export class MyComponent {
     });
   }
 
-  private subscribeToState(): void {
-    // Subscribe to StateManager events
-    this.stateManager.on('conversation-updated', (data) => {
-      this.refresh(data);
-    });
-  }
-
   destroy(): void {
     // Usually empty - registration handles cleanup
     // Only needed for non-registered resources
@@ -118,27 +126,24 @@ export class MyComponent {
 
 ### Core Services (`src/core/`)
 
-Services handle business logic and expose functionality via events:
+Services handle business logic and are injected into consumers via constructors:
 
 ```typescript
 export class MyService {
-  private stateManager: StateManager;
+  constructor(private app: App, private conversationManager: ConversationManager) {
+    // NO side effects in constructor
+  }
 
-  constructor(stateManager: StateManager) {
-    this.stateManager = stateManager;
+  async init(): Promise<void> {
+    // Async initialization goes here
   }
 
   async performAction(params: ActionParams): Promise<Result> {
     try {
       const result = await this.doWork(params);
-
-      // Notify via events, don't return and expect caller to update UI
-      this.stateManager.emit('action-completed', { result });
-
       return result;
     } catch (error) {
       Logger.error('Action failed', { error, params });
-      this.stateManager.emit('action-failed', { error });
       throw error;
     }
   }
@@ -236,10 +241,7 @@ async performRiskyOperation(): Promise<void> {
     // 2. User-friendly notification
     new Notice('Something went wrong. Please try again.');
 
-    // 3. Emit error event for interested components
-    this.stateManager.emit('operation-error', { error });
-
-    // 4. Re-throw only if caller needs to handle
+    // 3. Re-throw only if caller needs to handle
     throw error;
   }
 }
@@ -343,17 +345,15 @@ await streamingManager.streamToEditor(
 
 ## Constants
 
-All magic strings and selectors go in `src/constants.ts`:
+Magic strings and selectors should go in `src/constants.ts` (not yet consistently applied across the codebase):
 
 ```typescript
 // CORRECT
-import { CSS_CLASSES, EVENTS, TIMEOUTS } from '../constants';
+import { CSS_CLASSES, TIMEOUTS } from '../constants';
 element.addClass(CSS_CLASSES.SIDEBAR_HEADER);
-this.stateManager.emit(EVENTS.CONVERSATION_UPDATED, data);
 
 // WRONG
 element.addClass('nova-sidebar-header');
-this.stateManager.emit('conversation-updated', data);
 ```
 
 ## Quality Gates

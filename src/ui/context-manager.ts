@@ -472,7 +472,7 @@ export class ContextManager {
 		
 		try {
 			// Get saved context documents from conversation manager
-			const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+			const savedContextDocs = this.plugin.conversationManager.getContextDocuments(file);
 			
 			if (savedContextDocs.length === 0) {
 				// No saved context, ensure clean state
@@ -597,17 +597,17 @@ export class ContextManager {
 	/**
 	 * Validate all context documents for a file and return results
 	 */
-	async validateContextDocuments(file: TFile): Promise<{
+	validateContextDocuments(file: TFile): {
 		validFiles: string[];
 		missingFiles: string[];
 		totalCount: number;
-	}> {
+	} {
 		if (!this.plugin.conversationManager) {
 			return { validFiles: [], missingFiles: [], totalCount: 0 };
 		}
 
 		try {
-			const savedContextDocs = await this.plugin.conversationManager.getContextDocuments(file);
+			const savedContextDocs = this.plugin.conversationManager.getContextDocuments(file);
 			const validFiles: string[] = [];
 			const missingFiles: string[] = [];
 

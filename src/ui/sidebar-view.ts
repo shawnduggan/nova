@@ -98,13 +98,6 @@ export class NovaSidebarView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
 		this.plugin = plugin;
-		
-		// Listen for provider configuration events
-		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
-		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
-		
-		// Listen for license update events
-		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
 	}
 
 	getViewType() {
@@ -132,6 +125,12 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	async onOpen() {
+		// Register DOM events for cross-component communication
+		// Must be in onOpen() — view container doesn't exist during construction
+		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
+		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
+		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
+
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-sidebar-container');

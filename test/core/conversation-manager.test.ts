@@ -12,9 +12,9 @@ describe('ConversationManager', () => {
     let mockFile: TFile;
     let savedData: any = null;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         savedData = null;
-        
+
         // Mock data store
         mockDataStore = {
             loadData: jest.fn().mockResolvedValue(null),
@@ -24,9 +24,10 @@ describe('ConversationManager', () => {
             }),
             registerInterval: jest.fn().mockImplementation((id) => id)
         };
-        
+
         mockFile = new TFile('test-document.md');
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
     });
 
     describe('initialization', () => {
@@ -58,8 +59,8 @@ describe('ConversationManager', () => {
             };
             
             const newManager = new ConversationManager(mockDataStoreWithData);
-            await new Promise(resolve => setTimeout(resolve, 0)); // Wait for async load
-            
+            await newManager.init();
+
             const conversation = newManager.getConversation(new TFile('existing.md'));
             expect(conversation.messages).toHaveLength(1);
             expect(conversation.messages[0].content).toBe('Hello');
