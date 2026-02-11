@@ -17,13 +17,16 @@ export class ConversationManager {
     private maxMessagesPerFile = 100; // Limit conversation history
     private storageKey = 'nova-conversations';
     private cleanupInterval: number | null = null;
-    private initializePromise: Promise<void>;
 
     constructor(private dataStore: DataStore) {
-        this.initializePromise = this.initialize();
+        // No side effects — call init() after construction
     }
 
-    private async initialize(): Promise<void> {
+    /**
+     * Initialize the conversation manager (load data, start cleanup)
+     * Must be called after construction before using context document methods.
+     */
+    async init(): Promise<void> {
         await this.loadConversations();
         this.startPeriodicCleanup();
     }
@@ -145,7 +148,6 @@ export class ConversationManager {
      * Get conversation for a specific file
      */
     getConversation(file: TFile): ConversationData {
-        // Note: This method is synchronous and used by other methods that await initializePromise
         const filePath = file.path;
         
         if (!this.conversations.has(filePath)) {
@@ -487,8 +489,6 @@ export class ConversationManager {
      * Add a context document to the conversation
      */
     async addContextDocument(file: TFile, contextPath: string, property?: string): Promise<void> {
-        await this.initializePromise; // Ensure initialization is complete
-        
         const conversation = this.getConversation(file);
         
         // Check if document already in context
@@ -528,8 +528,7 @@ export class ConversationManager {
     /**
      * Get all context documents for a conversation
      */
-    async getContextDocuments(file: TFile): Promise<ContextDocumentRef[]> {
-        await this.initializePromise; // Ensure initialization is complete
+    getContextDocuments(file: TFile): ContextDocumentRef[] {
         const conversation = this.getConversation(file);
         return conversation.contextDocuments || [];
     }

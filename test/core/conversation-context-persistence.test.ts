@@ -25,10 +25,11 @@ describe('Context Persistence - Storage Layer', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -64,24 +65,20 @@ describe('Context Persistence - Storage Layer', () => {
             }],
             lastUpdated: Date.now()
         };
-        
+
         await mockDataStore.saveData('nova-conversations', [oldConversation]);
-        
+
         // Create new manager instance to load the data
         const newManager = new ConversationManager(mockDataStore);
-        
-        // Wait for async loading
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         // Get old conversation - should have contextDocuments added
         const loadedConversation = newManager.getConversation(createMockTFile('old.md'));
         expect(loadedConversation).toHaveProperty('contextDocuments');
         expect(loadedConversation.contextDocuments).toEqual([]);
         expect(loadedConversation.messages).toHaveLength(1);
         expect(loadedConversation.messages[0].content).toBe('Old message');
-        
+
         newManager.cleanup();
     });
 });
@@ -90,10 +87,11 @@ describe('Context Persistence - Serialization', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -179,10 +177,8 @@ describe('Context Persistence - Serialization', () => {
         
         // Create new manager to force reload from storage
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         const reloadedConv = newManager.getConversation(mockFile);
         expect(reloadedConv.contextDocuments).toHaveLength(2);
         expect(reloadedConv.contextDocuments![0]).toEqual(contextDocs[0]);
@@ -221,10 +217,11 @@ describe('Context Persistence - Save Integration', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -291,10 +288,11 @@ describe('Context Persistence - Restoration', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -307,13 +305,11 @@ describe('Context Persistence - Restoration', () => {
         await conversationManager.addContextDocument(mockFile, 'doc1.md', 'Section 1');
         await conversationManager.addContextDocument(mockFile, 'doc2.md');
         await conversationManager.addUserMessage(mockFile, 'Test message');
-        
+
         // Create new manager instance to simulate restart
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        }); // Wait for async loading
-        
+        await newManager.init();
+
         // Verify context is restored
         const restoredContext = await newManager.getContextDocuments(mockFile);
         expect(restoredContext).toHaveLength(2);
@@ -328,13 +324,11 @@ describe('Context Persistence - Restoration', () => {
     test('should have empty context when no saved context exists', async () => {
         // Create manager without adding any context
         await conversationManager.addUserMessage(mockFile, 'Test message');
-        
+
         // Create new manager instance
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         // Should have empty context
         const context = await newManager.getContextDocuments(mockFile);
         expect(context).toHaveLength(0);
@@ -348,14 +342,12 @@ describe('Context Persistence - Restoration', () => {
             await conversationManager.addContextDocument(mockFile, `doc${i}.md`);
         }
         await conversationManager.addUserMessage(mockFile, 'Test');
-        
+
         // Measure restoration time
         const startTime = Date.now();
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 50);
-        }); // Small delay for loading
-        
+        await newManager.init();
+
         const context = await newManager.getContextDocuments(mockFile);
         const endTime = Date.now();
         
@@ -370,10 +362,11 @@ describe('Context Persistence - File Validation', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -417,10 +410,8 @@ describe('Context Persistence - File Validation', () => {
         // Simulate one file being deleted by creating new manager
         // In real implementation, the ContextManager would filter missing files
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         // The validation logic will be in ContextManager, but storage preserves all
         const storedContext = await newManager.getContextDocuments(mockFile);
         expect(storedContext).toHaveLength(2); // Storage keeps all references
@@ -448,10 +439,11 @@ describe('Context Persistence - Error Recovery', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -462,13 +454,11 @@ describe('Context Persistence - Error Recovery', () => {
     test('should not break conversation loading with malformed JSON', async () => {
         // Manually corrupt the stored data
         await mockDataStore.saveData('nova-conversations', 'invalid-json-data');
-        
+
         // Create new manager - should handle corruption gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         // Should still be able to get conversation (will create new empty one)
         const conversation = newManager.getConversation(mockFile);
         expect(conversation).toBeDefined();
@@ -496,10 +486,8 @@ describe('Context Persistence - Error Recovery', () => {
         
         // Should handle invalid paths gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         const contextDocs = await newManager.getContextDocuments(mockFile);
         // Should filter out invalid paths and keep only valid ones
         expect(contextDocs).toHaveLength(1);
@@ -547,10 +535,8 @@ describe('Context Persistence - Error Recovery', () => {
         
         // Should handle missing/invalid fields gracefully
         const newManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
-        
+        await newManager.init();
+
         const contextDocs = await newManager.getContextDocuments(mockFile);
         expect(contextDocs).toHaveLength(3);
         expect(contextDocs[0].path).toBe('doc1.md');
@@ -568,10 +554,11 @@ describe('Context Persistence - UI Feedback', () => {
     let mockFile: TFile;
     let mockNoticeConstructor: jest.Mock;
     let mockSidebarView: any;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
         
         // Mock the Notice constructor
@@ -748,10 +735,11 @@ describe('Context Persistence - Integration Testing', () => {
     let conversationManager: ConversationManager;
     let mockDataStore: MockDataStore;
     let mockFile: TFile;
-    
-    beforeEach(() => {
+
+    beforeEach(async () => {
         mockDataStore = new MockDataStore();
         conversationManager = new ConversationManager(mockDataStore);
+        await conversationManager.init();
         mockFile = createMockTFile('test.md', 'test.md');
     });
     
@@ -782,10 +770,8 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Phase 2: Simulate restart by creating new manager
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        }); // Wait for async loading
-        
+        await restartedManager.init();
+
         // Phase 3: Verify files are restored
         const restoredContext = await restartedManager.getContextDocuments(mockFile);
         expect(restoredContext).toHaveLength(3);
@@ -818,9 +804,7 @@ describe('Context Persistence - Integration Testing', () => {
         // Create new manager (simulating restart with some files "deleted")
         // In the real implementation, ContextManager would filter out missing files
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
+        await restartedManager.init();
         
         // Storage preserves all references - validation happens in ContextManager
         const persistedContext = await restartedManager.getContextDocuments(mockFile);
@@ -848,9 +832,7 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
+        await restartedManager.init();
         
         // Should remain empty
         const contextAfterRestart = await restartedManager.getContextDocuments(mockFile);
@@ -879,9 +861,7 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart to verify persistence
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
+        await restartedManager.init();
         
         // Context should still be there, messages should still be empty
         expect(restartedManager.getRecentMessages(mockFile, 10)).toHaveLength(0);
@@ -924,9 +904,7 @@ describe('Context Persistence - Integration Testing', () => {
         
         // Restart and verify
         const restartedManager = new ConversationManager(mockDataStore);
-        await new Promise(resolve => {
-            setTimeout(resolve, 100);
-        });
+        await restartedManager.init();
         
         const file1ContextAfter = await restartedManager.getContextDocuments(file1);
         const file2ContextAfter = await restartedManager.getContextDocuments(file2);

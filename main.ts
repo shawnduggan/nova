@@ -151,8 +151,8 @@ export default class NovaPlugin extends Plugin {
 				registerInterval: (intervalId: number) => this.registerInterval(intervalId)
 			};
 			this.conversationManager = new ConversationManager(dataStore);
-			this.documentEngine = new DocumentEngine(this.app, dataStore);
-			this.documentEngine.setConversationManager(this.conversationManager);
+			await this.conversationManager.init();
+			this.documentEngine = new DocumentEngine(this.app, this.conversationManager);
 			this.contextBuilder = new ContextBuilder(this.settings);
 			this.commandParser = new CommandParser();
 			this.promptBuilder = new PromptBuilder(this.documentEngine, this.conversationManager);

@@ -4,23 +4,14 @@
 
 import { App, Editor, MarkdownView, TFile, EditorPosition } from 'obsidian';
 import { DocumentContext, HeadingInfo, EditResult, EditOptions, EditCommand } from './types';
-import { ConversationManager, DataStore } from './conversation-manager';
+import { ConversationManager } from './conversation-manager';
 import { Logger } from '../utils/logger';
 
 export class DocumentEngine {
     private conversationManager: ConversationManager | null = null;
 
-    constructor(private app: App, dataStore?: DataStore) {
-        if (dataStore) {
-            this.conversationManager = new ConversationManager(dataStore);
-        }
-    }
-
-    /**
-     * Set conversation manager (for dependency injection)
-     */
-    setConversationManager(conversationManager: ConversationManager): void {
-        this.conversationManager = conversationManager;
+    constructor(private app: App, conversationManager?: ConversationManager) {
+        this.conversationManager = conversationManager ?? null;
     }
 
     /**

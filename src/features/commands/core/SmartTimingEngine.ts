@@ -4,6 +4,7 @@
  */
 
 import { Logger } from '../../../utils/logger';
+import { TimeoutManager } from '../../../utils/timeout-manager';
 import { SmartVariableResolver } from './SmartVariableResolver';
 import type { 
     DocumentType, 
@@ -77,20 +78,16 @@ class TypingSpeedTracker {
  * DebounceManager - Handles intelligent debouncing for different event types
  */
 class DebounceManager {
-    private plugin: NovaPlugin;
+    private timeoutManager = new TimeoutManager();
     private timers = new Map<string, number>();
     private logger = Logger.scope('DebounceManager');
-
-    constructor(plugin: NovaPlugin) {
-        this.plugin = plugin;
-    }
 
     schedule(key: string, callback: () => void, delay: number): void {
         // Clear existing timer for this key
         this.clearTimer(key);
 
         // Schedule new timer using TimeoutManager
-        const timerId = window.setTimeout(() => {
+        const timerId = this.timeoutManager.addTimeout(() => {
             this.timers.delete(key);
             callback();
         }, delay);
@@ -102,16 +99,15 @@ class DebounceManager {
     clearTimer(key: string): void {
         const existingTimer = this.timers.get(key);
         if (existingTimer) {
-            clearTimeout(existingTimer);
+            this.timeoutManager.removeTimeout(existingTimer);
             this.timers.delete(key);
             this.logger.debug(`Cleared timer for ${key}`);
         }
     }
 
     clearAllTimers(): void {
-        for (const key of this.timers.keys()) {
-            this.clearTimer(key);
-        }
+        this.timers.clear();
+        this.timeoutManager.clearAll();
     }
 
     hasActiveTimer(key: string): boolean {
@@ -148,7 +144,7 @@ export class SmartTimingEngine {
         
         // Initialize components
         this.typingTracker = new TypingSpeedTracker(this.settings.typingSpeedWindow);
-        this.debounceManager = new DebounceManager(plugin);
+        this.debounceManager = new DebounceManager();
         
         this.logger.info('SmartTimingEngine initialized');
     }
