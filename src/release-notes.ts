@@ -6,6 +6,12 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.2.1': [
+		'## What\'s New in Nova 1.2.1',
+		'',
+		'### Notice Reliability Fix',
+		'Fixed an issue where thinking notices ("analyzing...", "refining...") could permanently stop appearing after 30 seconds. This also affected error messages and other notifications. Notices now persist correctly until dismissed.',
+	].join('\n'),
 	'1.2.0': [
 		'## What\'s New in Nova 1.2.0',
 		'',
