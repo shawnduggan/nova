@@ -249,6 +249,10 @@ export class SelectionContextMenu {
         };
 
         try {
+            // Show notice BEFORE editor modifications — editor.replaceRange inside
+            // startStreaming triggers async DOM updates that evict Obsidian Notices
+            this.streamingManager.showThinkingNotice(actionId as ActionType, 'notice');
+
             // Start the unified streaming system with notice animations
             const { updateStream, stopStream } = this.streamingManager.startStreaming(
                 editor,
@@ -259,9 +263,6 @@ export class SelectionContextMenu {
                     onComplete: () => this.onStreamingComplete()
                 }
             );
-
-            // Show notice thinking animation
-            this.streamingManager.showThinkingNotice(actionId as ActionType, 'notice');
 
             // Use streaming to progressively replace text with cancellation support
             const result = await this.selectionEditCommand.executeStreaming(

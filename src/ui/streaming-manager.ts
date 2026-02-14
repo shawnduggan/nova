@@ -38,142 +38,142 @@ export class StreamingManager {
     // Comprehensive thinking phrases for all action types
     private static readonly THINKING_PHRASES: Record<ActionType, string[]> = {
         'improve': [
-            'refining...',
-            'polishing...',
-            'enhancing...',
-            'crafting...',
-            'perfecting...',
-            'smoothing...',
-            'sharpening...',
-            'elevating...',
-            'fine-tuning...',
-            'sculpting...'
+            'refining',
+            'polishing',
+            'enhancing',
+            'crafting',
+            'perfecting',
+            'smoothing',
+            'sharpening',
+            'elevating',
+            'fine-tuning',
+            'sculpting'
         ],
         'longer': [
-            'expanding...',
-            'developing...',
-            'elaborating...',
-            'building...',
-            'enriching...',
-            'deepening...',
-            'growing...',
-            'extending...',
-            'amplifying...',
-            'unfolding...'
+            'expanding',
+            'developing',
+            'elaborating',
+            'building',
+            'enriching',
+            'deepening',
+            'growing',
+            'extending',
+            'amplifying',
+            'unfolding'
         ],
         'shorter': [
-            'condensing...',
-            'distilling...',
-            'tightening...',
-            'focusing...',
-            'streamlining...',
-            'compressing...',
-            'trimming...',
-            'clarifying...',
-            'simplifying...',
-            'concentrating...'
+            'condensing',
+            'distilling',
+            'tightening',
+            'focusing',
+            'streamlining',
+            'compressing',
+            'trimming',
+            'clarifying',
+            'simplifying',
+            'concentrating'
         ],
         'tone': [
-            'adjusting tone...',
-            'reshaping...',
-            'reframing...',
-            'adapting...',
-            'transforming...',
-            'modulating...',
-            'recasting...',
-            'shifting...',
-            'reforming...',
-            'reimagining...'
+            'adjusting tone',
+            'reshaping',
+            'reframing',
+            'adapting',
+            'transforming',
+            'modulating',
+            'recasting',
+            'shifting',
+            'reforming',
+            'reimagining'
         ],
         'custom': [
-            'working on it...',
-            'considering...',
-            'thinking...',
-            'processing...',
-            'analyzing...',
-            'contemplating...',
-            'understanding...',
-            'interpreting...',
-            'exploring...',
-            'evaluating...'
+            'working on it',
+            'considering',
+            'thinking',
+            'processing',
+            'analyzing',
+            'contemplating',
+            'understanding',
+            'interpreting',
+            'exploring',
+            'evaluating'
         ],
         'challenge': [
-            'analyzing...',
-            'examining...',
-            'questioning...',
-            'scrutinizing...'
+            'analyzing',
+            'examining',
+            'questioning',
+            'scrutinizing'
         ],
         'chat': [
-            'composing...',
-            'drafting...',
-            'creating...',
-            'generating...',
-            'writing...',
-            'crafting...',
-            'formulating...',
-            'developing...',
-            'building...',
-            'constructing...'
+            'composing',
+            'drafting',
+            'creating',
+            'generating',
+            'writing',
+            'crafting',
+            'formulating',
+            'developing',
+            'building',
+            'constructing'
         ],
         'add': [
-            'composing...',
-            'drafting...',
-            'creating...',
-            'generating...',
-            'writing...',
-            'crafting...',
-            'formulating...',
-            'developing...',
-            'building...',
-            'constructing...'
+            'composing',
+            'drafting',
+            'creating',
+            'generating',
+            'writing',
+            'crafting',
+            'formulating',
+            'developing',
+            'building',
+            'constructing'
         ],
         'edit': [
-            'refining...',
-            'polishing...',
-            'enhancing...',
-            'crafting...',
-            'perfecting...',
-            'smoothing...',
-            'sharpening...',
-            'elevating...',
-            'fine-tuning...',
-            'sculpting...'
+            'refining',
+            'polishing',
+            'enhancing',
+            'crafting',
+            'perfecting',
+            'smoothing',
+            'sharpening',
+            'elevating',
+            'fine-tuning',
+            'sculpting'
         ],
         'rewrite': [
-            'refining...',
-            'polishing...',
-            'enhancing...',
-            'crafting...',
-            'perfecting...',
-            'smoothing...',
-            'sharpening...',
-            'elevating...',
-            'fine-tuning...',
-            'sculpting...'
+            'refining',
+            'polishing',
+            'enhancing',
+            'crafting',
+            'perfecting',
+            'smoothing',
+            'sharpening',
+            'elevating',
+            'fine-tuning',
+            'sculpting'
         ],
         'grammar': [
-            'refining...',
-            'polishing...',
-            'enhancing...',
-            'crafting...',
-            'perfecting...',
-            'smoothing...',
-            'sharpening...',
-            'elevating...',
-            'fine-tuning...',
-            'sculpting...'
+            'refining',
+            'polishing',
+            'enhancing',
+            'crafting',
+            'perfecting',
+            'smoothing',
+            'sharpening',
+            'elevating',
+            'fine-tuning',
+            'sculpting'
         ],
         'delete': [
-            'condensing...',
-            'distilling...',
-            'tightening...',
-            'focusing...',
-            'streamlining...',
-            'compressing...',
-            'trimming...',
-            'clarifying...',
-            'simplifying...',
-            'concentrating...'
+            'condensing',
+            'distilling',
+            'tightening',
+            'focusing',
+            'streamlining',
+            'compressing',
+            'trimming',
+            'clarifying',
+            'simplifying',
+            'concentrating'
         ]
     };
 
@@ -188,24 +188,20 @@ export class StreamingManager {
         }
 
         try {
+            // Stop any existing animation before starting a new one
+            this.stopDotsAnimation();
+
             // Select random phrase based on action type for initial display
             const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-            
-            // Create persistent notice (0 timeout = manual dismissal)
-            this.thinkingNotice = new Notice(`${randomPhrase}.`, 0);
-            
-            // Show initial state with 1 dot immediately
-            const initialNoticeText = `${randomPhrase}.`;
-            const noticeWithEl = this.thinkingNotice as Notice & { messageEl?: HTMLElement };
-            const messageEl = noticeWithEl.messageEl;
-            if (messageEl) {
-                messageEl.textContent = initialNoticeText;
-            }
-            
+
+            // Create notice with long timeout — we dismiss manually via stopDotsAnimation()
+            // Note: timeout=0 causes Obsidian to dismiss immediately, not persist
+            this.thinkingNotice = new Notice(`${randomPhrase}.`, 30000);
+
             // Start cycling animation with all phrases for this action type
             this.startNoticeDotsAnimation(actionType);
-            
+
         } catch (error) {
             Logger.warn('Failed to create thinking notice:', error);
         }
@@ -392,7 +388,7 @@ export class StreamingManager {
                 
                 // Update notice text directly
                 const noticeWithEl = this.thinkingNotice as Notice & { messageEl?: HTMLElement };
-            const messageEl = noticeWithEl.messageEl;
+                const messageEl = noticeWithEl.messageEl;
                 if (messageEl) {
                     messageEl.textContent = noticeText;
                 }
@@ -419,10 +415,16 @@ export class StreamingManager {
             window.clearInterval(this.dotsAnimationInterval);
             this.dotsAnimationInterval = null;
         }
-        
-        // Dismiss thinking notice
+
+        // Dismiss thinking notice visually without calling hide().
+        // hide() removes the notice AND its parent container from the DOM,
+        // which breaks subsequent new Notice() calls. Instead, we hide via CSS
+        // and let Obsidian's own 30s timeout clean up the element naturally.
         if (this.thinkingNotice) {
-            this.thinkingNotice.hide();
+            const containerEl = (this.thinkingNotice as Notice & { containerEl?: HTMLElement }).containerEl;
+            if (containerEl) {
+                containerEl.addClass('nova-notice-hidden');
+            }
             this.thinkingNotice = null;
         }
     }

@@ -31,7 +31,7 @@ export class SelectionEditCommand {
             };
 
             // Show loading indicator
-            const loadingNotice = new Notice('Nova is processing your request...', 0);
+            const loadingNotice = new Notice('Nova is processing your request...', 30000);
 
             // Generate prompt based on action
             const prompt = this.buildPrompt(action, selectedText, customInstruction);
@@ -42,7 +42,12 @@ export class SelectionEditCommand {
                 prompt.userPrompt
             );
 
-            loadingNotice.hide();
+            // Hide via CSS class instead of hide() — hide() removes the notice
+            // container from the DOM, breaking subsequent new Notice() calls
+            const containerEl = (loadingNotice as Notice & { containerEl?: HTMLElement }).containerEl;
+            if (containerEl) {
+                containerEl.addClass('nova-notice-hidden');
+            }
 
             // Use response directly without cleaning
             const transformedText = response.trim();

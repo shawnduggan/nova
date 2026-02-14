@@ -1,5 +1,11 @@
 /* Nova Plugin Styles */
 
+/* Hidden notice — used to dismiss thinking notices without calling hide(),
+   which removes the notice container and breaks subsequent Notice creation */
+.nova-notice-hidden {
+    display: none !important;
+}
+
 /* Settings Tab Navigation */
 .nova-tab-container {
     display: flex;
