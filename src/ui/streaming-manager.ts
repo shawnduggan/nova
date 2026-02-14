@@ -195,9 +195,8 @@ export class StreamingManager {
             const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
 
-            // Create notice with long timeout — we dismiss manually via stopDotsAnimation()
-            // Note: timeout=0 causes Obsidian to dismiss immediately, not persist
-            this.thinkingNotice = new Notice(`${randomPhrase}.`, 30000);
+            // Create notice with duration=0 (persist until manually dismissed via stopDotsAnimation())
+            this.thinkingNotice = new Notice(`${randomPhrase}.`, 0);
 
             // Start cycling animation with all phrases for this action type
             this.startNoticeDotsAnimation(actionType);

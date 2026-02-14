@@ -31,7 +31,7 @@ export class SelectionEditCommand {
             };
 
             // Show loading indicator
-            const loadingNotice = new Notice('Nova is processing your request...', 30000);
+            const loadingNotice = new Notice('Nova is processing your request...', 0);
 
             // Generate prompt based on action
             const prompt = this.buildPrompt(action, selectedText, customInstruction);
