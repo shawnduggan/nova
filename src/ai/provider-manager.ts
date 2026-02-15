@@ -10,8 +10,7 @@ import { GoogleProvider } from './providers/google';
 import { OllamaProvider } from './providers/ollama';
 import { NovaSettings } from '../settings';
 import { FeatureManager } from '../licensing/feature-manager';
-import { getProviderTypeForModel } from './models';
-import { getModelMaxOutputTokens } from './context-limits';
+import { getProviderTypeForModel, getModelMaxOutputTokens } from './models';
 import { TimeoutManager } from '../utils/timeout-manager';
 
 export class AIProviderManager {

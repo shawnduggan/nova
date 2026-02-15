@@ -37,7 +37,8 @@ jest.mock('../../src/ai/models', () => ({
         if (modelValue.includes('gemini')) return 'google';
         if (modelValue.includes('llama')) return 'ollama';
         return null;
-    })
+    }),
+    getModelMaxOutputTokens: jest.fn(() => 64000)
 }));
 
 describe('AIProviderManager', () => {
