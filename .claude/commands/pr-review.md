@@ -11,17 +11,21 @@ Review the current branch changes before creating a PR.
 2. **Review changed files**
    For each changed file, use the code-reviewer agent to analyze.
 
-3. **Run compliance audit**
+3. **Hygiene checks**
+   - Flag files that look unrelated to the PR's purpose (e.g., `package-lock.json` changes from npm version differences)
+   - Check for indentation inconsistency within changed files (mixed spaces/tabs)
+
+4. **Run compliance audit**
    Invoke the compliance-checker agent for full Obsidian compliance verification.
 
-4. **Run quality gates**
+5. **Run quality gates**
    ```bash
    npm run build
    npm test
    npm run lint
    ```
 
-5. **Generate summary**
+6. **Generate summary**
 
 ## Output Format
 
