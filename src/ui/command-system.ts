@@ -339,7 +339,7 @@ class CommandModal extends FuzzySuggestModal<MarkdownCommand> {
 	}
 
 	onOpen(): void {
-		super.onOpen();
+		void super.onOpen();
 		this.addInstructions();
 	}
 
