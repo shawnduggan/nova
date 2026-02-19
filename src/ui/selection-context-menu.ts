@@ -8,7 +8,6 @@ import { insertSmartFillPlaceholder } from '../features/commands/core/CommandEng
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
-import { NovaSidebarView } from './sidebar-view';
 import { StreamingManager, ActionType } from './streaming-manager';
 import { Logger } from '../utils/logger';
 import { CHALLENGE_SYSTEM_PROMPT } from '../constants';
@@ -59,9 +58,14 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
     }
 ];
 
+export interface ProcessingStateController {
+    setProcessingState(processing: boolean): void;
+}
+
 export class SelectionContextMenu {
     private selectionEditCommand: SelectionEditCommand;
     private completionCallback?: () => void;
+    private processingStateCallback?: (processing: boolean) => void;
     private streamingManager: StreamingManager;
     private abortController: AbortController | null = null;
 
@@ -71,6 +75,14 @@ export class SelectionContextMenu {
     ) {
         this.selectionEditCommand = new SelectionEditCommand(plugin);
         this.streamingManager = new StreamingManager(plugin);
+    }
+
+    /**
+     * Set callback for processing state changes
+     * SidebarView uses this to update its input handler state
+     */
+    setProcessingStateCallback(callback: (processing: boolean) => void): void {
+        this.processingStateCallback = callback;
     }
 
     /**
@@ -234,10 +246,7 @@ export class SelectionContextMenu {
         const signal = this.abortController.signal;
 
         // Set processing state to show stop button
-        const sidebarView = this.plugin.getCurrentSidebarView();
-        if (sidebarView?.inputHandler) {
-            sidebarView.inputHandler.setProcessingState(true);
-        }
+        this.processingStateCallback?.(true);
 
         // Start selection animation
         this.startSelectionAnimation(editor);
@@ -324,10 +333,7 @@ export class SelectionContextMenu {
             this.abortController = null;
 
             // Clear processing state
-            const sidebarView = this.plugin.getCurrentSidebarView();
-            if (sidebarView?.inputHandler) {
-                sidebarView.inputHandler.setProcessingState(false);
-            }
+            this.processingStateCallback?.(false);
         }
     }
 
@@ -347,7 +353,7 @@ export class SelectionContextMenu {
         }
 
         // Set processing state to show stop button
-        sidebarView.inputHandler.setProcessingState(true);
+        this.processingStateCallback?.(true);
 
         // Show thinking notice
         this.streamingManager.showThinkingNotice('challenge' as ActionType, 'notice');
@@ -407,10 +413,7 @@ export class SelectionContextMenu {
             this.abortController = null;
 
             // Clear processing state
-            const view = this.plugin.getCurrentSidebarView();
-            if (view?.inputHandler) {
-                view.inputHandler.setProcessingState(false);
-            }
+            this.processingStateCallback?.(false);
         }
     }
 
@@ -506,9 +509,9 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
+                const view = leaves[0].view as { chatRenderer?: { addSuccessMessage: (content: string, persist: boolean) => void } };
+                // Use duck typing to check for chatRenderer
+                if (view.chatRenderer) {
                     const actionDescription = this.getActionDescription(actionId, customInstruction);
                     const truncatedText = originalText.length > 50 
                         ? originalText.substring(0, 50) + '...' 
@@ -533,9 +536,9 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
+                const view = leaves[0].view as { chatRenderer?: { addErrorMessage: (content: string, persist: boolean) => void } };
+                // Use duck typing to check for chatRenderer
+                if (view.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
                     // Convert past tense to infinitive form properly
                     let verbForm = actionName;
@@ -565,9 +568,9 @@ export class SelectionContextMenu {
             // Find the active Nova sidebar view and add message to chat
             const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
             if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
+                const view = leaves[0].view as { chatRenderer?: { addErrorMessage: (content: string, persist: boolean) => void } };
+                // Use duck typing to check for chatRenderer
+                if (view.chatRenderer) {
                     const actionName = this.getActionDisplayName(actionId);
                     // Convert past tense to infinitive form properly
                     let verbForm = actionName;

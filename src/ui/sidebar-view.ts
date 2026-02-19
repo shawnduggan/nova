@@ -15,6 +15,8 @@ import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
+import { ContextQuickPanel } from './context-quick-panel';
+import { ContextDocumentList } from './context-document-list';
 import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
@@ -28,13 +30,13 @@ export class NovaSidebarView extends ItemView {
 	private currentFile: TFile | null = null;
 	private currentContext: MultiDocContext | null = null;
 	private lastTokenWarnings: { [key: string]: number } = {};
-	
+
 	// PHASE 3 FIX: Race condition prevention
 	private currentFileLoadOperation: string | null = null;
-	
+
 	// Track user-initiated provider changes to prevent spurious messages
 	private isUserInitiatedProviderChange: boolean = false;
-	
+
 	// New architecture components
 	public inputHandler!: InputHandler;
 	private commandSystem!: CommandSystem;
@@ -42,15 +44,16 @@ export class NovaSidebarView extends ItemView {
 	public chatRenderer!: ChatRenderer;
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
+	private quickPanel!: ContextQuickPanel;
+	private documentList!: ContextDocumentList;
 	private providerDropdown: DropdownComponent | null = null;
-	private commandsButton: ButtonComponent | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
-	
+
 	// Cursor-only architecture - delegate to new components
 	private get textArea() { return this.inputHandler?.getTextArea(); }
 	private get wikilinkAutocomplete() { return this.inputHandler ? { destroy: () => {} } : null; }
 	private get autoGrowTextarea() { return () => {}; }
-	
+
 	// Command system delegation
 	private _commandPickerItems: HTMLElement[] = [];
 	private get commandPickerItems() { return this._commandPickerItems; }
@@ -61,22 +64,19 @@ export class NovaSidebarView extends ItemView {
 	private _isCommandMenuVisible: boolean = false;
 	private get isCommandMenuVisible() { return this._isCommandMenuVisible; }
 	private set isCommandMenuVisible(value: boolean) { this._isCommandMenuVisible = value; }
-	
+
 	// Context system delegation
-	private get contextPreview() { return this.contextManager?.contextPreview; }
-	private get contextIndicator() { return this.contextManager?.contextIndicator; }
-	
+	private get contextPreview() { return this.quickPanel?.getElement(); }
+	private get contextIndicator() { return this.documentList?.getElement(); }
+
 	// Component references
 	private commandPicker!: HTMLElement;
 	private commandMenu!: HTMLElement;
 	private commandButton!: ButtonComponent;
 	private privacyIndicator?: HTMLElement;
-	
+
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
-	
-	// Document drawer state (transient - always starts closed on file switch)
-	private isDrawerOpen: boolean = false;
 
 	// Abort controller for cancelling ongoing AI operations
 	private currentAbortController: AbortController | null = null;
@@ -91,7 +91,7 @@ export class NovaSidebarView extends ItemView {
 	private thinkingRotationIntervals = new WeakMap<HTMLElement, number>();
 	private static readonly HOVER_TIMEOUT_MS = 150;
 	private static readonly NOTICE_DURATION_MS = 5000;
-	
+
 	// Event listener cleanup is handled automatically by registerDomEvent
 	private timeoutManager = new TimeoutManager();
 
@@ -126,7 +126,7 @@ export class NovaSidebarView extends ItemView {
 
 	async onOpen() {
 		// Register DOM events for cross-component communication
-		// Must be in onOpen() — view container doesn't exist during construction
+		// Must be in onOpen() - view container doesn't exist during construction
 		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
 		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
 		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
@@ -134,7 +134,7 @@ export class NovaSidebarView extends ItemView {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-sidebar-container');
-		
+
 		// Add platform-specific class for styling
 		if (Platform.isMobile) {
 			container.addClass('is-mobile');
@@ -143,51 +143,46 @@ export class NovaSidebarView extends ItemView {
 		}
 
 		// Mobile access is now available to all users with their own API keys
-		
+
 		// Create wrapper with proper flex layout
 		const wrapperEl = container.createDiv({ cls: 'nova-wrapper nova-sidebar-wrapper' });
-		
+
 		// Header with provider info
 		const headerEl = wrapperEl.createDiv({ cls: 'nova-header nova-sidebar-header' });
-		
+
 		// Top row container for title and controls
 		const topRowEl = headerEl.createDiv({ cls: 'nova-header-top-row' });
 
 		// Left side: Title with Nova icon
 		const titleEl = topRowEl.createDiv({ cls: 'nova-header-title' });
-		
+
 		// Use setIcon for the Nova icon (simpler and more reliable)
 		const iconEl = titleEl.createSpan();
 		setIcon(iconEl, 'nova-star');
-		
+
 		titleEl.createSpan({ text: ' Nova' });
-		
+
 		// Right side: Provider status and Clear button
 		const rightContainer = topRowEl.createDiv({ cls: 'nova-header-right-container' });
-		
+
 		// All users can switch providers freely
 		await this.createProviderDropdown(rightContainer);
-		
-		// Commands quick controls icon button (desktop only)
-		if (!Platform.isMobile) {
-			this.createCommandsQuickButton(rightContainer);
-		}
-		
+
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
 		clearButton.setIcon('eraser')
 			.setTooltip('Clear conversation history')
 			.onClick(() => this.clearChat());
-		
+
 		// Apply consistent styling to match delete all files button
 		clearButton.buttonEl.addClass('nova-clear-button');
 
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
-		
+
 		// Register global document click handler for context drawer - do this once during initialization
 		this.setupContextDrawerCloseHandler();
-		
+
 		// Register event listener for active file changes
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
@@ -196,31 +191,34 @@ export class NovaSidebarView extends ItemView {
 				});
 			})
 		);
-		
+
 		// Register cursor position tracking for the active editor
 		this.registerEvent(
 			this.app.workspace.on('editor-change', (editor) => {
 				this.trackCursorPosition(editor);
 			})
 		);
-		
+
 		// Register blur listener for stats updates when editor loses focus
 		this.setupEditorBlurListener();
-		
+
 		// Load conversation for current file
 		this.loadConversationForActiveFile().catch(error => {
 			Logger.error('Failed to load conversation on open:', error);
 		});
-		
+
 		// Set completion callback on plugin's selection context menu
 		if (this.plugin.selectionContextMenu) {
 			this.plugin.selectionContextMenu.setCompletionCallback(() => this.onStreamingComplete());
+			this.plugin.selectionContextMenu.setProcessingStateCallback((processing: boolean) => {
+				this.inputHandler?.setProcessingState(processing);
+			});
 		}
-		
+
 		// Initial status refresh to ensure all indicators are up to date (not user-initiated)
 		this.isUserInitiatedProviderChange = false;
 		await this.refreshProviderStatus();
-		
+
 		// Note: Auto-focus removed to prevent stealing cursor from editor
 	}
 
@@ -232,7 +230,7 @@ export class NovaSidebarView extends ItemView {
 		if (!activeFile || !editor) {
 			return;
 		}
-		
+
 		// Only track cursor position if this is the current file we're working with
 		if (this.currentFile && activeFile.path === this.currentFile.path) {
 			const cursorPos = editor.getCursor();
@@ -241,7 +239,7 @@ export class NovaSidebarView extends ItemView {
 			}
 		}
 	}
-	
+
 
 	/**
 	 * Restore cursor position for current file (file-scoped)
@@ -260,7 +258,7 @@ export class NovaSidebarView extends ItemView {
 	 * Setup focus-based stats updates using Nova input focus as trigger
 	 */
 	private setupEditorBlurListener(): void {
-		// Instead of trying to capture editor blur (which is unreliable), 
+		// Instead of trying to capture editor blur (which is unreliable),
 		// listen for Nova input focus - this means user moved from editor to chat
 		const inputElement = this.inputHandler?.getTextArea()?.inputEl;
 		if (inputElement) {
@@ -270,7 +268,7 @@ export class NovaSidebarView extends ItemView {
 				});
 			});
 		}
-		
+
 		// Also update stats when Nova sidebar gains focus (click anywhere in sidebar)
 		this.registerDomEvent(this.containerEl, 'mousedown', () => {
 			// Small delay to ensure click is processed
@@ -305,35 +303,35 @@ export class NovaSidebarView extends ItemView {
 		// Clean up DOM elements
 		this.cleanupDOMElements();
 	}
-	
+
 	/**
 	 * Add event listener using Obsidian's registration system
 	 */
 	private addTrackedEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
 		this.registerDomEvent(element as HTMLElement, event, handler);
 	}
-	
+
 	/**
 	 * Add timeout with automatic cleanup tracking
 	 */
 	private addTrackedTimeout(callback: () => void, delay: number): number {
 		return this.timeoutManager.addTimeout(callback, delay);
 	}
-	
+
 	/**
 	 * Clean up all tracked event listeners
 	 */
 	private cleanupEventListeners(): void {
 		// Event listener cleanup is handled automatically by registerDomEvent
 	}
-	
+
 	/**
 	 * Clear all tracked timeouts
 	 */
 	private clearTimeouts(): void {
 		this.timeoutManager.clearAll();
 	}
-	
+
 	/**
 	 * Clean up DOM elements
 	 */
@@ -362,30 +360,61 @@ export class NovaSidebarView extends ItemView {
 	private createInputArea() {
 		// Clear existing input area content
 		this.inputContainer.empty();
-		
+
 		// Initialize context manager and streaming manager
 		this.contextManager = new ContextManager(this.plugin, this.app, this.inputContainer);
 		this.streamingManager = new StreamingManager(this.plugin);
-		
+
 		// Get reference to plugin's selection context menu (will set callback later)
 		this.selectionContextMenu = this.plugin.selectionContextMenu;
-		
+
 		// Create InputHandler which will handle all input UI creation
 		this.inputHandler = new InputHandler(this.plugin, this.inputContainer, this.contextManager);
-		
+
 		// Pass sidebar view reference for context operations
 		this.inputHandler.setSidebarView(this);
 		this.contextManager.setSidebarView({ addWarningMessage: this.addWarningMessage.bind(this) });
-		
+
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
-		
+
+		// Create Quick Panel component
+		this.quickPanel = new ContextQuickPanel(this.inputContainer, {
+			getInputValue: () => this.inputHandler?.getValue() || '',
+			getPersistentContext: (filePath: string) => this.contextManager?.getPersistentContext(filePath) || [],
+			getCurrentFilePath: () => this.currentFile?.path || null,
+			findFileByName: this.findFileByName.bind(this)
+		});
+		this.quickPanel.create();
+
+		// Create Document List component
+		this.documentList = new ContextDocumentList(this.inputContainer, {
+			onRemoveDocument: async (filePath: string) => {
+				if (this.currentFile) {
+					await this.contextManager.removePersistentDoc(this.currentFile.path, filePath);
+					await this.refreshContext();
+				}
+			},
+			onClearAllDocuments: async () => {
+				if (this.currentFile) {
+					await this.contextManager.clearPersistentContext(this.currentFile.path);
+					await this.refreshContext();
+				}
+			},
+			registerDomEvent: this.registerDomEvent.bind(this),
+			addTrackedTimeout: this.addTrackedTimeout.bind(this)
+		}, {
+			currentContext: this.currentContext,
+			currentFilePath: this.currentFile?.path || null
+		});
+		this.documentList.create();
+
 		// Always create CommandSystem - FeatureManager handles enablement
 		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
 
 		// Connect the CommandSystem to the InputHandler
 		this.inputHandler.setCommandSystem(this.commandSystem);
-		
+
 		// Set up send message callback
 		this.inputHandler.setOnSendMessage((message: string) => {
 			this.handleSend(message).catch(error => { Logger.error('Failed to handle send:', error); });
@@ -397,9 +426,6 @@ export class NovaSidebarView extends ItemView {
 			this.plugin.cancelAllOperations();
 		});
 
-		// Create context indicator and preview using ContextManager
-		this.contextManager.createContextIndicator();
-
 	}
 
 
@@ -409,7 +435,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private addErrorMessage(content: string): void {
-		this.chatRenderer.addErrorMessage(content, true); // Always persist  
+		this.chatRenderer.addErrorMessage(content, true); // Always persist
 	}
 
 	private addWelcomeMessage(message?: string): void {
@@ -420,12 +446,12 @@ export class NovaSidebarView extends ItemView {
 		// Use unified system instead of dynamic styling
 		const messages = {
 			'add': '✓ Content added',
-			'edit': '✓ Content edited', 
+			'edit': '✓ Content edited',
 			'delete': '✓ Content deleted',
 			'grammar': '✓ Grammar fixed',
 			'rewrite': '✓ Content rewritten'
 		};
-		
+
 		const message = messages[action as keyof typeof messages] || '✓ Command completed';
 		this.addSuccessMessage(message);
 	}
@@ -434,13 +460,13 @@ export class NovaSidebarView extends ItemView {
 		// Use unified system for error messages matching success messages
 		const messages = {
 			'add': '❌ Failed to add content',
-			'edit': '❌ Failed to edit content', 
+			'edit': '❌ Failed to edit content',
 			'delete': '❌ Failed to delete content',
 			'grammar': '❌ Failed to fix grammar',
 			'rewrite': '❌ Failed to rewrite content',
 			'execute': '❌ Command execution error'
 		};
-		
+
 		let message = messages[action as keyof typeof messages] || '❌ Command failed';
 		if (error) {
 			message += `: ${error}`;
@@ -499,7 +525,7 @@ export class NovaSidebarView extends ItemView {
 
 	private handleInputChange(): void {
 		const value = this.inputHandler.getTextArea().getValue();
-		
+
 		if (value.startsWith(':') && this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			const query = value.slice(1).toLowerCase();
 			this.showCommandPicker(query);
@@ -509,7 +535,7 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	private showCommandPicker(query: string): void {
-		const commands = this.getAvailableCommands().filter(cmd => 
+		const commands = this.getAvailableCommands().filter(cmd =>
 			cmd.trigger.toLowerCase().includes(query) || cmd.name.toLowerCase().includes(query)
 		);
 
@@ -591,7 +617,7 @@ export class NovaSidebarView extends ItemView {
 
 		const commands = this.getAvailableCommands();
 		const selectedCommand = commands[this.selectedCommandIndex];
-		
+
 		if (selectedCommand) {
 			this.selectCommand(selectedCommand.trigger);
 			return true;
@@ -613,7 +639,7 @@ export class NovaSidebarView extends ItemView {
 		// Check if user has text selected in active editor
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		const selectedText = activeView?.editor?.getSelection();
-		
+
 		// If text is selected, prioritize Nova selection actions
 		if (selectedText && selectedText.trim().length > 0) {
 			SELECTION_ACTIONS.forEach(action => {
@@ -623,7 +649,7 @@ export class NovaSidebarView extends ItemView {
 					description: action.description
 				});
 			});
-			
+
 			// Add separator comment (not a real command)
 			commands.push({ trigger: '---', name: '─────────────', description: 'Provider Commands' });
 		}
@@ -663,7 +689,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Close menu when clicking outside
 		const commandMenuClickHandler: EventListener = (event: Event) => {
-			if (!this.commandMenu.contains(event.target as Node) && 
+			if (!this.commandMenu.contains(event.target as Node) &&
 				!this.commandButton.buttonEl.contains(event.target as Node)) {
 				this.hideCommandMenu();
 			}
@@ -686,9 +712,9 @@ export class NovaSidebarView extends ItemView {
 
 	private showCommandMenu(): void {
 		const commands = this.getAvailableCommands();
-		
+
 		this.commandMenu.empty();
-		
+
 		// Header
 		const headerEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-header nova-panel-header' });
 		const iconEl = headerEl.createSpan();
@@ -733,14 +759,14 @@ export class NovaSidebarView extends ItemView {
 
 	private async executeCommandFromMenu(trigger: string): Promise<void> {
 		this.hideCommandMenu();
-		
+
 		// Check if this is a Nova selection action
 		const selectionAction = SELECTION_ACTIONS.find(action => action.id === trigger);
 		if (selectionAction) {
 			// Handle selection action
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const selectedText = activeView?.editor?.getSelection();
-			
+
 			if (activeView?.editor && selectedText && selectedText.trim().length > 0) {
 				// Use the existing selection context menu handler
 				await this.selectionContextMenu.handleSelectionAction(trigger, activeView.editor, selectedText);
@@ -749,12 +775,12 @@ export class NovaSidebarView extends ItemView {
 			}
 			return;
 		}
-		
+
 		// Skip separator items
 		if (trigger === '---') {
 			return;
 		}
-		
+
 		// Execute regular command (provider switching, custom commands)
 		this.inputHandler.getTextArea().setValue(`:${trigger}`);
 		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
@@ -783,87 +809,34 @@ export class NovaSidebarView extends ItemView {
 		if (this.contextPreviewDebounceTimeout) {
 			this.timeoutManager.removeTimeout(this.contextPreviewDebounceTimeout);
 		}
-		
+
 		this.contextPreviewDebounceTimeout = this.timeoutManager.addTimeout(() => {
-			this.updateLiveContextPreview();
+			this.quickPanel?.update();
 			this.contextPreviewDebounceTimeout = null;
 		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);
 	}
 
+	/**
+	 * Update context preview - delegates to QuickPanel component
+	 */
 	private updateLiveContextPreview(): void {
-		if (!this.contextPreview) {
-			return;
-		}
-
-		const message = this.inputHandler.getTextArea().getValue();
-		if (!message) {
-			this.contextPreview.removeClass('show');
-			return;
-		}
-
-		// Parse document references from current message
-		// Note: All references are now persistent for simplified UX
-		const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
-		const foundRefs: Array<{name: string, property?: string}> = [];
-		let match;
-
-		while ((match = refPattern.exec(message)) !== null) {
-			const docName = match[2];
-			const property = match[3];
-			
-			// Try to find the file to validate it exists
-			const file = this.findFileByName(docName);
-			if (file) {
-				foundRefs.push({
-					name: docName,
-					property
-				});
-			}
-		}
-
-		// Add existing persistent context for current file
-		const persistentDocs = this.contextManager.getPersistentContext(this.currentFile?.path || '');
-		persistentDocs.forEach(doc => {
-			// Only add if not already in foundRefs to avoid duplicates
-			const exists = foundRefs.some(ref => ref.name === doc.file.basename);
-			if (!exists) {
-				foundRefs.push({
-					name: doc.file.basename,
-					property: doc.property
-				});
-			}
-		});
-
-		// Update preview
-		if (foundRefs.length > 0) {
-			const previewList = this.contextPreview.querySelector('.nova-context-preview-list') as HTMLElement;
-			if (previewList) {
-				const docNames = foundRefs.map(ref => {
-					const suffix = ref.property ? `#${ref.property}` : '';
-					return `${ref.name}${suffix}`;
-				});
-				previewList.textContent = docNames.join(', ');
-			}
-			this.contextPreview.addClass('show');
-		} else {
-			this.contextPreview.removeClass('show');
-		}
+		this.quickPanel?.update();
 	}
 
 	private findFileByName(nameOrPath: string): TFile | null {
 		// First try exact path match
 		let file = this.app.vault.getFileByPath(nameOrPath);
-		
+
 		if (!file) {
 			// Try with .md extension
 			file = this.app.vault.getFileByPath(nameOrPath + '.md');
 		}
-		
+
 		if (!file) {
 			// Use MetadataCache for efficient linkpath resolution instead of iterating all files
 			file = this.app.metadataCache.getFirstLinkpathDest(nameOrPath, '');
 		}
-		
+
 		return file instanceof TFile ? file : null;
 	}
 
@@ -874,8 +847,8 @@ export class NovaSidebarView extends ItemView {
 	private setupContextDrawerCloseHandler(): void {
 		// Create the close handler that will check drawer state and context indicator
 		const closeHandler = (e: Event) => {
-			if (this.isDrawerOpen && this.contextIndicator && !this.contextIndicator.contains(e.target as Node)) {
-				this.isDrawerOpen = false;
+			if (this.documentList?.isOpen() && this.contextIndicator && !this.contextIndicator.contains(e.target as Node)) {
+				this.documentList.setDrawerOpen(false);
 				// Find and hide the expanded element
 				const expandedEl = this.contextIndicator.querySelector('.nova-context-expanded');
 				if (expandedEl) {
@@ -884,246 +857,24 @@ export class NovaSidebarView extends ItemView {
 				this.contextIndicator.removeClass('drawer-open');
 			}
 		};
-		
+
 		// Register the handler once using registerDomEvent for proper cleanup
 		this.registerDomEvent(document, 'click', closeHandler);
 	}
 
 	private updateContextIndicator(): void {
-		if (!this.contextIndicator) {
-			return;
-		}
-
-		const isMobile = Platform.isMobile;
-
-		// Check if we actually need to recreate the indicator
-		const newDocCount = this.currentContext?.persistentDocs?.length || 0;
-		const currentDocCount = this.contextIndicator.getAttribute('data-doc-count');
-		const currentFilePath = this.contextIndicator.getAttribute('data-file-path');
-		const newFilePath = this.currentFile?.path || '';
-		
-		// Only skip recreation if same file AND same doc count
-		if (currentDocCount === newDocCount.toString() && 
-			currentFilePath === newFilePath && 
-			newDocCount > 0) {
-			return;
-		}
-
-
-		this.contextIndicator.empty();
-		
-		if (!this.currentContext || !this.currentContext.persistentDocs) {
-			this.contextIndicator.removeClass('show');
-			this.contextIndicator.removeAttribute('data-doc-count');
-			this.contextIndicator.removeAttribute('data-file-path');
-			// Update input container state for mobile spacing
-			if (this.inputHandler) {
-				this.inputHandler.updateContextState(false);
-			}
-			return;
-		}
-		
-		const allDocs = this.currentContext.persistentDocs;
-		
-		if (!allDocs || allDocs.length === 0) {
-			this.contextIndicator.removeClass('show');
-			this.contextIndicator.removeAttribute('data-doc-count');
-			this.contextIndicator.removeAttribute('data-file-path');
-			// Update input container state for mobile spacing
-			if (this.inputHandler) {
-				this.inputHandler.updateContextState(false);
-			}
-			return;
-		}
-
-		// Store doc count and file path to prevent unnecessary recreation
-		this.contextIndicator.setAttribute('data-doc-count', allDocs.length.toString());
-		this.contextIndicator.setAttribute('data-file-path', this.currentFile?.path || '');
-
-		// Update input container state for mobile spacing
-		if (this.inputHandler) {
-			this.inputHandler.updateContextState(true);
-		}
-
-		// Show as thin line with mobile-optimized sizing
-		this.contextIndicator.addClass('nova-context-indicator-dynamic');
-		this.contextIndicator.addClass('show');
-		// Single line summary (same style as live preview)
-		const summaryEl = this.contextIndicator.createDiv({ cls: 'nova-context-summary' });
-		
-		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
-		
-		const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
-		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
-		
-		// Simplified single line display showing just document names
-		summaryTextEl.addClass('nova-context-summary-text');
-		
-		// Create filename part that can truncate
-		const filenamePartEl = summaryTextEl.createSpan({ cls: 'nova-context-filename-part' });
-		// Create icon and text as separate elements for proper flex alignment
-		const iconSpan = filenamePartEl.createSpan({ cls: 'nova-context-icon-span' });
-		setIcon(iconSpan, 'book-open');
-		
-		const textSpan = filenamePartEl.createSpan({ cls: 'nova-context-text-span' });
-		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
-		
-		// Mobile-friendly more menu indicator
-		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
-		setIcon(expandIndicatorEl, 'more-horizontal'); // More menu indicator
-		if (isMobile) {
-			expandIndicatorEl.addClass('is-mobile');
-		}
-		expandIndicatorEl.setAttr('title', 'Tap to manage documents');
-		
-		// Visual feedback on the whole summary line instead of just the indicator
-		if (isMobile) {
-			this.registerDomEvent(summaryEl, 'touchstart', () => {
-				expandIndicatorEl.addClass('pressed');
-			});
-			this.registerDomEvent(summaryEl, 'touchend', () => {
-				this.addTrackedTimeout(() => {
-					expandIndicatorEl.removeClass('pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS);
-			});
-		}
-		// Desktop hover handled by CSS
-
-		// Expanded state - mobile-responsive overlay
-		const expandedEl = this.contextIndicator.createDiv({ cls: 'nova-context-expanded' });
-		expandedEl.addClass('nova-context-expanded');
-		if (isMobile) {
-			expandedEl.addClass('is-mobile');
-		}
-		
-		// Header for expanded state with mobile-optimized clear button
-		const expandedHeaderEl = expandedEl.createDiv({ cls: 'nova-context-expanded-header' });
-		expandedHeaderEl.addClass('nova-context-expanded-header');
-		if (isMobile) {
-			expandedHeaderEl.addClass('is-mobile');
-		}
-		
-		const headerTitleEl = expandedHeaderEl.createSpan();
-		const titleIconEl = headerTitleEl.createSpan();
-		setIcon(titleIconEl, 'book-open');
-		headerTitleEl.createSpan({ text: ` Documents (${allDocs.length})` });
-		headerTitleEl.addClass('nova-context-header-title');
-		
-		// Clear all button using Obsidian trash icon
-		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
-		clearAllBtnComponent.setIcon('trash-2')
-			.setTooltip('Clear all documents from context')
-			.onClick(async () => {
-				if (this.currentFile) {
-					this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
-					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-				}
-			});
-		
-		const clearAllBtn = clearAllBtnComponent.buttonEl;
-		clearAllBtn.addClass('nova-context-clear-all-btn');
-		if (isMobile) {
-			clearAllBtn.addClass('is-mobile');
-		}
-		
-		// Touch-friendly feedback for clear button on mobile
-		if (isMobile) {
-			this.registerDomEvent(clearAllBtn, 'touchstart', () => {
-				clearAllBtn.addClass('nova-button-pressed');
-			});
-			this.registerDomEvent(clearAllBtn, 'touchend', () => {
-				this.timeoutManager.addTimeout(() => {
-					clearAllBtn.removeClass('nova-button-pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS);
-			});
-		}
-		// Desktop hover handled by CSS
-		
-		// Document list for expanded state
-		const docListEl = expandedEl.createDiv({ cls: 'nova-context-doc-list' });
-		
-		allDocs.filter(doc => doc?.file?.basename).forEach((doc, index) => {
-			const docItemEl = docListEl.createDiv({ cls: 'nova-context-doc-item' });
-			docItemEl.addClass('nova-context-doc-item');
-			if (isMobile) {
-				docItemEl.addClass('is-mobile');
-			}
-			if (index >= allDocs.length - 1) {
-				docItemEl.addClass('last-item');
-			}
-			
-			const docInfoEl = docItemEl.createDiv({ cls: 'nova-context-doc-info' });
-			docInfoEl.addClass('nova-context-doc-info');
-			
-			const iconEl = docInfoEl.createSpan();
-			setIcon(iconEl, 'file-text');
-			iconEl.addClass('nova-context-doc-icon');
-			
-			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
-			const suffix = doc.property ? `#${doc.property}` : '';
-			nameEl.textContent = `${doc.file.basename}${suffix}`;
-			nameEl.addClass('nova-context-doc-name');
-			nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
-			
-			// Add read-only indicator
-			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
-			readOnlyEl.textContent = 'Read-only';
-			readOnlyEl.addClass('nova-context-doc-readonly');
-			
-			// Mobile-optimized remove button with simple reliable icon
-			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
-			removeBtn.textContent = '×';
-			removeBtn.addClass('nova-context-remove-btn');
-			if (isMobile) {
-				removeBtn.addClass('is-mobile');
-			}
-			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
-			
-			this.registerDomEvent(removeBtn, 'click', async (e: Event) => {
-				e.stopPropagation();
-				if (this.currentFile) {
-					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path).catch(error => { Logger.error('Failed to remove persistent doc:', error); });
-					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-				}
-			});
-			
-			// Platform-specific interaction feedback using CSS classes
-			if (isMobile) {
-				this.registerDomEvent(removeBtn, 'touchstart', () => {
-					removeBtn.addClass('pressed');
-				});
-				
-				this.registerDomEvent(removeBtn, 'touchend', () => {
-					this.timeoutManager.addTimeout(() => {
-						removeBtn.removeClass('pressed');
-					}, NovaSidebarView.HOVER_TIMEOUT_MS);
-				});
-			}
-			// Desktop hover is handled by CSS
+		// Update state in component
+		this.documentList?.updateState({
+			currentContext: this.currentContext,
+			currentFilePath: this.currentFile?.path || null
 		});
-
-		// Drawer always starts closed on file switch (transient state)
-		this.isDrawerOpen = false;
-		expandedEl.removeClass('show');
-
-		// Click to expand management overlay
-		// Using class property to persist state across updates
 		
-		const toggleExpanded = (e: MouseEvent) => {
-			e.stopPropagation();
-			this.isDrawerOpen = !this.isDrawerOpen;
-			
-			if (this.isDrawerOpen) {
-				expandedEl.addClass('show');
-				this.contextIndicator.addClass('drawer-open');
-			} else {
-				expandedEl.removeClass('show');
-				this.contextIndicator.removeClass('drawer-open');
-			}
-		};
+		// Update document list display
+		this.documentList?.update();
 		
-		// Click on the entire summary line to expand
-		this.registerDomEvent(summaryEl, 'click', toggleExpanded);
+		// Update input container state for mobile spacing
+		const hasContext = this.currentContext?.persistentDocs && this.currentContext.persistentDocs.length > 0;
+		this.inputHandler?.updateContextState(!!hasContext);
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -1132,12 +883,12 @@ export class NovaSidebarView extends ItemView {
 			if (this.contextManager.getCurrentFilePath() !== this.currentFile.path) {
 				this.contextManager.setCurrentFile(this.currentFile);
 			}
-			
+
 			try {
 				// Use the ContextManager's buildContext method which includes total context calculation
 				// Pass empty message since we're just refreshing the display
 				this.currentContext = await this.contextManager.buildContext('', this.currentFile);
-				
+
 				this.updateContextIndicator();
 				this.updateTokenDisplay();
 			} catch (error) {
@@ -1180,7 +931,7 @@ export class NovaSidebarView extends ItemView {
 		// Parse document references and build multi-doc context
 		let processedMessage = messageText;
 		let multiDocContext: MultiDocContext | null = null;
-		
+
 		if (this.currentFile) {
 			// Parse and build context
 			const context = await this.contextManager.buildContext(messageText, this.currentFile);
@@ -1188,17 +939,17 @@ export class NovaSidebarView extends ItemView {
 			processedMessage = contextResult?.cleanedMessage || messageText;
 			multiDocContext = contextResult?.context || null;
 			this.currentContext = multiDocContext;
-			
+
 			// Update UI indicator
 			this.updateContextIndicator();
-			
+
 			// Check if message is just document references (context-only mode)
 			// Since all docs are now persistent, check if we have new docs and empty message
 			const previousPersistentCount = this.currentContext?.persistentDocs?.length || 0;
 			const currentPersistentCount = multiDocContext?.persistentDocs?.length || 0;
 			const hasNewDocs = currentPersistentCount > previousPersistentCount;
 			const isContextOnlyMessage = processedMessage.trim().length === 0 && hasNewDocs;
-			
+
 			if (isContextOnlyMessage) {
 				// Handle context-only commands - show newly added documents
 				const newDocsCount = currentPersistentCount - previousPersistentCount;
@@ -1210,18 +961,18 @@ export class NovaSidebarView extends ItemView {
 						this.addSuccessMessage(this.createIconMessage('check-circle', `Added ${newDocsCount} document${newDocsCount !== 1 ? 's' : ''} to persistent context: ${docNames}`));
 					}
 				}
-				
+
 				// Clear input and update context indicator
 				this.inputHandler.setValue('');
 				this.updateContextIndicator();
-				
+
 				// Hide context preview since we're done
 				if (this.contextPreview) {
 					this.contextPreview.removeClass('show');
 				}
 				return;
 			}
-			
+
 			// Show context confirmation if documents were included in a regular message
 			if (multiDocContext?.persistentDocs?.length) {
 				const allDocs = multiDocContext.persistentDocs;
@@ -1232,7 +983,7 @@ export class NovaSidebarView extends ItemView {
 					this.addSuccessMessage(`✓ Included ${allDocs.length} document${allDocs.length !== 1 ? 's' : ''} in context: ${docNames}${tokenInfo}. Context documents are read-only; edit commands will only modify ${currentFile}.`);
 				}
 			}
-			
+
 			// Check token limit
 			if (multiDocContext?.isNearLimit) {
 				new Notice('⚠️ approaching token limit. Consider removing some documents from context', NovaSidebarView.NOTICE_DURATION_MS);
@@ -1241,7 +992,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Clear input and UI state first
 		this.inputHandler.setValue('');
-		
+
 		// Hide context preview since we're sending the message
 		if (this.contextPreview) {
 			this.contextPreview.removeClass('show');
@@ -1259,15 +1010,15 @@ export class NovaSidebarView extends ItemView {
 			if (activeFile) {
 				// No edit command for regular chat messages
 				await this.plugin.conversationManager.addUserMessage(activeFile, messageText, undefined);
-				
+
 				// Add user message to UI immediately after persistence
 				this.chatRenderer.addMessage('user', messageText);
 			}
-			
+
 			// Add loading indicator with animated nova
 			const loadingEl = this.chatContainer.createDiv({ cls: 'nova-loading' });
 			loadingEl.addClass('nova-loading-element');
-			
+
 			// Create animated nova burst
 			const novaContainer = loadingEl.createDiv({ cls: 'nova-burst-container' });
 			// Create animated nova burst using DOM API
@@ -1276,30 +1027,30 @@ export class NovaSidebarView extends ItemView {
 			novaBurst.createDiv({ cls: 'nova-ring nova-ring-1' });
 			novaBurst.createDiv({ cls: 'nova-ring nova-ring-2' });
 			novaBurst.createDiv({ cls: 'nova-ring nova-ring-3' });
-			
+
 			// Use AI to classify the user's intent first to get contextual phrase
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const selectedText = activeView?.editor?.getSelection();
 			const hasSelection = !!(selectedText && selectedText.trim().length > 0);
 			const intent = this.plugin.aiIntentClassifier.classifyIntent(processedMessage, hasSelection);
-			
+
 			// Get initial contextual thinking phrase
 			let contextualCommand: EditCommand | undefined;
 			if (intent === 'METADATA' || intent === 'CONTENT') {
 				contextualCommand = this.plugin.commandParser.parseCommand(processedMessage);
 			}
 			const initialPhrase = this.getContextualThinkingPhrase(contextualCommand, processedMessage);
-			
+
 			const loadingTextEl = loadingEl.createSpan({ text: initialPhrase });
 			loadingTextEl.addClass('nova-loading-text');
-			
+
 			// Start phrase rotation animation
 			this.startThinkingPhraseRotation(loadingTextEl, contextualCommand, processedMessage);
 
 			// Message already stored in conversation manager above
 
 			let response: string | null = null;
-			
+
 			if (intent === 'METADATA' && activeFile) {
 				// Handle metadata commands
 				const parsedCommand = this.plugin.commandParser.parseCommand(processedMessage);
@@ -1311,7 +1062,7 @@ export class NovaSidebarView extends ItemView {
 			} else {
 				// Handle as conversation using PromptBuilder
 				const prompt = this.plugin.promptBuilder.buildPromptForMessage(processedMessage, activeFile || undefined);
-				
+
 				// Add multi-document context if available
 				if (multiDocContext && multiDocContext.contextString) {
 					// Enhance system prompt to clarify context vs content distinction
@@ -1331,7 +1082,7 @@ ${multiDocContext.contextString}
 ---
 
 USER REQUEST: ${processedMessage}`;
-					
+
 					// Get AI response using the provider manager
 					response = await this.plugin.aiProviderManager.complete(enhancedSystemPrompt, enhancedUserPrompt, {
 						temperature: prompt.config.temperature,
@@ -1360,26 +1111,26 @@ USER REQUEST: ${processedMessage}`;
 				this.chatRenderer.addStatusMessage('Response canceled', { type: 'pill', variant: 'system' });
 				return;
 			}
-			
+
 			// Remove loading indicator with proper cleanup
 			const loadingTextSpan = loadingEl.querySelector('span');
 			if (loadingTextSpan) {
 				this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
 			}
 			loadingEl.remove();
-			
+
 			// Filter thinking content from response
 			const filteredResponse = response ? this.filterThinkingContent(response) : response;
-			
+
 			// Store filtered response in conversation manager (if response exists)
 			if (activeFile && filteredResponse) {
 				await this.plugin.documentEngine.addAssistantMessage(filteredResponse);
 			}
-			
+
 			// Add filtered AI response (only if there is a response)
 			if (filteredResponse) {
 				// Check if response is an error message (contains x-circle icon or error keywords)
-				if (filteredResponse.includes('x-circle') || 
+				if (filteredResponse.includes('x-circle') ||
 					filteredResponse.includes('Error executing command') ||
 					filteredResponse.includes('Failed to') ||
 					filteredResponse.includes('No markdown file is open') ||
@@ -1400,7 +1151,7 @@ USER REQUEST: ${processedMessage}`;
 				}
 				loadingEl.remove();
 			}
-			
+
 			// Check if this was an abort error
 			if (this.currentAbortController?.signal.aborted || (error as Error).name === 'AbortError') {
 				this.chatRenderer.addStatusMessage('Response canceled', { type: 'pill', variant: 'system' });
@@ -1454,11 +1205,11 @@ USER REQUEST: ${processedMessage}`;
 			if (!this.currentFile) {
 				return this.createIconMessage('x-circle', 'No markdown file is open. Please open a file in the editor to use editing commands.');
 			}
-			
+
 			// Ensure there's a markdown view with this file
 			const leaves = this.app.workspace.getLeavesOfType('markdown');
 			let markdownView: MarkdownView | null = null;
-			
+
 			// Find the view with our file
 			for (const leaf of leaves) {
 				const view = leaf.view;
@@ -1468,7 +1219,7 @@ USER REQUEST: ${processedMessage}`;
 					break;
 				}
 			}
-			
+
 			// If not found, try to open the file
 			if (!markdownView) {
 				const leaf = this.app.workspace.getLeaf(false);
@@ -1481,7 +1232,7 @@ USER REQUEST: ${processedMessage}`;
 					}
 				}
 			}
-			
+
 			if (!markdownView) {
 				return this.createIconMessage('x-circle', `Unable to access the file "${this.currentFile.basename}". Please make sure it's open in the editor.`);
 			}
@@ -1492,31 +1243,31 @@ USER REQUEST: ${processedMessage}`;
 			if (!activeFile || activeFile !== this.currentFile) {
 				// Make the conversation file active before executing commands (without forcing focus)
 				this.app.workspace.setActiveLeaf(markdownView.leaf, { focus: false });
-				
+
 				// Wait for workspace transition to complete before proceeding
 				await new Promise<void>(resolve => {
 					this.timeoutManager.addTimeout(() => resolve(), 50);
 				});
-				
+
 				// Double-check that the file is now active
 				const nowActiveFile = this.app.workspace.getActiveFile();
 				if (!nowActiveFile || nowActiveFile !== this.currentFile) {
 					return this.createIconMessage('x-circle', `Unable to set "${this.currentFile.basename}" as the active file. Edit commands can only modify the file you're chatting about to prevent accidental changes to context documents.`);
 				}
 			}
-			
+
 			// Save current cursor position before executing command (in case editor-change event missed it)
 			const currentPos = this.plugin.documentEngine.getCursorPosition();
 			if (currentPos) {
 				this.currentFileCursorPosition = currentPos;
 			}
-			
+
 			// Restore cursor position for this file before executing command
 			// This now happens AFTER workspace has switched to ensure correct file is active
 			this.restoreCursorPosition();
-			
+
 			let result;
-			
+
 			switch (command.action) {
 				case 'add':
 					result = await this.executeAddCommandWithStreaming(command);
@@ -1539,22 +1290,22 @@ USER REQUEST: ${processedMessage}`;
 				default:
 					return `I don't understand the command "${String(command.action)}". Try asking me to add, edit, delete, fix grammar, rewrite content, or update metadata/properties.`;
 			}
-			
+
 			if (result.success) {
 				// Show success indicator for command completion
 				this.addSuccessIndicator(command.action);
-				
+
 				return null; // Don't return text for regular message
 			} else {
 				// Show error indicator for command failure
 				this.addErrorIndicator(command.action, result.error);
-				
+
 				return null; // Don't return text for regular message
 			}
 		} catch (error) {
 			// Show error indicator for execution error
 			this.addErrorIndicator('execute', (error as Error).message);
-			
+
 			return null; // Don't return text for regular message
 		}
 	}
@@ -1562,14 +1313,14 @@ USER REQUEST: ${processedMessage}`;
 
 	private async loadConversationForActiveFile() {
 		const activeFile = this.app.workspace.getActiveFile();
-		
+
 		// Ensure file switches don't trigger provider switch messages
 		this.isUserInitiatedProviderChange = false;
-		
+
 		// PHASE 3 FIX: Generate operation ID to prevent race conditions
 		const operationId = Date.now().toString() + Math.random().toString(36).substring(2, 11);
 		this.currentFileLoadOperation = operationId;
-		
+
 		// If no active file, try to find the currently active view's file
 		let targetFile = activeFile;
 		if (!targetFile) {
@@ -1589,7 +1340,7 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 		}
-		
+
 		// If no file available and we have a current file, clear everything
 		if (!targetFile && this.currentFile) {
 			this.currentFile = null;
@@ -1601,64 +1352,64 @@ USER REQUEST: ${processedMessage}`;
 			this.addWelcomeMessage('Open a document to get started.');
 			return;
 		}
-		
+
 		// If no file or same file, do nothing
 		if (!targetFile || targetFile === this.currentFile) {
 			return;
 		}
-		
+
 		// Set current file in ContextManager but don't restore context yet (will do after chat loads)
 		this.contextManager.setCurrentFile(targetFile);
-		
+
 		// Clear cursor tracking when switching to a new file
 		this.currentFileCursorPosition = null;
-		
+
 		this.currentFile = targetFile;
 		this.currentContext = this.contextManager.getCurrentContext();
-		
+
 		// Update UI after ContextManager has loaded data
 		this.updateContextIndicator();
-		
+
 		// Update document statistics in header
 		this.refreshAllStats().catch(error => { Logger.error('Failed to refresh stats:', error); });
-		
+
 		// Immediately track cursor position for the newly active file
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (activeView && activeView.editor) {
 			this.trackCursorPosition(activeView.editor);
 		}
-		
+
 		// Clear current chat
 		this.chatContainer.empty();
-		
+
 		// PHASE 3 FIX: Check if this operation is still current before proceeding
 		if (this.currentFileLoadOperation !== operationId) {
 			return;
 		}
-		
+
 		try {
 			// Use ChatRenderer's loadConversationHistory which handles all message types including system messages with styling
 			this.chatRenderer.loadConversationHistory(targetFile);
-			
+
 			// PHASE 3 FIX: Check again after async operation
 			if (this.currentFileLoadOperation !== operationId) {
 				return;
 			}
-			
+
 			// Now restore context after chat is loaded (so missing file notifications persist)
 			await this.contextManager.restoreContextAfterChatLoad(targetFile);
-			
+
 			// Refresh the context UI after restoration to remove any stale references
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-			
+
 			// Show document insights after loading conversation
 			await this.showDocumentInsights(targetFile);
-			
+
 			// PHASE 3 FIX: Final check after all async operations
 			if (this.currentFileLoadOperation !== operationId) {
 				return;
 			}
-			
+
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
 			Logger.error('Conversation loading error:', error);
@@ -1671,25 +1422,25 @@ USER REQUEST: ${processedMessage}`;
 	private async clearChat() {
 		// Clear the chat container
 		this.chatContainer.empty();
-		
+
 		// Clear conversation in conversation manager
 		if (this.currentFile) {
 			try {
 				await this.plugin.conversationManager.clearConversation(this.currentFile);
-				
+
 				// Clear token warnings
 				this.lastTokenWarnings = {};
 			} catch (_) {
 				// Failed to clear conversation - graceful fallback
 			}
 		}
-		
+
 		// Show notice to user
 		new Notice('Chat cleared');
-		
+
 		// Show welcome message first, before context refresh triggers warnings
 		this.addWelcomeMessage();
-		
+
 		// Then refresh context to rebuild currentContext from persistent storage and update UI
 		if (this.currentFile) {
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
@@ -1702,12 +1453,12 @@ USER REQUEST: ${processedMessage}`;
 		if (this.streamingManager.isStreaming()) {
 			return;
 		}
-		
+
 		await this.updateDocumentStats();
-		
+
 		// Refresh context to recalculate token counts with updated document content
 		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-		
+
 		this.updateContextRemaining();
 	}
 
@@ -1715,16 +1466,16 @@ USER REQUEST: ${processedMessage}`;
 	private async updateDocumentStats(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		if (!activeFile) return;
-		
+
 		try {
 			// Get document content
 			const content = await this.app.vault.read(activeFile);
 			if (!content) return;
-			
+
 			// Calculate basic stats
 			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
 			// const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
-			
+
 			// Update stats display in header
 			const headerEl = this.containerEl.querySelector('.nova-header');
 			if (headerEl) {
@@ -1733,13 +1484,13 @@ USER REQUEST: ${processedMessage}`;
 				if (!statsContainer) {
 					statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
 				}
-				
+
 				// Find or create document stats element
 				let statsEl = statsContainer.querySelector('.nova-document-stats');
 				if (!statsEl) {
 					statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 				}
-				
+
 				if (statsEl && wordCount > 0) {
 					// Calculate reading time (words / 225 = minutes)
 					const readingTime = Math.ceil(wordCount / 225);
@@ -1759,13 +1510,13 @@ USER REQUEST: ${processedMessage}`;
 	private updateTokenDisplay(): void {
 		const headerEl = this.containerEl.querySelector('.nova-header');
 		if (!headerEl) return;
-		
+
 		// Find or create stats container and both elements if they don't exist
 		let statsContainer = headerEl.querySelector('.nova-document-stats-container');
 		if (!statsContainer) {
 			statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
 		}
-		
+
 		// Ensure document stats element exists (left side)
 		let statsEl = statsContainer.querySelector('.nova-document-stats');
 		if (!statsEl) {
@@ -1793,7 +1544,7 @@ USER REQUEST: ${processedMessage}`;
 		if (!tokenEl) {
 			tokenEl = rightContainer.createEl('div', { cls: 'nova-token-usage' });
 		}
-		
+
 		// Get total context usage if available, otherwise fall back to old calculation
 		const totalContextUsage = this.currentContext?.totalContextUsage;
 		let warningLevel: string;
@@ -1813,13 +1564,13 @@ USER REQUEST: ${processedMessage}`;
 			tooltipText = `File context: ${currentTokens} tokens (total context calculation unavailable)`;
 			warningLevel = 'safe'; // No warnings when calculation unavailable
 		}
-		
+
 		// Update display text
 		tokenEl.textContent = displayText;
-		
+
 		// Set tooltip
 		tokenEl.title = tooltipText;
-		
+
 		// Apply color coding and show warnings
 		tokenEl.className = 'nova-token-usage';
 		if (warningLevel === 'safe') {
@@ -1836,13 +1587,13 @@ USER REQUEST: ${processedMessage}`;
 	private showTokenWarning(threshold: number): void {
 		// Prevent duplicate warnings - only show once per threshold per context session
 		const warningKey = `token-warning-${threshold}`;
-		
+
 		// Check if we've already shown this threshold warning
 		if (this.lastTokenWarnings[warningKey]) return;
-		
+
 		// Mark this threshold as warned
 		this.lastTokenWarnings[warningKey] = Date.now();
-		
+
 		let message: string;
 		if (threshold === 75) {
 			message = "ℹ️ Context usage is growing. Current conversation and file context are using significant tokens.";
@@ -1854,7 +1605,7 @@ USER REQUEST: ${processedMessage}`;
 			// Legacy fallback
 			message = "⚠️ Context approaching limit. Consider clearing context or starting a new conversation.";
 		}
-		
+
 		this.addWarningMessage(message);
 	}
 
@@ -1866,25 +1617,25 @@ USER REQUEST: ${processedMessage}`;
 		try {
 			const content = await this.app.vault.read(file);
 			const analysis = DocumentAnalyzer.analyzeStructure(content);
-			
+
 			if (analysis.emptyHeadings.length > 0 || analysis.incompleteBullets.length > 0) {
 				const insights: string[] = [];
-				
+
 				if (analysis.emptyHeadings.length > 0) {
 					insights.push(`${analysis.emptyHeadings.length} empty heading${analysis.emptyHeadings.length > 1 ? 's' : ''} to fill`);
 				}
-				
+
 				if (analysis.incompleteBullets.length > 0) {
 					insights.push(`${analysis.incompleteBullets.length} incomplete bullet${analysis.incompleteBullets.length > 1 ? 's' : ''}`);
 				}
-				
+
 				if (insights.length > 0) {
 					const bulletList = insights.map(insight => `• ${insight}`).join('\n');
-					
+
 					// Create a custom left-aligned message for document insights
 					const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-assistant nova-insights' });
 
-					messageEl.createEl('div', { 
+					messageEl.createEl('div', {
 						text: 'Nova',
 						cls: 'nova-message-role'
 					});
@@ -1912,10 +1663,10 @@ USER REQUEST: ${processedMessage}`;
 		// Get AI response using PromptBuilder but do NOT modify document
 		const prompt = this.plugin.promptBuilder.buildPromptForMessage(input, activeFile || undefined);
 		const response = await this.plugin.aiProviderManager.complete(prompt.systemPrompt, prompt.userPrompt);
-		
+
 		// Display response in chat only
 		this.displayChatResponse(response);
-		
+
 		// Show subtle mode indicator
 		this.showModeIndicator('consultation');
 	}
@@ -1942,8 +1693,8 @@ USER REQUEST: ${processedMessage}`;
 	async handleEditingRequest(input: string): Promise<string | null> {
 		// Parse command using existing parser
 		const parsedCommand = this.plugin.commandParser.parseCommand(input);
-		
-		
+
+
 		// Execute command using existing system
 		return await this.executeCommand(parsedCommand);
 	}
@@ -1966,7 +1717,7 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	async processUserInputWithIntent(input: string): Promise<void> {
 		const intent = this.plugin.aiIntentClassifier.classifyIntent(input);
-		
+
 		switch (intent) {
 			case 'CHAT':
 				await this.handleConsultationRequest(input);
@@ -1989,10 +1740,10 @@ USER REQUEST: ${processedMessage}`;
 
 		// Build prompt using PromptBuilder
 		const prompt = this.plugin.promptBuilder.buildPromptForMessage(message, activeFile || undefined);
-		
+
 		// Try to parse as command first
 		const command = this.plugin.commandParser.parseCommand(message);
-		
+
 		// Check if it's a valid command action
 		const validActions = ['add', 'edit', 'delete', 'grammar', 'rewrite', 'metadata'];
 		if (validActions.includes(command.action)) {
@@ -2027,10 +1778,10 @@ USER REQUEST: ${processedMessage}`;
 			}
 		} else {
 			// Regular conversation - message already persisted above
-			
+
 			// Call AI provider
 			await this.plugin.aiProviderManager.complete(prompt.systemPrompt || '', prompt.userPrompt);
-			
+
 			if (activeFile) {
 				// Create proper EditResult for successful chat response
 				const result: EditResult = { success: true, editType: 'insert' };
@@ -2061,31 +1812,31 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async updatePrivacyIndicator(privacyIndicator: HTMLElement): Promise<void> {
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-		
+
 		// Clear previous content
 		privacyIndicator.empty();
 		privacyIndicator.removeClass('nova-status-pill', 'local', 'cloud');
-		
+
 		// Apply inline styles for consistent sizing
 		privacyIndicator.addClass('nova-privacy-indicator-styled');
-		
+
 		if (currentProviderType) {
 			const isLocalProvider = currentProviderType === 'ollama';
-			
+
 			// Add pill styling classes
 			privacyIndicator.addClass('nova-status-pill');
 			privacyIndicator.addClass(isLocalProvider ? 'local' : 'cloud');
-			
+
 			// Create icon element
 			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
 			iconEl.addClass('nova-privacy-icon');
 			const iconName = isLocalProvider ? 'shield-check' : 'cloud';
 			setIcon(iconEl, iconName);
-			
+
 			// Add text label
 			const labelEl = privacyIndicator.createSpan({ text: isLocalProvider ? 'Local' : 'Cloud' });
 			labelEl.addClass('nova-privacy-label');
-			
+
 			// Set tooltip
 			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
 			privacyIndicator.setAttribute('aria-label', tooltip);
@@ -2093,14 +1844,14 @@ USER REQUEST: ${processedMessage}`;
 		} else {
 			// No provider available - show generic status
 			privacyIndicator.addClass('nova-status-pill');
-			
+
 			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
 			iconEl.addClass('nova-privacy-icon');
 			setIcon(iconEl, 'help-circle');
-			
+
 			const labelEl = privacyIndicator.createSpan({ text: 'No provider' });
 			labelEl.addClass('nova-privacy-label');
-			
+
 			privacyIndicator.setAttribute('aria-label', 'No provider selected');
 			privacyIndicator.setAttribute('title', 'No provider selected');
 		}
@@ -2137,14 +1888,14 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private async createProviderDropdown(container: HTMLElement): Promise<void> {
 		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
-		
+
 		// Create dropdown using Obsidian's DropdownComponent
 		this.providerDropdown = new DropdownComponent(dropdownContainer);
 		this.providerDropdown.selectEl.addClass('nova-provider-dropdown-select');
-		
+
 		// Populate options and set current selection
 		await this.updateProviderOptions();
-		
+
 		// Handle provider/model changes
 		this.providerDropdown.onChange(async (value) => {
 			await this.switchProviderModel(value);
@@ -2177,10 +1928,10 @@ USER REQUEST: ${processedMessage}`;
 
 		// Clear existing options
 		this.providerDropdown.selectEl.empty();
-		
+
 		// Get all providers with availability status
 		const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
-		
+
 		for (const [providerType, isAvailable] of providerAvailability) {
 			if (providerType === 'none' || !isAvailable) continue;
 
@@ -2192,17 +1943,17 @@ USER REQUEST: ${processedMessage}`;
 			// Check if provider is connected
 			const providerStatus = providerConfig?.status;
 			if (!providerStatus || providerStatus.state !== 'connected') continue;
-			
+
 			const models = this.getAvailableModels(providerType);
 			const providerDisplayName = this.getProviderDisplayName(providerType);
-			
+
 			// Skip providers with no models (except Ollama)
 			if (models.length === 0 && providerType !== 'ollama') continue;
-			
+
 			// Create optgroup for this provider
 			const group = this.providerDropdown.selectEl.createEl('optgroup');
 			group.label = providerDisplayName;
-			
+
 			if (models.length === 0) {
 				// Provider without specific models (like Ollama)
 				const option = group.createEl('option');
@@ -2217,7 +1968,7 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 		}
-		
+
 		// Set current selection based on provider and model
 		if (currentProvider && currentModel) {
 			const currentKey = `${currentProvider}-${currentModel}`;
@@ -2233,25 +1984,25 @@ USER REQUEST: ${processedMessage}`;
 			// Parse provider-model key (e.g., "claude-claude-3-5-sonnet-20241022")
 			const parts = providerModelKey.split('-');
 			if (parts.length < 2) return;
-			
+
 			const provider = parts[0]; // e.g., "claude"
 			const model = parts.slice(1).join('-'); // e.g., "claude-3-5-sonnet-20241022"
-			
+
 			// Set user-initiated flag to prevent spurious success messages
 			this.isUserInitiatedProviderChange = true;
 
 			// Update the model in settings
 			this.plugin.settingTab.setCurrentModel(model);
 			await this.plugin.saveSettings();
-			
+
 			// Refresh privacy indicator and context
 			await this.refreshProviderStatus();
 			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-			
+
 			// Show success message
 			const displayName = this.getModelDisplayName(provider, model);
 			this.addSuccessMessage(`✓ Switched to ${displayName}`);
-			
+
 		} catch (error) {
 			Logger.error('Error switching provider/model:', error);
 			this.addErrorMessage('❌ Failed to switch provider/model');
@@ -2283,11 +2034,11 @@ USER REQUEST: ${processedMessage}`;
 	private getCurrentModel(providerType: string): string {
 		const providerConfig = this.plugin.settings.aiProviders[providerType as 'claude' | 'openai' | 'google' | 'ollama'];
 		const currentModel = providerConfig?.model;
-		
+
 		if (currentModel) {
 			return currentModel;
 		}
-		
+
 		// Get default model (first available model for the provider)
 		const availableModels = this.getAvailableModels(providerType);
 		return availableModels.length > 0 ? availableModels[0].value : '';
@@ -2300,7 +2051,7 @@ USER REQUEST: ${processedMessage}`;
 		// First try the specified provider
 		let models = this.getAvailableModels(providerType);
 		let model = models.find(m => m.value === modelValue);
-		
+
 		// If not found in specified provider, search all providers
 		if (!model) {
 			const providerTypes = ['claude', 'openai', 'google', 'ollama'];
@@ -2313,9 +2064,9 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 		}
-		
+
 		const displayName = model ? model.label : modelValue;
-		
+
 		return displayName;
 	}
 
@@ -2338,179 +2089,26 @@ USER REQUEST: ${processedMessage}`;
 			const modelDisplayName = this.getModelDisplayName(providerType, modelValue);
 			const providerDisplayName = this.getProviderDisplayName(providerType);
 			this.addSuccessMessage(`✓ Switched to ${providerDisplayName} ${modelDisplayName}`);
-			
+
 			// Save settings asynchronously (don't block UI)
 			this.plugin.saveSettings().catch(error => {
 				Logger.error('Error saving model selection:', error);
 				this.addErrorMessage('Failed to save model selection');
 			});
-			
+
 			// ADD THIS: Refresh privacy indicator and other status elements
 			this.refreshProviderStatus().catch(error => {
 				Logger.error('Error refreshing provider status:', error);
 			});
-			
+
 			// Refresh context to update token count display for new provider
 			this.refreshContext().catch(error => {
 				Logger.error('Error refreshing context after model switch:', error);
 			});
-			
+
 		} catch (error) {
 			Logger.error('Error switching model:', error);
 			this.addErrorMessage('Failed to switch model');
-		}
-	}
-
-	/**
-	 * Create commands quick controls icon button
-	 */
-	private createCommandsQuickButton(container: HTMLElement): void {
-		// Create button with current mode icon
-		this.commandsButton = new ButtonComponent(container);
-		this.updateCommandsButtonIcon();
-		
-		// Add click handler
-		this.commandsButton.onClick(() => {
-			this.showCommandsMenu();
-		});
-		
-		// Style the button
-		this.commandsButton.buttonEl.addClass('nova-commands-quick-button');
-		this.updateCommandsButtonTooltip();
-	}
-
-	/**
-	 * Update button icon and styling based on current mode
-	 */
-	private updateCommandsButtonIcon(): void {
-		if (!this.commandsButton) return;
-		
-		const mode = this.plugin.settings.commands.suggestionMode;
-		
-		this.commandsButton.setIcon('zap');
-		
-		// Clear previous mode classes and add current ones
-		this.commandsButton.buttonEl.classList.remove('commands-mode-off', 'commands-mode-minimal', 'commands-mode-balanced', 'commands-mode-aggressive');
-		this.commandsButton.buttonEl.classList.add('nova-commands-quick-button', `commands-mode-${mode}`);
-	}
-
-	/**
-	 * Update button tooltip with current mode
-	 */
-	private updateCommandsButtonTooltip(): void {
-		if (!this.commandsButton) return;
-		
-		const mode = this.plugin.settings.commands.suggestionMode;
-		const modeConfig = this.getCommandModeConfig(mode);
-		this.commandsButton.setTooltip(`Insight sensitivity: ${modeConfig.label} (click to change)`);
-	}
-
-	/**
-	 * Get configuration for command modes
-	 */
-	private getCommandModeConfig(mode: string) {
-		const configs = {
-			'off': { label: 'Off', icon: '🚫', color: 'gray' },
-			'minimal': { label: 'Minimal', icon: '🟡', color: 'yellow' },
-			'balanced': { label: 'Balanced', icon: '🟢', color: 'green' },
-			'aggressive': { label: 'Aggressive', icon: '🔴', color: 'red' }
-		};
-		return configs[mode as keyof typeof configs] || configs.balanced;
-	}
-
-	/**
-	 * Show commands menu using native Obsidian Menu
-	 */
-	private showCommandsMenu(): void {
-		if (!this.commandsButton) return;
-		
-		const menu = new Menu();
-		const currentMode = this.plugin.settings.commands.suggestionMode;
-		
-		// Add menu items with Lucide icons
-		menu.addItem(item => item
-			.setTitle('Commands off')
-			.setIcon('circle-off')
-			.setChecked(currentMode === 'off')
-			.onClick(() => this.switchCommandMode('off')));
-		
-		menu.addItem(item => item
-			.setTitle('Minimal')
-			.setIcon('circle-dot')
-			.setChecked(currentMode === 'minimal')
-			.onClick(() => this.switchCommandMode('minimal')));
-		
-		menu.addItem(item => item
-			.setTitle('Balanced')
-			.setIcon('check-circle-2')
-			.setChecked(currentMode === 'balanced')
-			.onClick(() => this.switchCommandMode('balanced')));
-		
-		menu.addItem(item => item
-			.setTitle('Aggressive')
-			.setIcon('flame')
-			.setChecked(currentMode === 'aggressive')
-			.onClick(() => this.switchCommandMode('aggressive')));
-		
-		// Position and show menu
-		const rect = this.commandsButton.buttonEl.getBoundingClientRect();
-		menu.showAtPosition({ x: rect.right, y: rect.bottom });
-	}
-
-	/**
-	 * Update commands button to reflect current settings (desktop only)
-	 */
-	public updateCommandsButton(): void {
-		if (!Platform.isMobile && this.commandsButton) {
-			this.updateCommandsButtonIcon();
-			this.updateCommandsButtonTooltip();
-		}
-	}
-
-	/**
-	 * Switch command suggestion mode
-	 */
-	private async switchCommandMode(mode: 'off' | 'minimal' | 'balanced' | 'aggressive'): Promise<void> {
-		try {
-			// Validate the mode
-			const validModes = ['off', 'minimal', 'balanced', 'aggressive'];
-			if (!validModes.includes(mode)) {
-				throw new Error(`Invalid command mode: ${mode}`);
-			}
-			
-			// Update settings
-			this.plugin.settings.commands.suggestionMode = mode;
-			await this.plugin.saveSettings();
-			
-			// Update components
-			if (this.plugin.marginIndicators) {
-				this.plugin.marginIndicators.updateSettings();
-			}
-			if (this.plugin.smartTimingEngine) {
-				const { toSmartTimingSettings } = await import('../features/commands/types');
-				const legacyTiming = toSmartTimingSettings(this.plugin.settings.commands);
-				this.plugin.smartTimingEngine.updateSettings(legacyTiming);
-			}
-			
-			// Update button appearance
-			this.updateCommandsButton();
-			
-			// Show feedback message
-			const modeLabels = {
-				'off': 'Commands disabled',
-				'minimal': 'Minimal suggestions',
-				'balanced': 'Balanced suggestions',
-				'aggressive': 'Aggressive suggestions'
-			};
-			
-			this.addSuccessMessage(`✓ Switched to ${modeLabels[mode]}`);
-			
-		} catch (error) {
-			Logger.error('Error switching command mode:', error);
-			this.addErrorMessage('❌ Failed to switch command mode');
-			
-			// Reset button to previous valid state
-			this.updateCommandsButton();
 		}
 	}
 
@@ -2533,7 +2131,7 @@ USER REQUEST: ${processedMessage}`;
 			'book-open': '📖 ',
 			'more-horizontal': '⋯ '
 		};
-		
+
 		const prefix = iconPrefixes[iconName] || 'ℹ️ ';
 		return prefix + message;
 	}
@@ -2557,11 +2155,11 @@ USER REQUEST: ${processedMessage}`;
 	 */
 	private getProviderWithModelDisplayName(providerType: string): string {
 		const models = this.getAvailableModels(providerType);
-		
+
 		if (models.length > 0) {
 			const currentModel = this.getCurrentModel(providerType);
 			const modelDisplayName = this.getModelDisplayName(providerType, currentModel);
-			
+
 			// Debug logging for "II" issue
 			if (modelDisplayName === "II" || modelDisplayName.match(/^I+$/)) {
 				Logger.warn('Invalid model display name detected:', {
@@ -2571,10 +2169,10 @@ USER REQUEST: ${processedMessage}`;
 					models
 				});
 			}
-			
+
 			return modelDisplayName;
 		}
-		
+
 		return this.getProviderDisplayName(providerType);
 	}
 
@@ -2601,7 +2199,7 @@ USER REQUEST: ${processedMessage}`;
 	 * Check if the command button should be shown based on feature availability and user preference
 	 */
 	private shouldShowCommandButton(): boolean {
-		// Command button is gated behind the commands feature 
+		// Command button is gated behind the commands feature
 		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
 			return false;
 		}
@@ -2660,11 +2258,11 @@ USER REQUEST: ${processedMessage}`;
 	private handleProviderDisconnected = async (event: Event) => {
 		const customEvent = event as CustomEvent;
 		const { provider: failedProvider } = customEvent.detail;
-		
+
 		// Check if current model belongs to the failed provider
 		const currentModel = this.plugin.aiProviderManager.getCurrentModel();
 		const currentProviderType = getProviderTypeForModel(currentModel, this.plugin.settings);
-		
+
 		if (currentProviderType === failedProvider) {
 			// Current model is invalid - switch to first available model
 			const firstAvailableModel = await this.getFirstAvailableModel();
@@ -2681,7 +2279,7 @@ USER REQUEST: ${processedMessage}`;
 				await this.plugin.saveSettings();
 			}
 		}
-		
+
 		// Update dropdown display
 		try {
 			await this.refreshProviderDropdown();
@@ -2718,10 +2316,10 @@ USER REQUEST: ${processedMessage}`;
 	private async getFirstAvailableModel(): Promise<string | null> {
 		// Get provider availability status
 		const providerAvailability = await this.plugin.aiProviderManager.getAvailableProvidersWithStatus();
-		
+
 		// Provider priority order: Claude > OpenAI > Google > Ollama
 		const providerPriority: ProviderType[] = ['claude', 'openai', 'google', 'ollama'];
-		
+
 		for (const providerType of providerPriority) {
 			if (providerType === 'none') continue; // Skip 'none' provider type
 			const isAvailable = providerAvailability.get(providerType);
@@ -2735,7 +2333,7 @@ USER REQUEST: ${processedMessage}`;
 				}
 			}
 		}
-		
+
 		return null; // No available models found
 	}
 
@@ -3010,12 +2608,12 @@ USER REQUEST: ${processedMessage}`;
 		const alreadyExistingFiles: string[] = [];
 		const currentFiles: string[] = [];
 		const notFoundFiles: string[] = [];
-		
+
 		// Get existing persistent context directly (without clearing it)
 		const existingPersistent = this.contextManager.getPersistentContext(this.currentFile.path) || [];
 		const updatedPersistent = [...existingPersistent];
-		
-		
+
+
 		for (const filename of filenames) {
 			// Find the file by name efficiently
 			let file = this.app.vault.getFileByPath(filename);
@@ -3026,7 +2624,7 @@ USER REQUEST: ${processedMessage}`;
 				// Use MetadataCache for efficient linkpath resolution instead of iterating all files
 				file = this.app.metadataCache.getFirstLinkpathDest(filename, '');
 			}
-			
+
 			if (file instanceof TFile) {
 				// Check if this is the current active file
 				if (file.path === this.currentFile?.path) {
@@ -3057,7 +2655,7 @@ USER REQUEST: ${processedMessage}`;
 				notFoundFiles.push(filename);
 			}
 		}
-		
+
 		// Update persistent context if we made any changes
 		if (addedFiles.length > 0 || alreadyExistingFiles.length > 0 || currentFiles.length > 0) {
 			// Use ContextManager to update persistent context
@@ -3066,14 +2664,14 @@ USER REQUEST: ${processedMessage}`;
 				await this.contextManager.addDocument(doc.file);
 			}
 		}
-		
+
 		// Refresh context UI
 		await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-		
+
 		// Show a single comprehensive notification for better UX
 		// const totalFiles = filenames.length;
 		const messages: string[] = [];
-		
+
 		if (addedFiles.length > 0) {
 			if (addedFiles.length === 1) {
 				messages.push(`Added "${addedFiles[0]}" to context`);
@@ -3081,7 +2679,7 @@ USER REQUEST: ${processedMessage}`;
 				messages.push(`Added ${addedFiles.length} files to context`);
 			}
 		}
-		
+
 		if (alreadyExistingFiles.length > 0) {
 			if (alreadyExistingFiles.length === 1) {
 				messages.push(`"${alreadyExistingFiles[0]}" already in context`);
@@ -3089,7 +2687,7 @@ USER REQUEST: ${processedMessage}`;
 				messages.push(`${alreadyExistingFiles.length} already in context`);
 			}
 		}
-		
+
 		if (currentFiles.length > 0) {
 			if (currentFiles.length === 1) {
 				messages.push(`Current file is always in context`);
@@ -3097,7 +2695,7 @@ USER REQUEST: ${processedMessage}`;
 				messages.push(`${currentFiles.length} current files are always in context`);
 			}
 		}
-		
+
 		if (notFoundFiles.length > 0) {
 			if (notFoundFiles.length === 1) {
 				messages.push(`"${notFoundFiles[0]}" not found`);
@@ -3105,7 +2703,7 @@ USER REQUEST: ${processedMessage}`;
 				messages.push(`${notFoundFiles.length} not found`);
 			}
 		}
-		
+
 		// Show single combined message if we have any results
 		if (messages.length > 0) {
 			const combinedMessage = messages.join(', ');
@@ -3143,7 +2741,7 @@ USER REQUEST: ${processedMessage}`;
 				return this.getRandomPhrase('switch');
 			}
 		}
-		
+
 		return this.getRandomPhrase('chat');
 	}
 
@@ -3158,7 +2756,7 @@ USER REQUEST: ${processedMessage}`;
 			'process': ['processing...', 'analyzing...', 'working...', 'computing...', 'calculating...', 'examining...', 'evaluating...', 'interpreting...', 'reviewing...', 'scanning...'],
 			'chat': ['thinking...', 'processing...', 'considering...', 'analyzing...', 'understanding...', 'contemplating...', 'exploring...', 'evaluating...', 'working on it...', 'composing...']
 		};
-		
+
 		const categoryPhrases = phrases[category] || phrases.chat;
 		return categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)];
 	}
