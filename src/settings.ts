@@ -1163,10 +1163,6 @@ export class NovaSettingTab extends PluginSettingTab {
 						const legacyTiming = (await import('./features/commands/types')).toSmartTimingSettings(this.plugin.settings.commands);
 						this.plugin.smartTimingEngine.updateSettings(legacyTiming);
 					}
-					// Update sidebar button
-					if (this.plugin.sidebarView) {
-						this.plugin.sidebarView.updateCommandsButton();
-					}
 				})
 			);
 

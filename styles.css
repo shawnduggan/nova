@@ -3347,50 +3347,6 @@
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
-/* Commands Quick Controls Button Styles */
-.nova-commands-quick-button {
-    min-width: var(--input-height);
-    height: var(--input-height);
-    border-radius: var(--radius-s);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    margin: 0;
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.nova-commands-quick-button:hover {
-    background: var(--background-modifier-hover);
-    border-color: var(--interactive-accent);
-}
-
-/* Visual state indication through icon color */
-.nova-commands-quick-button.commands-mode-off {
-    color: var(--text-muted);
-    opacity: 0.6;
-}
-
-.nova-commands-quick-button.commands-mode-minimal {
-    color: var(--text-normal);
-}
-
-.nova-commands-quick-button.commands-mode-balanced {
-    color: var(--text-normal);
-}
-
-.nova-commands-quick-button.commands-mode-aggressive {
-    color: var(--text-normal);
-}
-
-/* Mobile optimizations - Hide commands button entirely on mobile */
-.is-mobile .nova-commands-quick-button {
-    display: none !important;
-}
-
 /* Command System Styles */
 .nova-command-button-styled {
     min-width: var(--size-4-9);
