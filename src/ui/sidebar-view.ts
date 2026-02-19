@@ -18,6 +18,14 @@ import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-men
 import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
+import {
+	SIDEBAR_PROCESSING_EVENT,
+	SIDEBAR_CHAT_MESSAGE_EVENT,
+	SidebarProcessingEvent,
+	SidebarChatMessageEvent
+} from './sidebar-events';
+import { ContextQuickPanel } from './context-quick-panel';
+import { ContextDocumentList } from './context-document-list';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -42,6 +50,8 @@ export class NovaSidebarView extends ItemView {
 	public chatRenderer!: ChatRenderer;
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
+	private contextQuickPanel!: ContextQuickPanel;
+	private contextDocumentList!: ContextDocumentList;
 	private providerDropdown: DropdownComponent | null = null;
 	private commandsButton: ButtonComponent | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
@@ -130,6 +140,10 @@ export class NovaSidebarView extends ItemView {
 		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
 		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
 		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
+
+		// Sidebar event bus — decoupled communication from SelectionContextMenu
+		this.registerDomEvent(document, SIDEBAR_PROCESSING_EVENT as keyof DocumentEventMap, this.handleSidebarProcessing.bind(this));
+		this.registerDomEvent(document, SIDEBAR_CHAT_MESSAGE_EVENT as keyof DocumentEventMap, this.handleSidebarChatMessage.bind(this));
 
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
@@ -400,6 +414,25 @@ export class NovaSidebarView extends ItemView {
 		// Create context indicator and preview using ContextManager
 		this.contextManager.createContextIndicator();
 
+		// Initialize extracted subcomponents
+		this.contextQuickPanel = new ContextQuickPanel({
+			app: this.app,
+			inputContainer: this.inputContainer,
+			inputHandler: this.inputHandler,
+			contextManager: this.contextManager,
+			timeoutManager: this.timeoutManager,
+			getCurrentFile: () => this.currentFile
+		});
+
+		this.contextDocumentList = new ContextDocumentList({
+			contextManager: this.contextManager,
+			inputHandler: this.inputHandler,
+			timeoutManager: this.timeoutManager,
+			registerDomEvent: this.registerDomEvent.bind(this),
+			getCurrentFile: () => this.currentFile,
+			getCurrentContext: () => this.currentContext,
+			refreshContext: () => this.refreshContext()
+		});
 	}
 
 
@@ -762,92 +795,18 @@ export class NovaSidebarView extends ItemView {
 
 
 	private createContextPreview(): HTMLElement {
-
-		// Create a preview area that shows live context as user types
-		const previewContainer = this.inputContainer.createDiv({ cls: 'nova-context-preview nova-context-preview-container' });
-
-		const previewText = previewContainer.createSpan({ cls: 'nova-context-preview-text nova-preview-text' });
-		const iconEl = previewText.createSpan();
-		setIcon(iconEl, 'book-open');
-		previewText.createSpan({ text: ' Context will include: ' });
-
-		previewContainer.createSpan({ cls: 'nova-context-preview-list nova-preview-list' });
-
-		return previewContainer;
+		return this.contextQuickPanel.createPreview();
 	}
 
 	/**
 	 * Debounced version of updateLiveContextPreview for performance
 	 */
 	private debouncedUpdateContextPreview(): void {
-		if (this.contextPreviewDebounceTimeout) {
-			this.timeoutManager.removeTimeout(this.contextPreviewDebounceTimeout);
-		}
-		
-		this.contextPreviewDebounceTimeout = this.timeoutManager.addTimeout(() => {
-			this.updateLiveContextPreview();
-			this.contextPreviewDebounceTimeout = null;
-		}, NovaSidebarView.CONTEXT_PREVIEW_DEBOUNCE_MS);
+		this.contextQuickPanel.debouncedUpdate();
 	}
 
 	private updateLiveContextPreview(): void {
-		if (!this.contextPreview) {
-			return;
-		}
-
-		const message = this.inputHandler.getTextArea().getValue();
-		if (!message) {
-			this.contextPreview.removeClass('show');
-			return;
-		}
-
-		// Parse document references from current message
-		// Note: All references are now persistent for simplified UX
-		const refPattern = /(\+)?\[\[([^\]]+?)(?:#([^\]]+?))?\]\]/g;
-		const foundRefs: Array<{name: string, property?: string}> = [];
-		let match;
-
-		while ((match = refPattern.exec(message)) !== null) {
-			const docName = match[2];
-			const property = match[3];
-			
-			// Try to find the file to validate it exists
-			const file = this.findFileByName(docName);
-			if (file) {
-				foundRefs.push({
-					name: docName,
-					property
-				});
-			}
-		}
-
-		// Add existing persistent context for current file
-		const persistentDocs = this.contextManager.getPersistentContext(this.currentFile?.path || '');
-		persistentDocs.forEach(doc => {
-			// Only add if not already in foundRefs to avoid duplicates
-			const exists = foundRefs.some(ref => ref.name === doc.file.basename);
-			if (!exists) {
-				foundRefs.push({
-					name: doc.file.basename,
-					property: doc.property
-				});
-			}
-		});
-
-		// Update preview
-		if (foundRefs.length > 0) {
-			const previewList = this.contextPreview.querySelector('.nova-context-preview-list') as HTMLElement;
-			if (previewList) {
-				const docNames = foundRefs.map(ref => {
-					const suffix = ref.property ? `#${ref.property}` : '';
-					return `${ref.name}${suffix}`;
-				});
-				previewList.textContent = docNames.join(', ');
-			}
-			this.contextPreview.addClass('show');
-		} else {
-			this.contextPreview.removeClass('show');
-		}
+		this.contextQuickPanel.updatePreview();
 	}
 
 	private findFileByName(nameOrPath: string): TFile | null {
@@ -872,258 +831,11 @@ export class NovaSidebarView extends ItemView {
 	 * This is registered once during initialization to prevent memory leaks
 	 */
 	private setupContextDrawerCloseHandler(): void {
-		// Create the close handler that will check drawer state and context indicator
-		const closeHandler = (e: Event) => {
-			if (this.isDrawerOpen && this.contextIndicator && !this.contextIndicator.contains(e.target as Node)) {
-				this.isDrawerOpen = false;
-				// Find and hide the expanded element
-				const expandedEl = this.contextIndicator.querySelector('.nova-context-expanded');
-				if (expandedEl) {
-					expandedEl.removeClass('show');
-				}
-				this.contextIndicator.removeClass('drawer-open');
-			}
-		};
-		
-		// Register the handler once using registerDomEvent for proper cleanup
-		this.registerDomEvent(document, 'click', closeHandler);
+		this.contextDocumentList.setupCloseHandler();
 	}
 
 	private updateContextIndicator(): void {
-		if (!this.contextIndicator) {
-			return;
-		}
-
-		const isMobile = Platform.isMobile;
-
-		// Check if we actually need to recreate the indicator
-		const newDocCount = this.currentContext?.persistentDocs?.length || 0;
-		const currentDocCount = this.contextIndicator.getAttribute('data-doc-count');
-		const currentFilePath = this.contextIndicator.getAttribute('data-file-path');
-		const newFilePath = this.currentFile?.path || '';
-		
-		// Only skip recreation if same file AND same doc count
-		if (currentDocCount === newDocCount.toString() && 
-			currentFilePath === newFilePath && 
-			newDocCount > 0) {
-			return;
-		}
-
-
-		this.contextIndicator.empty();
-		
-		if (!this.currentContext || !this.currentContext.persistentDocs) {
-			this.contextIndicator.removeClass('show');
-			this.contextIndicator.removeAttribute('data-doc-count');
-			this.contextIndicator.removeAttribute('data-file-path');
-			// Update input container state for mobile spacing
-			if (this.inputHandler) {
-				this.inputHandler.updateContextState(false);
-			}
-			return;
-		}
-		
-		const allDocs = this.currentContext.persistentDocs;
-		
-		if (!allDocs || allDocs.length === 0) {
-			this.contextIndicator.removeClass('show');
-			this.contextIndicator.removeAttribute('data-doc-count');
-			this.contextIndicator.removeAttribute('data-file-path');
-			// Update input container state for mobile spacing
-			if (this.inputHandler) {
-				this.inputHandler.updateContextState(false);
-			}
-			return;
-		}
-
-		// Store doc count and file path to prevent unnecessary recreation
-		this.contextIndicator.setAttribute('data-doc-count', allDocs.length.toString());
-		this.contextIndicator.setAttribute('data-file-path', this.currentFile?.path || '');
-
-		// Update input container state for mobile spacing
-		if (this.inputHandler) {
-			this.inputHandler.updateContextState(true);
-		}
-
-		// Show as thin line with mobile-optimized sizing
-		this.contextIndicator.addClass('nova-context-indicator-dynamic');
-		this.contextIndicator.addClass('show');
-		// Single line summary (same style as live preview)
-		const summaryEl = this.contextIndicator.createDiv({ cls: 'nova-context-summary' });
-		
-		const summaryTextEl = summaryEl.createSpan({ cls: 'nova-context-summary-text' });
-		
-		const docNames = allDocs.filter(doc => doc?.file?.basename).map(doc => doc.file.basename).slice(0, isMobile ? 1 : 2);
-		const moreCount = allDocs.length > (isMobile ? 1 : 2) ? ` +${allDocs.length - (isMobile ? 1 : 2)}` : '';
-		
-		// Simplified single line display showing just document names
-		summaryTextEl.addClass('nova-context-summary-text');
-		
-		// Create filename part that can truncate
-		const filenamePartEl = summaryTextEl.createSpan({ cls: 'nova-context-filename-part' });
-		// Create icon and text as separate elements for proper flex alignment
-		const iconSpan = filenamePartEl.createSpan({ cls: 'nova-context-icon-span' });
-		setIcon(iconSpan, 'book-open');
-		
-		const textSpan = filenamePartEl.createSpan({ cls: 'nova-context-text-span' });
-		textSpan.textContent = `${docNames.join(', ')}${moreCount}`;
-		
-		// Mobile-friendly more menu indicator
-		const expandIndicatorEl = summaryEl.createSpan({ cls: 'nova-context-expand-indicator' });
-		setIcon(expandIndicatorEl, 'more-horizontal'); // More menu indicator
-		if (isMobile) {
-			expandIndicatorEl.addClass('is-mobile');
-		}
-		expandIndicatorEl.setAttr('title', 'Tap to manage documents');
-		
-		// Visual feedback on the whole summary line instead of just the indicator
-		if (isMobile) {
-			this.registerDomEvent(summaryEl, 'touchstart', () => {
-				expandIndicatorEl.addClass('pressed');
-			});
-			this.registerDomEvent(summaryEl, 'touchend', () => {
-				this.addTrackedTimeout(() => {
-					expandIndicatorEl.removeClass('pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS);
-			});
-		}
-		// Desktop hover handled by CSS
-
-		// Expanded state - mobile-responsive overlay
-		const expandedEl = this.contextIndicator.createDiv({ cls: 'nova-context-expanded' });
-		expandedEl.addClass('nova-context-expanded');
-		if (isMobile) {
-			expandedEl.addClass('is-mobile');
-		}
-		
-		// Header for expanded state with mobile-optimized clear button
-		const expandedHeaderEl = expandedEl.createDiv({ cls: 'nova-context-expanded-header' });
-		expandedHeaderEl.addClass('nova-context-expanded-header');
-		if (isMobile) {
-			expandedHeaderEl.addClass('is-mobile');
-		}
-		
-		const headerTitleEl = expandedHeaderEl.createSpan();
-		const titleIconEl = headerTitleEl.createSpan();
-		setIcon(titleIconEl, 'book-open');
-		headerTitleEl.createSpan({ text: ` Documents (${allDocs.length})` });
-		headerTitleEl.addClass('nova-context-header-title');
-		
-		// Clear all button using Obsidian trash icon
-		const clearAllBtnComponent = new ButtonComponent(expandedHeaderEl);
-		clearAllBtnComponent.setIcon('trash-2')
-			.setTooltip('Clear all documents from context')
-			.onClick(async () => {
-				if (this.currentFile) {
-					this.contextManager.clearPersistentContext(this.currentFile.path).catch(error => { Logger.error('Failed to clear persistent context:', error); });
-					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-				}
-			});
-		
-		const clearAllBtn = clearAllBtnComponent.buttonEl;
-		clearAllBtn.addClass('nova-context-clear-all-btn');
-		if (isMobile) {
-			clearAllBtn.addClass('is-mobile');
-		}
-		
-		// Touch-friendly feedback for clear button on mobile
-		if (isMobile) {
-			this.registerDomEvent(clearAllBtn, 'touchstart', () => {
-				clearAllBtn.addClass('nova-button-pressed');
-			});
-			this.registerDomEvent(clearAllBtn, 'touchend', () => {
-				this.timeoutManager.addTimeout(() => {
-					clearAllBtn.removeClass('nova-button-pressed');
-				}, NovaSidebarView.HOVER_TIMEOUT_MS);
-			});
-		}
-		// Desktop hover handled by CSS
-		
-		// Document list for expanded state
-		const docListEl = expandedEl.createDiv({ cls: 'nova-context-doc-list' });
-		
-		allDocs.filter(doc => doc?.file?.basename).forEach((doc, index) => {
-			const docItemEl = docListEl.createDiv({ cls: 'nova-context-doc-item' });
-			docItemEl.addClass('nova-context-doc-item');
-			if (isMobile) {
-				docItemEl.addClass('is-mobile');
-			}
-			if (index >= allDocs.length - 1) {
-				docItemEl.addClass('last-item');
-			}
-			
-			const docInfoEl = docItemEl.createDiv({ cls: 'nova-context-doc-info' });
-			docInfoEl.addClass('nova-context-doc-info');
-			
-			const iconEl = docInfoEl.createSpan();
-			setIcon(iconEl, 'file-text');
-			iconEl.addClass('nova-context-doc-icon');
-			
-			const nameEl = docInfoEl.createSpan({ cls: 'nova-context-doc-name' });
-			const suffix = doc.property ? `#${doc.property}` : '';
-			nameEl.textContent = `${doc.file.basename}${suffix}`;
-			nameEl.addClass('nova-context-doc-name');
-			nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
-			
-			// Add read-only indicator
-			const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
-			readOnlyEl.textContent = 'Read-only';
-			readOnlyEl.addClass('nova-context-doc-readonly');
-			
-			// Mobile-optimized remove button with simple reliable icon
-			const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
-			removeBtn.textContent = '×';
-			removeBtn.addClass('nova-context-remove-btn');
-			if (isMobile) {
-				removeBtn.addClass('is-mobile');
-			}
-			removeBtn.setAttr('title', `Remove ${doc.file.basename}`);
-			
-			this.registerDomEvent(removeBtn, 'click', async (e: Event) => {
-				e.stopPropagation();
-				if (this.currentFile) {
-					this.contextManager.removePersistentDoc(this.currentFile.path, doc.file.path).catch(error => { Logger.error('Failed to remove persistent doc:', error); });
-					await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-				}
-			});
-			
-			// Platform-specific interaction feedback using CSS classes
-			if (isMobile) {
-				this.registerDomEvent(removeBtn, 'touchstart', () => {
-					removeBtn.addClass('pressed');
-				});
-				
-				this.registerDomEvent(removeBtn, 'touchend', () => {
-					this.timeoutManager.addTimeout(() => {
-						removeBtn.removeClass('pressed');
-					}, NovaSidebarView.HOVER_TIMEOUT_MS);
-				});
-			}
-			// Desktop hover is handled by CSS
-		});
-
-		// Drawer always starts closed on file switch (transient state)
-		this.isDrawerOpen = false;
-		expandedEl.removeClass('show');
-
-		// Click to expand management overlay
-		// Using class property to persist state across updates
-		
-		const toggleExpanded = (e: MouseEvent) => {
-			e.stopPropagation();
-			this.isDrawerOpen = !this.isDrawerOpen;
-			
-			if (this.isDrawerOpen) {
-				expandedEl.addClass('show');
-				this.contextIndicator.addClass('drawer-open');
-			} else {
-				expandedEl.removeClass('show');
-				this.contextIndicator.removeClass('drawer-open');
-			}
-		};
-		
-		// Click on the entire summary line to expand
-		this.registerDomEvent(summaryEl, 'click', toggleExpanded);
+		this.contextDocumentList.update();
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -2614,6 +2326,47 @@ USER REQUEST: ${processedMessage}`;
 	refreshSupernovaUI(): void {
 		this.refreshCommandButton();
 		// Future Supernova features can add their refresh logic here
+	}
+
+	// ── Sidebar event bus handlers ─────────────────────────────────────
+
+	/**
+	 * Handle processing-state events dispatched by SelectionContextMenu
+	 */
+	private handleSidebarProcessing(event: Event): void {
+		const { processing } = (event as SidebarProcessingEvent).detail;
+		if (this.inputHandler) {
+			this.inputHandler.setProcessingState(processing);
+		}
+	}
+
+	/**
+	 * Handle chat-message events dispatched by SelectionContextMenu
+	 */
+	private handleSidebarChatMessage(event: Event): void {
+		const detail = (event as SidebarChatMessageEvent).detail;
+		if (!this.chatRenderer) return;
+
+		switch (detail.type) {
+			case 'user':
+				this.chatRenderer.addMessage('user', detail.content);
+				break;
+			case 'assistant':
+				this.chatRenderer.addMessage('assistant', detail.content);
+				break;
+			case 'success':
+				this.chatRenderer.addSuccessMessage(detail.content, detail.persist ?? false);
+				break;
+			case 'error':
+				this.chatRenderer.addErrorMessage(detail.content, detail.persist ?? false);
+				break;
+			case 'status':
+				this.chatRenderer.addStatusMessage(
+					detail.content,
+					detail.statusOptions ?? { type: 'pill', variant: 'system' }
+				);
+				break;
+		}
 	}
 
 	/**
