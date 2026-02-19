@@ -168,11 +168,6 @@ export class NovaSidebarView extends ItemView {
 		// All users can switch providers freely
 		await this.createProviderDropdown(rightContainer);
 		
-		// Commands quick controls icon button (desktop only)
-		if (!Platform.isMobile) {
-			this.createCommandsQuickButton(rightContainer);
-		}
-		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
 		clearButton.setIcon('eraser')
@@ -2458,13 +2453,12 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Update commands button to reflect current settings (desktop only)
+	 * Update commands button to reflect current settings
+	 * Note: Button removed from sidebar - setting controlled via Settings → General
 	 */
 	public updateCommandsButton(): void {
-		if (!Platform.isMobile && this.commandsButton) {
-			this.updateCommandsButtonIcon();
-			this.updateCommandsButtonTooltip();
-		}
+		// Insight depth button removed - setting controlled via Settings → General
+		// This method kept for backward compatibility with settings code
 	}
 
 	/**

@@ -8,7 +8,7 @@ import { insertSmartFillPlaceholder } from '../features/commands/core/CommandEng
 import { SelectionEditCommand } from '../core/commands/selection-edit-command';
 import { ToneSelectionModal } from './tone-selection-modal';
 import { CustomInstructionModal } from './custom-instruction-modal';
-import { NovaSidebarView } from './sidebar-view';
+import { ISidebarController } from './sidebar-interface';
 import { StreamingManager, ActionType } from './streaming-manager';
 import { Logger } from '../utils/logger';
 import { CHALLENGE_SYSTEM_PROMPT } from '../constants';
@@ -64,6 +64,7 @@ export class SelectionContextMenu {
     private completionCallback?: () => void;
     private streamingManager: StreamingManager;
     private abortController: AbortController | null = null;
+    private sidebarController: ISidebarController | null = null;
 
     constructor(
         private app: App,
@@ -71,6 +72,14 @@ export class SelectionContextMenu {
     ) {
         this.selectionEditCommand = new SelectionEditCommand(plugin);
         this.streamingManager = new StreamingManager(plugin);
+    }
+
+    /**
+     * Set the sidebar controller for sidebar communication
+     * This decouples SelectionContextMenu from direct NovaSidebarView access
+     */
+    setSidebarController(controller: ISidebarController): void {
+        this.sidebarController = controller;
     }
 
     /**
@@ -234,9 +243,9 @@ export class SelectionContextMenu {
         const signal = this.abortController.signal;
 
         // Set processing state to show stop button
-        const sidebarView = this.plugin.getCurrentSidebarView();
-        if (sidebarView?.inputHandler) {
-            sidebarView.inputHandler.setProcessingState(true);
+        const inputHandler = this.sidebarController?.getInputHandler();
+        if (inputHandler) {
+            inputHandler.setProcessingState(true);
         }
 
         // Start selection animation
@@ -324,9 +333,9 @@ export class SelectionContextMenu {
             this.abortController = null;
 
             // Clear processing state
-            const sidebarView = this.plugin.getCurrentSidebarView();
-            if (sidebarView?.inputHandler) {
-                sidebarView.inputHandler.setProcessingState(false);
+            const inputHandler = this.sidebarController?.getInputHandler();
+            if (inputHandler) {
+                inputHandler.setProcessingState(false);
             }
         }
     }
@@ -340,14 +349,16 @@ export class SelectionContextMenu {
         this.abortController = new AbortController();
         const signal = this.abortController.signal;
 
-        const sidebarView = this.plugin.getCurrentSidebarView();
-        if (!sidebarView) {
+        const chatRenderer = this.sidebarController?.getChatRenderer();
+        const inputHandler = this.sidebarController?.getInputHandler();
+        
+        if (!chatRenderer) {
             new Notice('Open the Nova sidebar first to use challenge this', 3000);
             return;
         }
 
         // Set processing state to show stop button
-        sidebarView.inputHandler.setProcessingState(true);
+        inputHandler?.setProcessingState(true);
 
         // Show thinking notice
         this.streamingManager.showThinkingNotice('challenge' as ActionType, 'notice');
@@ -357,7 +368,7 @@ export class SelectionContextMenu {
             ? selectedText.substring(0, 100) + '...'
             : selectedText;
         const userMessage = `Challenge this: "${truncatedText}"`;
-        sidebarView.chatRenderer.addMessage('user', userMessage);
+        chatRenderer.addMessage('user', userMessage);
 
         // Persist user message
         const activeFile = this.app.workspace.getActiveFile();
@@ -378,7 +389,7 @@ export class SelectionContextMenu {
             });
 
             if (signal.aborted) {
-                sidebarView.chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
+                chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
                 return;
             }
 
@@ -386,7 +397,7 @@ export class SelectionContextMenu {
             this.streamingManager.stopAnimation();
 
             // Add assistant response to chat
-            sidebarView.chatRenderer.addMessage('assistant', response);
+            chatRenderer.addMessage('assistant', response);
 
             // Persist assistant response
             if (activeFile) {
@@ -396,20 +407,20 @@ export class SelectionContextMenu {
             this.streamingManager.stopAnimation();
 
             if (signal.aborted || (error as Error).name === 'AbortError') {
-                sidebarView.chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
+                chatRenderer.addStatusMessage('Challenge canceled', { type: 'pill', variant: 'system' });
             } else {
                 Logger.error('Challenge This failed:', error);
                 const errorMessage = (error as Error).message || 'Failed to analyze text';
-                sidebarView.chatRenderer.addErrorMessage(`Challenge failed: ${errorMessage}`, true);
+                chatRenderer.addErrorMessage(`Challenge failed: ${errorMessage}`, true);
             }
         } finally {
             this.streamingManager.stopAnimation();
             this.abortController = null;
 
             // Clear processing state
-            const view = this.plugin.getCurrentSidebarView();
-            if (view?.inputHandler) {
-                view.inputHandler.setProcessingState(false);
+            const viewInputHandler = this.sidebarController?.getInputHandler();
+            if (viewInputHandler) {
+                viewInputHandler.setProcessingState(false);
             }
         }
     }
@@ -503,22 +514,17 @@ export class SelectionContextMenu {
      */
     private addSuccessChatMessage(actionId: string, originalText: string, customInstruction?: string): void {
         try {
-            // Find the active Nova sidebar view and add message to chat
-            const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
-            if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
-                    const actionDescription = this.getActionDescription(actionId, customInstruction);
-                    const truncatedText = originalText.length > 50 
-                        ? originalText.substring(0, 50) + '...' 
-                        : originalText;
+            const chatRenderer = this.sidebarController?.getChatRenderer();
+            if (chatRenderer) {
+                const actionDescription = this.getActionDescription(actionId, customInstruction);
+                const truncatedText = originalText.length > 50 
+                    ? originalText.substring(0, 50) + '...' 
+                    : originalText;
                     
-                    const message = `✓ ${actionDescription} text: "${truncatedText}"`;
-                    
-                    // Use unified system with persistence
-                    view.chatRenderer.addSuccessMessage(message, true);
-                }
+                const message = `✓ ${actionDescription} text: "${truncatedText}"`;
+                
+                // Use unified system with persistence
+                chatRenderer.addSuccessMessage(message, true);
             }
         } catch (error) {
             Logger.warn('Failed to add success chat message:', error);
@@ -530,27 +536,22 @@ export class SelectionContextMenu {
      */
     private addFailureChatMessage(actionId: string, errorMessage: string): void {
         try {
-            // Find the active Nova sidebar view and add message to chat
-            const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
-            if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
-                    const actionName = this.getActionDisplayName(actionId);
-                    // Convert past tense to infinitive form properly
-                    let verbForm = actionName;
-                    if (actionName === 'condensed') verbForm = 'condense';
-                    else if (actionName === 'improved') verbForm = 'improve';
-                    else if (actionName === 'expanded') verbForm = 'expand';
-                    else if (actionName === 'transformed') verbForm = 'transform';
-                    else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
+            const chatRenderer = this.sidebarController?.getChatRenderer();
+            if (chatRenderer) {
+                const actionName = this.getActionDisplayName(actionId);
+                // Convert past tense to infinitive form properly
+                let verbForm = actionName;
+                if (actionName === 'condensed') verbForm = 'condense';
+                else if (actionName === 'improved') verbForm = 'improve';
+                else if (actionName === 'expanded') verbForm = 'expand';
+                else if (actionName === 'transformed') verbForm = 'transform';
+                else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
 
-                    // Don't add ✗ since addErrorMessage adds ❌ emoji
-                    const message = `Failed to ${verbForm} text: ${errorMessage}`;
+                // Don't add ✗ since addErrorMessage adds ❌ emoji
+                const message = `Failed to ${verbForm} text: ${errorMessage}`;
 
-                    // Use unified system with persistence
-                    view.chatRenderer.addErrorMessage(message, true);
-                }
+                // Use unified system with persistence
+                chatRenderer.addErrorMessage(message, true);
             }
         } catch (error) {
             Logger.warn('Failed to add error chat message:', error);
@@ -562,28 +563,23 @@ export class SelectionContextMenu {
      */
     private addCancelChatMessage(actionId: string): void {
         try {
-            // Find the active Nova sidebar view and add message to chat
-            const leaves = this.app.workspace.getLeavesOfType('nova-sidebar');
-            if (leaves.length > 0) {
-                const view = leaves[0].view;
-                // Use instanceof check for consistency
-                if (view instanceof NovaSidebarView && view.chatRenderer) {
-                    const actionName = this.getActionDisplayName(actionId);
-                    // Convert past tense to infinitive form properly
-                    let verbForm = actionName;
-                    if (actionName === 'condensed') verbForm = 'condense';
-                    else if (actionName === 'improved') verbForm = 'improve';
-                    else if (actionName === 'expanded') verbForm = 'expand';
-                    else if (actionName === 'transformed') verbForm = 'transform';
-                    else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
+            const chatRenderer = this.sidebarController?.getChatRenderer();
+            if (chatRenderer) {
+                const actionName = this.getActionDisplayName(actionId);
+                // Convert past tense to infinitive form properly
+                let verbForm = actionName;
+                if (actionName === 'condensed') verbForm = 'condense';
+                else if (actionName === 'improved') verbForm = 'improve';
+                else if (actionName === 'expanded') verbForm = 'expand';
+                else if (actionName === 'transformed') verbForm = 'transform';
+                else if (actionName.endsWith('ed')) verbForm = actionName.slice(0, -2);
 
-                    // Message must be >30 chars for bubble format (not pill)
-                    // Don't include ❌ - addErrorMessage adds it automatically
-                    const message = `Operation canceled: ${verbForm} text`;
+                // Message must be >30 chars for bubble format (not pill)
+                // Don't include ❌ - addErrorMessage adds it automatically
+                const message = `Operation canceled: ${verbForm} text`;
 
-                    // Use unified system with persistence
-                    view.chatRenderer.addErrorMessage(message, true);
-                }
+                // Use unified system with persistence
+                chatRenderer.addErrorMessage(message, true);
             }
         } catch (error) {
             Logger.warn('Failed to add cancel chat message:', error);

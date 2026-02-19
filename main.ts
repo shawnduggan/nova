@@ -19,6 +19,7 @@ import { MetadataCommand } from './src/core/commands/metadata-command';
 import { FeatureManager } from './src/licensing/feature-manager';
 import { LicenseValidator } from './src/licensing/license-validator';
 import { SelectionContextMenu } from './src/ui/selection-context-menu';
+import { SidebarController } from './src/ui/sidebar-interface';
 import { TONE_OPTIONS } from './src/ui/tone-selection-modal';
 import { AIIntentClassifier } from './src/core/ai-intent-classifier';
 import { CryptoService } from './src/core/crypto-service';
@@ -296,6 +297,8 @@ export default class NovaPlugin extends Plugin {
 
 			// Initialize selection context menu
 			this.selectionContextMenu = new SelectionContextMenu(this.app, this);
+			// Set sidebar controller to decouple from direct NovaSidebarView access
+			this.selectionContextMenu.setSidebarController(new SidebarController(() => this.getCurrentSidebarView()));
 			this.selectionContextMenu.register();
 
 			this.settingTab = new NovaSettingTab(this.app, this);
