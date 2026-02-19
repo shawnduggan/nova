@@ -1,3 +1,6 @@
+// Set test environment before any imports to fix feature-manager.test.ts failures
+process.env.NODE_ENV = 'test';
+
 // Jest setup file to provide missing browser APIs in Node.js test environment
 
 import { TextEncoder, TextDecoder } from 'util';

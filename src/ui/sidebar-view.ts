@@ -43,7 +43,6 @@ export class NovaSidebarView extends ItemView {
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
 	private providerDropdown: DropdownComponent | null = null;
-	private commandsButton: ButtonComponent | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
 	
 	// Cursor-only architecture - delegate to new components
@@ -131,6 +130,12 @@ export class NovaSidebarView extends ItemView {
 		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
 		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
 
+		// Register events from SelectionContextMenu for decoupled communication
+		this.registerDomEvent(document, 'nova:processing-state-change' as keyof DocumentEventMap, this.handleProcessingStateChange.bind(this));
+		this.registerDomEvent(document, 'nova:add-message' as keyof DocumentEventMap, this.handleAddMessage.bind(this));
+		this.registerDomEvent(document, 'nova:add-status-message' as keyof DocumentEventMap, this.handleAddStatusMessage.bind(this));
+		this.registerDomEvent(document, 'nova:add-error-message' as keyof DocumentEventMap, this.handleAddErrorMessage.bind(this));
+
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-sidebar-container');
@@ -168,10 +173,6 @@ export class NovaSidebarView extends ItemView {
 		// All users can switch providers freely
 		await this.createProviderDropdown(rightContainer);
 		
-		// Commands quick controls icon button (desktop only)
-		if (!Platform.isMobile) {
-			this.createCommandsQuickButton(rightContainer);
-		}
 		
 		// Clear Chat button in right container
 		const clearButton = new ButtonComponent(rightContainer);
@@ -2362,112 +2363,6 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Create commands quick controls icon button
-	 */
-	private createCommandsQuickButton(container: HTMLElement): void {
-		// Create button with current mode icon
-		this.commandsButton = new ButtonComponent(container);
-		this.updateCommandsButtonIcon();
-		
-		// Add click handler
-		this.commandsButton.onClick(() => {
-			this.showCommandsMenu();
-		});
-		
-		// Style the button
-		this.commandsButton.buttonEl.addClass('nova-commands-quick-button');
-		this.updateCommandsButtonTooltip();
-	}
-
-	/**
-	 * Update button icon and styling based on current mode
-	 */
-	private updateCommandsButtonIcon(): void {
-		if (!this.commandsButton) return;
-		
-		const mode = this.plugin.settings.commands.suggestionMode;
-		
-		this.commandsButton.setIcon('zap');
-		
-		// Clear previous mode classes and add current ones
-		this.commandsButton.buttonEl.classList.remove('commands-mode-off', 'commands-mode-minimal', 'commands-mode-balanced', 'commands-mode-aggressive');
-		this.commandsButton.buttonEl.classList.add('nova-commands-quick-button', `commands-mode-${mode}`);
-	}
-
-	/**
-	 * Update button tooltip with current mode
-	 */
-	private updateCommandsButtonTooltip(): void {
-		if (!this.commandsButton) return;
-		
-		const mode = this.plugin.settings.commands.suggestionMode;
-		const modeConfig = this.getCommandModeConfig(mode);
-		this.commandsButton.setTooltip(`Insight sensitivity: ${modeConfig.label} (click to change)`);
-	}
-
-	/**
-	 * Get configuration for command modes
-	 */
-	private getCommandModeConfig(mode: string) {
-		const configs = {
-			'off': { label: 'Off', icon: '🚫', color: 'gray' },
-			'minimal': { label: 'Minimal', icon: '🟡', color: 'yellow' },
-			'balanced': { label: 'Balanced', icon: '🟢', color: 'green' },
-			'aggressive': { label: 'Aggressive', icon: '🔴', color: 'red' }
-		};
-		return configs[mode as keyof typeof configs] || configs.balanced;
-	}
-
-	/**
-	 * Show commands menu using native Obsidian Menu
-	 */
-	private showCommandsMenu(): void {
-		if (!this.commandsButton) return;
-		
-		const menu = new Menu();
-		const currentMode = this.plugin.settings.commands.suggestionMode;
-		
-		// Add menu items with Lucide icons
-		menu.addItem(item => item
-			.setTitle('Commands off')
-			.setIcon('circle-off')
-			.setChecked(currentMode === 'off')
-			.onClick(() => this.switchCommandMode('off')));
-		
-		menu.addItem(item => item
-			.setTitle('Minimal')
-			.setIcon('circle-dot')
-			.setChecked(currentMode === 'minimal')
-			.onClick(() => this.switchCommandMode('minimal')));
-		
-		menu.addItem(item => item
-			.setTitle('Balanced')
-			.setIcon('check-circle-2')
-			.setChecked(currentMode === 'balanced')
-			.onClick(() => this.switchCommandMode('balanced')));
-		
-		menu.addItem(item => item
-			.setTitle('Aggressive')
-			.setIcon('flame')
-			.setChecked(currentMode === 'aggressive')
-			.onClick(() => this.switchCommandMode('aggressive')));
-		
-		// Position and show menu
-		const rect = this.commandsButton.buttonEl.getBoundingClientRect();
-		menu.showAtPosition({ x: rect.right, y: rect.bottom });
-	}
-
-	/**
-	 * Update commands button to reflect current settings (desktop only)
-	 */
-	public updateCommandsButton(): void {
-		if (!Platform.isMobile && this.commandsButton) {
-			this.updateCommandsButtonIcon();
-			this.updateCommandsButtonTooltip();
-		}
-	}
-
-	/**
 	 * Switch command suggestion mode
 	 */
 	private async switchCommandMode(mode: 'off' | 'minimal' | 'balanced' | 'aggressive'): Promise<void> {
@@ -2492,9 +2387,6 @@ USER REQUEST: ${processedMessage}`;
 				this.plugin.smartTimingEngine.updateSettings(legacyTiming);
 			}
 			
-			// Update button appearance
-			this.updateCommandsButton();
-			
 			// Show feedback message
 			const modeLabels = {
 				'off': 'Commands disabled',
@@ -2508,9 +2400,6 @@ USER REQUEST: ${processedMessage}`;
 		} catch (error) {
 			Logger.error('Error switching command mode:', error);
 			this.addErrorMessage('❌ Failed to switch command mode');
-			
-			// Reset button to previous valid state
-			this.updateCommandsButton();
 		}
 	}
 
@@ -2612,7 +2501,6 @@ USER REQUEST: ${processedMessage}`;
 	 * Refresh all Supernova-gated UI elements when license status changes
 	 */
 	refreshSupernovaUI(): void {
-		this.refreshCommandButton();
 		// Future Supernova features can add their refresh logic here
 	}
 
@@ -2740,21 +2628,52 @@ USER REQUEST: ${processedMessage}`;
 	}
 
 	/**
-	 * Refresh the command button visibility when settings change
-	 */
-	refreshCommandButton(): void {
-		if (this.inputHandler) {
-			this.inputHandler.refreshCommandButton();
-		}
-	}
-
-	/**
 	 * Update input row layout when command button visibility changes
 	 */
 	private updateInputRowLayout(): void {
 		// No need to manually adjust textarea width - flexbox handles it
 		// The textarea container has flex: 1, so it will expand/contract automatically
 		// when the command button is shown/hidden
+	}
+
+	/**
+	 * Handle processing state change events from SelectionContextMenu
+	 */
+	private handleProcessingStateChange(event: CustomEvent): void {
+		const { isProcessing } = event.detail;
+		if (this.inputHandler) {
+			this.inputHandler.setProcessingState(isProcessing);
+		}
+	}
+
+	/**
+	 * Handle add message events from SelectionContextMenu
+	 */
+	private handleAddMessage(event: CustomEvent): void {
+		const { role, content } = event.detail;
+		if (this.chatRenderer) {
+			this.chatRenderer.addMessage(role, content);
+		}
+	}
+
+	/**
+	 * Handle add status message events from SelectionContextMenu
+	 */
+	private handleAddStatusMessage(event: CustomEvent): void {
+		const { content, type, variant } = event.detail;
+		if (this.chatRenderer) {
+			this.chatRenderer.addStatusMessage(content, { type, variant });
+		}
+	}
+
+	/**
+	 * Handle add error message events from SelectionContextMenu
+	 */
+	private handleAddErrorMessage(event: CustomEvent): void {
+		const { content, persist } = event.detail;
+		if (this.chatRenderer) {
+			this.chatRenderer.addErrorMessage(content, persist);
+		}
 	}
 
 	/**
