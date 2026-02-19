@@ -1,5 +1,8 @@
 // Jest setup file to provide missing browser APIs in Node.js test environment
 
+// Ensure NODE_ENV is set to 'test' for consistent behavior across all test environments
+process.env.NODE_ENV = 'test';
+
 import { TextEncoder, TextDecoder } from 'util';
 
 // Make TextEncoder and TextDecoder available globally
