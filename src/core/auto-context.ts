@@ -109,10 +109,12 @@ export async function truncateDocumentContent(
 	app: App,
 	file: TFile,
 	options: Pick<AutoContextOptions, 'largeDocMaxTokens' | 'minContentLength'>,
-	section?: string
+	section?: string,
+	existingContent?: string
 ): Promise<TruncationResult | null> {
 	try {
-		const content = await app.vault.read(file);
+		// Use existing content if provided, otherwise read from disk
+		const content = existingContent || await app.vault.read(file);
 		
 		if (content.length < options.minContentLength) {
 			return null;
@@ -185,10 +187,14 @@ export async function truncateDocumentContent(
 			
 			const contentLines = lines.slice(contentStartIndex);
 			let introText = '';
+			let introTokens = 0;
 			let lineIndex = 0;
 			
-			while (lineIndex < contentLines.length && estimateTokens(introText) < remainingTokens) {
-				introText += contentLines[lineIndex] + '\n';
+			// Track running token count instead of re-estimating full string each iteration (O(n) vs O(n²))
+			while (lineIndex < contentLines.length && introTokens < remainingTokens) {
+				const line = contentLines[lineIndex] + '\n';
+				introText += line;
+				introTokens += estimateTokens(line);
 				lineIndex++;
 			}
 			
@@ -274,25 +280,27 @@ export class AutoContextService {
 	 * Resolve backlinks to a file
 	 */
 	resolveBacklinks(file: TFile): TFile[] {
-		// Obsidian's metadataCache.getBacklinksForFile returns a map of path -> link info
-		const backlinksMap = (this.app.metadataCache as unknown as { getBacklinksForFile?: (f: TFile) => Map<string, unknown> }).getBacklinksForFile?.(file);
-		if (!backlinksMap) return [];
+		// Use the public resolvedLinks API - iterate in reverse to find files linking TO this file
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		if (!resolvedLinks) return [];
 
 		const results: TFile[] = [];
 		const seenPaths = new Set<string>();
+		const targetPath = file.path;
 
-		// Handle both Map and plain object formats
-		const entries = backlinksMap instanceof Map 
-			? Array.from(backlinksMap.entries())
-			: Object.entries(backlinksMap);
+		// Iterate through all resolved links to find those pointing TO our file
+		for (const [sourcePath, links] of Object.entries(resolvedLinks)) {
+			if (!links || typeof links !== 'object') continue;
+			
+			// Check if this source links to our target
+			if (targetPath in links) {
+				if (seenPaths.has(sourcePath)) continue;
+				seenPaths.add(sourcePath);
 
-		for (const [path] of entries) {
-			if (seenPaths.has(path)) continue;
-			seenPaths.add(path);
-
-			const backlinkFile = this.app.vault.getFileByPath(path);
-			if (backlinkFile) {
-				results.push(backlinkFile);
+				const backlinkFile = this.app.vault.getFileByPath(sourcePath);
+				if (backlinkFile) {
+					results.push(backlinkFile);
+				}
 			}
 		}
 
@@ -387,12 +395,13 @@ export class AutoContextService {
 					isTruncated: false
 				};
 			} else {
-				// Large document: truncate
+				// Large document: truncate (pass already-read content to avoid double read)
 				const truncated = await truncateDocumentContent(
 					this.app,
 					file,
 					this.options,
-					section
+					section,
+					content
 				);
 				
 				if (!truncated) return null;

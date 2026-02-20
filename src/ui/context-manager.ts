@@ -1093,16 +1093,10 @@ export class ContextManager {
 				}
 			}
 
-			// Update persistent context
-			this.persistentContext.set(file.path, mergedRefs);
+			// Update session-only context (auto-context is ephemeral, rebuilt each time)
 			this.autoContextDocs.set(file.path, autoPaths);
-
-			// Persist to conversation manager
-			if (this.plugin.conversationManager) {
-				for (const ref of newRefs) {
-					await this.plugin.conversationManager.addContextDocument(file, ref.file.path);
-				}
-			}
+			// Note: We do NOT persist auto-context documents to conversationManager.
+			// They are rebuilt from wikilinks on each file open. Only manual docs survive across sessions.
 		} catch (error) {
 			Logger.warn('Failed to populate auto-context:', error);
 		}

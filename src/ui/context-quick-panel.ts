@@ -72,7 +72,7 @@ export class ContextQuickPanel {
 		});
 
 		// Expanded content
-		this.expandedEl = this.panelEl.createDiv({ cls: 'nova-quick-panel-expanded' });
+		this.expandedEl = this.panelEl.createDiv({ cls: 'nova-quick-panel-body' });
 		this.expandedEl.addClass('nova-hidden');
 
 		this.renderExpandedContent();
@@ -94,7 +94,7 @@ export class ContextQuickPanel {
 
 		// Update expanded content if visible
 		if (this.isExpanded && this.expandedEl) {
-			this.renderExpandedContent();
+			this.renderDocumentList();
 		}
 	}
 
@@ -152,12 +152,10 @@ export class ContextQuickPanel {
 	}
 
 	/**
-	 * Render the expanded panel content
+	 * Initialize toggles (called once during construction)
 	 */
-	private renderExpandedContent(): void {
+	private initToggles(): void {
 		if (!this.expandedEl) return;
-
-		this.expandedEl.empty();
 
 		// Toggle section
 		const togglesEl = this.expandedEl.createDiv({ cls: 'nova-quick-panel-toggles' });
@@ -170,15 +168,10 @@ export class ContextQuickPanel {
 		const outgoingToggle = new ToggleComponent(outgoingToggleEl);
 		outgoingToggle.setValue(settings.autoContext?.includeOutgoing ?? true);
 		outgoingToggle.onChange(async (value) => {
-			// Update settings
 			if (!settings.autoContext) settings.autoContext = { includeOutgoing: true, includeBacklinks: false };
 			settings.autoContext.includeOutgoing = value;
 			await this.deps.plugin.saveSettings();
-			
-			// Update auto-context service
 			this.deps.contextManager.updateAutoContextOptions();
-			
-			// Rebuild auto-context for current file
 			const currentFile = this.deps.getCurrentFile();
 			if (currentFile) {
 				await this.deps.contextManager.rebuildAutoContext(currentFile);
@@ -195,15 +188,10 @@ export class ContextQuickPanel {
 		const backlinkToggle = new ToggleComponent(backlinkToggleEl);
 		backlinkToggle.setValue(settings.autoContext?.includeBacklinks ?? false);
 		backlinkToggle.onChange(async (value) => {
-			// Update settings
 			if (!settings.autoContext) settings.autoContext = { includeOutgoing: true, includeBacklinks: false };
 			settings.autoContext.includeBacklinks = value;
 			await this.deps.plugin.saveSettings();
-			
-			// Update auto-context service
 			this.deps.contextManager.updateAutoContextOptions();
-			
-			// Rebuild auto-context for current file
 			const currentFile = this.deps.getCurrentFile();
 			if (currentFile) {
 				await this.deps.contextManager.rebuildAutoContext(currentFile);
@@ -212,16 +200,30 @@ export class ContextQuickPanel {
 			this.update();
 		});
 		this.toggleBacklinks = backlinkToggle;
+	}
 
-		// Document list
+	/**
+	 * Render the document list only (avoids recreating toggles)
+	 */
+	private renderDocumentList(): void {
+		if (!this.expandedEl) return;
+
+		// Find or create document list container
+		let docListContainer = this.expandedEl.querySelector('.nova-quick-panel-doc-container');
+		if (!docListContainer) {
+			docListContainer = this.expandedEl.createDiv({ cls: 'nova-quick-panel-doc-container' });
+		} else {
+			(docListContainer as HTMLElement).empty();
+		}
+
 		const context = this.deps.getCurrentContext();
 		const docs = context?.persistentDocs || [];
 
 		if (docs.length === 0) {
-			const emptyEl = this.expandedEl.createDiv({ cls: 'nova-quick-panel-empty' });
+			const emptyEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-empty' });
 			emptyEl.textContent = 'No documents in context. Link notes with [[wikilinks]] or enable auto-context above.';
 		} else {
-			const docListEl = this.expandedEl.createDiv({ cls: 'nova-quick-panel-doc-list' });
+			const docListEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-doc-list' });
 
 			docs.forEach((doc, index) => {
 				const docEl = docListEl.createDiv({ cls: 'nova-quick-panel-doc-item' });
@@ -234,37 +236,28 @@ export class ContextQuickPanel {
 					nameEl.textContent += `#${doc.property}`;
 				}
 
-				// Meta row: source badge, tokens, remove button
-				const metaEl = docEl.createDiv({ cls: 'nova-quick-panel-doc-meta' });
-
-				const source = doc.source || 'manual';
-				const sourceEl = metaEl.createSpan({ cls: 'nova-quick-panel-doc-source' });
-				sourceEl.textContent = source;
-				sourceEl.addClass(`nova-source-${source}`);
+				// Source badge
+				const sourceEl = docEl.createSpan({ cls: 'nova-quick-panel-doc-source' });
+				sourceEl.textContent = doc.source || 'manual';
 
 				// Token count
-				if (doc.tokenCount) {
-					const tokenEl = metaEl.createSpan({ cls: 'nova-quick-panel-doc-tokens' });
-					if (doc.isTruncated && doc.fullTokenCount) {
-						tokenEl.textContent = `· ${doc.tokenCount.toLocaleString()}/${doc.fullTokenCount.toLocaleString()} tokens`;
-					} else {
-						tokenEl.textContent = `· ${doc.tokenCount.toLocaleString()} tokens`;
-					}
+				const tokenEl = docEl.createSpan({ cls: 'nova-quick-panel-doc-tokens' });
+				const tokenCount = doc.tokenCount || 0;
+				const fullCount = doc.fullTokenCount;
+				if (fullCount && fullCount > tokenCount) {
+					tokenEl.textContent = `${tokenCount}/${fullCount}`;
+				} else {
+					tokenEl.textContent = `${tokenCount}`;
 				}
 
 				// Remove button
-				const removeEl = metaEl.createSpan({ cls: 'nova-quick-panel-doc-remove' });
-				removeEl.textContent = '✕';
-				removeEl.setAttr('title', `Remove ${doc.file.basename}`);
-				this.deps.registerDomEvent(removeEl, 'click', (e) => {
-					e.stopPropagation();
+				const removeEl = docEl.createDiv({ cls: 'nova-quick-panel-doc-remove' });
+				setIcon(removeEl, 'x');
+				this.deps.registerDomEvent(removeEl, 'click', () => {
 					void (async () => {
-						const file = this.deps.getCurrentFile();
-						if (file) {
-							await this.deps.contextManager.removePersistentDoc(file.path, doc.file.path);
-							await this.deps.refreshContext();
-							this.update();
-						}
+						await this.deps.contextManager.removeDocument(doc.file);
+						await this.deps.refreshContext();
+						this.update();
 					})();
 				});
 			});
@@ -296,6 +289,19 @@ export class ContextQuickPanel {
 		// Token count text
 		const budgetTextEl = budgetEl.createDiv({ cls: 'nova-budget-text' });
 		budgetTextEl.textContent = `${totalTokens.toLocaleString()} / ${contextLimit.toLocaleString()} tokens`;
+	}
+
+	/**
+	 * Render the expanded panel content (called once during construction)
+	 */
+	private renderExpandedContent(): void {
+		if (!this.expandedEl) return;
+
+		// Initialize toggles once
+		this.initToggles();
+
+		// Render document list (includes budget bar)
+		this.renderDocumentList();
 	}
 
 	/**
