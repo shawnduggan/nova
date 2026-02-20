@@ -40,6 +40,12 @@ export interface NovaSettings {
 		debugSettings: DebugSettings;
 	};
 	commands: CommandSuggestionsSettings;
+	autoContext?: {
+		/** Auto-include outgoing links (default: true) */
+		includeOutgoing: boolean;
+		/** Include backlinks (default: false) */
+		includeBacklinks: boolean;
+	};
 	features?: {
 		smartfill?: {
 			customCommands: CustomCommand[];
@@ -80,6 +86,10 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		showReleaseNotes: true,
 		lastSeenVersion: '',
 		customPromptHistory: []
+	},
+	autoContext: {
+		includeOutgoing: true,
+		includeBacklinks: false
 	},
 	licensing: {
 		supernovaLicenseKey: '',
