@@ -2,6 +2,9 @@
 
 import { TextEncoder, TextDecoder } from 'util';
 
+// Set NODE_ENV for tests to ensure debug features work correctly
+process.env.NODE_ENV = 'test';
+
 // Make TextEncoder and TextDecoder available globally
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;

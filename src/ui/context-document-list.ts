@@ -249,11 +249,23 @@ export class ContextDocumentList {
 				const suffix = doc.property ? `#${doc.property}` : '';
 				nameEl.textContent = `${doc.file.basename}${suffix}`;
 				nameEl.addClass('nova-context-doc-name');
-				nameEl.setAttr('title', `${doc.file.path} (read-only for editing)`);
 
-				const readOnlyEl = docInfoEl.createSpan({ cls: 'nova-context-readonly' });
-				readOnlyEl.textContent = 'Read-only';
-				readOnlyEl.addClass('nova-context-doc-readonly');
+				// Source badge (linked | backlink | manual)
+				const source = doc.source || 'manual';
+				const sourceEl = docInfoEl.createSpan({ cls: 'nova-context-source-badge' });
+				sourceEl.textContent = source;
+				sourceEl.addClass(`nova-context-source-${source}`);
+
+				// Token count with truncation indicator
+				const tokenEl = docInfoEl.createSpan({ cls: 'nova-context-token-count' });
+				if (doc.isTruncated && doc.fullTokenCount) {
+					tokenEl.textContent = `· ${(doc.tokenCount || 0).toLocaleString()}/${doc.fullTokenCount.toLocaleString()} tokens`;
+				} else if (doc.tokenCount) {
+					tokenEl.textContent = `· ${doc.tokenCount.toLocaleString()} tokens`;
+				}
+
+				// Tooltip with full path
+				nameEl.setAttr('title', `${doc.file.path} (${source})`);
 
 				const removeBtn = docItemEl.createEl('button', { cls: 'nova-context-doc-remove' });
 				removeBtn.textContent = '×';

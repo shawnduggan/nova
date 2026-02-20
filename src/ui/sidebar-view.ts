@@ -15,7 +15,7 @@ import { ContextManager } from './context-manager';
 import { ChatRenderer } from './chat-renderer';
 import { StreamingManager } from './streaming-manager';
 import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-menu';
-import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
+import { formatContextUsage, getContextWarningLevel, getContextTooltip, ContextUsage } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import {
@@ -371,6 +371,21 @@ export class NovaSidebarView extends ItemView {
 		
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
+
+		// Create quick panel at the top of input container (before input)
+		this.contextQuickPanel = new ContextQuickPanel({
+			app: this.app,
+			plugin: this.plugin,
+			container: this.inputContainer,
+			inputHandler: this.inputHandler,
+			contextManager: this.contextManager,
+			timeoutManager: this.timeoutManager,
+			getCurrentFile: () => this.currentFile,
+			getCurrentContext: () => this.currentContext,
+			refreshContext: () => this.refreshContext(),
+			registerDomEvent: (el, type, handler) => this.registerDomEvent(el as HTMLElement, type, handler as (this: HTMLElement, ev: Event) => void)
+		});
+		this.contextQuickPanel.createPanel();
 		
 		// Always create CommandSystem - FeatureManager handles enablement
 		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
@@ -392,16 +407,7 @@ export class NovaSidebarView extends ItemView {
 		// Create context indicator and preview using ContextManager
 		this.contextManager.createContextIndicator();
 
-		// Initialize extracted subcomponents
-		this.contextQuickPanel = new ContextQuickPanel({
-			app: this.app,
-			inputContainer: this.inputContainer,
-			inputHandler: this.inputHandler,
-			contextManager: this.contextManager,
-			timeoutManager: this.timeoutManager,
-			getCurrentFile: () => this.currentFile
-		});
-
+		// Initialize context document list (the drawer)
 		this.contextDocumentList = new ContextDocumentList({
 			contextManager: this.contextManager,
 			inputHandler: this.inputHandler,
@@ -771,22 +777,6 @@ export class NovaSidebarView extends ItemView {
 		this.handleSend().catch(error => { Logger.error('Failed to handle send:', error); });
 	}
 
-
-	private createContextPreview(): HTMLElement {
-		return this.contextQuickPanel.createPreview();
-	}
-
-	/**
-	 * Debounced version of updateLiveContextPreview for performance
-	 */
-	private debouncedUpdateContextPreview(): void {
-		this.contextQuickPanel.debouncedUpdate();
-	}
-
-	private updateLiveContextPreview(): void {
-		this.contextQuickPanel.updatePreview();
-	}
-
 	private findFileByName(nameOrPath: string): TFile | null {
 		// First try exact path match
 		let file = this.app.vault.getFileByPath(nameOrPath);
@@ -814,6 +804,7 @@ export class NovaSidebarView extends ItemView {
 
 	private updateContextIndicator(): void {
 		this.contextDocumentList.update();
+		this.contextQuickPanel?.update();
 	}
 
 	private async refreshContext(): Promise<void> {
@@ -1338,7 +1329,15 @@ USER REQUEST: ${processedMessage}`;
 			// Now restore context after chat is loaded (so missing file notifications persist)
 			await this.contextManager.restoreContextAfterChatLoad(targetFile);
 			
-			// Refresh the context UI after restoration to remove any stale references
+			// PHASE 3 FIX: Check again after async operation
+			if (this.currentFileLoadOperation !== operationId) {
+				return;
+			}
+			
+			// Populate auto-context from wikilinks (after restoring saved context)
+			await this.contextManager.populateAutoContext(targetFile);
+			
+			// Refresh the context UI after auto-context population
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
 			// Show document insights after loading conversation

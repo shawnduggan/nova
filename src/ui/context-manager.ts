@@ -6,6 +6,7 @@ import { App, TFile, Notice } from 'obsidian';
 import NovaPlugin from '../../main';
 import { calculateContextUsage, ContextUsage } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
+import { AutoContextService, ContextSource, AutoContextDocument } from '../core/auto-context';
 
 export interface DocumentReference {
 	/** The file being referenced */
@@ -19,6 +20,18 @@ export interface DocumentReference {
 	
 	/** Specific property to extract (e.g., "[[doc#property]]") */
 	property?: string;
+	
+	/** Source of this document in context (for auto-context) */
+	source?: ContextSource;
+	
+	/** Token count estimate */
+	tokenCount?: number;
+	
+	/** Full token count if truncated */
+	fullTokenCount?: number;
+	
+	/** Whether content is truncated */
+	isTruncated?: boolean;
 }
 
 export interface MultiDocContext {
@@ -53,11 +66,17 @@ export class ContextManager {
 	private currentOperationId: string | null = null; // Track current async operation
 	private sidebarView: { addWarningMessage: (message: string) => void } | null = null; // Reference to NovaSidebarView for adding files
 	private static readonly NOTICE_DURATION_MS = 5000;
+	
+	// Auto-context service
+	private autoContextService: AutoContextService;
+	// Track which documents were added by auto-context (so we don't remove manual ones)
+	private autoContextDocs: Map<string, Set<string>> = new Map();
 
 	constructor(plugin: NovaPlugin, app: App, container: HTMLElement) {
 		this.plugin = plugin;
 		this.app = app;
 		this.container = container;
+		this.autoContextService = new AutoContextService(app);
 	}
 
 	setSidebarView(sidebarView: { addWarningMessage: (message: string) => void }): void {
@@ -992,5 +1011,125 @@ export class ContextManager {
 		}
 		
 		return items;
+	}
+
+	// ============================================================================
+	// Auto-Context Methods
+	// ============================================================================
+
+	/**
+	 * Get the auto-context service (for external access to settings)
+	 */
+	getAutoContextService(): AutoContextService {
+		return this.autoContextService;
+	}
+
+	/**
+	 * Update auto-context options from plugin settings
+	 */
+	updateAutoContextOptions(): void {
+		const settings = this.plugin.settings;
+		this.autoContextService.setOptions({
+			includeOutgoing: settings.autoContext?.includeOutgoing ?? true,
+			includeBacklinks: settings.autoContext?.includeBacklinks ?? false
+		});
+	}
+
+	/**
+	 * Build and populate auto-context when a file is opened
+	 * Called from sidebar-view when switching files
+	 */
+	async populateAutoContext(file: TFile): Promise<void> {
+		// Update options from current settings
+		this.updateAutoContextOptions();
+		
+		const options = this.autoContextService.getOptions();
+		
+		// Skip if both toggles are off
+		if (!options.includeOutgoing && !options.includeBacklinks) {
+			return;
+		}
+
+		try {
+			// Get existing manual context (don't auto-add duplicates)
+			const existingDocs = this.persistentContext.get(file.path) || [];
+			const manualFiles = existingDocs
+				.filter(doc => doc.source === 'manual' || !doc.source)
+				.map(doc => doc.file);
+
+			// Build auto-context
+			const autoDocs = await this.autoContextService.buildAutoContext(file, manualFiles);
+
+			if (autoDocs.length === 0) {
+				return;
+			}
+
+			// Track which docs are auto-added for this file
+			const autoPaths = new Set<string>();
+			
+			// Convert AutoContextDocuments to DocumentReferences
+			const newRefs: DocumentReference[] = autoDocs.map(autoDoc => {
+				autoPaths.add(autoDoc.file.path);
+				return {
+					file: autoDoc.file,
+					isPersistent: true,
+					rawReference: autoDoc.section 
+						? `[[${autoDoc.file.basename}#${autoDoc.section}]]`
+						: `[[${autoDoc.file.basename}]]`,
+					property: autoDoc.section,
+					source: autoDoc.source,
+					tokenCount: autoDoc.tokenCount,
+					fullTokenCount: autoDoc.fullTokenCount,
+					isTruncated: autoDoc.isTruncated
+				};
+			});
+
+			// Merge with existing context (manual docs take precedence for source badge)
+			const mergedRefs = [...existingDocs];
+			for (const newRef of newRefs) {
+				const exists = mergedRefs.some(ref => ref.file.path === newRef.file.path);
+				if (!exists) {
+					mergedRefs.push(newRef);
+				}
+			}
+
+			// Update persistent context
+			this.persistentContext.set(file.path, mergedRefs);
+			this.autoContextDocs.set(file.path, autoPaths);
+
+			// Persist to conversation manager
+			if (this.plugin.conversationManager) {
+				for (const ref of newRefs) {
+					await this.plugin.conversationManager.addContextDocument(file, ref.file.path);
+				}
+			}
+		} catch (error) {
+			Logger.warn('Failed to populate auto-context:', error);
+		}
+	}
+
+	/**
+	 * Check if a document was auto-added (vs manually added)
+	 */
+	isAutoContextDocument(filePath: string, docPath: string): boolean {
+		const autoPaths = this.autoContextDocs.get(filePath);
+		return autoPaths?.has(docPath) ?? false;
+	}
+
+	/**
+	 * Rebuild auto-context when toggles change
+	 */
+	async rebuildAutoContext(file: TFile): Promise<void> {
+		// Clear existing auto-context for this file (keep manual ones)
+		const existingDocs = this.persistentContext.get(file.path) || [];
+		const manualDocs = existingDocs.filter(doc => 
+			doc.source === 'manual' || !doc.source || !this.isAutoContextDocument(file.path, doc.file.path)
+		);
+		
+		this.persistentContext.set(file.path, manualDocs);
+		this.autoContextDocs.delete(file.path);
+
+		// Re-populate with new settings
+		await this.populateAutoContext(file);
 	}
 }
