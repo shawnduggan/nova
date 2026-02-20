@@ -217,7 +217,7 @@ describe('AutoContextService', () => {
                 links: [{ link: 'linked.md' }]
             });
             (mockApp.metadataCache.getFirstLinkpathDest as jest.Mock).mockReturnValue(linkedFile);
-            (mockApp.vault.read).mockResolvedValue('Short content');
+            (mockApp.vault.cachedRead).mockResolvedValue('Short content');
             
             const result = await service.buildAutoContext(file);
             expect(result).toHaveLength(1);
@@ -232,7 +232,7 @@ describe('AutoContextService', () => {
                 links: [{ link: 'empty.md' }]
             });
             (mockApp.metadataCache.getFirstLinkpathDest as jest.Mock).mockReturnValue(linkedFile);
-            (mockApp.vault.read).mockResolvedValue('');
+            (mockApp.vault.cachedRead).mockResolvedValue('');
             
             const result = await service.buildAutoContext(file);
             expect(result).toHaveLength(0);
@@ -249,7 +249,7 @@ describe('truncateDocumentContent', () => {
 
     test('should return null for empty content', async () => {
         const file = createMockTFile('/test/large.md');
-        (mockApp.vault.read).mockResolvedValue('');
+        (mockApp.vault.cachedRead).mockResolvedValue('');
         
         const result = await truncateDocumentContent(
             mockApp as any,
@@ -264,7 +264,7 @@ describe('truncateDocumentContent', () => {
         const file = createMockTFile('/test/large.md');
         const content = '# Title\n\n## Section 1\n\nContent here\n\n## Section 2\n\nMore content\n\n'.repeat(50);
         
-        (mockApp.vault.read).mockResolvedValue(content);
+        (mockApp.vault.cachedRead).mockResolvedValue(content);
         (mockApp.metadataCache.getFileCache as jest.Mock).mockReturnValue({
             headings: [
                 { heading: 'Title', level: 1, position: { start: { line: 0 }, end: { line: 1 } } },
@@ -290,7 +290,7 @@ describe('truncateDocumentContent', () => {
         const file = createMockTFile('/test/large.md');
         const content = '# Title\n\n## Section 1\n\nContent for section 1\n\n## Section 2\n\nContent for section 2\n\n';
         
-        (mockApp.vault.read).mockResolvedValue(content);
+        (mockApp.vault.cachedRead).mockResolvedValue(content);
         (mockApp.metadataCache.getFileCache as jest.Mock).mockReturnValue({
             headings: [
                 { heading: 'Title', level: 1, position: { start: { line: 0 }, end: { line: 1 } } },
@@ -324,7 +324,7 @@ describe('truncateDocumentContent', () => {
             existingContent
         );
         
-        expect(mockApp.vault.read).not.toHaveBeenCalled();
+        expect(mockApp.vault.cachedRead).not.toHaveBeenCalled();
         expect(result).not.toBeNull();
     });
 });

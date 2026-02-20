@@ -1093,6 +1093,9 @@ export class ContextManager {
 				}
 			}
 
+			// Store merged refs so refreshContextFromStorage can find them
+			this.persistentContext.set(file.path, mergedRefs);
+
 			// Update session-only context (auto-context is ephemeral, rebuilt each time)
 			this.autoContextDocs.set(file.path, autoPaths);
 			// Note: We do NOT persist auto-context documents to conversationManager.

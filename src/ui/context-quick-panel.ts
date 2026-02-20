@@ -263,7 +263,8 @@ export class ContextQuickPanel {
 			});
 		}
 
-		// Budget bar
+		// Budget bar (remove existing to prevent DOM duplication on re-render)
+		this.expandedEl.querySelector('.nova-quick-panel-budget')?.remove();
 		const budgetEl = this.expandedEl.createDiv({ cls: 'nova-quick-panel-budget' });
 		
 		const usage = context?.totalContextUsage;

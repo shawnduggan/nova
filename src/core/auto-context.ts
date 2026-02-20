@@ -6,6 +6,7 @@
  */
 
 import { App, TFile, CachedMetadata, HeadingCache } from 'obsidian';
+import { Logger } from '../utils/logger';
 
 /** Source of a context document */
 export type ContextSource = 'linked' | 'backlink' | 'manual';
@@ -114,7 +115,7 @@ export async function truncateDocumentContent(
 ): Promise<TruncationResult | null> {
 	try {
 		// Use existing content if provided, otherwise read from disk
-		const content = existingContent || await app.vault.read(file);
+		const content = existingContent || await app.vault.cachedRead(file);
 		
 		if (content.length < options.minContentLength) {
 			return null;
@@ -214,6 +215,7 @@ export async function truncateDocumentContent(
 		};
 		
 	} catch (error) {
+		Logger.debug('Failed to truncate document content', { error });
 		return null;
 	}
 }
@@ -365,7 +367,7 @@ export class AutoContextService {
 		section?: string
 	): Promise<AutoContextDocument | null> {
 		try {
-			const content = await this.app.vault.read(file);
+			const content = await this.app.vault.cachedRead(file);
 			
 			if (content.length < this.options.minContentLength) {
 				return null;
@@ -417,6 +419,7 @@ export class AutoContextService {
 				};
 			}
 		} catch (error) {
+			Logger.debug('Failed to create auto-context document', { error });
 			return null;
 		}
 	}
