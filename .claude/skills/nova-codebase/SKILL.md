@@ -1,7 +1,7 @@
 ---
 name: nova-codebase
 description: Auto-generated Nova codebase map. Regenerate with /project:sync-codebase
-generated: 2026-02-07
+generated: 2026-02-21
 ---
 
 # Nova Codebase Map
@@ -15,8 +15,7 @@ generated: 2026-02-07
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `context-limits.ts` | Token and context window limits per AI model | `ContextLimit`, `ProviderContextLimits`, `getContextLimit()`, `getProviderContextLimits()`, `getModelMaxOutputTokens()`, `hasKnownContextLimit()` |
-| `models.ts` | Centralized model definitions for all AI providers | `ModelDefinition`, `ModelConfig`, `getProviderTypeForModel()`, `getAvailableModels()` |
+| `models.ts` | Centralized model definitions and context limits for all AI providers | `ModelDefinition`, `ModelConfig`, `ContextLimit`, `ProviderContextLimits`, `getProviderTypeForModel()`, `getAvailableModels()`, `OLLAMA_DEFAULT_CONTEXT`, `getContextLimit()`, `getProviderContextLimits()`, `getModelMaxOutputTokens()`, `hasKnownContextLimit()` |
 | `provider-manager.ts` | Manages AI provider instances and model selection | `AIProviderManager` |
 | `types.ts` | Type definitions for AI providers, messages, and streaming | `AIMessage`, `AIStreamResponse`, `AIProvider`, `AIGenerationOptions`, `ProviderConfig`, `AIProviderSettings`, `ProviderType`, `PlatformSettings` |
 
@@ -34,6 +33,7 @@ generated: 2026-02-07
 | File | Description | Key Exports |
 |------|-------------|-------------|
 | `ai-intent-classifier.ts` | AI-powered intent classification for ambiguous inputs | `UserIntent`, `AIIntentClassifier` |
+| `auto-context.ts` | Automatic context population from wikilinks | `ContextSource`, `AutoContextDocument`, `AutoContextOptions`, `DEFAULT_AUTO_CONTEXT_OPTIONS`, `estimateTokens()`, `extractSectionContent()`, `TruncationResult`, `truncateDocumentContent()`, `AutoContextService` |
 | `command-parser.ts` | Parses user input into structured edit commands | `CommandParser` |
 | `context-builder.ts` | Builds document context for AI prompts | `GeneratedPrompt`, `ContextBuilder` |
 | `context-calculator.ts` | Calculates token usage and context limits | `ContextUsage`, `estimateTokens()`, `calculateContextUsage()`, `getRemainingContextPercentage()`, `getContextWarningLevel()`, `formatContextUsage()`, `getContextTooltip()` |
@@ -62,7 +62,7 @@ generated: 2026-02-07
 | File | Description | Key Exports |
 |------|-------------|-------------|
 | `constants.ts` | Constants for Nova Commands system | `INSIGHT_PANEL`, `MARGIN_INDICATORS`, `UI`, `COMMANDS`, `OPPORTUNITY_TITLES`, `CSS_CLASSES`, `CM_SELECTORS` |
-| `types.ts` | Type definitions for the Nova Commands system | `MarkdownCommand`, `TemplateVariable`, `SmartContext`, `CommandExecutionContext`, `ExecutionOptions`, `DocumentType`, `CommandSuggestionsSettings`, `TimingDecision`, `TypingMetrics`, `CommandRegistry`, `InsightDetection` |
+| `types.ts` | Type definitions for the Nova Commands system | `MarkdownCommand`, `TemplateVariable`, `SmartContext`, `CommandExecutionContext`, `ExecutionOptions`, `DocumentType`, `CommandSuggestionsSettings`, `ProgressiveDisclosureSettings`, `SmartTimingSettings`, `TimingDecision`, `TypingMetrics`, `CommandRegistry`, `InsightDetection`, `responseTimeToMs()`, `toProgressiveDisclosureSettings()`, `toSmartTimingSettings()` |
 
 ### src/features/commands/core/
 
@@ -76,9 +76,9 @@ generated: 2026-02-07
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `InsightPanel.ts` | Full intelligence panel for command selection | `SpecificIssue`, `IndicatorOpportunity`, `InsightPanel` |
-| `MarginIndicators.ts` | Intelligent margin indicators for command suggestions | `SpecificIssue`, `IndicatorOpportunity`, `MarginIndicators` |
-| `codemirror-decorations.ts` | CodeMirror decorations for margin indicators | `IndicatorOpportunity`, `addIndicatorEffect`, `removeIndicatorEffect`, `clearIndicatorsEffect`, `IndicatorWidget`, `CodeMirrorIndicatorManager` |
+| `codemirror-decorations.ts` | CodeMirror decorations for margin indicators | `addIndicatorEffect`, `removeIndicatorEffect`, `clearIndicatorsEffect`, `createIndicatorExtension()`, `CodeMirrorIndicatorManager` |
+| `InsightPanel.ts` | Full intelligence panel for command selection | `InsightPanel` |
+| `MarginIndicators.ts` | Intelligent margin indicators for command suggestions | `MarginIndicators` |
 
 ### src/licensing/
 
@@ -93,14 +93,17 @@ generated: 2026-02-07
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `chat-renderer.ts` | Renders conversation messages in sidebar | `ChatRenderer`, `MessageOptions` |
+| `chat-renderer.ts` | Renders conversation messages in sidebar | `ChatRenderer` |
 | `command-system.ts` | Handles slash command detection and picker UI | `CommandSystem` |
 | `context-manager.ts` | Manages multi-document context in sidebar | `DocumentReference`, `MultiDocContext`, `ContextManager` |
+| `context-quick-panel.ts` | Collapsible quick panel for context controls | `ContextQuickPanelDeps`, `ContextQuickPanel` |
 | `custom-command-modal.ts` | Modal for creating/editing custom commands | `CustomCommandModal` |
-| `custom-instruction-modal.ts` | Modal for custom editing instructions | `CustomInstructionModal` |
+| `custom-instruction-modal.ts` | Modal for custom editing instructions with prompt history | `CustomInstructionModal` |
 | `input-handler.ts` | Handles text input and keyboard events | `InputHandler` |
 | `provider-manager.ts` | UI components for provider/model selection | `ProviderManager` |
+| `release-notes-view.ts` | Full-page tab showing what's new after an update | `VIEW_TYPE_RELEASE_NOTES`, `ReleaseNotesView` |
 | `selection-context-menu.ts` | Context menu for text selection actions | `SelectionAction`, `SELECTION_ACTIONS`, `SelectionContextMenu` |
+| `sidebar-events.ts` | Custom DOM events for decoupled sidebar communication | `SIDEBAR_PROCESSING_EVENT`, `SIDEBAR_CHAT_MESSAGE_EVENT`, `SidebarProcessingDetail`, `SidebarChatMessageType`, `SidebarChatMessageDetail`, `SidebarProcessingEvent`, `SidebarChatMessageEvent`, `dispatchSidebarProcessing()`, `dispatchSidebarChatMessage()`, `isSidebarAvailable()` |
 | `sidebar-view.ts` | Main sidebar view with chat interface | `VIEW_TYPE_NOVA_SIDEBAR`, `NovaSidebarView` |
 | `streaming-manager.ts` | Manages AI response streaming to editor | `StreamingOptions`, `ActionType`, `StreamingManager` |
 | `tone-selection-modal.ts` | Modal for selecting rewrite tone | `ToneOption`, `TONE_OPTIONS`, `ToneSelectionModal` |
@@ -112,13 +115,15 @@ generated: 2026-02-07
 |------|-------------|-------------|
 | `logger.ts` | Centralized logging utility with levels | `LogLevel`, `Logger`, `ScopedLogger` |
 | `timeout-manager.ts` | Obsidian-compliant timeout management | `TimeoutManager` |
+| `version.ts` | Version utilities for semver comparison | `isVersionNewer()` |
 
 ### src/ (root)
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `constants.ts` | Shared constants and magic strings | `NOVA_CONVERSATIONS_STORAGE_KEY`, `VIEW_TYPE_NOVA_SIDEBAR`, `NOVA_STAR_ICON`, `NOVA_SUPERNOVA_ICON`, `PROVIDER_*`, `CHATGPT_ALIAS`, `GEMINI_ALIAS` |
-| `settings.ts` | Plugin settings UI and configuration | `CustomCommand`, `NovaSettings`, `DEFAULT_SETTINGS`, `NovaSettingTab`, `ConfirmModal` |
+| `constants.ts` | Shared constants and magic strings | `NOVA_CONVERSATIONS_STORAGE_KEY`, `NOVA_API_KEYS_SALT`, `VIEW_TYPE_NOVA_SIDEBAR`, `NOVA_STAR_ICON`, `NOVA_SUPERNOVA_ICON`, `PROVIDER_*`, `CHATGPT_ALIAS`, `GEMINI_ALIAS`, `CUSTOM_PROMPT_HISTORY_MAX`, `CHALLENGE_SYSTEM_PROMPT` |
+| `release-notes.ts` | Release notes content for each version | `RELEASE_NOTES`, `getReleaseNotes()` |
+| `settings.ts` | Plugin settings UI and configuration | `CustomCommand`, `NovaSettings`, `DEFAULT_SETTINGS`, `NovaSettingTab` |
 
 ## Component Dependencies
 
@@ -128,17 +133,24 @@ generated: 2026-02-07
 - `./types` - AIProvider, ProviderType, AIMessage, AIGenerationOptions, AIStreamResponse
 - `./providers/claude`, `./providers/openai`, `./providers/google`, `./providers/ollama`
 - `./models` - getProviderTypeForModel
-- `./context-limits` - getModelMaxOutputTokens
+- `../settings` - NovaSettings
+- `../licensing/feature-manager` - FeatureManager
+- `../utils/timeout-manager` - TimeoutManager
 
 **providers/*.ts** import from:
 - `../types` - AIProvider, AIMessage, AIStreamResponse, ProviderConfig
+- `../../utils/logger` - Logger
+- `../../utils/timeout-manager` - TimeoutManager
 - `obsidian` - requestUrl
+
+**models.ts** imports from:
+- `../settings` - NovaSettings
 
 ### Core Layer (src/core/)
 
 **document-engine.ts** imports from:
 - `./types` - DocumentContext, EditResult, EditCommand, HeadingInfo, EditOptions
-- `./conversation-manager` - ConversationManager, DataStore
+- `./conversation-manager` - ConversationManager
 - `../utils/logger` - Logger
 - `obsidian` - App, Editor, MarkdownView, TFile, EditorPosition
 
@@ -154,65 +166,149 @@ generated: 2026-02-07
 - `../utils/logger` - Logger
 - `./intent-detector` - IntentDetector
 
+**auto-context.ts** imports from:
+- `../utils/logger` - Logger
+- `obsidian` - App, TFile, CachedMetadata
+
+**context-calculator.ts** imports from:
+- `../ai/models` - getContextLimit
+
 **commands/*.ts** import from:
 - `../document-engine` - DocumentEngine
 - `../context-builder` - ContextBuilder, GeneratedPrompt
 - `../../ai/provider-manager` - AIProviderManager
 - `../types` - EditCommand, EditResult, DocumentContext
 
+**selection-edit-command.ts** imports from:
+- `../../../main` - NovaPlugin
+- `../../utils/logger` - Logger
+- `obsidian` - Editor
+
 ### Features Layer (src/features/commands/)
 
 **core/CommandEngine.ts** imports from:
-- `../../../utils/logger` - Logger
-- `../../../ui/streaming-manager` - StreamingManager
+- `../../../../main` - NovaPlugin
 - `../../../ai/provider-manager` - AIProviderManager
 - `../../../core/context-builder` - ContextBuilder
 - `../../../core/document-engine` - DocumentEngine
+- `../../../ui/streaming-manager` - StreamingManager
+- `../../../utils/logger` - Logger
 - `../types` - MarkdownCommand, CommandExecutionContext, SmartContext, ExecutionOptions, TemplateVariable
 
 **core/SmartTimingEngine.ts** imports from:
+- `../../../../main` - NovaPlugin
 - `../../../utils/logger` - Logger
-- `./SmartVariableResolver` - SmartVariableResolver
+- `../../../utils/timeout-manager` - TimeoutManager
 - `../types` - DocumentType, SmartTimingSettings, TimingDecision, TypingMetrics
+- `./SmartVariableResolver` - SmartVariableResolver
+
+**core/SmartVariableResolver.ts** imports from:
+- `../../../../main` - NovaPlugin
+- `../../../utils/logger` - Logger
+- `../types` - SmartContext, TemplateVariable
+- `obsidian` - Editor, MarkdownView
 
 **ui/MarginIndicators.ts** imports from:
-- `../core/SmartVariableResolver` - SmartVariableResolver
-- `../core/CommandEngine` - CommandEngine, MarkerInsight
+- `../../../../main` - NovaPlugin
+- `../../../utils/logger` - Logger
+- `../../../utils/timeout-manager` - TimeoutManager
+- `../core/CommandEngine` - CommandEngine
 - `../core/SmartTimingEngine` - SmartTimingEngine
-- `./InsightPanel` - InsightPanel
+- `../core/SmartVariableResolver` - SmartVariableResolver
+- `../types` - MarkdownCommand, InsightDetection
 - `./codemirror-decorations` - CodeMirrorIndicatorManager
+- `./InsightPanel` - InsightPanel
+- `@codemirror/view` - EditorView
+
+**ui/InsightPanel.ts** imports from:
+- `../../../../main` - NovaPlugin
+- `../../../utils/logger` - Logger
+- `../../../utils/timeout-manager` - TimeoutManager
+- `../constants` - INSIGHT_PANEL, CSS_CLASSES
+- `../core/CommandEngine` - CommandEngine
+- `../types` - MarkdownCommand, InsightDetection
+
+**ui/codemirror-decorations.ts** imports from:
+- `../../../../main` - NovaPlugin
+- `../../../utils/logger` - Logger
+- `../types` - InsightDetection
+- `@codemirror/state` - StateEffect, StateField
+- `@codemirror/view` - Decoration, EditorView, WidgetType
 
 ### UI Layer (src/ui/)
 
 **sidebar-view.ts** imports from:
-- `../core/document-analysis` - DocumentAnalyzer
-- `../core/types` - EditCommand, EditResult
-- `./context-manager` - ContextManager, MultiDocContext
+- `../../main` - NovaPlugin
 - `../ai/models` - getAvailableModels, getProviderTypeForModel
 - `../ai/types` - ProviderType
-- `./input-handler`, `./command-system`, `./chat-renderer`, `./streaming-manager`
-- `./selection-context-menu` - SelectionContextMenu, SELECTION_ACTIONS
 - `../core/context-calculator` - formatContextUsage, getContextWarningLevel
-- `../utils/logger`, `../utils/timeout-manager`
+- `../core/document-analysis` - DocumentAnalyzer
+- `../core/types` - EditCommand, EditResult, ConversationMessage
+- `../utils/logger` - Logger
+- `../utils/timeout-manager` - TimeoutManager
+- `./chat-renderer`, `./command-system`, `./context-manager`, `./context-quick-panel`
+- `./input-handler`, `./selection-context-menu`, `./sidebar-events`, `./streaming-manager`
+
+**context-manager.ts** imports from:
+- `../../main` - NovaPlugin
+- `../core/auto-context` - AutoContextService, AutoContextDocument
+- `../core/context-calculator` - calculateContextUsage
+- `../utils/logger` - Logger
+- `obsidian` - TFile
+
+**context-quick-panel.ts** imports from:
+- `../../main` - NovaPlugin
+- `../core/context-calculator` - formatContextUsage, getContextWarningLevel
+- `../utils/logger` - Logger
+- `../utils/timeout-manager` - TimeoutManager
+- `./context-manager` - ContextManager
+- `./input-handler` - InputHandler
 
 **command-system.ts** imports from:
+- `../../main` - NovaPlugin
 - `../features/commands/core/CommandEngine` - CommandEngine
 - `../features/commands/core/SmartVariableResolver` - SmartVariableResolver
 - `../features/commands/types` - MarkdownCommand
-- `../utils/logger`, `../utils/timeout-manager`
+- `../utils/logger` - Logger
+- `../utils/timeout-manager` - TimeoutManager
+
+**input-handler.ts** imports from:
+- `../../main` - NovaPlugin
+- `../utils/logger` - Logger
+- `../utils/timeout-manager` - TimeoutManager
+- `./command-system` - CommandSystem
+- `./context-manager` - ContextManager
+- `./wikilink-suggest` - NovaWikilinkAutocomplete
 
 **streaming-manager.ts** imports from:
+- `../../main` - NovaPlugin
 - `../utils/logger` - Logger
 - `../utils/timeout-manager` - TimeoutManager
 - `obsidian` - Editor, Notice, EditorPosition
 
 **selection-context-menu.ts** imports from:
-- `../features/commands/core/CommandEngine` - CommandEngine
+- `../../main` - NovaPlugin
+- `../constants` - CHALLENGE_SYSTEM_PROMPT
 - `../core/commands/selection-edit-command` - SelectionEditCommand
-- `./tone-selection-modal` - ToneSelectionModal
+- `../features/commands/core/CommandEngine` - CommandEngine
+- `../utils/logger` - Logger
 - `./custom-instruction-modal` - CustomInstructionModal
-- `./sidebar-view`, `./streaming-manager`
-- `../utils/logger`
+- `./sidebar-events` - dispatchSidebarProcessing, dispatchSidebarChatMessage
+- `./streaming-manager` - StreamingManager
+- `./tone-selection-modal` - ToneSelectionModal
+
+**sidebar-events.ts** imports from:
+- (no local imports - leaf module)
+
+**chat-renderer.ts** imports from:
+- `../../main` - NovaPlugin
+- `../utils/logger` - Logger
+- `../utils/timeout-manager` - TimeoutManager
+
+**provider-manager.ts** imports from:
+- `../../main` - NovaPlugin
+- `../ai/models` - getAvailableModels
+- `../utils/logger` - Logger
 
 ### Licensing Layer (src/licensing/)
 
@@ -232,6 +328,8 @@ generated: 2026-02-07
 │                    UI Layer                      │
 │  sidebar-view, input-handler, streaming-manager  │
 │  chat-renderer, context-manager, command-system  │
+│  context-quick-panel, selection-context-menu     │
+│  sidebar-events, provider-manager                │
 └─────────────────────┬───────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────┐
@@ -244,19 +342,21 @@ generated: 2026-02-07
 │                   Core Layer                     │
 │  document-engine, conversation-manager           │
 │  prompt-builder, context-builder, intent-*       │
+│  auto-context, context-calculator                │
 │  commands/* (add, edit, delete, grammar, etc)    │
 └─────────────────────┬───────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────┐
 │                    AI Layer                      │
-│  provider-manager, models, context-limits        │
+│  provider-manager, models                        │
 │  providers/* (claude, openai, google, ollama)    │
 └─────────────────────┬───────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────┐
 │                 Utils/Licensing                  │
-│  logger, timeout-manager, feature-manager        │
-│  license-validator, crypto-service               │
+│  logger, timeout-manager, version                │
+│  feature-manager, license-validator              │
+│  crypto-service                                  │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -264,16 +364,16 @@ generated: 2026-02-07
 
 | Commit | Summary |
 |--------|---------|
-| b56bd00 | 1.1.0 |
-| a18c728 | fix(claude): reorder Opus 4.6 to top of model list and update legacy model IDs |
-| 3cd4821 | docs(readme): update Smart fill casing, dates, and context menu entry |
-| 02baccd | feat(smartfill): add Smart fill to right-click context menu |
-| cbd5222 | chore(smartfill): move availability dates earlier (Mar 1 / May 1) |
-| 8063fe1 | docs(readme): revise tone and add Smart Fill documentation |
-| 9884fb0 | fix(smartfill): align button tooltip and icon color with settings terminology |
-| ce80bfe | refactor(ui): anchor privacy indicator next to token usage |
-| 43fb160 | refactor(smartfill): rename "commands" feature to "smartfill" and fix palette bug |
-| 5eecbb6 | chore(codebase): add @file headers to commands feature files |
+| 1e0d23e | refactor(ui): remove context drawer, add quick panel mobile support |
+| b1c6814 | fix: address code review - persist auto-context, use cachedRead, fix DOM leak |
+| 895b452 | fix: address PR review comments - tests, CSS, backlinks, performance |
+| e630f5f | feat: Auto-Context System and Sidebar Quick Panel (v1.3) |
+| a330cde | fix(sidebar): remove insight depth button and clean up orphaned symbols |
+| dfedfb2 | refactor: decouple SelectionContextMenu, extract sidebar subcomponents |
+| e414eef | fix(deps): pin codemirror packages to obsidian peer versions |
+| fe03951 | fix(deps): pin obsidian types and add missing codemirror deps |
+| a156a61 | chore(tooling): add hygiene checks to pr-review workflow |
+| 5f6bae2 | refactor: merge models.ts and context-limits.ts into single source of truth (#8) |
 
 ---
 
