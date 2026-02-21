@@ -1,6 +1,6 @@
 {
   "name": "nova",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Your AI writing partner that edits exactly where you want - select text and transform, or chat at cursor position.",
   "main": "main.js",
   "scripts": {
