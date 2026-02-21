@@ -54,9 +54,14 @@ Smart fill pairs naturally with the Templater plugin. Use Templater for dynamic 
 
 Ask for content at your cursor position. "Add a methodology section here" writes exactly where your cursor is, not in a separate chat window.
 
-### Document Context
+### Auto-Context: Your Knowledge Graph, Built In
 
-Nova reads your full document to generate content that flows with existing structure and style.
+Nova automatically understands your knowledge graph. When you open a note, Nova resolves its **outgoing wikilinks** and optionally its **backlinks**, pulling linked notes into the AI's context window — no manual references in chat required.
+
+- **Section links** like `[[Note#Heading]]` include only that section, keeping token usage tight.
+- **Large documents** are intelligently truncated to their most relevant sections.
+- **Backlinks** can be enabled for bidirectional awareness.
+- The **Context Quick Panel** at the top of the sidebar shows everything: document list, token counts, budget bar, and toggle controls.
 
 ---
 
@@ -120,7 +125,6 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 ## Roadmap
 
 **Coming Soon** (Early Access → Free Tier):
-- **Context-Aware Editing** – AI that reads your linked notes automatically
 - **Writing Modes** – Context-aware tone shifting (blog → academic)
 - **Style Mirroring** – AI that matches your writing voice
 
