@@ -187,23 +187,28 @@ export class StreamingManager {
             return;
         }
 
-        try {
-            // Stop any existing animation before starting a new one
-            this.stopDotsAnimation();
+        // Stop any existing animation before starting a new one
+        this.stopDotsAnimation();
 
-            // Select random phrase based on action type for initial display
-            const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
-            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+        // Defer notice creation so it survives editor.replaceRange() DOM updates.
+        // Obsidian evicts Notices when the editor re-renders, so we wait for the
+        // DOM to settle before creating the notice element.
+        this.plugin.registerInterval(window.setTimeout(() => {
+            try {
+                // Select random phrase based on action type for initial display
+                const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
 
-            // Create notice with duration=0 (persist until manually dismissed via stopDotsAnimation())
-            this.thinkingNotice = new Notice(`${randomPhrase}.`, 0);
+                // Create notice with duration=0 (persist until manually dismissed via stopDotsAnimation())
+                this.thinkingNotice = new Notice(`${randomPhrase}.`, 0);
 
-            // Start cycling animation with all phrases for this action type
-            this.startNoticeDotsAnimation(actionType);
+                // Start cycling animation with all phrases for this action type
+                this.startNoticeDotsAnimation(actionType);
 
-        } catch (error) {
-            Logger.warn('Failed to create thinking notice:', error);
-        }
+            } catch (error) {
+                Logger.warn('Failed to create thinking notice:', error);
+            }
+        }, 50) as unknown as number);
     }
 
     /**

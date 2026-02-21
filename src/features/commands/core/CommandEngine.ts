@@ -109,12 +109,12 @@ export class CommandEngine {
 
         const markers = this.detectMarkers(documentContext.content);
 
-        // Search by instruction first (more reliable), fall back to line number
-        const targetMarker = instruction
-            ? markers.find(m => m.instruction === instruction)
-            : markers.find(m => m.line === lineNumber);
+        // Search by instruction first (most reliable), then by line number
+        const targetMarker = (instruction && markers.find(m => m.instruction === instruction))
+            || markers.find(m => m.line === lineNumber);
 
         if (!targetMarker) {
+            this.logger.warn(`No marker found — line: ${lineNumber}, instruction: "${instruction}", detected: ${markers.map(m => `L${m.line}:"${m.instruction}"`).join(', ')}`);
             new Notice('No placeholder found at this line');
             return;
         }
@@ -284,14 +284,14 @@ export class CommandEngine {
 
                     this.logger.info(`Filling marker ${markerNum}/${sortedMarkers.length} at line ${unfilledMarker.line + 1}: ${unfilledMarker.instruction}`);
 
+                    // Calculate positions for marker replacement
+                    const startPos = activeEditor.offsetToPos(unfilledMarker.position);
+                    const endPos = activeEditor.offsetToPos(unfilledMarker.position + unfilledMarker.length);
+
                     // Show thinking notice for this marker
                     this.streamingManager.showThinkingNotice('edit', 'notice');
 
                     const prompt = this.buildSingleFillPrompt(currentDocContext.content, unfilledMarker);
-
-                    // Calculate positions for marker replacement
-                    const startPos = activeEditor.offsetToPos(unfilledMarker.position);
-                    const endPos = activeEditor.offsetToPos(unfilledMarker.position + unfilledMarker.length);
 
                     // Start streaming to replace the marker with typewriter effect
                     const streaming = this.streamingManager.startStreaming(
@@ -330,7 +330,12 @@ export class CommandEngine {
 
                     // Complete the stream if not aborted
                     if (!signal.aborted) {
-                        streaming.updateStream(fullContent, true);
+                        if (fullContent.length === 0) {
+                            this.logger.warn(`Empty response for marker ${markerNum} — skipping replacement`);
+                            streaming.stopStream();
+                        } else {
+                            streaming.updateStream(fullContent, true);
+                        }
                         this.streamingManager.stopAnimation();
 
                         // Mark this marker as filled

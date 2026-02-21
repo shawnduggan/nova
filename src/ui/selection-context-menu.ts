@@ -251,8 +251,8 @@ export class SelectionContextMenu {
         };
 
         try {
-            // Show notice BEFORE editor modifications — editor.replaceRange inside
-            // startStreaming triggers async DOM updates that evict Obsidian Notices
+            // Show thinking notice — internally deferred so it survives the
+            // editor.replaceRange() DOM updates inside startStreaming
             this.streamingManager.showThinkingNotice(actionId as ActionType, 'notice');
 
             // Start the unified streaming system with notice animations
