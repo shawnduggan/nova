@@ -3736,6 +3736,7 @@
 /* ---- Context Quick Panel ---- */
 .nova-quick-panel {
     border-bottom: 1px solid var(--background-modifier-border);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
     background: var(--background-primary);
 }
 
