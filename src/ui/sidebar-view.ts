@@ -25,12 +25,12 @@ import {
 	SidebarChatMessageEvent
 } from './sidebar-events';
 import { ContextQuickPanel } from './context-quick-panel';
-import { ContextDocumentList } from './context-document-list';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
 export class NovaSidebarView extends ItemView {
 	plugin: NovaPlugin;
+	private wrapperEl!: HTMLElement;
 	private chatContainer!: HTMLElement;
 	private inputContainer!: HTMLElement;
 	private currentFile: TFile | null = null;
@@ -51,7 +51,6 @@ export class NovaSidebarView extends ItemView {
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
 	private contextQuickPanel!: ContextQuickPanel;
-	private contextDocumentList!: ContextDocumentList;
 	private providerDropdown: DropdownComponent | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
 	
@@ -73,7 +72,6 @@ export class NovaSidebarView extends ItemView {
 	
 	// Context system delegation
 	private get contextPreview() { return this.contextManager?.contextPreview; }
-	private get contextIndicator() { return this.contextManager?.contextIndicator; }
 	
 	// Component references
 	private commandPicker!: HTMLElement;
@@ -152,7 +150,8 @@ export class NovaSidebarView extends ItemView {
 		// Mobile access is now available to all users with their own API keys
 		
 		// Create wrapper with proper flex layout
-		const wrapperEl = container.createDiv({ cls: 'nova-wrapper nova-sidebar-wrapper' });
+		this.wrapperEl = container.createDiv({ cls: 'nova-wrapper nova-sidebar-wrapper' });
+		const wrapperEl = this.wrapperEl;
 		
 		// Header with provider info
 		const headerEl = wrapperEl.createDiv({ cls: 'nova-header nova-sidebar-header' });
@@ -186,9 +185,6 @@ export class NovaSidebarView extends ItemView {
 
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
-		
-		// Register global document click handler for context drawer - do this once during initialization
-		this.setupContextDrawerCloseHandler();
 		
 		// Register event listener for active file changes
 		this.registerEvent(
@@ -372,11 +368,11 @@ export class NovaSidebarView extends ItemView {
 		// Create the input interface using new InputHandler
 		this.inputHandler.createInputInterface(this.chatContainer);
 
-		// Create quick panel at the top of input container (before input)
+		// Create quick panel at the top of the sidebar (before chat container)
 		this.contextQuickPanel = new ContextQuickPanel({
 			app: this.app,
 			plugin: this.plugin,
-			container: this.inputContainer,
+			container: this.wrapperEl,
 			inputHandler: this.inputHandler,
 			contextManager: this.contextManager,
 			timeoutManager: this.timeoutManager,
@@ -385,7 +381,8 @@ export class NovaSidebarView extends ItemView {
 			refreshContext: () => this.refreshContext(),
 			registerDomEvent: (el, type, handler) => this.registerDomEvent(el as HTMLElement, type, handler as (this: HTMLElement, ev: Event) => void)
 		});
-		this.contextQuickPanel.createPanel();
+		const panelEl = this.contextQuickPanel.createPanel();
+		this.wrapperEl.insertBefore(panelEl, this.chatContainer);
 		
 		// Always create CommandSystem - FeatureManager handles enablement
 		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
@@ -404,19 +401,6 @@ export class NovaSidebarView extends ItemView {
 			this.plugin.cancelAllOperations();
 		});
 
-		// Create context indicator and preview using ContextManager
-		this.contextManager.createContextIndicator();
-
-		// Initialize context document list (the drawer)
-		this.contextDocumentList = new ContextDocumentList({
-			contextManager: this.contextManager,
-			inputHandler: this.inputHandler,
-			timeoutManager: this.timeoutManager,
-			registerDomEvent: this.registerDomEvent.bind(this),
-			getCurrentFile: () => this.currentFile,
-			getCurrentContext: () => this.currentContext,
-			refreshContext: () => this.refreshContext()
-		});
 	}
 
 
@@ -794,16 +778,7 @@ export class NovaSidebarView extends ItemView {
 		return file instanceof TFile ? file : null;
 	}
 
-	/**
-	 * Set up the global document click handler for closing the context drawer
-	 * This is registered once during initialization to prevent memory leaks
-	 */
-	private setupContextDrawerCloseHandler(): void {
-		this.contextDocumentList.setupCloseHandler();
-	}
-
 	private updateContextIndicator(): void {
-		this.contextDocumentList.update();
 		this.contextQuickPanel?.update();
 	}
 

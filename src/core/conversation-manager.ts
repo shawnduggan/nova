@@ -319,7 +319,7 @@ export class ConversationManager {
     async clearConversation(file: TFile): Promise<void> {
         const conversation = this.getConversation(file);
         conversation.messages = [];
-        // Do NOT clear contextDocuments - those are managed separately from the drawer
+        // Do NOT clear contextDocuments - those are managed separately as persistent context
         conversation.lastUpdated = Date.now();
         
         if (conversation.metadata) {

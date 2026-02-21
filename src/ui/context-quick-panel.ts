@@ -31,6 +31,13 @@ export interface ContextQuickPanelDeps {
 	) => void;
 }
 
+function formatCompactTokens(count: number): string {
+	if (count >= 1000) {
+		return `${(count / 1000).toFixed(1)}K`;
+	}
+	return count.toString();
+}
+
 export class ContextQuickPanel {
 	private deps: ContextQuickPanelDeps;
 	private isExpanded = false;
@@ -66,7 +73,8 @@ export class ContextQuickPanel {
 		this.updateCollapsedInfo(infoEl);
 
 		// Toggle expand/collapse on header click
-		this.deps.registerDomEvent(headerEl, 'click', () => {
+		headerEl.addEventListener('click', (e) => {
+			e.stopPropagation();
 			this.toggleExpanded();
 			this.updateCollapsedInfo(infoEl);
 		});
@@ -75,7 +83,11 @@ export class ContextQuickPanel {
 		this.expandedEl = this.panelEl.createDiv({ cls: 'nova-quick-panel-body' });
 		this.expandedEl.addClass('nova-hidden');
 
-		this.renderExpandedContent();
+		// Prevent mousedown inside panel body from bubbling to containerEl,
+		// which triggers refreshAllStats → DOM rebuild that destroys click targets
+		this.expandedEl.addEventListener('mousedown', (e) => {
+			e.stopPropagation();
+		});
 
 		return this.panelEl;
 	}
@@ -128,17 +140,14 @@ export class ContextQuickPanel {
 	private updateCollapsedInfo(infoEl: HTMLElement): void {
 		const context = this.deps.getCurrentContext();
 		const docCount = context?.persistentDocs?.length || 0;
-		const totalTokens = context?.totalContextUsage?.totalTokens || 0;
 		const contextLimit = context?.totalContextUsage?.contextLimit || 32000;
 		const usagePercent = context?.totalContextUsage?.usagePercentage || 0;
 
-		// Format: "3 notes · 12.4K tokens" or similar
-		let tokenText: string;
-		if (totalTokens >= 1000) {
-			tokenText = `${(totalTokens / 1000).toFixed(1)}K`;
-		} else {
-			tokenText = totalTokens.toString();
-		}
+		// Sum only file token counts (not conversation history / system prompt)
+		const fileTokens = context?.persistentDocs?.reduce((sum, doc) => sum + (doc.tokenCount || 0), 0) || 0;
+
+		// Format: "3 notes · 5.9K tokens" or similar
+		const tokenText = formatCompactTokens(fileTokens);
 
 		infoEl.textContent = `${docCount} note${docCount !== 1 ? 's' : ''} · ${tokenText} tokens`;
 
@@ -155,7 +164,7 @@ export class ContextQuickPanel {
 	 * Initialize toggles (called once during construction)
 	 */
 	private initToggles(): void {
-		if (!this.expandedEl) return;
+		if (!this.expandedEl || this.toggleOutgoing) return;
 
 		// Toggle section
 		const togglesEl = this.expandedEl.createDiv({ cls: 'nova-quick-panel-toggles' });
@@ -229,37 +238,42 @@ export class ContextQuickPanel {
 				const docEl = docListEl.createDiv({ cls: 'nova-quick-panel-doc-item' });
 				if (index === docs.length - 1) docEl.addClass('last-item');
 
-				// Document name and source
+				// Document name
+				const fullName = doc.property ? `${doc.file.basename}#${doc.property}` : doc.file.basename;
 				const nameEl = docEl.createDiv({ cls: 'nova-quick-panel-doc-name' });
-				nameEl.textContent = doc.file.basename;
-				if (doc.property) {
-					nameEl.textContent += `#${doc.property}`;
-				}
+				nameEl.textContent = fullName;
+				nameEl.setAttribute('aria-label', fullName);
+
+				// Right-aligned meta (source + tokens + remove)
+				const metaEl = docEl.createDiv({ cls: 'nova-quick-panel-doc-meta' });
 
 				// Source badge
-				const sourceEl = docEl.createSpan({ cls: 'nova-quick-panel-doc-source' });
+				const sourceEl = metaEl.createSpan({ cls: 'nova-quick-panel-doc-source' });
 				sourceEl.textContent = doc.source || 'manual';
 
 				// Token count
-				const tokenEl = docEl.createSpan({ cls: 'nova-quick-panel-doc-tokens' });
+				const tokenEl = metaEl.createSpan({ cls: 'nova-quick-panel-doc-tokens' });
 				const tokenCount = doc.tokenCount || 0;
 				const fullCount = doc.fullTokenCount;
 				if (fullCount && fullCount > tokenCount) {
-					tokenEl.textContent = `${tokenCount}/${fullCount}`;
+					tokenEl.textContent = `${formatCompactTokens(tokenCount)}/${formatCompactTokens(fullCount)}`;
 				} else {
-					tokenEl.textContent = `${tokenCount}`;
+					tokenEl.textContent = formatCompactTokens(tokenCount);
 				}
 
-				// Remove button
-				const removeEl = docEl.createDiv({ cls: 'nova-quick-panel-doc-remove' });
-				setIcon(removeEl, 'x');
-				this.deps.registerDomEvent(removeEl, 'click', () => {
+				// Remove button — use <button> + onclick for ephemeral elements rebuilt each render
+				const removeEl = metaEl.createEl('button', { cls: 'nova-quick-panel-doc-remove' });
+				removeEl.textContent = '×';
+				removeEl.setAttribute('aria-label', `Remove ${doc.file.basename}`);
+				Logger.debug(`[QuickPanel] Created remove button for ${doc.file.basename}, parent:`, removeEl.parentElement?.className);
+				removeEl.onclick = (e) => {
+					e.stopPropagation();
 					void (async () => {
 						await this.deps.contextManager.removeDocument(doc.file);
 						await this.deps.refreshContext();
 						this.update();
 					})();
-				});
+				};
 			});
 		}
 

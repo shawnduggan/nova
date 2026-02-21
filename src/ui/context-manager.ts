@@ -59,7 +59,6 @@ export class ContextManager {
 	private app: App;
 	private container: HTMLElement;
 	private persistentContext: Map<string, DocumentReference[]> = new Map();
-	public contextIndicator!: HTMLElement;
 	public contextPreview!: HTMLElement;
 	private currentContext: MultiDocContext | null = null;
 	private currentFilePath: string | null = null; // Track current file for validation
@@ -81,10 +80,6 @@ export class ContextManager {
 
 	setSidebarView(sidebarView: { addWarningMessage: (message: string) => void }): void {
 		this.sidebarView = sidebarView;
-	}
-
-	createContextIndicator(): void {
-		this.contextIndicator = this.container.createDiv({ cls: 'nova-context-indicator nova-context-indicator-positioned' });
 	}
 
 	createContextPreview(): HTMLElement {
@@ -270,17 +265,11 @@ export class ContextManager {
 		}
 	}
 
-	hideContextIndicator(): void {
-		if (this.contextIndicator) {
-			this.contextIndicator.removeClass('show');
-		}
-	}
-
 	clearCurrentContext(): void {
 		this.currentContext = null;
 		this.currentFilePath = null;
 		this.currentOperationId = null;
-		this.hideContextIndicator();
+
 		this.hideContextPreview();
 	}
 
@@ -295,7 +284,7 @@ export class ContextManager {
 			// Immediately clear context state to prevent bleeding
 			this.currentContext = null;
 			this.currentOperationId = null; // Cancel any pending operations
-			this.hideContextIndicator();
+	
 			this.hideContextPreview();
 		}
 		
@@ -324,14 +313,6 @@ export class ContextManager {
 	}
 
 	/**
-	 * Check if drawer should be visible (has context documents)
-	 */
-	isDrawerVisible(): boolean {
-		const context = this.getCurrentContext();
-		return (context?.persistentDocs?.length || 0) > 0;
-	}
-
-	/**
 	 * Add document to context for current file
 	 */
 	async addDocument(file: TFile): Promise<void> {
@@ -355,11 +336,12 @@ export class ContextManager {
 		}
 		
 		// Add the document
-		const newRef: DocumentReference = { 
-			file, 
+		const newRef: DocumentReference = {
+			file,
 			property: undefined,
 			isPersistent: true,
-			rawReference: `[[${file.basename}]]`
+			rawReference: `[[${file.basename}]]`,
+			source: 'manual'
 		};
 		const updated = [...current, newRef];
 		
@@ -405,7 +387,7 @@ export class ContextManager {
 
 	/**
 	 * Update indicator based on current context state
-	 * Note: SidebarView handles actual UI updates to preserve complex drawer functionality
+	 * Note: SidebarView handles actual UI updates via the quick panel
 	 */
 	updateIndicator(): void {
 		// State is managed here, but UI updates are handled by SidebarView
@@ -418,7 +400,7 @@ export class ContextManager {
 	private async refreshContextFromStorage(): Promise<void> {
 		if (!this.currentFilePath) {
 			this.currentContext = null;
-			this.hideContextIndicator();
+	
 			return;
 		}
 
@@ -428,7 +410,7 @@ export class ContextManager {
 			
 			if (persistentDocs.length === 0) {
 				this.currentContext = null;
-				this.hideContextIndicator();
+		
 				return;
 			}
 
@@ -446,11 +428,15 @@ export class ContextManager {
 				// Skip if can't read current file
 			}
 			
-			// Add persistent docs tokens
+			// Add persistent docs tokens (and populate per-doc tokenCount for UI)
 			for (const doc of persistentDocs) {
 				try {
 					const content = await this.app.vault.read(doc.file);
-					totalTokens += Math.ceil(content.length / 4);
+					const docTokens = Math.ceil(content.length / 4);
+					totalTokens += docTokens;
+					if (!doc.tokenCount) {
+						doc.tokenCount = docTokens;
+					}
 				} catch (_) {
 					// Skip files that can't be read
 				}
@@ -472,12 +458,12 @@ export class ContextManager {
 				totalContextUsage: totalContextUsage
 			};
 
-			// Note: UI updates handled by SidebarView to preserve complex drawer functionality
+			// Note: UI updates handled by SidebarView via the quick panel
 
 		} catch (_) {
 			// Handle context build failures gracefully
 			this.currentContext = null;
-			this.hideContextIndicator();
+	
 		}
 	}
 
@@ -672,9 +658,6 @@ export class ContextManager {
 
 	cleanup(): void {
 		this.clearCurrentContext();
-		if (this.contextIndicator) {
-			this.contextIndicator.remove();
-		}
 		if (this.contextPreview) {
 			this.contextPreview.remove();
 		}
