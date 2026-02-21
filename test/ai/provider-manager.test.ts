@@ -77,8 +77,7 @@ describe('AIProviderManager', () => {
             },
             features: {
 				commands: {
-					customCommands: [],
-					showCommandButton: true
+					customCommands: []
 				}
 			},
             licensing: {

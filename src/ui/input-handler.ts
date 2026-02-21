@@ -57,17 +57,7 @@ export class InputHandler {
 
 	setCommandSystem(commandSystem: CommandSystem): void {
 		this.commandSystem = commandSystem;
-		
-		// Create command button before send button for proper DOM order
-		const sendButtonEl = this.sendButton.buttonEl;
-		sendButtonEl.remove();
-		
-		// Create command button
-		this.commandSystem.createCommandButton(this.inputRow);
-		
-		// Re-add send button (will be last in DOM order)
-		this.inputRow.appendChild(sendButtonEl);
-		
+
 		// Create command picker
 		this.commandSystem.createCommandPickerInContainer(this.inputRow);
 	}
@@ -414,12 +404,6 @@ export class InputHandler {
 		}
 	}
 
-
-	refreshCommandButton(): void {
-		if (this.commandSystem) {
-			this.commandSystem.updateCommandButtonVisibility();
-		}
-	}
 
 	updateContextState(hasContext: boolean): void {
 		if (this.container) {

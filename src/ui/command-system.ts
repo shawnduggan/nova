@@ -3,7 +3,7 @@
  * Simplified to support single /fill command for Nova markers
  */
 
-import { ButtonComponent, TextAreaComponent, Platform, FuzzySuggestModal, FuzzyMatch, App } from 'obsidian';
+import { TextAreaComponent, FuzzySuggestModal, FuzzyMatch, App } from 'obsidian';
 import NovaPlugin from '../../main';
 import { CommandEngine } from '../features/commands/core/CommandEngine';
 import { SmartVariableResolver } from '../features/commands/core/SmartVariableResolver';
@@ -19,7 +19,6 @@ export class CommandSystem {
 	private plugin: NovaPlugin;
 	private container: HTMLElement;
 	private textArea: TextAreaComponent;
-	private commandButton!: ButtonComponent;
 	private commandPicker!: HTMLElement;
 	private commandPickerItems: HTMLElement[] = [];
 	private selectedCommandIndex: number = -1;
@@ -49,37 +48,12 @@ export class CommandSystem {
 		this.plugin.registerDomEvent(element, event, handler);
 	}
 
-	createCommandButton(inputRow: HTMLElement): ButtonComponent {
-		this.commandButton = new ButtonComponent(inputRow);
-		this.commandButton.setIcon('zap');
-		this.commandButton.setTooltip('Smart fill');
-		this.commandButton.onClick(() => this.toggleCommandMenu());
-		this.commandButton.buttonEl.addClass('nova-command-button-styled');
-		if (!this.shouldShowCommandButton()) {
-			this.commandButton.buttonEl.hide();
-		}
-		return this.commandButton;
-	}
-
 	createCommandPicker(): void {
 		this.createCommandPickerInContainer(this.container);
 	}
 
 	createCommandPickerInContainer(container: HTMLElement): void {
 		this.commandPicker = container.createDiv({ cls: 'nova-command-picker nova-command-picker-styled' });
-	}
-
-	shouldShowCommandButton(): boolean {
-		return Platform.isMobile && this.plugin.featureManager.isFeatureEnabled('smartfill') && (this.plugin.settings.features?.smartfill?.showCommandButton ?? true);
-	}
-
-	updateCommandButtonVisibility(): void {
-		const shouldShow = this.shouldShowCommandButton();
-		if (shouldShow) {
-			this.commandButton?.buttonEl.show();
-		} else {
-			this.commandButton?.buttonEl.hide();
-		}
 	}
 
 	toggleCommandMenu(): void {

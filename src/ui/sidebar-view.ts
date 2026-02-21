@@ -76,7 +76,6 @@ export class NovaSidebarView extends ItemView {
 	// Component references
 	private commandPicker!: HTMLElement;
 	private commandMenu!: HTMLElement;
-	private commandButton!: ButtonComponent;
 	private privacyIndicator?: HTMLElement;
 	
 	// Cursor position tracking - file-scoped like conversation history
@@ -664,8 +663,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Close menu when clicking outside
 		const commandMenuClickHandler: EventListener = (event: Event) => {
-			if (!this.commandMenu.contains(event.target as Node) && 
-				!this.commandButton.buttonEl.contains(event.target as Node)) {
+			if (!this.commandMenu.contains(event.target as Node)) {
 				this.hideCommandMenu();
 			}
 		};
@@ -2109,21 +2107,9 @@ USER REQUEST: ${processedMessage}`;
 	 */
 
 	/**
-	 * Check if the command button should be shown based on feature availability and user preference
-	 */
-	private shouldShowCommandButton(): boolean {
-		// Command button is gated behind the commands feature 
-		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
-			return false;
-		}
-		return this.plugin.settings.features?.smartfill?.showCommandButton ?? true;
-	}
-
-	/**
 	 * Refresh all Supernova-gated UI elements when license status changes
 	 */
 	refreshSupernovaUI(): void {
-		this.refreshCommandButton();
 		// Future Supernova features can add their refresh logic here
 	}
 
@@ -2289,15 +2275,6 @@ USER REQUEST: ${processedMessage}`;
 		}
 		
 		return null; // No available models found
-	}
-
-	/**
-	 * Refresh the command button visibility when settings change
-	 */
-	refreshCommandButton(): void {
-		if (this.inputHandler) {
-			this.inputHandler.refreshCommandButton();
-		}
 	}
 
 	/**

@@ -49,7 +49,6 @@ export interface NovaSettings {
 	features?: {
 		smartfill?: {
 			customCommands: CustomCommand[];
-			showCommandButton: boolean;
 		};
 	};
 }
@@ -1464,29 +1463,6 @@ export class NovaSettingTab extends PluginSettingTab {
 		descP.createEl('code', { text: ':trigger' });
 		descP.appendText('.');
 
-		// Show Command Button setting (Supernova-only, Mobile-only)
-		new Setting(containerEl)
-			.setName('Show command button in chat (mobile)')
-			.setDesc('Show the commands button beside the send button for mobile quick access to Nova commands and selection actions')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.features?.smartfill?.showCommandButton ?? true)
-			.onChange(async (value) => {
-				if (!this.plugin.settings.features) this.plugin.settings.features = {};
-				if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
-				this.plugin.settings.features.smartfill.showCommandButton = value;
-					await this.plugin.saveSettings();
-					
-					// Find and refresh sidebar view
-					const leaves = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
-					if (leaves.length > 0) {
-						const view = leaves[0].view;
-						// Use instanceof check for consistency
-						if (view instanceof NovaSidebarView) {
-							view.refreshCommandButton();
-						}
-					}
-				}));
-
 		// Add new command button at the top
 		const buttonEl = containerEl.createDiv({ cls: 'nova-add-command' });
 		buttonEl.addClass('nova-custom-section-button');
@@ -1577,12 +1553,12 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (editIndex !== undefined) {
 					// Edit existing command
 					if (!this.plugin.settings.features) this.plugin.settings.features = {};
-					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
+					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [] };
 					this.plugin.settings.features.smartfill.customCommands[editIndex] = result;
 				} else {
 					// Add new command
 					if (!this.plugin.settings.features) this.plugin.settings.features = {};
-					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [], showCommandButton: true };
+					if (!this.plugin.settings.features.smartfill) this.plugin.settings.features.smartfill = { customCommands: [] };
 					this.plugin.settings.features.smartfill.customCommands.push(result);
 				}
 

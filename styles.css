@@ -2099,7 +2099,7 @@
 /* Portrait orientation optimizations */
 @media (orientation: portrait) and (max-width: 768px) {
     .is-mobile .nova-wrapper {
-        height: 100vh; /* Full viewport height */
+        height: 100%; /* Fill parent view-content, not viewport */
         overflow: hidden;
     }
     
@@ -2127,8 +2127,12 @@
 }
 
 .is-mobile .nova-input-container {
-    padding: 8px !important; /* Dramatically reduced from 14px to 8px */
+    padding: 6px !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important; /* Only safe area, no extra space */
+}
+
+.is-mobile .nova-input-row textarea {
+    min-height: 44px !important;
 }
 
 /* Enhanced input row spacing for mobile */
@@ -2576,7 +2580,7 @@
 }
 
 .is-mobile .nova-sidebar-wrapper {
-    padding-bottom: var(--size-4-1);
+    padding-bottom: 0;
 }
 
 .nova-sidebar-header {
@@ -2994,23 +2998,6 @@
 }
 
 /* Command System Styles */
-.nova-command-button-styled {
-    min-width: var(--size-4-9);
-    height: var(--size-4-9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    flex-shrink: 0;
-    margin-right: var(--size-2-3);
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
 .nova-command-picker-styled {
     position: absolute;
     bottom: 100%;
@@ -3970,6 +3957,11 @@
 .is-mobile .nova-quick-panel-header {
     min-height: 44px;
     padding: var(--size-4-1) var(--size-4-3);
+    color: var(--text-normal);
+}
+
+.is-mobile .nova-quick-panel-chevron {
+    color: var(--text-faint);
 }
 
 .is-mobile .nova-quick-panel-body {
@@ -3989,5 +3981,22 @@
     opacity: 1;
     width: 32px;
     height: 32px;
+}
+
+.is-mobile .nova-quick-panel-label {
+    font-size: var(--font-ui-medium);
+    color: var(--text-normal);
+}
+
+.is-mobile .nova-quick-panel-toggle-label {
+    font-size: var(--font-ui-small);
+}
+
+.is-mobile .nova-quick-panel-doc-name {
+    font-size: var(--font-ui-small);
+}
+
+.is-mobile .nova-quick-panel-info {
+    font-size: var(--font-ui-smaller);
 }
 
