@@ -50,8 +50,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 		case 'claude':
 			return [
 				{ value: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-				{ value: 'claude-opus-4-5', label: 'Claude Opus 4.5' },
-				{ value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+				{ value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
 				{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' }
 			];
 		case 'openai':
@@ -66,6 +65,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 			];
 		case 'google':
 			return [
+				{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
 				{ value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)' },
 				{ value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
 				{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
@@ -89,10 +89,9 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	claude: {
 		// Claude models
-		'claude-opus-4-5': { tokens: 200000, maxOutputTokens: 64000 },
-		'claude-sonnet-4-5': { tokens: 200000, maxOutputTokens: 64000 },
-		'claude-haiku-4-5': { tokens: 200000, maxOutputTokens: 64000 },
 		'claude-opus-4-6': { tokens: 200000, maxOutputTokens: 128000 },
+		'claude-sonnet-4-6': { tokens: 200000, maxOutputTokens: 64000 },
+		'claude-haiku-4-5': { tokens: 200000, maxOutputTokens: 64000 },
 		// Fallback for any Claude model
 		'default': { tokens: 200000, maxOutputTokens: 64000, fallback: true }
 	},
@@ -116,6 +115,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 		'gemini-2.5-pro': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },
+		'gemini-3.1-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-3-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-3-flash-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 

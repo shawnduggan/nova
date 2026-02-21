@@ -273,11 +273,13 @@ export class OpenAIProvider implements AIProvider {
 			
 			// Return hardcoded current models
 			const models = [
-				'gpt-4.1-2025-04-14',
-				'gpt-4.1-mini-2025-04-14',
-				'gpt-4.1-nano-2025-04-14',
-				'gpt-4o',
-				'gpt-4o-mini'
+				'gpt-5.2-2025-12-11',
+				'gpt-5.1-chat-latest',
+				'gpt-5.1',
+				'gpt-5-pro',
+				'gpt-5-mini',
+				'gpt-5-nano',
+				'gpt-5'
 			];
 
 			this.cachedModels = models;

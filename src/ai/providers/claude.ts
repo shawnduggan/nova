@@ -189,7 +189,7 @@ export class ClaudeProvider implements AIProvider {
 			// Return current available models (from API docs)
 			const models = [
 				'claude-opus-4-6',
-				'claude-sonnet-4-5-20250929',
+				'claude-sonnet-4-6',
 				'claude-haiku-4-5-20251001'
 			];
 

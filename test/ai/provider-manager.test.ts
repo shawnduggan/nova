@@ -252,7 +252,7 @@ describe('AIProviderManager', () => {
                 ...mockSettings,
                 platformSettings: {
                     desktop: {
-                        selectedModel: 'gpt-4o'
+                        selectedModel: 'gpt-5.2-2025-12-11'
                     },
                     mobile: {
                         selectedModel: 'claude-3-5-sonnet-20241022'

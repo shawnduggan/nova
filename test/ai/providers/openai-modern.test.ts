@@ -70,12 +70,11 @@ describe('OpenAIProvider Modernization', () => {
         expect(body).toHaveProperty('reasoning');
     });
 
-    test('should apply modern structure even for what used to be legacy models (if configured)', async () => {
-        // This test confirms that we removed the conditional logic
-        // If a user somehow configured 'gpt-4o', it will now be treated as a modern model on the /responses endpoint
+    test('should apply modern structure even for older models (if configured)', async () => {
+        // This test confirms that all models use the modern /responses endpoint
         provider = new OpenAIProvider({
             apiKey: 'test-api-key',
-            model: 'gpt-4o'
+            model: 'gpt-5.2-2025-12-11'
         }, generalSettings, timeoutManager);
 
         (requestUrl as jest.Mock).mockResolvedValue({
@@ -90,7 +89,7 @@ describe('OpenAIProvider Modernization', () => {
         const body = JSON.parse(callArgs.body);
 
         expect(callArgs.url).toContain('/responses');
-        expect(body).toHaveProperty('input'); // Even for gpt-4o, we now send 'input'
+        expect(body).toHaveProperty('input');
         expect(body).toHaveProperty('reasoning');
         expect(body.reasoning).toHaveProperty('effort', 'medium'); // Default for non-pro models
     });
