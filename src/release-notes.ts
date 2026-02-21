@@ -6,6 +6,29 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.3.0': [
+		'## What\'s New in Nova 1.3.0',
+		'',
+		'### Auto-Context: Your Knowledge Graph, Built In',
+		'Nova now automatically understands your knowledge graph. When you open a note, Nova resolves its **outgoing wikilinks** and optionally its **backlinks**, pulling the content of linked notes into the AI\'s context window — no manual references in chat required.',
+		'',
+		'- **Section links** like `[[Note#Heading]]` include only that section, keeping token usage tight.',
+		'- **Large documents** are intelligently truncated — small docs are included in full, large ones get their most relevant sections.',
+		'- **Backlinks** can be enabled for bidirectional awareness (off by default to save tokens).',
+		'- Everything is visible and controllable in the new **Context Quick Panel**.',
+		'',
+		'### Context Quick Panel',
+		'The old context drawer has been replaced with a compact, collapsible quick panel at the top of the sidebar:',
+		'',
+		'- **At a glance:** See how many notes are in context, total token count, and budget usage with a visual progress bar.',
+		'- **Toggle controls:** Turn auto-include linked notes and backlinks on/off without leaving the conversation.',
+		'- **Document list:** See every context document, its source (linked, backlink, or manual), and token count. Remove any with one tap.',
+		'- **Mobile-optimized:** Larger touch targets, readable font sizes, and theme-aware styling.',
+		'',
+		'### Model Catalog',
+		'- Added **Claude Sonnet 4.6** and **Gemini 3.1 Pro (Preview)**.',
+		'- Removed legacy models (Claude Opus 4.5, Claude Sonnet 4.5).',
+	].join('\n'),
 	'1.2.1': [
 		'## What\'s New in Nova 1.2.1',
 		'',
@@ -37,18 +60,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'- **Better timer management** — All internal timers are now properly tracked for clean plugin shutdown',
 		'- **Safer startup sequence** — Conversation data loading no longer races with plugin initialization',
 		'- **Reduced memory usage** — Eliminated a redundant internal component that was being created twice',
-	].join('\n'),
-	'1.1.1': [
-		'## What\'s New in Nova 1.1.1',
-		'',
-		'### Gemini 3 Flash (Preview)',
-		'Google\'s latest Gemini 3 Flash model is now available as a provider option. Select it from your AI provider settings to try it out.',
-		'',
-		'### Smart Fill for Supernova Supporters',
-		'Smart Fill is now available for Supernova-tier supporters! Automatically fill in note properties and frontmatter using AI. General availability coming April 1.',
-		'',
-		'### What\'s New Page',
-		'Nova now shows a "What\'s New" page after plugin updates so you can see the latest changes at a glance.',
 	].join('\n'),
 };
 
