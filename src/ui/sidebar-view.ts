@@ -83,6 +83,7 @@ export class NovaSidebarView extends ItemView {
 	
 	// Abort controller for cancelling ongoing AI operations
 	private currentAbortController: AbortController | null = null;
+	private cleanupMobileViewportTracking: (() => void) | null = null;
 
 	// Performance optimization - timing constants
 	private static readonly SCROLL_DELAY_MS = 50;
@@ -184,6 +185,7 @@ export class NovaSidebarView extends ItemView {
 
 		this.createChatInterface(wrapperEl);
 		this.createInputInterface(wrapperEl);
+		this.setupMobileViewportTracking(container);
 		
 		// Register event listener for active file changes
 		this.registerEvent(
@@ -279,7 +281,173 @@ export class NovaSidebarView extends ItemView {
 		});
 	}
 
+	/**
+	 * Track visual viewport changes on mobile so the composer stays above the keyboard.
+	 */
+	private setupMobileViewportTracking(container: HTMLElement): void {
+		if (!Platform.isMobile) {
+			return;
+		}
+
+		const visualViewport = window.visualViewport;
+		if (!visualViewport) {
+			container.setCssProps({
+				'--nova-keyboard-offset': '0px',
+				'--nova-keyboard-effective-offset': '0px',
+				'--nova-composer-height': `${Math.round(this.inputContainer?.getBoundingClientRect().height || 0)}px`,
+				'--nova-composer-left': `${Math.round(container.getBoundingClientRect().left)}px`,
+				'--nova-composer-width': `${Math.round(container.getBoundingClientRect().width)}px`
+			});
+			return;
+		}
+
+		const textAreaEl = this.inputHandler?.getTextArea()?.inputEl;
+		let maxObservedViewportHeight = visualViewport.height;
+		let maxObservedWindowHeight = window.innerHeight;
+		let maxObservedDocumentHeight = document.documentElement.clientHeight;
+		const keyboardOpenThresholdPx = 140;
+		const hasComposerFocus = () => {
+			return Boolean(textAreaEl && document.activeElement === textAreaEl);
+		};
+		const syncComposerMetrics = () => {
+			const composerHeight = Math.round(this.inputContainer?.getBoundingClientRect().height || 0);
+			const containerRect = container.getBoundingClientRect();
+			container.setCssProps({
+				'--nova-composer-height': `${composerHeight}px`,
+				'--nova-composer-left': `${Math.round(containerRect.left)}px`,
+				'--nova-composer-width': `${Math.round(containerRect.width)}px`
+			});
+		};
+		const revealComposer = () => {
+			if (!this.chatContainer) {
+				return;
+			}
+
+			this.chatContainer.scrollTo({
+				top: this.chatContainer.scrollHeight,
+				behavior: 'smooth'
+			});
+		};
+
+		const updateKeyboardOffset = () => {
+			const composerFocused = hasComposerFocus();
+			const viewportBottom = visualViewport.height + visualViewport.offsetTop;
+			const rawOffsetFromWindow = Math.max(0, Math.round(window.innerHeight - viewportBottom));
+			const rawOffsetFromViewportDelta = Math.max(0, Math.round(maxObservedViewportHeight - visualViewport.height));
+			const rawOffsetFromWindowDelta = Math.max(0, Math.round(maxObservedWindowHeight - window.innerHeight));
+			const rawOffsetFromDocumentDelta = Math.max(0, Math.round(maxObservedDocumentHeight - document.documentElement.clientHeight));
+			const observedVisibleBottom = Math.min(
+				window.innerHeight,
+				viewportBottom,
+				document.documentElement.clientHeight || Number.POSITIVE_INFINITY
+			);
+			const composerBottom = Math.round(this.inputContainer?.getBoundingClientRect().bottom || 0);
+			const composerOverflow = Math.max(0, composerBottom - observedVisibleBottom + 12);
+			const estimatedKeyboardOffset = Math.max(
+				rawOffsetFromWindow,
+				rawOffsetFromViewportDelta,
+				rawOffsetFromWindowDelta,
+				rawOffsetFromDocumentDelta,
+				composerOverflow
+			);
+			const keyboardOffset = estimatedKeyboardOffset > keyboardOpenThresholdPx
+				? estimatedKeyboardOffset
+				: 0;
+			const fallbackKeyboardOffset = composerFocused
+				? Math.round(Math.min(Math.max(window.innerHeight * 0.33, 250), 330))
+				: 0;
+			const effectiveKeyboardOffset = composerFocused
+				? Math.max(keyboardOffset, fallbackKeyboardOffset)
+				: 0;
+
+			if (effectiveKeyboardOffset === 0) {
+				maxObservedViewportHeight = Math.max(maxObservedViewportHeight, visualViewport.height);
+				maxObservedWindowHeight = Math.max(maxObservedWindowHeight, window.innerHeight);
+				maxObservedDocumentHeight = Math.max(maxObservedDocumentHeight, document.documentElement.clientHeight);
+			}
+
+			syncComposerMetrics();
+			container.setCssProps({
+				'--nova-keyboard-offset': `${keyboardOffset}px`,
+				'--nova-keyboard-effective-offset': `${effectiveKeyboardOffset}px`
+			});
+			if (composerFocused) {
+				container.addClass('nova-composer-focused');
+			} else {
+				container.removeClass('nova-composer-focused');
+			}
+			if (effectiveKeyboardOffset > 0) {
+				container.addClass('nova-keyboard-open');
+				revealComposer();
+			} else {
+				container.removeClass('nova-keyboard-open');
+			}
+		};
+
+		const handleTextBlur = () => {
+			// iOS reports final visualViewport size slightly after blur.
+			this.timeoutManager.addTimeout(updateKeyboardOffset, 80);
+		};
+		const handleTextFocus = () => {
+			revealComposer();
+			updateKeyboardOffset();
+			// Mobile viewport reports keyboard geometry asynchronously.
+			this.timeoutManager.addTimeout(() => {
+				revealComposer();
+				updateKeyboardOffset();
+			}, 100);
+			this.timeoutManager.addTimeout(() => {
+				revealComposer();
+				updateKeyboardOffset();
+			}, 220);
+			this.timeoutManager.addTimeout(() => {
+				revealComposer();
+				updateKeyboardOffset();
+			}, 360);
+		};
+		const handleOrientationChange = () => {
+			this.timeoutManager.addTimeout(() => {
+				maxObservedViewportHeight = visualViewport.height;
+				maxObservedWindowHeight = window.innerHeight;
+				maxObservedDocumentHeight = document.documentElement.clientHeight;
+				updateKeyboardOffset();
+			}, 120);
+		};
+
+		visualViewport.addEventListener('resize', updateKeyboardOffset);
+		visualViewport.addEventListener('scroll', updateKeyboardOffset);
+		this.registerDomEvent(window, 'resize', updateKeyboardOffset);
+		this.registerDomEvent(window, 'orientationchange', handleOrientationChange);
+
+		if (textAreaEl) {
+			this.registerDomEvent(textAreaEl, 'focus', handleTextFocus);
+			this.registerDomEvent(textAreaEl, 'blur', handleTextBlur);
+		}
+
+		syncComposerMetrics();
+		updateKeyboardOffset();
+
+		this.cleanupMobileViewportTracking = () => {
+			visualViewport.removeEventListener('resize', updateKeyboardOffset);
+			visualViewport.removeEventListener('scroll', updateKeyboardOffset);
+			container.removeClass('nova-composer-focused');
+			container.removeClass('nova-keyboard-open');
+			container.setCssProps({
+				'--nova-keyboard-offset': '0px',
+				'--nova-keyboard-effective-offset': '0px',
+				'--nova-composer-height': '0px',
+				'--nova-composer-left': '0px',
+				'--nova-composer-width': '100%'
+			});
+		};
+	}
+
 	async onClose() {
+		if (this.cleanupMobileViewportTracking) {
+			this.cleanupMobileViewportTracking();
+			this.cleanupMobileViewportTracking = null;
+		}
+
 		// Clean up provider dropdown event listener
 		// Cleanup dropdown component (handled by Obsidian)
 		await Promise.resolve(); // Keep async to match Obsidian's ItemView interface
