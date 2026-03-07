@@ -76,7 +76,7 @@ export class InputHandler {
 
 		// Create textarea
 		this.textArea = new TextAreaComponent(textAreaContainer);
-		this.textArea.setPlaceholder('How can i help?');
+		this.textArea.setPlaceholder('How can I help?');
 		this.textArea.inputEl.addClass('nova-textarea-styled');
 
 		// Auto-grow functionality
