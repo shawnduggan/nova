@@ -6,6 +6,20 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.3.2': [
+		'## What\'s New in Nova 1.3.2',
+		'',
+		'### Bug Fixes',
+		'- **Startup error fixed** — Resolved a console error caused by the Nova Commands system initializing before its components were created. The margin indicators now initialize at the correct time during plugin startup.',
+		'- **Retroactive 1.3.1 release notes** — Added missing release notes for the 1.3.1 update.',
+	].join('\n'),
+	'1.3.1': [
+		'## What\'s New in Nova 1.3.1',
+		'',
+		'### UI Polish',
+		'- **Sidebar layout fix** — The sidebar content area now flexes correctly, preventing layout overflow issues.',
+		'- **Capitalization fix** — Corrected "How can i help?" to "How can I help?" in the input placeholder.',
+	].join('\n'),
 	'1.3.0': [
 		'## What\'s New in Nova 1.3.0',
 		'',
@@ -49,17 +63,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'',
 		'### Stability',
 		'- Conversation manager initialization is now idempotent, preventing potential issues on reload',
-	].join('\n'),
-	'1.1.2': [
-		'## What\'s New in Nova 1.1.2',
-		'',
-		'### Stability & Reliability',
-		'This release focuses on internal stability improvements that make Nova more reliable:',
-		'',
-		'- **Improved plugin lifecycle** — Event listeners now register at the correct time during sidebar initialization, preventing potential issues on first load',
-		'- **Better timer management** — All internal timers are now properly tracked for clean plugin shutdown',
-		'- **Safer startup sequence** — Conversation data loading no longer races with plugin initialization',
-		'- **Reduced memory usage** — Eliminated a redundant internal component that was being created twice',
 	].join('\n'),
 };
 

@@ -120,18 +120,6 @@ export default class NovaPlugin extends Plugin {
 					}
 				}));
 
-				// Initialize Nova Commands components
-				try {
-					if (this.marginIndicators) {
-						this.marginIndicators.init();
-						Logger.info('Nova Commands system initialized successfully');
-					} else {
-						Logger.error('MarginIndicators component not available - check main plugin initialization');
-					}
-				} catch (error) {
-					Logger.error('Failed to initialize Nova Commands system:', error);
-				}
-
 				// Check for release notes after update
 				await this.checkAndShowReleaseNotes();
 			});
@@ -184,6 +172,16 @@ export default class NovaPlugin extends Plugin {
 
 			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandEngine, this.smartTimingEngine);
 			Logger.info('Nova Commands system components created successfully');
+
+			// Initialize MarginIndicators after creation (must be in onLayoutReady for editor access)
+			this.app.workspace.onLayoutReady(() => {
+				try {
+					this.marginIndicators.init();
+					Logger.info('Nova Commands system initialized successfully');
+				} catch (error) {
+					Logger.error('Failed to initialize Nova Commands system:', error);
+				}
+			});
 
 			this.registerView(
 				VIEW_TYPE_NOVA_SIDEBAR,
