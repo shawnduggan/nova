@@ -6,6 +6,14 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.3.3': [
+		'## What\'s New in Nova 1.3.3',
+		'',
+		'### Mobile Keyboard Fix',
+		'- **Composer stays visible** — On mobile, the input area now stays above the on-screen keyboard instead of getting hidden behind it.',
+		'- **Improved mobile layout** — Restructured the sidebar CSS for more reliable flexbox behavior on iOS and Android.',
+		'- **Quick panel polish** — Better sizing and scroll behavior for the context panel on mobile devices.',
+	].join('\n'),
 	'1.3.2': [
 		'## What\'s New in Nova 1.3.2',
 		'',
@@ -48,21 +56,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'',
 		'### Notice Reliability Fix',
 		'Fixed an issue where thinking notices ("analyzing...", "refining...") could permanently stop appearing after 30 seconds. This also affected error messages and other notifications. Notices now persist correctly until dismissed.',
-	].join('\n'),
-	'1.2.0': [
-		'## What\'s New in Nova 1.2.0',
-		'',
-		'### Challenge This',
-		'Select any argument or claim, right-click, and choose "Challenge This." Nova identifies logical gaps, unsupported claims, and counter-arguments — delivered straight to the sidebar chat so you can refine your thinking without losing your original text.',
-		'',
-		'### Custom Prompt History',
-		'The custom prompt modal now remembers your recent instructions. Quickly reuse previous prompts instead of retyping them.',
-		'',
-		'### Thinking Notices Fixed',
-		'Rotating status notices ("refining...", "analyzing...") now appear reliably for all context menu commands, smart fill, and Challenge This. Previously these could fail to display after the first use.',
-		'',
-		'### Stability',
-		'- Conversation manager initialization is now idempotent, preventing potential issues on reload',
 	].join('\n'),
 };
 
