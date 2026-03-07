@@ -63,7 +63,7 @@ export class GoogleProvider implements AIProvider {
 		}
 
 		// Use a newer model by default if no model is specified
-		const model = options?.model || this.config.model || 'gemini-2.0-flash';
+		const model = options?.model || this.config.model || 'gemini-2.5-flash';
 		const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`;
 
 		interface GoogleRequestBody {
@@ -250,7 +250,7 @@ export class GoogleProvider implements AIProvider {
 			// Return hardcoded current models
 			const models = [
 				'gemini-3.1-pro-preview',
-				'gemini-3-pro-preview',
+				'gemini-3.1-flash-lite-preview',
 				'gemini-3-flash-preview',
 				'gemini-2.5-pro',
 				'gemini-2.5-flash',

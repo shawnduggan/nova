@@ -3,6 +3,7 @@
  */
 
 import { ItemView, MarkdownRenderer, WorkspaceLeaf } from 'obsidian';
+import { KOFI_URL } from '../constants';
 
 export const VIEW_TYPE_RELEASE_NOTES = 'nova-release-notes';
 
@@ -32,6 +33,15 @@ export class ReleaseNotesView extends ItemView {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-release-notes');
+
+		const supportEl = container.createDiv({ cls: 'nova-release-notes-support' });
+		const link = supportEl.createEl('a', {
+			href: KOFI_URL,
+			cls: 'nova-kofi-link',
+		});
+		link.setText('Support Nova on Ko-fi');
+		link.setAttr('target', '_blank');
+
 		await MarkdownRenderer.render(this.app, this.content, container, '', this);
 	}
 

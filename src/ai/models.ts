@@ -55,6 +55,9 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 			];
 		case 'openai':
 			return [
+				{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
+				{ value: 'gpt-5.4', label: 'GPT-5.4' },
+				{ value: 'gpt-5.3-chat-latest', label: 'GPT-5.3 Chat' },
 				{ value: 'gpt-5.2-2025-12-11', label: 'GPT-5.2' },
 				{ value: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
 				{ value: 'gpt-5.1', label: 'GPT-5.1' },
@@ -66,7 +69,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 		case 'google':
 			return [
 				{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-				{ value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)' },
+				{ value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash-Lite (Preview)' },
 				{ value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
 				{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 				{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
@@ -98,6 +101,9 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 
 	openai: {
 		// OpenAI models
+		'gpt-5.4': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-5.4-pro': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-5.3-chat-latest': { tokens: 128000, maxOutputTokens: 16384 },
 		'gpt-5.2-2025-12-11': { tokens: 400000, maxOutputTokens: 128000 },
 		'gpt-5.1-chat-latest': { tokens: 400000, maxOutputTokens: 128000 },
 		'gpt-5.1': { tokens: 400000, maxOutputTokens: 128000 },
@@ -106,7 +112,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 		'gpt-5-mini': { tokens: 400000, maxOutputTokens: 128000 },
 		'gpt-5-nano': { tokens: 400000, maxOutputTokens: 128000 },
 
-		// Fallback for OpenAI models - assume GPT-4o capacity
+		// Fallback for OpenAI models - assume GPT-5 capacity
 		'default': { tokens: 400000, maxOutputTokens: 128000, fallback: true }
 	},
 
@@ -116,7 +122,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 		'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-3.1-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
-		'gemini-3-pro-preview': { tokens: 1048576, maxOutputTokens: 65536 },
+		'gemini-3.1-flash-lite-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-3-flash-preview': { tokens: 1048576, maxOutputTokens: 65536 },
 
 		// Fallback for Google models - assume modern Gemini capacity

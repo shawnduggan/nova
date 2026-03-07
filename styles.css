@@ -970,16 +970,31 @@
     color: var(--text-accent-hover);
 }
 
+/* Ensure Obsidian's workspace leaf constrains our sidebar height */
+.workspace-leaf-content[data-type="nova-sidebar"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.workspace-leaf-content[data-type="nova-sidebar"] > .view-content {
+    flex: 1;
+    min-height: 0;
+}
+
 /* Sidebar Container */
 .nova-sidebar-container {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
 .nova-wrapper {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1354,14 +1369,6 @@
     font-size: 0.8em; /* Compact but readable */
     min-height: 32px; /* Reduced touch target but still usable */
     padding: 4px 8px; /* Minimal padding */
-}
-
-/* Remove any extra padding/margin that could cause bottom space - scoped to Nova containers only */
-
-.nova-sidebar-container .view-content {
-    height: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
 }
 
 
@@ -2065,8 +2072,8 @@
 
 /* Mobile-specific textarea and spacing optimizations */
 .is-mobile .nova-input-row textarea {
-    min-height: 44px !important; /* Dramatically reduced from 60px for space */
-    max-height: 88px !important; /* Reduced max height */
+    min-height: 54px !important; /* Comfortable touch target */
+    max-height: 100px !important; /* Reduced max height */
     font-size: 16px !important; /* Prevent iOS zoom, ensure visibility */
     border: 1px solid var(--interactive-accent-hover) !important; /* Thinner border */
     background: var(--background-secondary) !important; /* Subtle background for contrast */
@@ -2076,7 +2083,7 @@
 
 /* Expand textarea when focused for better typing experience */
 .is-mobile .nova-input-row textarea:focus {
-    min-height: 66px !important; /* Reasonable expansion when typing */
+    min-height: 72px !important; /* Reasonable expansion when typing */
 }
 
 /* Enhanced mobile focus states */
@@ -2099,7 +2106,8 @@
 /* Portrait orientation optimizations */
 @media (orientation: portrait) and (max-width: 768px) {
     .is-mobile .nova-wrapper {
-        height: 100%; /* Fill parent view-content, not viewport */
+        flex: 1; /* Fill parent view-content, not viewport */
+        min-height: 0;
         overflow: hidden;
     }
     
@@ -2132,7 +2140,7 @@
 }
 
 .is-mobile .nova-input-row textarea {
-    min-height: 44px !important;
+    min-height: 54px !important;
 }
 
 /* Enhanced input row spacing for mobile */
@@ -2571,7 +2579,8 @@
 .nova-sidebar-wrapper {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -3722,6 +3731,28 @@
     padding: var(--size-4-8) var(--size-4-6);
     max-width: 700px;
     margin: 0 auto;
+}
+
+.nova-release-notes-support {
+    text-align: center;
+    margin-bottom: var(--size-4-4);
+}
+
+.nova-kofi-link {
+    display: inline-block;
+    padding: var(--size-4-2) var(--size-4-4);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent) !important;
+    border-radius: var(--radius-m);
+    text-decoration: none;
+    font-weight: var(--font-semibold);
+    font-size: var(--font-ui-small);
+    transition: opacity 0.15s ease;
+}
+
+.nova-kofi-link:hover {
+    opacity: 0.85;
+    text-decoration: none;
 }
 
 /* ============================================================================

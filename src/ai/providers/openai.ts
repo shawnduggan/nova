@@ -48,7 +48,7 @@ export class OpenAIProvider implements AIProvider {
 			requestMessages.unshift({ role: 'system', content: options.systemPrompt });
 		}
 
-		const modelName = options?.model || this.config.model || 'gpt-5';
+		const modelName = options?.model || this.config.model || 'gpt-5.4';
 		const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
 
 		// Always use the new /responses endpoint as we only support modern models (GPT-5+)
@@ -273,6 +273,9 @@ export class OpenAIProvider implements AIProvider {
 			
 			// Return hardcoded current models
 			const models = [
+				'gpt-5.4-pro',
+				'gpt-5.4',
+				'gpt-5.3-chat-latest',
 				'gpt-5.2-2025-12-11',
 				'gpt-5.1-chat-latest',
 				'gpt-5.1',

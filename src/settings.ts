@@ -1212,7 +1212,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const recommendationsList = guidanceCard.createEl('ul', { cls: 'nova-model-recommendations' });
 		const recommendations = [
 			{ model: 'Claude Sonnet 4', desc: ' - Latest generation with excellent instruction following for collaborative editing' },
-			{ model: 'GPT-4.1 Mini', desc: ' - Current-generation model that outperforms GPT-4o while remaining cost-effective' },
+			{ model: 'GPT-5 Mini', desc: ' - Cost-effective model with strong performance across coding and general tasks' },
 			{ model: 'Gemini 2.5 Flash', desc: ' - Best price/performance with "thinking" capabilities and strong coding support' },
 			{ model: 'Ollama (Local)', desc: ' - Complete privacy with local processing - requires setup but keeps all data on your device' }
 		];

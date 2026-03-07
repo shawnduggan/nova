@@ -18,6 +18,8 @@ export const GEMINI_ALIAS = 'gemini';
 
 export const CUSTOM_PROMPT_HISTORY_MAX = 5;
 
+export const KOFI_URL = 'https://ko-fi.com/shawnduggan';
+
 export const CHALLENGE_SYSTEM_PROMPT = `You are a critical editor reviewing the selected text. Your job is NOT to improve the writing — it's to challenge the thinking.
 
 Identify:
