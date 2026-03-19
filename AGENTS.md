@@ -5,6 +5,32 @@ All Codex agents MUST follow both sections.
 
 ---
 
+## Codex Bridge
+
+Use the existing Claude Code project intelligence as the canonical source of repo-specific guidance. Do not duplicate it here.
+
+- Read `CLAUDE.md` at the start of any non-trivial task; treat it as mandatory project policy.
+- Use `.claude/README.md` as the index for repo-local skills, commands, and agent guidance.
+- Skills:
+  - Read `.claude/skills/nova-patterns/SKILL.md` before writing or modifying code.
+  - Read `.claude/skills/nova-codebase/SKILL.md` when planning scope, mapping files, or navigating unfamiliar areas.
+  - Read `.claude/skills/obsidian/SKILL.md` before touching Obsidian APIs, UI, DOM, timers, events, or submission-sensitive code.
+- Commands:
+  - Consult `.claude/commands/implement.md` for plan-first feature, fix, and issue work.
+  - Consult `.claude/commands/pr-review.md` before PR creation or when reviewing branch changes.
+  - Consult `.claude/commands/compliance.md` before plugin submission or when compliance is uncertain.
+  - Consult `.claude/commands/release.md` for versioning, tags, push, and GitHub release workflow.
+  - Consult `.claude/commands/sync-codebase.md` after adding new `src/**/*.ts` files or after major refactors that may stale the codebase map.
+- Agents:
+  - Use `.claude/agents/architect.md` as the reference workflow for major features, refactors, and architecture decisions; plan only, do not implement during the planning phase.
+  - Use `.claude/agents/code-reviewer.md` as the reference workflow for strict reviews; findings first, read-only mindset.
+  - Use `.claude/agents/compliance-checker.md` as the reference workflow for Obsidian store audits and compliance verification.
+- `.claude/agents/*.md` and `.claude/commands/*.md` are Claude Code-specific formats, but Codex should still use them as reference material when the task matches.
+- If guidance conflicts, follow the stricter rule and pause before irreversible actions.
+- Even when following `.claude/commands/release.md`, Codex must still obey this file’s no-auto-commit / ask-before-commit requirements.
+
+---
+
 ## Repository Guidelines
 
 ### Project Structure & Module Organization
