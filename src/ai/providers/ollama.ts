@@ -23,11 +23,20 @@ export class OllamaProvider implements AIProvider {
 		this.config = config;
 	}
 
+	private getBaseUrl(): string {
+		const configuredBaseUrl = this.config.baseUrl?.trim();
+		if (!configuredBaseUrl) {
+			return 'http://localhost:11434';
+		}
+
+		return configuredBaseUrl.replace(/\/+$/, '');
+	}
+
 	async isAvailable(): Promise<boolean> {
 		if (!this.config.model) return false; // Require model to be set
 		
 		try {
-			const baseUrl = this.config.baseUrl || 'http://localhost:11434';
+			const baseUrl = this.getBaseUrl();
 			const response = await requestUrl({
 				url: `${baseUrl}/api/tags`,
 				method: 'GET',
@@ -40,7 +49,7 @@ export class OllamaProvider implements AIProvider {
 	}
 
 	async generateText(prompt: string, options?: AIGenerationOptions): Promise<string> {
-		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
+		const baseUrl = this.getBaseUrl();
 		const model = options?.model || this.config.model;
 		if (!model) {
 			throw new Error('Ollama model must be specified');
@@ -101,7 +110,7 @@ export class OllamaProvider implements AIProvider {
 	}
 
 	async chatCompletion(messages: AIMessage[], options?: AIGenerationOptions): Promise<string> {
-		const baseUrl = this.config.baseUrl || 'http://localhost:11434';
+		const baseUrl = this.getBaseUrl();
 		const model = options?.model || this.config.model;
 		if (!model) {
 			throw new Error('Ollama model must be specified');
