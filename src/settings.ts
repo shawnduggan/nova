@@ -130,7 +130,7 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 
 export class NovaSettingTab extends PluginSettingTab {
 	plugin: NovaPlugin;
-	private activeTab: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
+	private activeTab: 'getting-started' | 'privacy' | 'general' | 'providers' | 'supernova' | 'debug' = 'getting-started';
 	private tabContainer: HTMLElement | null = null;
 	private contentContainer: HTMLElement | null = null;
 	private timeoutManager = new TimeoutManager();
@@ -166,6 +166,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const tabs = [
 			{ id: 'getting-started', label: 'Getting started' },
+			{ id: 'privacy', label: 'Privacy' },
 			{ id: 'general', label: 'General' },
 			{ id: 'providers', label: 'AI providers' },
 			{ id: 'supernova', label: 'Supernova' }
@@ -184,12 +185,12 @@ export class NovaSettingTab extends PluginSettingTab {
 			tabEl.dataset.tabId = tab.id;
 			
 			this.registerEventListener(tabEl, 'click', () => {
-				this.switchTab(tab.id as 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug');
+				this.switchTab(tab.id as 'getting-started' | 'privacy' | 'general' | 'providers' | 'supernova' | 'debug');
 			});
 		});
 	}
 
-	private switchTab(tabId: 'getting-started' | 'general' | 'providers' | 'supernova' | 'debug'): void {
+	private switchTab(tabId: 'getting-started' | 'privacy' | 'general' | 'providers' | 'supernova' | 'debug'): void {
 		this.activeTab = tabId;
 		this.updateTabStates();
 		this.updateTabContent();
@@ -234,6 +235,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			case 'getting-started':
 				this.createGettingStartedTabContent(this.contentContainer);
 				break;
+			case 'privacy':
+				this.createPrivacySettings(this.contentContainer);
+				break;
 			case 'general':
 				this.createGeneralTabContent(this.contentContainer);
 				break;
@@ -251,7 +255,6 @@ export class NovaSettingTab extends PluginSettingTab {
 
 	private createGeneralTabContent(container: HTMLElement): void {
 		this.createGeneralSettings(container);
-		this.createPrivacySettings(container);
 	}
 
 	private createProvidersTabContent(container: HTMLElement): void {
@@ -1197,8 +1200,6 @@ export class NovaSettingTab extends PluginSettingTab {
 				})
 			);
 
-		this.createWritingAnalysisSettings(coreSection);
-
 		new Setting(coreSection)
 			.setName('Show release notes')
 			.setDesc('Display what\'s new after plugin updates')
@@ -1209,6 +1210,7 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		this.createWritingAnalysisSettings(coreSection);
 	}
 
 	private createWritingAnalysisSettings(containerEl: HTMLElement): void {

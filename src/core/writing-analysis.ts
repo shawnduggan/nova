@@ -528,6 +528,11 @@ function pushSentence(
 function findSentenceEnd(text: string, start: number): number {
 	for (let i = start; i < text.length; i++) {
 		const char = text[i];
+
+		if (char === '\n') {
+			return i;
+		}
+
 		if (char !== '.' && char !== '!' && char !== '?') {
 			continue;
 		}

@@ -4143,6 +4143,8 @@
     padding: 6px 10px;
     font-size: var(--font-smallest);
     cursor: pointer;
+    min-width: 120px;
+    text-align: center;
 }
 
 .nova-writing-panel-button:hover {

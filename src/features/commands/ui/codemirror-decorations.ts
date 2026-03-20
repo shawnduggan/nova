@@ -260,7 +260,6 @@ function createWritingHighlightStateField() {
                         .map(highlight => Decoration.mark({
                             class: `nova-writing-highlight nova-writing-highlight--${highlight.type}`,
                             attributes: {
-                                title: highlight.title,
                                 'aria-label': highlight.title,
                                 'data-writing-type': highlight.type
                             }
