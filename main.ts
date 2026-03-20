@@ -29,6 +29,7 @@ import { SmartTimingEngine } from './src/features/commands/core/SmartTimingEngin
 import { MarginIndicators } from './src/features/commands/ui/MarginIndicators';
 import { createIndicatorExtension } from './src/features/commands/ui/codemirror-decorations';
 import { toSmartTimingSettings } from './src/features/commands/types';
+import { WritingAnalysisManager } from './src/ui/writing-analysis-manager';
 import type { StateField } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
 
@@ -90,6 +91,8 @@ export default class NovaPlugin extends Plugin {
 	smartTimingEngine!: SmartTimingEngine;
 	marginIndicators!: MarginIndicators;
 	indicatorStateField!: StateField<{ decorations: DecorationSet; opportunities: Map<number, unknown> }>;
+	writingAnalysisManager!: WritingAnalysisManager;
+	writingAnalysisStateField!: StateField<DecorationSet>;
 	private pendingReleaseNotes: string | null = null;
 	private pendingReleaseVersion: string | null = null;
 
@@ -166,17 +169,20 @@ export default class NovaPlugin extends Plugin {
 			this.commandEngine = new CommandEngine(this);
 
 			// Create CodeMirror extension for margin indicators
-			const { extension, stateField } = createIndicatorExtension(this);
+			const { extension, stateField, writingStateField } = createIndicatorExtension(this);
 			this.indicatorStateField = stateField;
+			this.writingAnalysisStateField = writingStateField;
 			this.registerEditorExtension(extension);
 
 			this.marginIndicators = new MarginIndicators(this, this.smartVariableResolver, this.commandEngine, this.smartTimingEngine);
+			this.writingAnalysisManager = new WritingAnalysisManager(this);
 			Logger.info('Nova Commands system components created successfully');
 
 			// Initialize MarginIndicators after creation (must be in onLayoutReady for editor access)
 			this.app.workspace.onLayoutReady(() => {
 				try {
 					this.marginIndicators.init();
+					this.writingAnalysisManager.init();
 					Logger.info('Nova Commands system initialized successfully');
 				} catch (error) {
 					Logger.error('Failed to initialize Nova Commands system:', error);
@@ -312,6 +318,7 @@ export default class NovaPlugin extends Plugin {
 		this.conversationManager?.cleanup();
 		this.settingTab?.cleanup();
 		this.marginIndicators?.cleanup();
+		this.writingAnalysisManager?.cleanup();
 		this.commandEngine?.cleanup();
 	}
 
@@ -400,6 +407,10 @@ export default class NovaPlugin extends Plugin {
 				desktop: Object.assign({}, DEFAULT_SETTINGS.platformSettings.desktop, savedData.platformSettings.desktop || {}),
 				mobile: Object.assign({}, DEFAULT_SETTINGS.platformSettings.mobile, savedData.platformSettings.mobile || {})
 			};
+		}
+
+		if (savedData?.writingAnalysis) {
+			this.settings.writingAnalysis = Object.assign({}, DEFAULT_SETTINGS.writingAnalysis, savedData.writingAnalysis);
 		}
 		
 		// Decrypt API keys if they are encrypted

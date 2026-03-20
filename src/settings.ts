@@ -25,6 +25,17 @@ export interface CustomCommand {
 	description?: string;
 }
 
+export interface WritingAnalysisSettings {
+	enabled: boolean;
+	longSentenceThreshold: number;
+	veryLongSentenceThreshold: number;
+	highlightLongSentences: boolean;
+	highlightPassiveVoice: boolean;
+	highlightAdverbs: boolean;
+	highlightWeakIntensifiers: boolean;
+	showStatsPanel: boolean;
+}
+
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
 	platformSettings: PlatformSettings;
@@ -40,6 +51,7 @@ export interface NovaSettings {
 		debugSettings: DebugSettings;
 	};
 	commands: CommandSuggestionsSettings;
+	writingAnalysis: WritingAnalysisSettings;
 	autoContext?: {
 		/** Auto-include outgoing links (default: true) */
 		includeOutgoing: boolean;
@@ -103,6 +115,16 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		responseTime: 'normal',
 		hideWhileTyping: true,
 		enabledDocumentTypes: []  // Empty = all types enabled
+	},
+	writingAnalysis: {
+		enabled: true,
+		longSentenceThreshold: 25,
+		veryLongSentenceThreshold: 40,
+		highlightLongSentences: true,
+		highlightPassiveVoice: true,
+		highlightAdverbs: true,
+		highlightWeakIntensifiers: true,
+		showStatsPanel: true
 	}
 };
 
@@ -1175,6 +1197,8 @@ export class NovaSettingTab extends PluginSettingTab {
 				})
 			);
 
+		this.createWritingAnalysisSettings(coreSection);
+
 		new Setting(coreSection)
 			.setName('Show release notes')
 			.setDesc('Display what\'s new after plugin updates')
@@ -1185,6 +1209,110 @@ export class NovaSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+	}
+
+	private createWritingAnalysisSettings(containerEl: HTMLElement): void {
+		const writingSection = containerEl.createDiv({ cls: 'nova-writing-analysis-settings-section' });
+
+		new Setting(writingSection)
+			.setName('Writing analysis')
+			.setHeading();
+
+		new Setting(writingSection)
+			.setName('Enable writing analysis')
+			.setDesc('Run readability and style analysis locally for the active markdown note')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.enabled)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.enabled = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+
+		new Setting(writingSection)
+			.setName('Highlight long sentences')
+			.setDesc('Underline long and very long sentences inline')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.highlightLongSentences)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.highlightLongSentences = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+
+		new Setting(writingSection)
+			.setName('Long sentence threshold')
+			.setDesc('Sentences longer than this many words are flagged as long')
+			.addText(text => text
+				.setPlaceholder('25')
+				.setValue(this.plugin.settings.writingAnalysis.longSentenceThreshold.toString())
+				.onChange(async (value) => {
+					const parsed = Number.parseInt(value, 10);
+					if (Number.isFinite(parsed) && parsed > 0) {
+						this.plugin.settings.writingAnalysis.longSentenceThreshold = parsed;
+						if (this.plugin.settings.writingAnalysis.veryLongSentenceThreshold < parsed) {
+							this.plugin.settings.writingAnalysis.veryLongSentenceThreshold = parsed;
+						}
+						await this.handleWritingAnalysisSettingsChange();
+					}
+				}));
+
+		new Setting(writingSection)
+			.setName('Very long sentence threshold')
+			.setDesc('Sentences longer than this many words are flagged as very long')
+			.addText(text => text
+				.setPlaceholder('40')
+				.setValue(this.plugin.settings.writingAnalysis.veryLongSentenceThreshold.toString())
+				.onChange(async (value) => {
+					const parsed = Number.parseInt(value, 10);
+					if (Number.isFinite(parsed) && parsed >= this.plugin.settings.writingAnalysis.longSentenceThreshold) {
+						this.plugin.settings.writingAnalysis.veryLongSentenceThreshold = parsed;
+						await this.handleWritingAnalysisSettingsChange();
+					}
+				}));
+
+		new Setting(writingSection)
+			.setName('Highlight passive voice')
+			.setDesc('Underline passive constructions inline')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.highlightPassiveVoice)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.highlightPassiveVoice = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+
+		new Setting(writingSection)
+			.setName('Highlight adverbs')
+			.setDesc('Underline adverbs matched by the local analysis engine')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.highlightAdverbs)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.highlightAdverbs = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+
+		new Setting(writingSection)
+			.setName('Highlight weak intensifiers')
+			.setDesc('Underline weak intensifiers like very, really, and actually')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.highlightWeakIntensifiers)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.highlightWeakIntensifiers = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+
+		new Setting(writingSection)
+			.setName('Show stats panel')
+			.setDesc('Show the writing analysis panel in the sidebar')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.writingAnalysis.showStatsPanel)
+				.onChange(async (value) => {
+					this.plugin.settings.writingAnalysis.showStatsPanel = value;
+					await this.handleWritingAnalysisSettingsChange();
+				}));
+	}
+
+	private async handleWritingAnalysisSettingsChange(): Promise<void> {
+		await this.plugin.saveSettings();
+		this.plugin.writingAnalysisManager?.updateSettings();
 	}
 
 	private createProviderSettings(containerEl = this.containerEl) {

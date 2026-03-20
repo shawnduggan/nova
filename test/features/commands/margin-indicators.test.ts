@@ -202,54 +202,6 @@ describe('MarginIndicators', () => {
             });
         });
 
-        describe('Quick Fix Opportunities', () => {
-            test('should detect passive voice correctly', async () => {
-                const testLines = [
-                    'The document was written by the author',
-                    'Mistakes were made throughout the process',
-                    'The code has been reviewed by the team'
-                ];
-
-                const context = mockVariableResolver.buildSmartContext();
-                
-                for (const line of testLines) {
-                    const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
-                    expect(shouldShow).toBe(true);
-                }
-            });
-
-            test('should detect weak words', async () => {
-                const testLines = [
-                    'This is very important information',
-                    'The solution is really quite simple',
-                    'It is somewhat difficult to understand',
-                    'This approach is rather complicated'
-                ];
-
-                const context = mockVariableResolver.buildSmartContext();
-                
-                for (const line of testLines) {
-                    const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
-                    expect(shouldShow).toBe(true);
-                }
-            });
-
-            test('should NOT detect normal active voice', async () => {
-                const testLines = [
-                    'The author wrote the document',
-                    'The team reviewed the code',
-                    'We completed the project successfully'
-                ];
-
-                const context = mockVariableResolver.buildSmartContext();
-                
-                for (const line of testLines) {
-                    const shouldShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
-                    expect(shouldShow).toBe(false);
-                }
-            });
-        });
-
         describe('Transform Opportunities', () => {
             test('should detect "telling" language', async () => {
                 const testLines = [
@@ -313,11 +265,9 @@ describe('MarginIndicators', () => {
                 
                 for (const line of testLines) {
                     const enhancementShow = (marginIndicators as any).shouldShowEnhancementIndicators(context, line);
-                    const quickFixShow = (marginIndicators as any).shouldShowQuickFixIndicators(context, line);
                     const transformShow = (marginIndicators as any).shouldShowTransformIndicators(context, line);
-                    
+
                     expect(enhancementShow).toBe(false);
-                    expect(quickFixShow).toBe(false);
                     expect(transformShow).toBe(false);
                 }
             });
@@ -461,8 +411,8 @@ describe('MarginIndicators', () => {
                 '- First bullet point',      // Enhancement opportunity
                 '- Second bullet point',     // Enhancement opportunity
                 '',                          // Empty line
-                'This was written by someone.', // Quick fix opportunity (passive)
-                'I think this is very important.', // Enhancement + Quick fix
+                'This was written by someone.', // No longer a margin quick fix
+                'I think this is very important.', // Enhancement only
                 'She felt sad about the news.', // Transform opportunity
                 'This is normal prose content.' // No opportunities
             ];
@@ -478,13 +428,11 @@ describe('MarginIndicators', () => {
             
             // Test individual line detection to verify logic works
             const line2Result = (marginIndicators as any).shouldShowEnhancementIndicators(context, testDocument[2]); // Bullet
-            const line5Result = (marginIndicators as any).shouldShowQuickFixIndicators(context, testDocument[5]); // Passive
             const line6Result = (marginIndicators as any).shouldShowEnhancementIndicators(context, testDocument[6]); // I think
             const line7Result = (marginIndicators as any).shouldShowTransformIndicators(context, testDocument[7]); // felt
-            
+
             // Verify individual detections work
             expect(line2Result).toBe(true); // Bullet point should be detected
-            expect(line5Result).toBe(true); // Passive voice should be detected  
             expect(line6Result).toBe(true); // "I think" should be detected
             expect(line7Result).toBe(true); // "felt" should be detected
             
@@ -501,13 +449,13 @@ describe('MarginIndicators', () => {
                 '- This is a bullet point that could be expanded',  // Line 2: Enhancement
                 '- Another brief point without examples', // Line 3: Enhancement
                 '',                                       // Line 4: Empty - skip
-                'I think this statement is somewhat unclear and maybe could be improved.', // Line 5: Enhancement + Quickfix
+                'I think this statement is somewhat unclear and maybe could be improved.', // Line 5: Enhancement
                 '',                                       // Line 6: Empty - skip
-                'The document was written by the author and mistakes were made throughout.', // Line 7: Quickfix
+                'The document was written by the author and mistakes were made throughout.', // Line 7: deterministic analysis only
                 '',                                       // Line 8: Empty - skip
                 'She felt sad when she realized the truth about the situation.', // Line 9: Transform
                 '',                                       // Line 10: Empty - skip
-                'This is a paragraph that contains passive voice constructions and very weak language that really needs improvement.' // Line 11: Quickfix (multiple issues)
+                'This is a paragraph that contains passive voice constructions and very weak language that really needs improvement.' // Line 11: enhancement only
             ];
 
             // Mock the editor to return our test lines
@@ -529,7 +477,7 @@ describe('MarginIndicators', () => {
             const opportunities = (marginIndicators as any).findOpportunities(context);
             
             // Analyze each line that should have opportunities
-            const expectedLines = [2, 3, 5, 7, 9, 11];
+            const expectedLines = [2, 3, 5, 9];
             let detectedOpportunitiesByLine: Record<number, string[]> = {};
             
             for (const line of expectedLines) {
@@ -538,9 +486,6 @@ describe('MarginIndicators', () => {
                 // Check each opportunity type for this line
                 if ((marginIndicators as any).shouldShowEnhancementIndicators(context, testDocument[line])) {
                     detectedOpportunitiesByLine[line].push('enhancement');
-                }
-                if ((marginIndicators as any).shouldShowQuickFixIndicators(context, testDocument[line])) {
-                    detectedOpportunitiesByLine[line].push('quickfix');
                 }
                 if ((marginIndicators as any).shouldShowTransformIndicators(context, testDocument[line])) {
                     detectedOpportunitiesByLine[line].push('transform');
@@ -562,15 +507,13 @@ describe('MarginIndicators', () => {
             expect(detectedOpportunitiesByLine[2]).toContain('enhancement'); // First bullet
             expect(detectedOpportunitiesByLine[3]).toContain('enhancement'); // Second bullet
             expect(detectedOpportunitiesByLine[5].length).toBeGreaterThan(0); // "I think" line
-            expect(detectedOpportunitiesByLine[7]).toContain('quickfix'); // Passive voice
             expect(detectedOpportunitiesByLine[9]).toContain('transform'); // "felt sad"
-            expect(detectedOpportunitiesByLine[11].length).toBeGreaterThan(0); // Multiple issues line
         });
 
         test('should not create duplicate indicators for multi-issue lines', async () => {
             const multiIssueLines = [
-                'I think this statement is somewhat unclear and maybe could be improved.', // enhancement + quickfix
-                'This is a paragraph that contains passive voice constructions and very weak language that really needs improvement.' // multiple quickfix issues
+                'I think this statement is somewhat unclear and maybe could be improved.', // enhancement only
+                'This is a paragraph that contains passive voice constructions and very weak language that really needs improvement.' // no margin indicators
             ];
 
             const context = mockVariableResolver.buildSmartContext();
@@ -590,9 +533,6 @@ describe('MarginIndicators', () => {
 
                 // Count how many opportunities are on this line
                 const opportunitiesForLine = opportunities.filter((o: any) => o.line === lineNumber);
-                console.log(`Line ${lineNumber}: "${line.substring(0, 50)}..." -> ${opportunitiesForLine.length} opportunities`);
-                console.log('Types:', opportunitiesForLine.map((o: any) => o.type));
-
                 // Multiple opportunities on same line should only create one indicator per type
                 const uniqueTypes = new Set(opportunitiesForLine.map((o: any) => o.type));
                 expect(opportunitiesForLine.length).toBe(uniqueTypes.size);

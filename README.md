@@ -4,11 +4,17 @@ AI editor for Obsidian that sharpens your writing in place. Select text, refine 
 
 **Privacy-first**: Use local AI (Ollama, LM Studio) or your own API keys (Claude, OpenAI, Gemini). Nova never sees your content.
 
-**Free core features**: All writing functionality works with your own keys. Paid supporters get early access to experimental features (1-2 months) before they become free.
+**Built-in writing analysis**: Readability scoring, sentence-length highlights, passive voice detection, adverb density, and weak intensifier detection all run locally with zero AI costs.
+
+**Free core features**: All writing functionality works with your own keys. Writing analysis is free for everyone. Paid supporters get early access to experimental features (1-2 months) before they become free.
 
 ---
 
 ## How It Works
+
+### Writing Analysis
+
+Readability score, sentence length highlighting, passive voice detection, adverb density, and weak intensifier detection — running locally with zero AI costs. Like having ProWritingAid built into Obsidian, alongside Nova's AI editing tools.
 
 ### Selection-Based Editing
 
@@ -44,7 +50,7 @@ Use `<!-- nova: instruction -->` comments as AI placeholders. Place them through
 - Processes placeholders sequentially (top to bottom) with real-time streaming
 - Uses full document context for coherent content
 - Margin indicators (📝) show placeholder locations and enable click-to-fill
-- Writing insights detect passive voice and weak words
+- Writing analysis runs locally for readability, passive voice, adverbs, and intensifiers
 
 **Works with Templater**
 
@@ -83,6 +89,7 @@ Everything works with your own keys — Nova doesn't hold your writing hostage.
 
 Every core writing feature works with your own API keys:
 
+- Built-in writing analysis with local-only metrics
 - Selection-based transformations with real-time streaming
 - Chat commands with cursor targeting
 - Multi-document context and references

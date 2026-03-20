@@ -353,23 +353,6 @@ export class MarginIndicators {
             // Analyze line and cache results
             const lineOpportunities: IndicatorOpportunity[] = [];
 
-            // Quick fix opportunities (⚡) - Writing quality issues
-            const quickFixIssues = this.findQuickFixIssues(context, lineText);
-            if (quickFixIssues.length > 0) {
-                const issueCount = quickFixIssues.length;
-
-                lineOpportunities.push({
-                    line: lineNumber,
-                    column: this.getMarginColumn(),
-                    type: 'quickfix',
-                    icon: '⚡',
-                    commands: [], // Commands are embedded in specificIssues
-                    confidence: this.calculateConfidence(context, 'quickfix'),
-                    specificIssues: quickFixIssues,
-                    issueCount
-                });
-            }
-
             // Transformation opportunities (✨) - "show don't tell"
             if (this.shouldShowTransformIndicators(context, lineText)) {
                 lineOpportunities.push({
@@ -497,98 +480,6 @@ export class MarginIndicators {
             currentLine.toLowerCase().includes('perhaps')) return true;
         
         return false;
-    }
-
-    /**
-     * Find specific quick fix issues on a line with their positions
-     */
-    private findQuickFixIssues(context: SmartContext, currentLine: string): SpecificIssue[] {
-        const trimmed = currentLine.trim();
-        const issues: SpecificIssue[] = [];
-        
-        // Skip headers and empty lines
-        if (trimmed.match(/^#+\s/) || trimmed.length === 0) return issues;
-        
-        // Detect passive voice patterns with positions
-        const passivePatterns = [
-            { pattern: /\b(was|were)\s+(\w+ed)\b/g, type: 'passive', description: 'passive voice detected' },
-            { pattern: /\b(was|were)\s+(written|taken|given|chosen|broken|spoken)\b/g, type: 'passive', description: 'passive voice detected' },
-            { pattern: /\bmade\s+(by|throughout|during)\b/g, type: 'passive', description: 'passive construction' },
-            { pattern: /\b(has|have)\s+been\s+(\w+ed)\b/g, type: 'passive', description: 'passive voice detected' },
-            { pattern: /\b(has|have)\s+been\s+(written|taken|given|chosen|broken|spoken)\b/g, type: 'passive', description: 'passive voice detected' }
-        ];
-        
-        // Find all passive voice instances
-        passivePatterns.forEach(({ pattern, type, description }) => {
-            let match;
-            while ((match = pattern.exec(currentLine)) !== null) {
-                const matchedText = match[0];
-                const suggestedFix = this.getSuggestedFix(matchedText, type);
-                
-                issues.push({
-                    matchedText,
-                    startIndex: match.index,
-                    endIndex: match.index + matchedText.length,
-                    description: `${description}: '${matchedText}'`,
-                    suggestedFix
-                });
-            }
-        });
-        
-        // Detect weak words
-        const weakWordPattern = /\b(very|really|quite|somewhat|rather)\b/gi;
-        let match;
-        while ((match = weakWordPattern.exec(currentLine)) !== null) {
-            const matchedText = match[0];
-            issues.push({
-                matchedText,
-                startIndex: match.index,
-                endIndex: match.index + matchedText.length,
-                description: `weak intensifier: '${matchedText}'`,
-                suggestedFix: this.getSuggestedFix(matchedText, 'weak')
-            });
-        }
-        
-        return issues;
-    }
-    
-    /**
-     * Get suggested fix for specific text patterns
-     */
-    private getSuggestedFix(matchedText: string, issueType: string): string {
-        const text = matchedText.toLowerCase();
-        
-        switch (issueType) {
-            case 'passive':
-                if (text.includes('was written')) return 'wrote';
-                if (text.includes('were written')) return 'wrote';
-                if (text.includes('was taken')) return 'took';
-                if (text.includes('were taken')) return 'took';
-                if (text.includes('was given')) return 'gave';
-                if (text.includes('were given')) return 'gave';
-                if (text.includes('was reviewed')) return 'reviewed';
-                if (text.includes('were reviewed')) return 'reviewed';
-                return 'use active voice';
-                
-            case 'weak':
-                if (text === 'very') return 'remove or use stronger adjective';
-                if (text === 'really') return 'remove or be specific';
-                if (text === 'quite') return 'remove or be specific';
-                if (text === 'somewhat') return 'be more specific';
-                if (text === 'rather') return 'be more specific';
-                return 'use stronger language';
-                
-            default:
-                return 'improve';
-        }
-    }
-
-    /**
-     * Check if quick fix indicators should be shown (legacy method for backward compatibility)
-     */
-    private shouldShowQuickFixIndicators(context: SmartContext, currentLine: string): boolean {
-        const issues = this.findQuickFixIssues(context, currentLine);
-        return issues.length > 0;
     }
 
     /**

@@ -25,6 +25,8 @@ import {
 	SidebarChatMessageEvent
 } from './sidebar-events';
 import { ContextQuickPanel } from './context-quick-panel';
+import { WRITING_ANALYSIS_UPDATED_EVENT, type WritingAnalysisUpdateDetail } from './writing-analysis-manager';
+import { WritingStatsPanel } from './writing-stats-panel';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
@@ -51,6 +53,7 @@ export class NovaSidebarView extends ItemView {
 	private streamingManager!: StreamingManager;
 	private selectionContextMenu!: SelectionContextMenu;
 	private contextQuickPanel!: ContextQuickPanel;
+	private writingStatsPanel!: WritingStatsPanel;
 	private providerDropdown: DropdownComponent | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
 	
@@ -131,6 +134,7 @@ export class NovaSidebarView extends ItemView {
 		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
 		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
 		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
+		this.registerDomEvent(document, WRITING_ANALYSIS_UPDATED_EVENT as keyof DocumentEventMap, this.handleWritingAnalysisUpdated.bind(this));
 
 		// Sidebar event bus — decoupled communication from SelectionContextMenu
 		this.registerDomEvent(document, SIDEBAR_PROCESSING_EVENT as keyof DocumentEventMap, this.handleSidebarProcessing.bind(this));
@@ -550,6 +554,21 @@ export class NovaSidebarView extends ItemView {
 		});
 		const panelEl = this.contextQuickPanel.createPanel();
 		this.wrapperEl.insertBefore(panelEl, this.chatContainer);
+
+		this.writingStatsPanel = new WritingStatsPanel({
+			container: this.wrapperEl,
+			registerDomEvent: (el, type, handler) => this.registerDomEvent(el as HTMLElement, type, handler as (this: HTMLElement, ev: Event) => void),
+			onToggleHighlights: () => {
+				const manager = this.plugin.writingAnalysisManager;
+				manager?.setHighlightsVisible(!manager.isHighlightsVisible());
+			},
+			onAnalyze: () => {
+				void this.plugin.writingAnalysisManager?.analyzeNow();
+			}
+		});
+		const writingPanelEl = this.writingStatsPanel.createPanel();
+		this.wrapperEl.insertBefore(writingPanelEl, this.chatContainer);
+		this.updateWritingStatsPanel();
 		
 		// Always create CommandSystem - FeatureManager handles enablement
 		this.commandSystem = new CommandSystem(this.plugin, this.inputContainer, this.inputHandler.getTextArea());
@@ -1690,6 +1709,34 @@ USER REQUEST: ${processedMessage}`;
 
 	private addWarningMessage(content: string): void {
 		this.chatRenderer.addWarningMessage(content, true);
+	}
+
+	private handleWritingAnalysisUpdated(event: Event): void {
+		const customEvent = event as CustomEvent<WritingAnalysisUpdateDetail>;
+		this.updateWritingStatsPanel(customEvent.detail);
+	}
+
+	private updateWritingStatsPanel(detail?: WritingAnalysisUpdateDetail): void {
+		if (!this.writingStatsPanel) {
+			return;
+		}
+
+		const manager = this.plugin.writingAnalysisManager;
+		const currentDetail = detail ?? {
+			analysis: manager?.getLatestAnalysis() ?? null,
+			filePath: manager?.getActiveFile()?.path ?? null,
+			eligible: manager?.isEligibleActiveFile() ?? false,
+			highlightsVisible: manager?.isHighlightsVisible() ?? true,
+			disabledByFrontmatter: manager?.isDisabledByFrontmatter() ?? false
+		};
+
+		this.writingStatsPanel.update({
+			analysis: currentDetail.analysis,
+			eligible: currentDetail.eligible,
+			visible: this.plugin.settings.writingAnalysis.enabled && this.plugin.settings.writingAnalysis.showStatsPanel,
+			highlightsVisible: currentDetail.highlightsVisible,
+			disabledByFrontmatter: currentDetail.disabledByFrontmatter
+		});
 	}
 
 	private async showDocumentInsights(file: TFile): Promise<void> {

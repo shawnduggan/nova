@@ -28,10 +28,19 @@ interface IndicatorOpportunity {
     issueCount?: number;
 }
 
+export interface WritingHighlight {
+    from: number;
+    to: number;
+    type: 'long-sentence' | 'very-long-sentence' | 'passive-voice' | 'adverb' | 'weak-intensifier';
+    title: string;
+}
+
 // State effects for managing indicators
 export const addIndicatorEffect = StateEffect.define<IndicatorOpportunity>();
 export const removeIndicatorEffect = StateEffect.define<number>(); // line number
 export const clearIndicatorsEffect = StateEffect.define<void>();
+export const setWritingHighlightsEffect = StateEffect.define<WritingHighlight[]>();
+export const clearWritingHighlightsEffect = StateEffect.define<void>();
 
 /**
  * Widget class for margin indicators
@@ -235,6 +244,41 @@ function createIndicatorStateField(plugin: NovaPlugin) {
     });
 }
 
+function createWritingHighlightStateField() {
+    return StateField.define<DecorationSet>({
+        create(): DecorationSet {
+            return Decoration.none;
+        },
+
+        update(decorations, transaction: Transaction) {
+            decorations = decorations.map(transaction.changes);
+
+            for (const effect of transaction.effects) {
+                if (effect.is(setWritingHighlightsEffect)) {
+                    const ranges = effect.value
+                        .filter(highlight => highlight.from < highlight.to)
+                        .map(highlight => Decoration.mark({
+                            class: `nova-writing-highlight nova-writing-highlight--${highlight.type}`,
+                            attributes: {
+                                title: highlight.title,
+                                'aria-label': highlight.title,
+                                'data-writing-type': highlight.type
+                            }
+                        }).range(highlight.from, highlight.to));
+
+                    decorations = Decoration.set(ranges, true);
+                } else if (effect.is(clearWritingHighlightsEffect)) {
+                    decorations = Decoration.none;
+                }
+            }
+
+            return decorations;
+        },
+
+        provide: field => EditorView.decorations.from(field)
+    });
+}
+
 /**
  * Extension for margin indicators
  * Takes plugin instance for proper event listener registration
@@ -242,9 +286,11 @@ function createIndicatorStateField(plugin: NovaPlugin) {
  */
 export function createIndicatorExtension(plugin: NovaPlugin) {
     const indicatorStateField = createIndicatorStateField(plugin);
+    const writingHighlightStateField = createWritingHighlightStateField();
 
     const extension = [
         indicatorStateField,
+        writingHighlightStateField,
         
         // Theme for styling indicators
         EditorView.theme({
@@ -278,13 +324,45 @@ export function createIndicatorExtension(plugin: NovaPlugin) {
             
             '.nova-margin-indicator[data-type="transform"]': {
                 color: 'var(--text-success)'
+            },
+
+            '.nova-writing-highlight': {
+                borderBottomWidth: '1px',
+                borderBottomStyle: 'solid',
+                cursor: 'help'
+            },
+
+            '.nova-writing-highlight--long-sentence': {
+                borderBottomColor: 'var(--text-warning)',
+                boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--text-warning) 25%, transparent)'
+            },
+
+            '.nova-writing-highlight--very-long-sentence': {
+                borderBottomColor: 'var(--text-error)',
+                boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--text-error) 25%, transparent)'
+            },
+
+            '.nova-writing-highlight--passive-voice': {
+                borderBottomColor: 'var(--interactive-accent)',
+                boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--interactive-accent) 20%, transparent)'
+            },
+
+            '.nova-writing-highlight--adverb': {
+                borderBottomColor: 'var(--text-accent)',
+                boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--text-accent) 18%, transparent)'
+            },
+
+            '.nova-writing-highlight--weak-intensifier': {
+                borderBottomColor: 'var(--color-orange)',
+                boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--color-orange) 20%, transparent)'
             }
         })
     ];
 
     return {
         extension,
-        stateField: indicatorStateField
+        stateField: indicatorStateField,
+        writingStateField: writingHighlightStateField
     };
 }
 
@@ -347,5 +425,32 @@ export class CodeMirrorIndicatorManager {
         
         this.view.dispatch({ effects });
         this.logger.debug(`Updated ${opportunities.length} indicators`);
+    }
+}
+
+export class CodeMirrorWritingHighlightManager {
+    private logger = Logger.scope('CodeMirrorWritingHighlightManager');
+
+    constructor(
+        private view: EditorView,
+        private stateField: StateField<DecorationSet>
+    ) {}
+
+    updateHighlights(highlights: WritingHighlight[]): void {
+        this.view.dispatch({
+            effects: [setWritingHighlightsEffect.of(highlights)]
+        });
+        this.logger.debug(`Updated ${highlights.length} writing highlights`);
+    }
+
+    clearHighlights(): void {
+        this.view.dispatch({
+            effects: [clearWritingHighlightsEffect.of()]
+        });
+        this.logger.debug('Cleared writing highlights');
+    }
+
+    getHighlights(): DecorationSet {
+        return this.view.state.field(this.stateField);
     }
 }
