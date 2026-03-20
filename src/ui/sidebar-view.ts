@@ -1589,10 +1589,9 @@ USER REQUEST: ${processedMessage}`;
 					statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 				}
 				
-				if (statsEl && wordCount > 0) {
-					// Calculate reading time (words / 225 = minutes)
-					const readingTime = Math.ceil(wordCount / 225);
-					statsEl.textContent = `~ ${readingTime} min read`;
+				if (statsEl) {
+					// Reading time is shown in Writing stats panel; hide from header
+					statsEl.textContent = '';
 				}
 			}
 		} catch (_) {

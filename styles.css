@@ -3847,6 +3847,7 @@
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
     background: var(--background-primary);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .nova-quick-panel-collapsed {
@@ -4049,7 +4050,7 @@
 .nova-writing-panel {
     border-bottom: 1px solid var(--background-modifier-border);
     background: var(--background-primary);
-    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .nova-writing-panel-header {
@@ -4087,7 +4088,8 @@
 }
 
 .nova-writing-panel-body {
-    padding: 0 var(--size-4-2) var(--size-4-2) var(--size-4-2);
+    padding: var(--size-4-1) var(--size-4-2) var(--size-4-2) var(--size-4-2);
+    border-top: 1px solid var(--background-modifier-border);
 }
 
 .nova-writing-panel-metrics {
