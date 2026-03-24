@@ -19,19 +19,6 @@ This command checks Nova against all Obsidian Community Plugin store requirement
 5. **Final status**
    Confirm ready for plugin store submission or list remaining blockers.
 
-## Compliance Categories
-
-| Category | Blocking? | Description |
-|----------|-----------|-------------|
-| Event Listeners | YES | Must use `registerDomEvent()` |
-| Timers | YES | Must use `TimeoutManager` / `registerInterval()` |
-| DOM Security | YES | No `innerHTML`/`outerHTML` |
-| Deprecated APIs | YES | No `activeLeaf`, `vault.modify()` |
-| Network | YES | Must use `requestUrl()` |
-| Console | YES | Must use `Logger`, no `console.log` |
-| iOS Compat | YES | No regex lookbehind |
-| Manifest | YES | Valid naming, description |
-
 ## Output
 
 Full compliance report with:

@@ -21,8 +21,8 @@ Review code for quality, patterns, and Obsidian compliance. You CANNOT modify fi
 - [ ] No `console.log` in production paths
 
 ### Architecture
-- [ ] Event-driven communication via StateManager
-- [ ] No direct component method calls
+- [ ] Direct injection for dependencies (constructor params)
+- [ ] Direct method calls between tightly-coupled components are acceptable
 - [ ] Constants in `constants.ts`
 - [ ] Proper cleanup in `onunload()`
 
@@ -33,7 +33,6 @@ Review code for quality, patterns, and Obsidian compliance. You CANNOT modify fi
 
 ### Nova Patterns
 - [ ] UI components have `init()` method, not constructor side effects
-- [ ] Services emit events rather than returning data for UI updates
 - [ ] Streaming operations use StreamingManager
 - [ ] Timeouts use TimeoutManager
 

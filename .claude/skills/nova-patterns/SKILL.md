@@ -68,21 +68,6 @@ document.dispatchEvent(new CustomEvent('nova-provider-configured', { detail: { p
 this.registerDomEvent(document, 'nova-provider-configured', this.handleProviderConfigured.bind(this));
 ```
 
-## Obsidian Compliance (BLOCKING)
-
-These patterns will **REJECT plugin store submission**:
-
-| NEVER | ALWAYS |
-|-------|--------|
-| `addEventListener()` | `this.registerDomEvent()` |
-| `setTimeout()` unregistered | `TimeoutManager.addTimeout()` |
-| `setInterval()` unregistered | `this.registerInterval()` |
-| `innerHTML`/`outerHTML` | DOM API (`createEl`, `setText`) |
-| `fetch()` | `requestUrl()` |
-| `vault.modify()` | Editor API (`editor.replaceRange()`) |
-| `activeLeaf` | `getActiveViewOfType(MarkdownView)` |
-| `console.log` in production | `Logger` utility |
-
 ## Component Patterns
 
 ### UI Components (`src/ui/`)
@@ -354,16 +339,6 @@ element.addClass(CSS_CLASSES.SIDEBAR_HEADER);
 
 // WRONG
 element.addClass('nova-sidebar-header');
-```
-
-## Quality Gates
-
-All code must pass before merge:
-
-```bash
-npm run build          # 0 errors
-npm test               # ALL tests pass (490+)
-npx eslint src/        # 0 errors
 ```
 
 ---

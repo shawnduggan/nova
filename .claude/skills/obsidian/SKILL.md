@@ -249,30 +249,6 @@ button.style.minHeight = '44px';
 --background-modifier-hover
 ```
 
-## Pre-Submission Checklist
-
-### Bot Validation (Auto-Fail)
-- [ ] Plugin ID: no "obsidian", doesn't end with "plugin"
-- [ ] Plugin name: no "Obsidian", doesn't end with "Plugin"
-- [ ] Description: no "Obsidian" or "This plugin"
-- [ ] Description ends with punctuation (. ? ! or ))
-- [ ] manifest.json matches submission entry
-
-### Code Quality
-- [ ] No memory leaks (views properly managed)
-- [ ] Type safety (instanceof, not casts)
-- [ ] All UI text in sentence case
-- [ ] Using preferred APIs
-- [ ] No iOS-incompatible features
-- [ ] All sample code removed
-- [ ] No innerHTML/outerHTML
-
-### Accessibility
-- [ ] All interactive elements keyboard accessible
-- [ ] ARIA labels on icon buttons
-- [ ] Focus indicators with :focus-visible
-- [ ] Touch targets 44×44px minimum
-
 ---
 
-*For detailed coverage of specific topics, see reference files in this skill directory.*
+*For automated compliance auditing, use the `compliance-checker` agent or `/project:compliance` command.*

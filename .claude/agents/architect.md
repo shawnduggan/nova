@@ -87,7 +87,7 @@ interface Foo { ... }  // Changes: added X, removed Y
 ## Key Considerations
 
 ### Nova Architecture Rules
-- Event-driven: Components communicate via StateManager
+- Direct injection: Components receive dependencies via constructors. Direct method calls between tightly-coupled components are acceptable.
 - No constructor side effects: Use `init()` methods
 - Obsidian compliance: registerDomEvent, TimeoutManager, etc.
 - Privacy-first: No telemetry, user controls data
