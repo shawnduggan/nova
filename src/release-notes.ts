@@ -6,6 +6,34 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.4.0': [
+		'## What\'s New in Nova 1.4.0',
+		'',
+		'### Writing Analysis',
+		'Nova now includes a **deterministic writing analysis** panel that runs locally — no AI calls needed.',
+		'',
+		'- **Readability grade** — Flesch-Kincaid grade level with a plain-language label (e.g. "Grade 7 — easy to read").',
+		'- **Inline highlights** — Long sentences, very long sentences, passive voice, adverbs, and weak intensifiers are underlined directly in the editor with color-coded severity.',
+		'- **Stats at a glance** — Word count, sentence count, reading time, passive voice percentage, adverb density, and intensifier count in a collapsible panel.',
+		'- **Analyze button** — Re-run analysis on demand; automatically enables highlights if they\'re hidden.',
+		'- **Frontmatter opt-out** — Add `nova-writing: false` to any note\'s frontmatter to disable analysis.',
+		'- **Configurable thresholds** — Adjust long/very-long sentence word limits in settings.',
+		'',
+		'### Auto-Context Improvements',
+		'- **Live wikilink tracking** — Adding or removing `[[wikilinks]]` now updates the context panel automatically (previously required switching files).',
+		'',
+		'### Mobile Polish',
+		'- **Writing panel** — Proper touch targets, readable font sizes, and scroll behavior on mobile.',
+		'- **Consistent panels** — Writing and Context panels now share identical mobile styling.',
+		'- **Privacy indicator** — Left-aligned for a cleaner layout on both desktop and mobile.',
+		'',
+		'### Bug Fixes',
+		'- Fixed undo/redo not triggering writing analysis updates.',
+		'- Fixed weak intensifiers (e.g. "really") being double-highlighted as both adverbs and intensifiers.',
+		'- Fixed Ollama base URL trailing slash causing connection failures.',
+		'- Relaxed adverb and intensifier thresholds to reduce false alarms.',
+		'- Token budget bar now hidden when usage is negligible; shows percentage instead of raw counts.',
+	].join('\n'),
 	'1.3.3': [
 		'## What\'s New in Nova 1.3.3',
 		'',
@@ -50,12 +78,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'### Model Catalog',
 		'- Added **Claude Sonnet 4.6** and **Gemini 3.1 Pro (Preview)**.',
 		'- Removed legacy models (Claude Opus 4.5, Claude Sonnet 4.5).',
-	].join('\n'),
-	'1.2.1': [
-		'## What\'s New in Nova 1.2.1',
-		'',
-		'### Notice Reliability Fix',
-		'Fixed an issue where thinking notices ("analyzing...", "refining...") could permanently stop appearing after 30 seconds. This also affected error messages and other notifications. Notices now persist correctly until dismissed.',
 	].join('\n'),
 };
 
