@@ -4248,3 +4248,60 @@
 .is-mobile .nova-quick-panel-info {
     font-size: var(--font-ui-smaller);
 }
+
+/* Mobile Writing Stats Panel */
+.is-mobile .nova-writing-panel-header {
+    min-height: 44px;
+    padding: var(--size-4-1) var(--size-4-3);
+    color: var(--text-normal);
+}
+
+.is-mobile .nova-writing-panel-chevron {
+    color: var(--text-faint);
+}
+
+.is-mobile .nova-writing-panel-label {
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-normal);
+    color: var(--interactive-accent);
+}
+
+.is-mobile .nova-writing-panel-info {
+    font-size: var(--font-ui-smaller);
+}
+
+.is-mobile .nova-writing-panel-body {
+    padding: 0 var(--size-4-3) var(--size-2-3) var(--size-4-3);
+    max-height: min(40vh, 300px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.is-mobile .nova-writing-panel.nova-writing-panel-expanded {
+    display: flex;
+    flex-direction: column;
+    max-height: min(44vh, 340px);
+}
+
+.is-mobile .nova-writing-panel.nova-writing-panel-expanded .nova-writing-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.is-mobile .nova-writing-panel-row-label {
+    font-size: var(--font-ui-small);
+}
+
+.is-mobile .nova-writing-panel-row-value {
+    font-size: var(--font-ui-small);
+}
+
+.is-mobile .nova-writing-panel-empty {
+    font-size: var(--font-ui-small);
+}
+
+.is-mobile .nova-writing-panel-button {
+    min-height: 44px;
+    padding: var(--size-4-2) var(--size-4-3);
+    font-size: var(--font-ui-small);
+}

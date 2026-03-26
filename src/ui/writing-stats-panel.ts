@@ -43,7 +43,7 @@ export class WritingStatsPanel {
         setIcon(chevronEl, 'chevron-right');
 
         const labelEl = headerEl.createSpan({ cls: 'nova-writing-panel-label' });
-        labelEl.textContent = 'Writing stats';
+        labelEl.textContent = 'Writing';
 
         const infoEl = headerEl.createSpan({ cls: 'nova-writing-panel-info' });
         infoEl.textContent = 'Waiting for analysis';
@@ -134,7 +134,7 @@ export class WritingStatsPanel {
         }
 
         const metricsEl = this.bodyEl.createDiv({ cls: 'nova-writing-panel-metrics' });
-        this.createMetricRow(metricsEl, 'Readability', `${this.formatGrade(state.analysis.readabilityGrade)} (${state.analysis.readabilityLabel})`, this.getReadabilityClass(state.analysis.readabilityGrade));
+        this.createMetricRow(metricsEl, 'Readability', `${this.formatGrade(state.analysis.readabilityGrade)} (${state.analysis.readabilityLabel.replace(/^Grade \d+\s*[-–—]\s*/, '')})`, this.getReadabilityClass(state.analysis.readabilityGrade));
         this.createMetricRow(metricsEl, 'Words', this.formatCount(state.analysis.wordCount));
         this.createMetricRow(metricsEl, 'Sentences', this.formatCount(state.analysis.sentenceCount));
         this.createMetricRow(metricsEl, 'Reading time', `${state.analysis.readingTimeMinutes} min`);
@@ -213,7 +213,7 @@ export class WritingStatsPanel {
             return 'Waiting for analysis';
         }
 
-        return `${this.formatGrade(state.analysis.readabilityGrade)} · ${this.formatCount(state.analysis.wordCount)} words · ${state.analysis.readingTimeMinutes} min read`;
+        return `${this.formatGrade(state.analysis.readabilityGrade)} · ${this.formatCount(state.analysis.wordCount)} words · ${state.analysis.readingTimeMinutes} min`;
     }
 
     private formatGrade(grade: number): string {
