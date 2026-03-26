@@ -204,6 +204,9 @@ export class NovaSidebarView extends ItemView {
 		this.registerEvent(
 			this.app.workspace.on('editor-change', (editor) => {
 				this.trackCursorPosition(editor);
+				// Schedule writing analysis on all document changes (including undo/redo,
+				// which don't fire DOM input events caught by WritingAnalysisManager)
+				this.plugin.writingAnalysisManager?.scheduleAnalysis();
 			})
 		);
 		
