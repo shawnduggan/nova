@@ -579,7 +579,11 @@ export class NovaSidebarView extends ItemView {
 				manager?.setHighlightsVisible(!manager.isHighlightsVisible());
 			},
 			onAnalyze: () => {
-				void this.plugin.writingAnalysisManager?.analyzeNow();
+				const manager = this.plugin.writingAnalysisManager;
+				if (manager && !manager.isHighlightsVisible()) {
+					manager.setHighlightsVisible(true);
+				}
+				void manager?.analyzeNow();
 			}
 		});
 		const writingPanelEl = this.writingStatsPanel.createPanel();
