@@ -98,6 +98,7 @@ export class NovaSidebarView extends ItemView {
 	
 	// Event listener cleanup is handled automatically by registerDomEvent
 	private timeoutManager = new TimeoutManager();
+	private pendingContextRefresh: ReturnType<typeof TimeoutManager.prototype.addTimeout> | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
@@ -210,6 +211,16 @@ export class NovaSidebarView extends ItemView {
 			})
 		);
 		
+		// Re-scan auto-context when Obsidian re-parses the current file's metadata
+		// (fires after wikilinks are added/removed and the cache updates)
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file) => {
+				if (file === this.currentFile) {
+					this.scheduleContextRefresh();
+				}
+			})
+		);
+
 		// Register blur listener for stats updates when editor loses focus
 		this.setupEditorBlurListener();
 		
@@ -970,6 +981,20 @@ export class NovaSidebarView extends ItemView {
 
 	private updateContextIndicator(): void {
 		this.contextQuickPanel?.update();
+	}
+
+	private scheduleContextRefresh(): void {
+		if (this.pendingContextRefresh) {
+			this.timeoutManager.removeTimeout(this.pendingContextRefresh);
+		}
+		this.pendingContextRefresh = this.timeoutManager.addTimeout(() => {
+			this.pendingContextRefresh = null;
+			if (this.currentFile) {
+				void this.contextManager.rebuildAutoContext(this.currentFile).then(() => {
+					return this.refreshContext();
+				});
+			}
+		}, 1000);
 	}
 
 	private async refreshContext(): Promise<void> {
