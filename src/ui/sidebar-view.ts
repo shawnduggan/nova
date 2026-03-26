@@ -418,6 +418,8 @@ export class NovaSidebarView extends ItemView {
 			}, 120);
 		};
 
+		// visualViewport is not an HTMLElement/Document, so registerDomEvent() cannot accept it.
+		// Manual cleanup is handled in this.cleanupMobileViewportTracking(), called from onClose().
 		visualViewport.addEventListener('resize', updateKeyboardOffset);
 		visualViewport.addEventListener('scroll', updateKeyboardOffset);
 		this.registerDomEvent(window, 'resize', updateKeyboardOffset);

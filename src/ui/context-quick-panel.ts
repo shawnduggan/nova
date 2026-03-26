@@ -73,7 +73,7 @@ export class ContextQuickPanel {
 		this.updateCollapsedInfo(infoEl);
 
 		// Toggle expand/collapse on header click
-		headerEl.addEventListener('click', (e) => {
+		this.deps.registerDomEvent(headerEl, 'click', (e) => {
 			e.stopPropagation();
 			this.toggleExpanded();
 			this.updateCollapsedInfo(infoEl);
@@ -85,7 +85,7 @@ export class ContextQuickPanel {
 
 		// Prevent mousedown inside panel body from bubbling to containerEl,
 		// which triggers refreshAllStats → DOM rebuild that destroys click targets
-		this.expandedEl.addEventListener('mousedown', (e) => {
+		this.deps.registerDomEvent(this.expandedEl, 'mousedown', (e) => {
 			e.stopPropagation();
 		});
 
