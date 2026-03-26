@@ -238,7 +238,7 @@ describe('analyzeWriting', () => {
 			expect(result.wordCount).toBe(9);
 			expect(result.sentenceCount).toBe(1);
 			expect(result.passiveVoice).toHaveLength(1);
-			expect(result.adverbs).toHaveLength(2);
+			expect(result.adverbs).toHaveLength(1); // "carefully" only; "really" is a weak intensifier
 			expect(result.weakIntensifierCount).toBe(0);
 			expect(result.weakIntensifiers).toEqual([]);
 			expect(result.passiveVoicePercentage).toBe(100);

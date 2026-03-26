@@ -607,7 +607,7 @@ function findAdverbs(text: string, lineInfos: LineInfo[]): AdverbMatch[] {
 	let match: RegExpExecArray | null;
 	while ((match = adverbRegex.exec(text)) !== null) {
 		const word = match[1];
-		if (isExcludedAdverb(word)) {
+		if (isExcludedAdverb(word) || WEAK_INTENSIFIERS.has(word.toLowerCase())) {
 			continue;
 		}
 
