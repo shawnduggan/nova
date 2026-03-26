@@ -230,7 +230,7 @@ export class ContextQuickPanel {
 
 		if (docs.length === 0) {
 			const emptyEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-empty' });
-			emptyEl.textContent = 'No documents in context. Link notes with [[wikilinks]] or enable auto-context above.';
+			emptyEl.textContent = 'Link notes with [[wikilinks]] or enable auto-context.';
 		} else {
 			const docListEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-doc-list' });
 
@@ -286,24 +286,29 @@ export class ContextQuickPanel {
 		const contextLimit = usage?.contextLimit || 32000;
 		const usagePercent = Math.min((totalTokens / contextLimit) * 100, 100);
 
-		// Progress bar
-		const progressContainerEl = budgetEl.createDiv({ cls: 'nova-budget-bar-container' });
-		const progressEl = progressContainerEl.createDiv({ cls: 'nova-budget-bar' });
-		progressEl.style.width = `${usagePercent}%`;
-		
-		// Color based on usage
-		progressEl.removeClass('nova-budget-low', 'nova-budget-medium', 'nova-budget-high');
-		if (usagePercent >= 90) {
-			progressEl.addClass('nova-budget-high');
-		} else if (usagePercent >= 75) {
-			progressEl.addClass('nova-budget-medium');
+		// Hide budget section entirely when usage is negligible
+		if (usagePercent < 1) {
+			budgetEl.addClass('nova-hidden');
 		} else {
-			progressEl.addClass('nova-budget-low');
-		}
+			// Progress bar
+			const progressContainerEl = budgetEl.createDiv({ cls: 'nova-budget-bar-container' });
+			const progressEl = progressContainerEl.createDiv({ cls: 'nova-budget-bar' });
+			progressEl.style.width = `${usagePercent}%`;
 
-		// Token count text
-		const budgetTextEl = budgetEl.createDiv({ cls: 'nova-budget-text' });
-		budgetTextEl.textContent = `${totalTokens.toLocaleString()} / ${contextLimit.toLocaleString()} tokens`;
+			// Color based on usage
+			if (usagePercent >= 90) {
+				progressEl.addClass('nova-budget-high');
+			} else if (usagePercent >= 75) {
+				progressEl.addClass('nova-budget-medium');
+			} else {
+				progressEl.addClass('nova-budget-low');
+			}
+
+			// Token count text as percentage
+			const budgetTextEl = budgetEl.createDiv({ cls: 'nova-budget-text' });
+			const displayPercent = usagePercent < 10 ? usagePercent.toFixed(1) : Math.round(usagePercent);
+			budgetTextEl.textContent = `${displayPercent}% of context used`;
+		}
 	}
 
 	/**

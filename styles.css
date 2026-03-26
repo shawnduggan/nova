@@ -2168,6 +2168,8 @@
     display: flex;
     align-items: center;
     gap: var(--size-4-2);
+    flex: 1;
+    justify-content: space-between;
 }
 
 /* Document Stats Analytics Text */
@@ -4149,6 +4151,16 @@
 
 .nova-writing-panel-button:hover {
     background: var(--background-modifier-hover);
+}
+
+.nova-writing-panel-button.nova-writing-panel-button--primary {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+}
+
+.nova-writing-panel-button.nova-writing-panel-button--primary:hover {
+    background: var(--interactive-accent-hover);
 }
 
 .nova-writing-panel-button:focus-visible {

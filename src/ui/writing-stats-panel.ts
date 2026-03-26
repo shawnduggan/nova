@@ -175,7 +175,7 @@ export class WritingStatsPanel {
         toggleButton.setAttribute('aria-label', highlightsVisible ? 'Hide writing highlights' : 'Show writing highlights');
 
         const analyzeButton = actionsEl.createEl('button', {
-            cls: 'nova-writing-panel-button',
+            cls: 'nova-writing-panel-button nova-writing-panel-button--primary',
             text: 'Analyze'
         });
         analyzeButton.setAttribute('type', 'button');
@@ -245,20 +245,20 @@ export class WritingStatsPanel {
     }
 
     private getAdverbClass(density: number): string {
-        if (density <= 2) {
+        if (density <= 3) {
             return 'nova-writing-panel-value--good';
         }
-        if (density <= 4) {
+        if (density <= 6) {
             return 'nova-writing-panel-value--warn';
         }
         return 'nova-writing-panel-value--bad';
     }
 
     private getIntensifierClass(count: number): string {
-        if (count <= 3) {
+        if (count <= 5) {
             return 'nova-writing-panel-value--good';
         }
-        if (count <= 8) {
+        if (count <= 12) {
             return 'nova-writing-panel-value--warn';
         }
         return 'nova-writing-panel-value--bad';
