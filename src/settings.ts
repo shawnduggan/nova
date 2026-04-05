@@ -1401,16 +1401,21 @@ export class NovaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Target readability grade')
 			.setDesc('The readability grade level your writing aims for. Grade 8 is recommended for most writing.')
-			.addText(text => text
-				.setPlaceholder('8')
-				.setValue(this.plugin.settings.dashboard.targetReadabilityGrade.toString())
-				.onChange(async (value) => {
-					const parsed = Number.parseInt(value, 10);
-					if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 20) {
-						this.plugin.settings.dashboard.targetReadabilityGrade = parsed;
-						await this.plugin.saveSettings();
-					}
-				}));
+			.addText(text => {
+				text.inputEl.type = 'number';
+				text.inputEl.min = '1';
+				text.inputEl.max = '20';
+				return text
+					.setPlaceholder('8')
+					.setValue(this.plugin.settings.dashboard.targetReadabilityGrade.toString())
+					.onChange(async (value) => {
+						const parsed = Number.parseInt(value, 10);
+						if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 20) {
+							this.plugin.settings.dashboard.targetReadabilityGrade = parsed;
+							await this.plugin.saveSettings();
+						}
+					});
+			});
 	}
 
 	private async addExcludedFolder(searchComponent: SearchComponent, onUpdate: () => void): Promise<void> {

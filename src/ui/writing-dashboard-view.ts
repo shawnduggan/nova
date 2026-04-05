@@ -13,6 +13,7 @@ import {
 	type WritingScore,
 	WRITING_SCORE_MIN_WORDS,
 	WRITING_SCORE_THRESHOLDS,
+	getWritingScoreLabel,
 	getWritingScoreValueClass
 } from '../core/writing-score';
 
@@ -337,11 +338,14 @@ export class WritingDashboardView extends ItemView {
 		const metrics = this.getSummaryMetrics();
 		const scoreDelta = this.getScoreDelta(metrics.averageScore);
 
+		const roundedScore = metrics.averageScore === null ? null : Math.round(metrics.averageScore);
+		const scoreLabel = roundedScore === null ? undefined : getWritingScoreLabel(roundedScore);
+		const scoreDetail = [scoreLabel, scoreDelta].filter(Boolean).join(' · ');
 		this.createSummaryCard(
 			'Writing score',
-			metrics.averageScore === null ? '—' : Math.round(metrics.averageScore).toString(),
-			scoreDelta,
-			metrics.averageScore === null ? undefined : getWritingScoreValueClass(Math.round(metrics.averageScore)),
+			roundedScore === null ? '—' : roundedScore.toString(),
+			scoreDetail || undefined,
+			roundedScore === null ? undefined : getWritingScoreValueClass(roundedScore),
 			'Average composite writing score across scored notes. The score blends clarity, conciseness, variety, and discipline for notes with at least 50 words.'
 		);
 		this.createSummaryCard(
@@ -352,7 +356,7 @@ export class WritingDashboardView extends ItemView {
 			'Notes currently included in the dashboard after folder exclusions and note-level opt-outs.'
 		);
 		this.createSummaryCard(
-			'Scored',
+			'Analyzed',
 			metrics.analyzedCount.toLocaleString(),
 			undefined,
 			undefined,

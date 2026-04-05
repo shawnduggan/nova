@@ -466,34 +466,6 @@ export default class NovaPlugin extends Plugin {
 		}
 	}
 
-
-/**
- * Deep merge two objects, preserving nested structures
- */
-	private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-		if (!source) return target;
-
-		const result = { ...target };
-
-		for (const key in source) {
-			if (Object.prototype.hasOwnProperty.call(source, key)) {
-				const sourceValue = source[key];
-				const targetValue = target[key];
-
-				if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-					const targetObj = (targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue))
-						? targetValue as Record<string, unknown>
-						: {};
-					result[key] = this.deepMerge(targetObj, sourceValue as Record<string, unknown>);
-				} else {
-					result[key] = sourceValue;
-				}
-			}
-		}
-
-		return result;
-	}
-
 	async saveSettings() {
 		// Create a copy of settings to encrypt API keys for storage
 		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
