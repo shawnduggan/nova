@@ -2,7 +2,7 @@
  * @file ContextManager - Manages multi-document context in sidebar
  */
 
-import { App, TFile, Notice } from 'obsidian';
+import { App, MarkdownView, Notice, TFile } from 'obsidian';
 import NovaPlugin from '../../main';
 import { calculateContextUsage, ContextUsage } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
@@ -421,7 +421,7 @@ export class ContextManager {
 			try {
 				const currentFile = this.app.vault.getFileByPath(this.currentFilePath);
 				if (currentFile) {
-					const currentContent = await this.app.vault.read(currentFile);
+					const currentContent = await this.getFileContent(currentFile);
 					totalTokens += Math.ceil(currentContent.length / 4);
 				}
 			} catch (_) {
@@ -431,7 +431,7 @@ export class ContextManager {
 			// Add persistent docs tokens (and populate per-doc tokenCount for UI)
 			for (const doc of persistentDocs) {
 				try {
-					const content = await this.app.vault.read(doc.file);
+					const content = await this.getFileContent(doc.file);
 					const docTokens = Math.ceil(content.length / 4);
 					totalTokens += docTokens;
 					if (!doc.tokenCount) {
@@ -752,7 +752,7 @@ export class ContextManager {
 			
 			// Add content if requested
 			if (includeContent) {
-				const content = await this.app.vault.read(file);
+				const content = await this.getFileContent(file);
 				if (content) {
 					const lines = content.split('\n');
 					
@@ -814,6 +814,29 @@ export class ContextManager {
 			// Failed to read context - graceful fallback
 			return null;
 		}
+	}
+
+	private async getFileContent(file: TFile): Promise<string> {
+		const activeView = this.app.workspace?.getActiveViewOfType?.(MarkdownView);
+		if (activeView?.file?.path === file.path && activeView.editor) {
+			return activeView.editor.getValue();
+		}
+
+		const cachedRead = Reflect.get(this.app.vault, 'cachedRead') as
+			| ((targetFile: TFile) => Promise<string>)
+			| undefined;
+		if (cachedRead) {
+			return cachedRead.call(this.app.vault, file);
+		}
+
+		const read = Reflect.get(this.app.vault, 'read') as
+			| ((targetFile: TFile) => Promise<string>)
+			| undefined;
+		if (read) {
+			return read.call(this.app.vault, file);
+		}
+
+		return '';
 	}
 
 	/**

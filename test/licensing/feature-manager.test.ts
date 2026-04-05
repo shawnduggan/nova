@@ -14,20 +14,15 @@ describe('FeatureManager', () => {
 
 
 	describe('Time-Gated Features', () => {
-		test('should have time-gated features disabled before general availability', () => {
-			// Commands feature is not yet generally available (future date in config)
-			expect(featureManager.isFeatureEnabled('smartfill')).toBe(false);
+		test('should have time-gated features enabled after general availability', () => {
+			expect(featureManager.isFeatureEnabled('smartfill')).toBe(true);
 		});
 
-		test('should provide detailed access information for time-gated features', () => {
+		test('should provide allowed access information for generally available time-gated features', () => {
 			const commandsAccess = featureManager.checkFeatureAccess('smartfill');
 			
-			expect(commandsAccess.allowed).toBe(false);
-			expect(commandsAccess.isSupernovaFeature).toBe(true);
-			expect(commandsAccess.reason).toContain('early access for Supernova supporters');
-			// Test that availableDate exists and is a valid date, not a specific date
-			expect(commandsAccess.availableDate).toBeInstanceOf(Date);
-			expect(commandsAccess.availableDate?.getTime()).toBeGreaterThan(Date.now());
+			expect(commandsAccess.allowed).toBe(true);
+			expect(commandsAccess.reason).toBeUndefined();
 		});
 	});
 
@@ -95,10 +90,8 @@ describe('FeatureManager', () => {
 			const summary = featureManager.getFeatureSummary();
 
 			expect(summary.isSupernova).toBe(false);
-			// Only time-gated features are tracked - commands is not yet available
-			expect(summary.enabled.length).toBe(0);
-			expect(summary.comingSoon.length).toBe(1); // Only commands feature
-			expect(summary.comingSoon[0].key).toBe('smartfill');
+			expect(summary.enabled).toContain('smartfill');
+			expect(summary.comingSoon.length).toBe(0);
 		});
 	});
 
@@ -150,21 +143,14 @@ describe('FeatureManager', () => {
 		test('should return only enabled time-gated features', () => {
 			const enabledFeatures = featureManager.getEnabledFeatures();
 
-			// No features are enabled initially (commands not yet available)
-			expect(enabledFeatures.length).toBe(0);
+			expect(enabledFeatures.length).toBe(1);
+			expect(enabledFeatures.some(feature => feature.key === 'smartfill')).toBe(true);
 		});
 
-		test('should return Supernova early access features', () => {
+		test('should return no Supernova early access features after GA', () => {
 			const catalystFeatures = featureManager.getSupernovaFeatures();
 
-			expect(catalystFeatures.length).toBe(1); // Only commands feature
-			expect(catalystFeatures.some(f => f.key === 'smartfill')).toBe(true);
-			
-			// All should be time-gated and early access only
-			catalystFeatures.forEach(feature => {
-				expect(feature.isTimeGated).toBe(true);
-				expect(feature.earlyAccessOnly).toBe(true);
-			});
+			expect(catalystFeatures.length).toBe(0);
 		});
 	});
 

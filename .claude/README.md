@@ -8,6 +8,15 @@ This directory contains project-specific knowledge, workflows, and quality stand
 2. Read the relevant **skills** below for patterns and conventions.
 3. Follow the **quality gates** — every change must pass build, tests, and lint before commit.
 
+## External Product Docs
+
+Nova also has product and planning docs outside the plugin repo. Read these when the task is about roadmap, specs, positioning, pricing, or feature prioritization.
+
+- `../07-Projects/Nova/Core Docs/`
+- `../07-Projects/Nova/Planning/`
+
+Use them for product intent and planning context, but verify the codebase before documenting shipped behavior.
+
 ## Directory Structure
 
 ```
@@ -40,6 +49,7 @@ Skills are the project's accumulated knowledge. They describe **how Nova code sh
 | `skills/nova-patterns/SKILL.md` | State management, component patterns, testing strategies, file conventions | Before writing or modifying any code |
 | `skills/nova-codebase/SKILL.md` | Generated file descriptions, module structure, dependency map | When navigating unfamiliar parts of the codebase |
 | `skills/obsidian/SKILL.md` | Plugin store compliance rules, required API patterns, forbidden patterns | Before using any Obsidian API or DOM manipulation |
+| `skills/nova-product/SKILL.md` | Product positioning, roadmap context, monetization guardrails, and shipped-vs-planned guidance | Before roadmap/spec/product work or feature prioritization |
 
 **If you only read one thing, read `nova-patterns`** — it's the codebase DNA.
 

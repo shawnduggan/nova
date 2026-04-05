@@ -7,6 +7,8 @@ description: Nova plugin coding standards, compliance rules, and design patterns
 
 Nova is an AI writing plugin for Obsidian that enables direct, in-place editing. This skill documents its coding standards, compliance rules, and design patterns.
 
+For roadmap, spec, pricing, or feature-prioritization work, pair this skill with `nova-product`.
+
 ## Core Philosophy
 
 - **Direct document manipulation**: Edits happen in documents, not external interfaces

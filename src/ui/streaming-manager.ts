@@ -193,7 +193,7 @@ export class StreamingManager {
         // Defer notice creation so it survives editor.replaceRange() DOM updates.
         // Obsidian evicts Notices when the editor re-renders, so we wait for the
         // DOM to settle before creating the notice element.
-        this.plugin.registerInterval(window.setTimeout(() => {
+        this.timeoutManager.addTimeout(() => {
             try {
                 // Select random phrase based on action type for initial display
                 const phrases = StreamingManager.THINKING_PHRASES[actionType] || StreamingManager.THINKING_PHRASES['chat'];
@@ -208,7 +208,7 @@ export class StreamingManager {
             } catch (error) {
                 Logger.warn('Failed to create thinking notice:', error);
             }
-        }, 50) as unknown as number);
+        }, 50);
     }
 
     /**

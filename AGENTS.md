@@ -11,10 +11,14 @@ Use the existing Claude Code project intelligence as the canonical source of rep
 
 - Read `CLAUDE.md` at the start of any non-trivial task; treat it as mandatory project policy.
 - Use `.claude/README.md` as the index for repo-local skills, commands, and agent guidance.
+- For roadmap, PRD, spec, pricing, or product-positioning work, also read the external Nova docs in:
+  - `../07-Projects/Nova/Core Docs/`
+  - `../07-Projects/Nova/Planning/`
 - Skills:
   - Read `.claude/skills/nova-patterns/SKILL.md` before writing or modifying code.
   - Read `.claude/skills/nova-codebase/SKILL.md` when planning scope, mapping files, or navigating unfamiliar areas.
   - Read `.claude/skills/obsidian/SKILL.md` before touching Obsidian APIs, UI, DOM, timers, events, or submission-sensitive code.
+  - Read `.claude/skills/nova-product/SKILL.md` before roadmap/spec/product work or feature prioritization.
 - Commands:
   - Consult `.claude/commands/implement.md` for plan-first feature, fix, and issue work.
   - Consult `.claude/commands/pr-review.md` before PR creation or when reviewing branch changes.
@@ -28,6 +32,7 @@ Use the existing Claude Code project intelligence as the canonical source of rep
 - `.claude/agents/*.md` and `.claude/commands/*.md` are Claude Code-specific formats, but Codex should still use them as reference material when the task matches.
 - If guidance conflicts, follow the stricter rule and pause before irreversible actions.
 - Even when following `.claude/commands/release.md`, Codex must still obey this file’s no-auto-commit / ask-before-commit requirements.
+- Treat roadmap/spec docs as planned work, not shipped behavior, unless the codebase confirms implementation.
 
 ---
 
