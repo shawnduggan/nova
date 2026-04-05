@@ -1601,7 +1601,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		try {
 			// Get document content
-			const content = await this.app.vault.read(activeFile);
+			const content = await this.getFileContent(activeFile);
 			if (!content) return;
 			
 			// Calculate basic stats
@@ -1744,6 +1744,29 @@ USER REQUEST: ${processedMessage}`;
 		this.chatRenderer.addWarningMessage(content, true);
 	}
 
+	private async getFileContent(file: TFile): Promise<string> {
+		const activeView = this.app.workspace?.getActiveViewOfType?.(MarkdownView);
+		if (activeView?.file?.path === file.path && activeView.editor) {
+			return activeView.editor.getValue();
+		}
+
+		const cachedRead = Reflect.get(this.app.vault, 'cachedRead') as
+			| ((targetFile: TFile) => Promise<string>)
+			| undefined;
+		if (cachedRead) {
+			return cachedRead.call(this.app.vault, file);
+		}
+
+		const read = Reflect.get(this.app.vault, 'read') as
+			| ((targetFile: TFile) => Promise<string>)
+			| undefined;
+		if (read) {
+			return read.call(this.app.vault, file);
+		}
+
+		return '';
+	}
+
 	private handleWritingAnalysisUpdated(event: Event): void {
 		const customEvent = event as CustomEvent<WritingAnalysisUpdateDetail>;
 		this.updateWritingStatsPanel(customEvent.detail);
@@ -1774,7 +1797,7 @@ USER REQUEST: ${processedMessage}`;
 
 	private async showDocumentInsights(file: TFile): Promise<void> {
 		try {
-			const content = await this.app.vault.read(file);
+			const content = await this.getFileContent(file);
 			const analysis = DocumentAnalyzer.analyzeStructure(content);
 			
 			if (analysis.emptyHeadings.length > 0 || analysis.incompleteBullets.length > 0) {

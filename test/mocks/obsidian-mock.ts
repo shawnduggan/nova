@@ -829,6 +829,72 @@ export class ButtonComponent {
     }
 }
 
+export class SearchComponent {
+    inputEl: HTMLInputElement;
+    clearButtonEl: HTMLElement;
+
+    constructor(containerEl: HTMLElement) {
+        this.inputEl = document.createElement('input');
+        this.clearButtonEl = document.createElement('div');
+        containerEl.appendChild(this.inputEl);
+    }
+
+    setPlaceholder(placeholder: string): this {
+        this.inputEl.placeholder = placeholder;
+        return this;
+    }
+
+    getValue(): string {
+        return this.inputEl.value;
+    }
+
+    setValue(value: string): this {
+        this.inputEl.value = value;
+        return this;
+    }
+
+    onChange(handler: (value: string) => void): this {
+        this.inputEl.addEventListener('change', (event) => handler((event.target as HTMLInputElement).value));
+        return this;
+    }
+}
+
+export abstract class AbstractInputSuggest<T> {
+    protected readonly inputEl: HTMLInputElement | HTMLDivElement;
+    private selectHandler?: (value: T, evt: MouseEvent | KeyboardEvent) => any;
+
+    constructor(_app: App, textInputEl: HTMLInputElement | HTMLDivElement) {
+        this.inputEl = textInputEl;
+    }
+
+    setValue(value: string): void {
+        if (this.inputEl instanceof HTMLInputElement) {
+            this.inputEl.value = value;
+        } else {
+            this.inputEl.textContent = value;
+        }
+    }
+
+    getValue(): string {
+        if (this.inputEl instanceof HTMLInputElement) {
+            return this.inputEl.value;
+        }
+
+        return this.inputEl.textContent || '';
+    }
+
+    onSelect(callback: (value: T, evt: MouseEvent | KeyboardEvent) => any): this {
+        this.selectHandler = callback;
+        return this;
+    }
+
+    protected triggerSelect(value: T, evt: MouseEvent | KeyboardEvent): void {
+        this.selectHandler?.(value, evt);
+    }
+
+    protected abstract getSuggestions(query: string): T[] | Promise<T[]>;
+}
+
 export class TextAreaComponent {
     inputEl: HTMLTextAreaElement;
     private value: string = '';
@@ -924,6 +990,10 @@ export class FuzzySuggestModal<T> extends Modal {
     }
 }
 
+export function setTooltip(el: HTMLElement, tooltip: string): void {
+    el.setAttribute('title', tooltip);
+}
+
 export default {
     App,
     Editor,
@@ -939,7 +1009,10 @@ export default {
     MetadataCache,
     WorkspaceLeaf,
     ButtonComponent,
+    SearchComponent,
+    AbstractInputSuggest,
     TextAreaComponent,
     Modal,
-    FuzzySuggestModal
+    FuzzySuggestModal,
+    setTooltip
 };

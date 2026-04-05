@@ -6,6 +6,22 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.5.0': [
+		'## What\'s New in Nova 1.5.0',
+		'',
+		'### Writing Dashboard',
+		'Nova now includes a **vault-wide writing dashboard** that turns local analysis into a broader writing view — no AI calls needed.',
+		'',
+		'- **Composite writing score** — Clarity, conciseness, variety, and discipline combine into a single score for eligible notes.',
+		'- **Vault scan with caching** — Notes are analyzed incrementally and cached locally for faster follow-up scans.',
+		'- **Trend tracking** — Daily snapshots show how score and passive voice change over time.',
+		'- **Document table** — Sort and filter notes by score, readability, passive voice, and adverb density.',
+		'- **Explainability tooltips** — Hover any metric to see how Nova interpreted it.',
+		'',
+		'### Settings',
+		'- **Folder exclusions** — Skip templates, journals, archives, or any other folders from dashboard analysis.',
+		'- **Target readability grade** — Adjust the clarity target to match your writing goals.',
+	].join('\n'),
 	'1.4.0': [
 		'## What\'s New in Nova 1.4.0',
 		'',

@@ -13,6 +13,8 @@ export interface WritingAnalysis {
 	passiveSentenceCount: number;
 	adverbDensity: number;
 	weakIntensifierCount: number;
+	sentenceLengthStdDev: number;
+	veryLongSentencePercentage: number;
 	sentences: SentenceAnalysis[];
 	passiveVoice: PassiveVoiceMatch[];
 	adverbs: AdverbMatch[];
@@ -48,7 +50,7 @@ export interface WeakIntensifierMatch {
 	word: string;
 }
 
-interface WritingAnalysisOptions {
+export interface WritingAnalysisOptions {
 	longSentenceThreshold?: number;
 	veryLongSentenceThreshold?: number;
 }
@@ -219,6 +221,9 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 	const passiveSentenceCount = countPassiveSentences(normalizedContent, sentenceSpans);
 	const passiveVoicePercentage = sentenceCount > 0 ? (passiveSentenceCount / sentenceCount) * 100 : 0;
 	const adverbDensity = wordCount > 0 ? (adverbs.length / wordCount) * 100 : 0;
+	const sentences = sentenceSpans.map((span) => span.analysis);
+	const sentenceLengthStdDev = calculateSentenceLengthStdDev(sentences);
+	const veryLongSentencePercentage = calculateVeryLongSentencePercentage(sentences);
 
 	const analysis: WritingAnalysis = {
 		wordCount,
@@ -231,7 +236,9 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 		passiveSentenceCount,
 		adverbDensity,
 		weakIntensifierCount: weakIntensifiers.length,
-		sentences: sentenceSpans.map((span) => span.analysis),
+		sentenceLengthStdDev,
+		veryLongSentencePercentage,
+		sentences,
 		passiveVoice,
 		adverbs,
 		weakIntensifiers
@@ -245,13 +252,22 @@ function buildCacheKey(content: string, longSentenceThreshold: number, veryLongS
 	return `${hashContent(content)}:${longSentenceThreshold}:${veryLongSentenceThreshold}`;
 }
 
-function hashContent(content: string): string {
+export function hashContent(content: string): string {
 	let hash = 2166136261;
 	for (let i = 0; i < content.length; i++) {
 		hash ^= content.charCodeAt(i);
 		hash = Math.imul(hash, 16777619);
 	}
 	return (hash >>> 0).toString(16);
+}
+
+export function hasWritingAnalysisOptOut(content: string): boolean {
+	const lines = content.split('\n');
+	return detectFrontmatter(lines)?.optOut ?? false;
+}
+
+export function clearWritingAnalysisCache(): void {
+	cache.clear();
 }
 
 function createNoOpAnalysis(label: string): WritingAnalysis {
@@ -266,6 +282,8 @@ function createNoOpAnalysis(label: string): WritingAnalysis {
 		passiveSentenceCount: 0,
 		adverbDensity: 0,
 		weakIntensifierCount: 0,
+		sentenceLengthStdDev: 0,
+		veryLongSentencePercentage: 0,
 		sentences: [],
 		passiveVoice: [],
 		adverbs: [],
@@ -672,6 +690,27 @@ function countParagraphs(lines: string[]): number {
 	}
 
 	return paragraphs;
+}
+
+function calculateSentenceLengthStdDev(sentences: SentenceAnalysis[]): number {
+	if (sentences.length < 2) {
+		return 0;
+	}
+
+	const wordCounts = sentences.map((sentence) => sentence.wordCount);
+	const mean = wordCounts.reduce((sum, count) => sum + count, 0) / wordCounts.length;
+	const variance = wordCounts.reduce((sum, count) => sum + (count - mean) ** 2, 0) / wordCounts.length;
+
+	return roundToTwoDecimals(Math.sqrt(variance));
+}
+
+function calculateVeryLongSentencePercentage(sentences: SentenceAnalysis[]): number {
+	if (sentences.length === 0) {
+		return 0;
+	}
+
+	const veryLongCount = sentences.filter((sentence) => sentence.severity === 'very-long').length;
+	return roundToTwoDecimals((veryLongCount / sentences.length) * 100);
 }
 
 function calculateReadabilityGrade(text: string, wordCount: number, sentenceCount: number): number {

@@ -4,8 +4,9 @@
 
 import { MarkdownView, TFile } from 'obsidian';
 import { EditorView } from '@codemirror/view';
-import { analyzeWriting, type WritingAnalysis } from '../core/writing-analysis';
+import { analyzeWriting, hasWritingAnalysisOptOut, type WritingAnalysis } from '../core/writing-analysis';
 import { CodeMirrorWritingHighlightManager, type WritingHighlight } from '../features/commands/ui/codemirror-decorations';
+import { VIEW_TYPE_NOVA_SIDEBAR } from '../constants';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
@@ -33,6 +34,7 @@ export class WritingAnalysisManager {
     private disabledByFrontmatter = false;
     private observedEditors = new WeakSet<HTMLElement>();
     private pendingAnalysisTimeout: number | null = null;
+    private currentLeafViewType: string | null = null;
 
     constructor(plugin: NovaPlugin) {
         this.plugin = plugin;
@@ -40,7 +42,8 @@ export class WritingAnalysisManager {
 
     init(): void {
         this.plugin.registerEvent(
-            this.plugin.app.workspace.on('active-leaf-change', () => {
+            this.plugin.app.workspace.on('active-leaf-change', (leaf) => {
+                this.currentLeafViewType = leaf?.view.getViewType() ?? null;
                 void this.refreshForActiveView(true);
             })
         );
@@ -58,10 +61,10 @@ export class WritingAnalysisManager {
         const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
 
         if (!this.isEligibleView(activeView)) {
-            // Focus moved to a non-editor leaf (e.g. sidebar). If the tracked
-            // markdown view is still valid, keep the analysis visible so the
-            // stats panel doesn't disappear when the user clicks the sidebar.
-            if (this.activeView && this.isEligibleView(this.activeView)) {
+            // Keep the current analysis visible only when focus moved into
+            // Nova's own sidebar. Other workspace views, such as the writing
+            // dashboard, should clear the panel.
+            if (this.shouldPreserveCurrentAnalysis()) {
                 return;
             }
             this.activeView = null;
@@ -177,7 +180,7 @@ export class WritingAnalysisManager {
 
             const content = activeView.editor?.getValue() ?? await this.plugin.app.vault.cachedRead(file);
 
-            this.disabledByFrontmatter = this.hasFrontmatterOptOut(content);
+            this.disabledByFrontmatter = hasWritingAnalysisOptOut(content);
             if (this.disabledByFrontmatter) {
                 this.latestAnalysis = null;
                 this.clearHighlights();
@@ -361,12 +364,11 @@ export class WritingAnalysisManager {
         return Boolean(view?.file && view.file.extension === 'md' && view.editor);
     }
 
-    private hasFrontmatterOptOut(content: string): boolean {
-        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
-        if (!frontmatterMatch) {
+    private shouldPreserveCurrentAnalysis(): boolean {
+        if (!this.activeView || !this.isEligibleView(this.activeView)) {
             return false;
         }
 
-        return /(?:^|\n)\s*nova-analysis\s*:\s*(false|off)\s*(?:\n|$)/i.test(frontmatterMatch[1]);
+        return this.currentLeafViewType === VIEW_TYPE_NOVA_SIDEBAR;
     }
 }

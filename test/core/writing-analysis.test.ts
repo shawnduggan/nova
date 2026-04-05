@@ -115,6 +115,8 @@ describe('analyzeWriting', () => {
 			expect(result.passiveVoicePercentage).toBe(0);
 			expect(result.passiveSentenceCount).toBe(0);
 			expect(result.readabilityLabel).toBe('Not enough text');
+			expect(result.sentenceLengthStdDev).toBe(0);
+			expect(result.veryLongSentencePercentage).toBe(0);
 		});
 
 		test('handles whitespace-only document', () => {
@@ -135,6 +137,20 @@ describe('analyzeWriting', () => {
 			const result = analyzeWriting('Hello.');
 			expect(result.wordCount).toBe(1);
 			expect(result.sentenceCount).toBe(1);
+		});
+
+		test('computes sentence length standard deviation and very long sentence percentage', () => {
+			const content = [
+				`${makeWords(5)}.`,
+				`${makeWords(15, 'medium')}.`,
+				`${makeWords(45, 'long')}.`
+			].join(' ');
+
+			const result = analyzeWriting(content);
+
+			expect(result.sentences.map((sentence) => sentence.wordCount)).toEqual([5, 15, 45]);
+			expect(result.sentenceLengthStdDev).toBeCloseTo(17, 0);
+			expect(result.veryLongSentencePercentage).toBeCloseTo(33.33, 2);
 		});
 	});
 
@@ -249,6 +265,23 @@ describe('analyzeWriting', () => {
 
 			const result = analyzeWriting(content);
 			expect(result.weakIntensifierCount).toBe(0);
+		});
+	});
+
+	describe('dashboard metrics', () => {
+		test('calculates sentence length standard deviation and very long sentence percentage', () => {
+			const content = [
+				`${makeWords(2, 'short')}.`,
+				`${makeWords(6, 'medium')}.`,
+				`${makeWords(41, 'verylong')}.`
+			].join(' ');
+
+			const result = analyzeWriting(content);
+
+			expect(result.sentenceCount).toBe(3);
+			expect(result.sentences.map((sentence) => sentence.wordCount)).toEqual([2, 6, 41]);
+			expect(result.sentenceLengthStdDev).toBeCloseTo(17.52, 2);
+			expect(result.veryLongSentencePercentage).toBeCloseTo(33.33, 2);
 		});
 	});
 

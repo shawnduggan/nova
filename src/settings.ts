@@ -2,7 +2,19 @@
  * @file Settings - Plugin settings UI and configuration
  */
 
-import { App, PluginSettingTab, Setting, Platform, setIcon, Notice, Modal } from 'obsidian';
+import {
+	AbstractInputSuggest,
+	App,
+	ButtonComponent,
+	Notice,
+	Platform,
+	PluginSettingTab,
+	SearchComponent,
+	Setting,
+	TFolder,
+	Modal,
+	setIcon
+} from 'obsidian';
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
@@ -36,6 +48,11 @@ export interface WritingAnalysisSettings {
 	showStatsPanel: boolean;
 }
 
+export interface DashboardSettings {
+	excludeFolders: string[];
+	targetReadabilityGrade: number;
+}
+
 export interface NovaSettings {
 	aiProviders: AIProviderSettings;
 	platformSettings: PlatformSettings;
@@ -52,6 +69,7 @@ export interface NovaSettings {
 	};
 	commands: CommandSuggestionsSettings;
 	writingAnalysis: WritingAnalysisSettings;
+	dashboard: DashboardSettings;
 	autoContext?: {
 		/** Auto-include outgoing links (default: true) */
 		includeOutgoing: boolean;
@@ -125,6 +143,10 @@ export const DEFAULT_SETTINGS: NovaSettings = {
 		highlightAdverbs: true,
 		highlightWeakIntensifiers: true,
 		showStatsPanel: true
+	},
+	dashboard: {
+		excludeFolders: [],
+		targetReadabilityGrade: 8
 	}
 };
 
@@ -1310,6 +1332,122 @@ export class NovaSettingTab extends PluginSettingTab {
 					this.plugin.settings.writingAnalysis.showStatsPanel = value;
 					await this.handleWritingAnalysisSettingsChange();
 				}));
+
+		this.createWritingDashboardSettings(writingSection);
+	}
+
+	private createWritingDashboardSettings(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName('Writing dashboard')
+			.setHeading();
+
+		const excludedFoldersSetting = new Setting(containerEl)
+			.setName('Excluded folders')
+			.setDesc('Exclude folders from vault-wide dashboard analysis.');
+		excludedFoldersSetting.settingEl.addClass('nova-dashboard-folder-setting');
+
+		const pickerEl = excludedFoldersSetting.controlEl.createDiv({ cls: 'nova-dashboard-folder-picker' });
+		const inputRowEl = pickerEl.createDiv({ cls: 'nova-dashboard-folder-input-row' });
+		const searchContainerEl = inputRowEl.createDiv({ cls: 'nova-dashboard-folder-search' });
+		const folderSearch = new SearchComponent(searchContainerEl);
+		folderSearch.setPlaceholder('Search folders to exclude...');
+		new DashboardFolderSuggest(this.app, folderSearch.inputEl);
+
+		const addButton = new ButtonComponent(inputRowEl)
+			.setButtonText('Add folder')
+			.onClick(() => {
+				void this.addExcludedFolder(folderSearch, renderExcludedFolders);
+			});
+		addButton.buttonEl.setAttribute('type', 'button');
+		addButton.buttonEl.addClass('nova-dashboard-folder-add-button');
+
+		this.plugin.registerDomEvent(folderSearch.inputEl, 'keydown', (event: KeyboardEvent) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				void this.addExcludedFolder(folderSearch, renderExcludedFolders);
+			}
+		});
+
+		const selectedFoldersEl = pickerEl.createDiv({ cls: 'nova-dashboard-folder-list' });
+		const renderExcludedFolders = (): void => {
+			selectedFoldersEl.empty();
+			const folders = [...this.plugin.settings.dashboard.excludeFolders].sort((left, right) => left.localeCompare(right));
+
+			if (folders.length === 0) {
+				selectedFoldersEl.createDiv({
+					cls: 'nova-dashboard-folder-empty',
+					text: 'No excluded folders yet.'
+				});
+				return;
+			}
+
+			folders.forEach((folder) => {
+				const rowEl = selectedFoldersEl.createDiv({ cls: 'nova-dashboard-folder-row' });
+				rowEl.createDiv({ cls: 'nova-dashboard-folder-path', text: folder });
+				const removeButton = rowEl.createEl('button', {
+					cls: 'nova-dashboard-folder-remove-button',
+					text: 'Remove'
+				});
+				removeButton.setAttribute('type', 'button');
+				removeButton.setAttribute('aria-label', `Remove excluded folder ${folder}`);
+				this.plugin.registerDomEvent(removeButton, 'click', () => {
+					void this.removeExcludedFolder(folder, renderExcludedFolders);
+				});
+			});
+		};
+
+		renderExcludedFolders();
+
+		new Setting(containerEl)
+			.setName('Target readability grade')
+			.setDesc('The readability grade level your writing aims for. Grade 8 is recommended for most writing.')
+			.addText(text => text
+				.setPlaceholder('8')
+				.setValue(this.plugin.settings.dashboard.targetReadabilityGrade.toString())
+				.onChange(async (value) => {
+					const parsed = Number.parseInt(value, 10);
+					if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 20) {
+						this.plugin.settings.dashboard.targetReadabilityGrade = parsed;
+						await this.plugin.saveSettings();
+					}
+				}));
+	}
+
+	private async addExcludedFolder(searchComponent: SearchComponent, onUpdate: () => void): Promise<void> {
+		const normalizedFolder = this.normalizeDashboardFolderPath(searchComponent.getValue());
+		if (!normalizedFolder) {
+			return;
+		}
+
+		if (!this.app.vault.getFolderByPath(normalizedFolder)) {
+			new Notice('Folder not found in this vault.');
+			return;
+		}
+
+		if (this.plugin.settings.dashboard.excludeFolders.includes(normalizedFolder)) {
+			new Notice('That folder is already excluded.');
+			return;
+		}
+
+		this.plugin.settings.dashboard.excludeFolders = [
+			...this.plugin.settings.dashboard.excludeFolders,
+			normalizedFolder
+		];
+		await this.plugin.saveSettings();
+		searchComponent.setValue('');
+		onUpdate();
+	}
+
+	private async removeExcludedFolder(folder: string, onUpdate: () => void): Promise<void> {
+		this.plugin.settings.dashboard.excludeFolders = this.plugin.settings.dashboard.excludeFolders.filter(
+			(candidate) => candidate !== folder
+		);
+		await this.plugin.saveSettings();
+		onUpdate();
+	}
+
+	private normalizeDashboardFolderPath(value: string): string {
+		return value.trim().replace(/^\/+|\/+$/g, '');
 	}
 
 	private async handleWritingAnalysisSettingsChange(): Promise<void> {
@@ -2169,6 +2307,31 @@ Try typing in the areas below to see how your suggestion settings work:
 	cleanup(): void {
 		this.timeoutManager.clearAll();
 		// Event listeners are cleaned up automatically by PluginSettingTab
+	}
+}
+
+class DashboardFolderSuggest extends AbstractInputSuggest<TFolder> {
+	private readonly appRef: App;
+
+	constructor(app: App, inputEl: HTMLInputElement) {
+		super(app, inputEl);
+		this.appRef = app;
+		this.onSelect((folder) => {
+			this.setValue(folder.path);
+		});
+	}
+
+	protected getSuggestions(query: string): TFolder[] {
+		const normalizedQuery = query.trim().toLowerCase();
+		return this.appRef.vault
+			.getAllFolders(false)
+			.filter((folder) => normalizedQuery.length === 0 || folder.path.toLowerCase().includes(normalizedQuery))
+			.sort((left, right) => left.path.localeCompare(right.path))
+			.slice(0, 50);
+	}
+
+	renderSuggestion(folder: TFolder, el: HTMLElement): void {
+		el.createDiv({ text: folder.path });
 	}
 }
 

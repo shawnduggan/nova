@@ -138,6 +138,8 @@ dist
 
 # Project-specific files
 data.json
+dashboard-cache.json
+dashboard-history.json
 
 # Generated/compiled files
 main.js

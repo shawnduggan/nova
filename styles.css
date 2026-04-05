@@ -4174,6 +4174,591 @@
     padding: var(--size-4-2) 0;
 }
 
+.nova-settings-textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    padding: var(--size-4-2);
+    font-family: var(--font-text);
+    font-size: var(--font-ui-small);
+}
+
+.nova-dashboard-folder-setting .setting-item-control {
+    width: 100%;
+    align-items: stretch;
+}
+
+.nova-dashboard-folder-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-2);
+    width: min(520px, 100%);
+}
+
+.nova-dashboard-folder-input-row {
+    display: flex;
+    gap: var(--size-4-2);
+    align-items: center;
+}
+
+.nova-dashboard-folder-search {
+    flex: 1 1 auto;
+}
+
+.nova-dashboard-folder-search .search-input-container {
+    width: 100%;
+}
+
+.nova-dashboard-folder-add-button,
+.nova-dashboard-folder-remove-button {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    cursor: pointer;
+    font-size: var(--font-ui-small);
+}
+
+.nova-dashboard-folder-add-button {
+    white-space: nowrap;
+}
+
+.nova-dashboard-folder-remove-button {
+    padding: 6px 10px;
+}
+
+.nova-dashboard-folder-add-button:hover,
+.nova-dashboard-folder-remove-button:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-dashboard-folder-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-2);
+}
+
+.nova-dashboard-folder-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-4-2);
+    padding: var(--size-4-2) var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+}
+
+.nova-dashboard-folder-path {
+    overflow-wrap: anywhere;
+    font-size: var(--font-ui-small);
+}
+
+.nova-dashboard-folder-empty {
+    color: var(--text-faint);
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-4);
+    padding: var(--size-4-4);
+    color: var(--text-normal);
+}
+
+.nova-writing-dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--size-4-3);
+}
+
+.nova-writing-dashboard-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+}
+
+.nova-writing-dashboard-title {
+    margin: 0;
+    font-size: var(--font-ui-large);
+    font-weight: var(--font-semibold);
+}
+
+.nova-writing-dashboard-subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-rescan {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    padding: var(--size-2-2) var(--size-4-2);
+    cursor: pointer;
+    font-weight: var(--font-medium);
+    box-shadow: var(--shadow-s);
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nova-writing-dashboard-rescan:hover {
+    background: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+    box-shadow: var(--shadow-xs);
+}
+
+.nova-writing-dashboard-rescan:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.nova-writing-dashboard-rescan-icon {
+    display: flex;
+    align-items: center;
+    color: currentColor;
+}
+
+.nova-writing-dashboard-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.nova-writing-dashboard-progress-text {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-progress-bar {
+    width: 100%;
+    height: 8px;
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--background-modifier-border);
+}
+
+.nova-writing-dashboard-progress-bar::-webkit-progress-bar {
+    background: var(--background-modifier-border);
+}
+
+.nova-writing-dashboard-progress-bar::-webkit-progress-value {
+    background: var(--interactive-accent);
+}
+
+.nova-writing-dashboard-progress-bar::-moz-progress-bar {
+    background: var(--interactive-accent);
+}
+
+.nova-writing-dashboard-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--size-4-3);
+}
+
+.nova-writing-dashboard-card,
+.nova-writing-dashboard-sparkline-card,
+.nova-writing-dashboard-pillars-card {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+    padding: var(--size-4-3);
+    position: relative;
+}
+
+.nova-writing-dashboard-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+}
+
+.nova-writing-dashboard-card-value {
+    font-size: 2rem;
+    font-weight: var(--font-semibold);
+    line-height: 1;
+}
+
+.nova-writing-dashboard-card-label {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-card-detail {
+    color: var(--text-faint);
+    font-size: var(--font-ui-smaller);
+}
+
+.nova-writing-dashboard-trends {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--size-4-3);
+}
+
+.nova-writing-dashboard-sparklines {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--size-4-3);
+}
+
+.nova-writing-dashboard-section-title {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--size-4-2);
+}
+
+.nova-writing-dashboard-header-content {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2-1);
+}
+
+.nova-writing-dashboard-help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-faint);
+    width: 14px;
+    height: 14px;
+    cursor: help;
+}
+
+.nova-writing-dashboard-help-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+}
+
+.nova-writing-dashboard-card-help {
+    position: absolute;
+    top: var(--size-4-2);
+    right: var(--size-4-2);
+}
+
+.nova-writing-dashboard-sparkline {
+    width: 100%;
+    height: auto;
+}
+
+.nova-writing-dashboard-sparkline-line {
+    fill: none;
+    stroke: var(--interactive-accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nova-writing-dashboard-sparkline-dot {
+    fill: var(--interactive-accent);
+}
+
+.nova-writing-dashboard-sparkline-label {
+    fill: var(--text-faint);
+    font-size: 0.65rem;
+}
+
+.nova-writing-dashboard-pillar-row {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr) 52px;
+    align-items: center;
+    gap: var(--size-4-2);
+}
+
+.nova-writing-dashboard-pillars-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-2);
+}
+
+.nova-writing-dashboard-pillar-label,
+.nova-writing-dashboard-pillar-value {
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-pillar-value {
+    text-align: right;
+    color: var(--text-muted);
+}
+
+.nova-writing-dashboard-pillar-progress {
+    width: 100%;
+    height: 10px;
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--background-modifier-border);
+}
+
+.nova-writing-dashboard-pillar-progress::-webkit-progress-bar {
+    background: var(--background-modifier-border);
+}
+
+.nova-writing-dashboard-pillar-progress::-webkit-progress-value {
+    background: var(--interactive-accent);
+}
+
+.nova-writing-dashboard-pillar-progress::-moz-progress-bar {
+    background: var(--interactive-accent);
+}
+
+.nova-writing-dashboard-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-4-3);
+}
+
+.nova-writing-dashboard-filter {
+    flex: 1 1 auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    padding: var(--size-4-2);
+}
+
+.nova-writing-dashboard-sort-info {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    white-space: nowrap;
+}
+
+.nova-writing-dashboard-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+}
+
+.nova-writing-dashboard-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-3);
+}
+
+.nova-writing-dashboard-mobile-card {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+    padding: var(--size-4-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.nova-writing-dashboard-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-2-2);
+}
+
+.nova-writing-dashboard-mobile-title {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+    line-height: 1.25;
+}
+
+.nova-writing-dashboard-mobile-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--size-2-2) var(--size-4-2);
+}
+
+.nova-writing-dashboard-mobile-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.nova-writing-dashboard-mobile-metric-label {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    line-height: 1.1;
+}
+
+.nova-writing-dashboard-mobile-metric-value {
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    line-height: 1.15;
+}
+
+.nova-writing-dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+}
+
+.nova-writing-dashboard-table th,
+.nova-writing-dashboard-table td {
+    padding: var(--size-4-2) var(--size-4-3);
+    border-bottom: 1px solid var(--background-modifier-border);
+    text-align: left;
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-table td:not(:first-child),
+.nova-writing-dashboard-table th:not(:first-child) {
+    text-align: right;
+}
+
+.nova-writing-dashboard-table tbody tr:hover {
+    background: var(--nav-item-background-hover);
+}
+
+.nova-writing-dashboard-table .nova-writing-dashboard-sort-button,
+.nova-writing-dashboard-table .nova-writing-dashboard-doc-button {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    line-height: inherit;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.nova-writing-dashboard-sort-button:hover,
+.nova-writing-dashboard-doc-button:hover {
+    color: var(--text-accent);
+}
+
+.nova-writing-dashboard-sort-button:focus-visible,
+.nova-writing-dashboard-doc-button:focus-visible,
+.nova-settings-textarea:focus-visible,
+.nova-writing-dashboard-filter:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.nova-writing-dashboard-doc-button {
+    color: var(--text-accent);
+    text-align: left;
+}
+
+.nova-writing-dashboard-empty,
+.nova-writing-dashboard-empty-inline {
+    color: var(--text-faint);
+    font-size: var(--font-ui-small);
+}
+
+.nova-writing-dashboard-value--good {
+    color: var(--text-success);
+}
+
+.nova-writing-dashboard-value--accent {
+    color: var(--text-accent);
+}
+
+.nova-writing-dashboard-value--warn {
+    color: var(--text-warning);
+}
+
+.nova-writing-dashboard-value--bad {
+    color: var(--text-error);
+}
+
+.nova-writing-dashboard-value--muted {
+    color: var(--text-faint);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--good::-webkit-progress-value {
+    background: var(--text-success);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--good::-moz-progress-bar {
+    background: var(--text-success);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--accent::-webkit-progress-value {
+    background: var(--text-accent);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--accent::-moz-progress-bar {
+    background: var(--text-accent);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--warn::-webkit-progress-value {
+    background: var(--text-warning);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--warn::-moz-progress-bar {
+    background: var(--text-warning);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--bad::-webkit-progress-value {
+    background: var(--text-error);
+}
+
+.nova-writing-dashboard-pillar-progress.nova-writing-dashboard-value--bad::-moz-progress-bar {
+    background: var(--text-error);
+}
+
+@media (max-width: 900px) {
+    .nova-writing-dashboard-summary-grid,
+    .nova-writing-dashboard-trends,
+    .nova-writing-dashboard-sparklines {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .nova-dashboard-folder-input-row,
+    .nova-dashboard-folder-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nova-dashboard-folder-add-button,
+    .nova-dashboard-folder-remove-button {
+        width: 100%;
+    }
+
+    .nova-writing-dashboard-view {
+        padding: var(--size-4-4);
+    }
+
+    .nova-writing-dashboard-header,
+    .nova-writing-dashboard-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nova-writing-dashboard-rescan {
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    .nova-writing-dashboard-filter {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .nova-writing-dashboard-pillar-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .nova-budget-bar.nova-budget-low {
     background: var(--interactive-accent);
 }

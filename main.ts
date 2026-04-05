@@ -3,6 +3,7 @@ import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
 import { ReleaseNotesView, VIEW_TYPE_RELEASE_NOTES } from './src/ui/release-notes-view';
+import { WritingDashboardView, VIEW_TYPE_WRITING_DASHBOARD } from './src/ui/writing-dashboard-view';
 import { getReleaseNotes } from './src/release-notes';
 import { isVersionNewer } from './src/utils/version';
 import { DocumentEngine } from './src/core/document-engine';
@@ -199,6 +200,11 @@ export default class NovaPlugin extends Plugin {
 				(leaf) => new ReleaseNotesView(leaf, this.pendingReleaseNotes ?? '', this.pendingReleaseVersion ?? '')
 			);
 
+			this.registerView(
+				VIEW_TYPE_WRITING_DASHBOARD,
+				(leaf) => new WritingDashboardView(leaf, this)
+			);
+
 			// Note: Wikilink autocomplete is now handled directly in sidebar view
 
 			this.addRibbonIcon('nova-star', 'Nova AI', (_evt: MouseEvent) => {
@@ -254,6 +260,14 @@ export default class NovaPlugin extends Plugin {
 				name: 'Open sidebar',
 				callback: () => {
 					void this.activateView();
+				}
+			});
+
+			this.addCommand({
+				id: 'open-writing-dashboard',
+				name: 'Open writing dashboard',
+				callback: () => {
+					void this.activateWritingDashboard();
 				}
 			});
 
@@ -411,6 +425,10 @@ export default class NovaPlugin extends Plugin {
 
 		if (savedData?.writingAnalysis) {
 			this.settings.writingAnalysis = Object.assign({}, DEFAULT_SETTINGS.writingAnalysis, savedData.writingAnalysis);
+		}
+
+		if (savedData?.dashboard) {
+			this.settings.dashboard = Object.assign({}, DEFAULT_SETTINGS.dashboard, savedData.dashboard);
 		}
 		
 		// Decrypt API keys if they are encrypted
@@ -619,6 +637,24 @@ export default class NovaPlugin extends Plugin {
 		// Store reference to sidebar view
 		if (leaf?.view instanceof NovaSidebarView) {
 			this.sidebarView = leaf.view;
+		}
+	}
+
+	async activateWritingDashboard() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null;
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_WRITING_DASHBOARD);
+
+		if (leaves.length > 0) {
+			leaf = leaves[0] as WorkspaceLeaf;
+		} else {
+			leaf = workspace.getLeaf('tab');
+			await leaf?.setViewState({ type: VIEW_TYPE_WRITING_DASHBOARD, active: true });
+		}
+
+		if (leaf) {
+			void workspace.revealLeaf(leaf);
 		}
 	}
 
