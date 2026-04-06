@@ -8,6 +8,12 @@ Use local AI (Ollama, LM Studio) or your own API keys (Claude, OpenAI, Gemini). 
 
 ## How It Works
 
+### Writing Dashboard
+
+Vault-wide writing quality scores with a composite score across four pillars — clarity, conciseness, variety, and discipline. Per-document breakdown, sortable table, and historical trend sparklines that track your improvement over time. Command palette → "Open writing dashboard."
+
+All local, zero AI costs, free for all users.
+
 ### Writing Analysis
 
 Readability score, sentence length highlighting, passive voice detection, adverb density, and weak intensifier detection — running locally with zero AI costs. Like having ProWritingAid built into Obsidian, alongside Nova's AI editing tools.
@@ -90,12 +96,12 @@ The plugin includes a "Supernova" tab in settings with information about support
 ## Roadmap
 
 **Recently shipped:**
+- Writing Dashboard (v1.5) — Vault-wide writing quality scores, per-document breakdown, and historical trend tracking. Entirely local, free for all users.
 - Writing Analysis (v1.4) — Readability scoring, passive voice detection, sentence length highlighting, adverb density, and weak intensifier flagging. All local, zero API costs.
 - Auto-Context (v1.3) — Wikilink resolution, backlinks, and the Context Quick Panel.
 - Smart Fill (v1.2) — AI placeholders for structured documents. Now free for all users.
 
 **Coming next:**
-- Writing Dashboard (v1.5) — Vault-wide writing quality scores, per-document breakdown, and historical trend tracking. Entirely local, free for all users.
 - Prose Linter (v1.6) — Actionable issue list with AI-powered fix suggestions. Detection free; AI fixes Supernova early access.
 - Revision Mode (v1.7) — AI-proposed edits shown as inline tracked changes. Accept or reject each change individually. Supernova early access.
 - Voice Match (v1.8) — Nova learns your writing style and matches it on every transformation. Supernova early access.
