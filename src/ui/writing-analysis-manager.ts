@@ -7,6 +7,7 @@ import { EditorView } from '@codemirror/view';
 import { analyzeWriting, hasWritingAnalysisOptOut, type WritingAnalysis } from '../core/writing-analysis';
 import { CodeMirrorWritingHighlightManager, type WritingHighlight } from '../features/commands/ui/codemirror-decorations';
 import { VIEW_TYPE_NOVA_SIDEBAR } from '../constants';
+import { VIEW_TYPE_WRITING_DASHBOARD } from './writing-dashboard-view';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
@@ -369,6 +370,9 @@ export class WritingAnalysisManager {
             return false;
         }
 
-        return this.currentLeafViewType === VIEW_TYPE_NOVA_SIDEBAR;
+        // Preserve analysis for any non-document view (file explorer, search,
+        // graph, Nova sidebar, etc.). Only clear when switching to the writing
+        // dashboard, which has its own analysis display.
+        return this.currentLeafViewType !== VIEW_TYPE_WRITING_DASHBOARD;
     }
 }

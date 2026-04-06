@@ -69,6 +69,19 @@ describe('WritingAnalysisManager', () => {
 		expect(detail.filePath).toBeNull();
 	});
 
+	test('preserves writing analysis when focus moves to the file explorer', async () => {
+		const { manager } = createManager('file-explorer');
+		const trackedView = createTrackedMarkdownView();
+		(manager as any).activeView = trackedView;
+		(manager as any).latestAnalysis = { readabilityGrade: 8 } as never;
+		(manager as any).currentLeafViewType = 'file-explorer';
+
+		await manager.refreshForActiveView(true);
+
+		expect(manager.getActiveFile()?.path).toBe('notes/current.md');
+		expect(manager.getLatestAnalysis()).toEqual({ readabilityGrade: 8 });
+	});
+
 	test('preserves writing analysis when focus moves into the Nova sidebar', async () => {
 		const { manager } = createManager(VIEW_TYPE_NOVA_SIDEBAR);
 		const trackedView = createTrackedMarkdownView();
