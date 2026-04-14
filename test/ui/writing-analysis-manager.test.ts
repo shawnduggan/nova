@@ -162,4 +162,10 @@ describe('WritingAnalysisManager', () => {
 			expect(spy).toHaveBeenCalledTimes(1);
 		});
 	});
+
+	describe('debounce timing', () => {
+		test('ANALYSIS_DEBOUNCE_MS is set to 1500 ms', () => {
+			expect((WritingAnalysisManager as any).ANALYSIS_DEBOUNCE_MS).toBe(1500);
+		});
+	});
 });

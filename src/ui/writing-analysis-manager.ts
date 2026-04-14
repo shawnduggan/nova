@@ -23,7 +23,7 @@ export interface WritingAnalysisUpdateDetail {
 }
 
 export class WritingAnalysisManager {
-    private static readonly ANALYSIS_DEBOUNCE_MS = 500;
+    private static readonly ANALYSIS_DEBOUNCE_MS = 1500;
 
     private plugin: NovaPlugin;
     private logger = Logger.scope('WritingAnalysisManager');
