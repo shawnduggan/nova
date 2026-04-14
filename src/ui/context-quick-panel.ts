@@ -293,7 +293,7 @@ export class ContextQuickPanel {
 			// Progress bar
 			const progressContainerEl = budgetEl.createDiv({ cls: 'nova-budget-bar-container' });
 			const progressEl = progressContainerEl.createDiv({ cls: 'nova-budget-bar' });
-			progressEl.style.width = `${usagePercent}%`;
+			progressEl.setCssProps({ '--nova-budget-bar-width': `${usagePercent}%` });
 
 			// Color based on usage
 			if (usagePercent >= 90) {

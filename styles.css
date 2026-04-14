@@ -4045,6 +4045,7 @@
 
 .nova-budget-bar {
     height: 100%;
+    width: var(--nova-budget-bar-width, 0%);
     border-radius: var(--radius-s);
     transition: width 0.3s ease, background-color 0.3s ease;
 }
