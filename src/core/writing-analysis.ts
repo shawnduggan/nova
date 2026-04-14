@@ -178,15 +178,15 @@ const passiveRegex = new RegExp(
 const wordRegex = /[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?/g;
 const adverbRegex = /\b([A-Za-z]+ly)\b/gi;
 
-const cache = new Map<string, WritingAnalysis>();
+let lastCacheKey: string | null = null;
+let lastCachedAnalysis: WritingAnalysis | null = null;
 
 export function analyzeWriting(content: string, options: WritingAnalysisOptions = {}): WritingAnalysis {
 	const longSentenceThreshold = options.longSentenceThreshold ?? DEFAULT_LONG_SENTENCE_THRESHOLD;
 	const veryLongSentenceThreshold = options.veryLongSentenceThreshold ?? DEFAULT_VERY_LONG_SENTENCE_THRESHOLD;
 	const cacheKey = buildCacheKey(content, longSentenceThreshold, veryLongSentenceThreshold);
-	const cached = cache.get(cacheKey);
-	if (cached) {
-		return cached;
+	if (lastCacheKey === cacheKey && lastCachedAnalysis) {
+		return lastCachedAnalysis;
 	}
 
 	const lines = content.split('\n');
@@ -194,7 +194,8 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 	const frontmatter = detectFrontmatter(lines);
 	if (frontmatter?.optOut) {
 		const noOp = createNoOpAnalysis('Analysis disabled by frontmatter');
-		cache.set(cacheKey, noOp);
+		lastCacheKey = cacheKey;
+		lastCachedAnalysis = noOp;
 		return noOp;
 	}
 
@@ -244,7 +245,8 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 		weakIntensifiers
 	};
 
-	cache.set(cacheKey, analysis);
+	lastCacheKey = cacheKey;
+	lastCachedAnalysis = analysis;
 	return analysis;
 }
 
@@ -267,7 +269,12 @@ export function hasWritingAnalysisOptOut(content: string): boolean {
 }
 
 export function clearWritingAnalysisCache(): void {
-	cache.clear();
+	lastCacheKey = null;
+	lastCachedAnalysis = null;
+}
+
+export function getCacheSizeForTests(): number {
+	return lastCachedAnalysis === null ? 0 : 1;
 }
 
 function createNoOpAnalysis(label: string): WritingAnalysis {

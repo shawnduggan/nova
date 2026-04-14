@@ -677,4 +677,41 @@ describe('analyzeWriting', () => {
 			expect(result.readabilityGrade).toBeGreaterThan(0);
 		});
 	});
+
+	describe('cache bounding', () => {
+		test('does not retain analyses across distinct document states', () => {
+			const { getCacheSizeForTests, clearWritingAnalysisCache } = require('../../src/core/writing-analysis');
+			clearWritingAnalysisCache();
+
+			analyzeWriting('Alpha sentence one. Alpha sentence two.');
+			analyzeWriting('Beta sentence one. Beta sentence two.');
+			analyzeWriting('Gamma sentence one. Gamma sentence two.');
+			analyzeWriting('Delta sentence one. Delta sentence two.');
+			analyzeWriting('Epsilon sentence one. Epsilon sentence two.');
+
+			expect(getCacheSizeForTests()).toBeLessThanOrEqual(1);
+		});
+
+		test('returns the same reference on repeated calls with identical content', () => {
+			const { clearWritingAnalysisCache } = require('../../src/core/writing-analysis');
+			clearWritingAnalysisCache();
+
+			const content = 'Stable content for memoization test.';
+			const first = analyzeWriting(content);
+			const second = analyzeWriting(content);
+
+			expect(second).toBe(first);
+		});
+
+		test('returns a fresh analysis object when content changes between calls', () => {
+			const { clearWritingAnalysisCache } = require('../../src/core/writing-analysis');
+			clearWritingAnalysisCache();
+
+			const first = analyzeWriting('First content for change test.');
+			const second = analyzeWriting('Second content for change test.');
+
+			expect(second).not.toBe(first);
+			expect(second.wordCount).toBeGreaterThan(0);
+		});
+	});
 });
