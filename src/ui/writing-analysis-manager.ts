@@ -108,9 +108,9 @@ export class WritingAnalysisManager {
         }
 
         const cm = this.getEditorView();
-        if (cm && cm.state.doc.length > MAX_LIVE_ANALYSIS_CHAR_LENGTH) {
-            // Skip live analysis on very large docs — avoids freezing the
-            // editor on every keystroke. analyzeNow() still runs on demand.
+        if (!cm || cm.state.doc.length > MAX_LIVE_ANALYSIS_CHAR_LENGTH) {
+            // Skip live analysis on very large docs, or when CodeMirror
+            // isn't wired up yet. analyzeNow() still runs on demand.
             return;
         }
 

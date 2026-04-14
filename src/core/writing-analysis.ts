@@ -69,6 +69,8 @@ interface FrontmatterInfo {
 
 const DEFAULT_LONG_SENTENCE_THRESHOLD = 25;
 const DEFAULT_VERY_LONG_SENTENCE_THRESHOLD = 40;
+// Inclusive cap: docs with length > this value skip live analysis.
+// analyzeNow() bypasses the gate and always produces analysis.
 export const MAX_LIVE_ANALYSIS_CHAR_LENGTH = 50_000;
 
 const WEAK_INTENSIFIERS = new Set([
