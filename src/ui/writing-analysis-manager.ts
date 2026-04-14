@@ -4,7 +4,7 @@
 
 import { MarkdownView, TFile } from 'obsidian';
 import { EditorView } from '@codemirror/view';
-import { analyzeWriting, hasWritingAnalysisOptOut, type WritingAnalysis } from '../core/writing-analysis';
+import { analyzeWriting, hasWritingAnalysisOptOut, MAX_LIVE_ANALYSIS_CHAR_LENGTH, type WritingAnalysis } from '../core/writing-analysis';
 import { CodeMirrorWritingHighlightManager, type WritingHighlight } from '../features/commands/ui/codemirror-decorations';
 import { VIEW_TYPE_NOVA_SIDEBAR } from '../constants';
 import { VIEW_TYPE_WRITING_DASHBOARD } from './writing-dashboard-view';
@@ -104,6 +104,13 @@ export class WritingAnalysisManager {
 
     scheduleAnalysis(): void {
         if (!this.plugin.settings.writingAnalysis.enabled || !this.isEligibleView(this.activeView)) {
+            return;
+        }
+
+        const cm = this.getEditorView();
+        if (cm && cm.state.doc.length > MAX_LIVE_ANALYSIS_CHAR_LENGTH) {
+            // Skip live analysis on very large docs — avoids freezing the
+            // editor on every keystroke. analyzeNow() still runs on demand.
             return;
         }
 

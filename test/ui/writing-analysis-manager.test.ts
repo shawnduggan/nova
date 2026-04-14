@@ -94,4 +94,72 @@ describe('WritingAnalysisManager', () => {
 		expect(manager.getActiveFile()?.path).toBe('notes/current.md');
 		expect(manager.getLatestAnalysis()).toEqual({ readabilityGrade: 8 });
 	});
+
+	describe('size gate', () => {
+		function createManagerWithEditor(docLength: number) {
+			const workspace = {
+				getActiveViewOfType: jest.fn(() => null),
+				on: jest.fn(() => ({ unsubscribe: () => undefined }))
+			};
+			const plugin = {
+				app: {
+					workspace,
+					vault: { cachedRead: jest.fn(async () => 'x'.repeat(docLength)) }
+				},
+				settings: {
+					writingAnalysis: {
+						enabled: true,
+						longSentenceThreshold: 25,
+						veryLongSentenceThreshold: 40,
+						highlightLongSentences: true,
+						highlightPassiveVoice: true,
+						highlightAdverbs: true,
+						highlightWeakIntensifiers: true
+					}
+				},
+				registerEvent: jest.fn(),
+				registerDomEvent: jest.fn(),
+				writingAnalysisStateField: {}
+			};
+			const manager = new WritingAnalysisManager(plugin as never);
+
+			const fakeEditor = {
+				getValue: () => 'x'.repeat(docLength),
+				cm: { state: { doc: { length: docLength } } }
+			};
+			const view = new MarkdownView(null);
+			view.file = new TFile('notes/big.md');
+			view.editor = fakeEditor as unknown as Editor;
+			(manager as any).activeView = view;
+
+			return { manager, fakeEditor };
+		}
+
+		test('scheduleAnalysis skips documents over the size threshold', () => {
+			const { manager } = createManagerWithEditor(60_000);
+			const spy = jest.spyOn(manager as any, 'runAnalysis');
+
+			manager.scheduleAnalysis();
+
+			expect((manager as any).pendingAnalysisTimeout).toBeNull();
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		test('scheduleAnalysis schedules analysis for documents under the threshold', () => {
+			const { manager } = createManagerWithEditor(1_000);
+
+			manager.scheduleAnalysis();
+
+			expect((manager as any).pendingAnalysisTimeout).not.toBeNull();
+		});
+
+		test('analyzeNow bypasses the size gate', async () => {
+			const { manager } = createManagerWithEditor(60_000);
+			const spy = jest.spyOn(manager as any, 'runAnalysis').mockResolvedValue(undefined);
+
+			await manager.analyzeNow();
+
+			expect(spy).toHaveBeenCalledTimes(1);
+		});
+	});
 });

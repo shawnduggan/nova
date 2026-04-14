@@ -69,6 +69,7 @@ interface FrontmatterInfo {
 
 const DEFAULT_LONG_SENTENCE_THRESHOLD = 25;
 const DEFAULT_VERY_LONG_SENTENCE_THRESHOLD = 40;
+export const MAX_LIVE_ANALYSIS_CHAR_LENGTH = 50_000;
 
 const WEAK_INTENSIFIERS = new Set([
 	'very',
