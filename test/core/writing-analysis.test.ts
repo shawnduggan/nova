@@ -3,9 +3,13 @@
  * Tests for deterministic writing quality analysis
  */
 
-import { analyzeWriting } from '../../src/core/writing-analysis';
+import { analyzeWriting, clearWritingAnalysisCache } from '../../src/core/writing-analysis';
 
 describe('analyzeWriting', () => {
+	beforeEach(() => {
+		clearWritingAnalysisCache();
+	});
+
 	function makeWords(count: number, prefix = 'word'): string {
 		return Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`).join(' ');
 	}
