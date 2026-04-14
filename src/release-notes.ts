@@ -6,6 +6,17 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.5.2': [
+		'## What\'s New in Nova 1.5.2',
+		'',
+		'### Bug Fixes',
+		'- **Typing no longer freezes in long notes.** The Writing Analysis subsystem was running a full-document scan after every short typing pause and accumulating memory in an unbounded cache. In long drafts this produced momentary keyboard unresponsiveness that resolved on its own or required a plugin reload. The cache is now bounded to a single entry, and the analysis debounce was raised from 500 ms to 1500 ms so ordinary mid-word pauses no longer trigger re-analysis.',
+		'- **Very large documents skip live analysis.** Documents over 50,000 characters no longer run analysis on every keystroke, keeping the editor responsive while editing book-length drafts. Use the **Analyze** button in the sidebar to run analysis on demand.',
+		'',
+		'### Under the Hood',
+		'- Tightened the Writing Analysis scheduling path so it skips cleanly when the editor isn\'t ready, instead of scheduling work against a not-yet-wired-up view.',
+		'- Replaced an inline style assignment on the context budget bar with a CSS custom property, aligning with the rest of the plugin\'s Obsidian compliance patterns.',
+	].join('\n'),
 	'1.5.1': [
 		'## What\'s New in Nova 1.5.1',
 		'',
@@ -63,20 +74,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'- **Composer stays visible** — On mobile, the input area now stays above the on-screen keyboard instead of getting hidden behind it.',
 		'- **Improved mobile layout** — Restructured the sidebar CSS for more reliable flexbox behavior on iOS and Android.',
 		'- **Quick panel polish** — Better sizing and scroll behavior for the context panel on mobile devices.',
-	].join('\n'),
-	'1.3.2': [
-		'## What\'s New in Nova 1.3.2',
-		'',
-		'### Bug Fixes',
-		'- **Startup error fixed** — Resolved a console error caused by the Nova Commands system initializing before its components were created. The margin indicators now initialize at the correct time during plugin startup.',
-		'- **Retroactive 1.3.1 release notes** — Added missing release notes for the 1.3.1 update.',
-	].join('\n'),
-	'1.3.1': [
-		'## What\'s New in Nova 1.3.1',
-		'',
-		'### UI Polish',
-		'- **Sidebar layout fix** — The sidebar content area now flexes correctly, preventing layout overflow issues.',
-		'- **Capitalization fix** — Corrected "How can i help?" to "How can I help?" in the input placeholder.',
 	].join('\n'),
 };
 
