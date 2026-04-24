@@ -6,6 +6,13 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.5.4': [
+		'## What\'s New in Nova 1.5.4',
+		'',
+		'### Bug Fixes',
+		'- **Claude Opus 4.7 now works.** 1.5.3 added Opus 4.7 to the model picker, but Anthropic removed support for the `temperature` parameter on this model, so every request returned a 400 error. Nova now omits `temperature` for Opus 4.7 requests while keeping it for every other model.',
+		'- **Removed GPT-5.5 from the picker.** It was listed in 1.5.3 in anticipation of release, but OpenAI has not yet made the model available via API. It will be added back when the model ships.',
+	].join('\n'),
 	'1.5.3': [
 		'## What\'s New in Nova 1.5.3',
 		'',
