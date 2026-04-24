@@ -168,4 +168,93 @@ describe('WritingAnalysisManager', () => {
 			expect((WritingAnalysisManager as any).ANALYSIS_DEBOUNCE_MS).toBe(1500);
 		});
 	});
+
+	describe('idle scheduling', () => {
+		function createManagerWithEditor(docLength: number) {
+			const workspace = {
+				getActiveViewOfType: jest.fn(() => null),
+				on: jest.fn(() => ({ unsubscribe: () => undefined }))
+			};
+			const plugin = {
+				app: {
+					workspace,
+					vault: { cachedRead: jest.fn(async () => 'x'.repeat(docLength)) }
+				},
+				settings: {
+					writingAnalysis: {
+						enabled: true,
+						longSentenceThreshold: 25,
+						veryLongSentenceThreshold: 40
+					}
+				},
+				registerEvent: jest.fn(),
+				registerDomEvent: jest.fn(),
+				writingAnalysisStateField: {}
+			};
+			const manager = new WritingAnalysisManager(plugin as never);
+			const view = new MarkdownView(null);
+			view.file = new TFile('notes/small.md');
+			view.editor = {
+				getValue: () => 'x'.repeat(docLength),
+				cm: { state: { doc: { length: docLength } } }
+			} as unknown as Editor;
+			(manager as any).activeView = view;
+			return manager;
+		}
+
+		test('defers runAnalysis to an idle callback when the debounce fires', () => {
+			jest.useFakeTimers();
+			const idleCallback = jest.fn((cb: () => void) => {
+				// Invoke synchronously so we can observe deferral without wall time.
+				cb();
+				return 42;
+			});
+			(window as any).requestIdleCallback = idleCallback;
+			(window as any).cancelIdleCallback = jest.fn();
+
+			try {
+				const manager = createManagerWithEditor(1_000);
+				const spy = jest.spyOn(manager as any, 'runAnalysis').mockResolvedValue(undefined);
+
+				manager.scheduleAnalysis();
+				expect(spy).not.toHaveBeenCalled();
+
+				jest.advanceTimersByTime(1500);
+
+				expect(idleCallback).toHaveBeenCalledTimes(1);
+				expect(idleCallback.mock.calls[0][1]).toEqual({ timeout: 2000 });
+				expect(spy).toHaveBeenCalledTimes(1);
+			} finally {
+				delete (window as any).requestIdleCallback;
+				delete (window as any).cancelIdleCallback;
+				jest.useRealTimers();
+			}
+		});
+
+		test('cancels a pending idle callback when analyzeNow is invoked', async () => {
+			jest.useFakeTimers();
+			const cancelIdle = jest.fn();
+			(window as any).requestIdleCallback = jest.fn(() => 7);
+			(window as any).cancelIdleCallback = cancelIdle;
+
+			try {
+				const manager = createManagerWithEditor(1_000);
+				const spy = jest.spyOn(manager as any, 'runAnalysis').mockResolvedValue(undefined);
+
+				manager.scheduleAnalysis();
+				jest.advanceTimersByTime(1500);
+				expect((manager as any).pendingIdleHandle).toBe(7);
+
+				await manager.analyzeNow();
+
+				expect(cancelIdle).toHaveBeenCalledWith(7);
+				expect((manager as any).pendingIdleHandle).toBeNull();
+				expect(spy).toHaveBeenCalledTimes(1);
+			} finally {
+				delete (window as any).requestIdleCallback;
+				delete (window as any).cancelIdleCallback;
+				jest.useRealTimers();
+			}
+		});
+	});
 });

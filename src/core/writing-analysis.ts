@@ -212,7 +212,8 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 
 	const normalizedContent = normalizedLines.join('\n');
 	const sentenceSpans = splitSentences(normalizedContent, lineInfos, longSentenceThreshold, veryLongSentenceThreshold);
-	const passiveVoice = findPassiveVoice(normalizedContent, lineInfos);
+	const passiveSpans = findPassiveVoiceSpans(normalizedContent, lineInfos);
+	const passiveVoice = passiveSpans.map((span) => span.match);
 	const adverbs = findAdverbs(normalizedContent, lineInfos);
 	const weakIntensifiers = findWeakIntensifiers(normalizedContent, lineInfos, quoteLineFlags);
 
@@ -222,7 +223,7 @@ export function analyzeWriting(content: string, options: WritingAnalysisOptions 
 	const readingTimeMinutes = wordCount > 0 ? Math.ceil(wordCount / 238) : 0;
 	const readabilityGrade = calculateReadabilityGrade(normalizedContent, wordCount, sentenceCount);
 	const readabilityLabel = formatReadabilityLabel(readabilityGrade, wordCount, sentenceCount);
-	const passiveSentenceCount = countPassiveSentences(normalizedContent, sentenceSpans);
+	const passiveSentenceCount = countPassiveSentences(sentenceSpans, passiveSpans);
 	const passiveVoicePercentage = sentenceCount > 0 ? (passiveSentenceCount / sentenceCount) * 100 : 0;
 	const adverbDensity = wordCount > 0 ? (adverbs.length / wordCount) * 100 : 0;
 	const sentences = sentenceSpans.map((span) => span.analysis);
@@ -417,7 +418,9 @@ function blankFencedCodeBlocks(lines: string[]): void {
 function blankInlineCode(lines: string[]): void {
 	for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
 		const line = lines[lineIndex];
-		if (line.trim().length === 0) {
+		// Fast-path: lines without a backtick cannot contain inline code.
+		// Skips the per-char split/join allocation for the common case.
+		if (line.indexOf('`') === -1) {
 			continue;
 		}
 
@@ -611,21 +614,35 @@ function isAbbreviationBoundary(text: string, index: number): boolean {
 	return false;
 }
 
-function findPassiveVoice(text: string, lineInfos: LineInfo[]): PassiveVoiceMatch[] {
-	const matches: PassiveVoiceMatch[] = [];
+interface PassiveMatchSpan {
+	startIndex: number;
+	endIndex: number;
+	match: PassiveVoiceMatch;
+}
+
+function findPassiveVoiceSpans(text: string, lineInfos: LineInfo[]): PassiveMatchSpan[] {
+	const spans: PassiveMatchSpan[] = [];
 	passiveRegex.lastIndex = 0;
 
 	let match: RegExpExecArray | null;
 	while ((match = passiveRegex.exec(text)) !== null) {
-		matches.push({
-			line: indexToPosition(match.index, lineInfos).line,
-			startCh: indexToPosition(match.index, lineInfos).ch,
-			endCh: indexToPosition(match.index + match[0].length, lineInfos).ch,
-			match: match[0]
+		const startIndex = match.index;
+		const endIndex = startIndex + match[0].length;
+		const startPos = indexToPosition(startIndex, lineInfos);
+		const endPos = indexToPosition(endIndex, lineInfos);
+		spans.push({
+			startIndex,
+			endIndex,
+			match: {
+				line: startPos.line,
+				startCh: startPos.ch,
+				endCh: endPos.ch,
+				match: match[0]
+			}
 		});
 	}
 
-	return matches;
+	return spans;
 }
 
 function findAdverbs(text: string, lineInfos: LineInfo[]): AdverbMatch[] {
@@ -639,10 +656,12 @@ function findAdverbs(text: string, lineInfos: LineInfo[]): AdverbMatch[] {
 			continue;
 		}
 
+		const startPos = indexToPosition(match.index, lineInfos);
+		const endPos = indexToPosition(match.index + match[0].length, lineInfos);
 		matches.push({
-			line: indexToPosition(match.index, lineInfos).line,
-			startCh: indexToPosition(match.index, lineInfos).ch,
-			endCh: indexToPosition(match.index + match[0].length, lineInfos).ch,
+			line: startPos.line,
+			startCh: startPos.ch,
+			endCh: endPos.ch,
 			word
 		});
 	}
@@ -662,15 +681,16 @@ function findWeakIntensifiers(text: string, lineInfos: LineInfo[], quoteLineFlag
 			continue;
 		}
 
-		const position = indexToPosition(match.index, lineInfos);
-		if (quoteLineFlags[position.line]) {
+		const startPos = indexToPosition(match.index, lineInfos);
+		if (quoteLineFlags[startPos.line]) {
 			continue;
 		}
+		const endPos = indexToPosition(match.index + match[0].length, lineInfos);
 
 		matches.push({
-			line: position.line,
-			startCh: position.ch,
-			endCh: indexToPosition(match.index + match[0].length, lineInfos).ch,
+			line: startPos.line,
+			startCh: startPos.ch,
+			endCh: endPos.ch,
 			word: match[0]
 		});
 	}
@@ -758,16 +778,24 @@ function formatReadabilityLabel(grade: number, wordCount: number, sentenceCount:
 	return `Grade ${rounded} - ${descriptor}`;
 }
 
-function countPassiveSentences(text: string, sentences: SentenceSpan[]): number {
-	if (sentences.length === 0) {
+function countPassiveSentences(sentences: SentenceSpan[], passiveSpans: PassiveMatchSpan[]): number {
+	if (sentences.length === 0 || passiveSpans.length === 0) {
 		return 0;
 	}
 
+	// Linear sweep: both sentences and passiveSpans are in ascending index order
+	// (produced by a left-to-right regex/parse), so we walk both in tandem and
+	// count each sentence that contains at least one passive span.
 	let count = 0;
+	let passiveCursor = 0;
 	for (const sentence of sentences) {
-		passiveRegex.lastIndex = 0;
-		const fragment = text.slice(sentence.startIndex, sentence.endIndex);
-		if (passiveRegex.test(fragment)) {
+		while (passiveCursor < passiveSpans.length && passiveSpans[passiveCursor].endIndex <= sentence.startIndex) {
+			passiveCursor++;
+		}
+		if (passiveCursor >= passiveSpans.length) {
+			break;
+		}
+		if (passiveSpans[passiveCursor].startIndex < sentence.endIndex) {
 			count++;
 		}
 	}

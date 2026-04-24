@@ -24,6 +24,10 @@ export interface WritingAnalysisUpdateDetail {
 
 export class WritingAnalysisManager {
     private static readonly ANALYSIS_DEBOUNCE_MS = 1500;
+    // Upper bound on how long requestIdleCallback may defer the analysis past
+    // the debounce. Ensures live stats refresh within ~2s of the last keystroke
+    // even if the browser never reports an idle slice.
+    private static readonly ANALYSIS_IDLE_TIMEOUT_MS = 2000;
 
     private plugin: NovaPlugin;
     private logger = Logger.scope('WritingAnalysisManager');
@@ -35,6 +39,7 @@ export class WritingAnalysisManager {
     private disabledByFrontmatter = false;
     private observedEditors = new WeakSet<HTMLElement>();
     private pendingAnalysisTimeout: number | null = null;
+    private pendingIdleHandle: number | null = null;
     private currentLeafViewType: string | null = null;
 
     constructor(plugin: NovaPlugin) {
@@ -114,22 +119,34 @@ export class WritingAnalysisManager {
             return;
         }
 
-        if (this.pendingAnalysisTimeout) {
-            this.timeoutManager.removeTimeout(this.pendingAnalysisTimeout);
-        }
+        this.cancelPendingAnalysis();
 
         this.pendingAnalysisTimeout = this.timeoutManager.addTimeout(() => {
             this.pendingAnalysisTimeout = null;
-            void this.runAnalysis();
+            // Defer the actual work to a browser idle slice so it yields to
+            // ongoing typing. The trailing-edge debounce alone still runs
+            // synchronously if typing resumes right as the timer fires.
+            this.pendingIdleHandle = requestIdleAnalysis(() => {
+                this.pendingIdleHandle = null;
+                void this.runAnalysis();
+            }, WritingAnalysisManager.ANALYSIS_IDLE_TIMEOUT_MS);
         }, WritingAnalysisManager.ANALYSIS_DEBOUNCE_MS);
     }
 
     async analyzeNow(): Promise<void> {
+        this.cancelPendingAnalysis();
+        await this.runAnalysis();
+    }
+
+    private cancelPendingAnalysis(): void {
         if (this.pendingAnalysisTimeout) {
             this.timeoutManager.removeTimeout(this.pendingAnalysisTimeout);
             this.pendingAnalysisTimeout = null;
         }
-        await this.runAnalysis();
+        if (this.pendingIdleHandle !== null) {
+            cancelIdleAnalysis(this.pendingIdleHandle);
+            this.pendingIdleHandle = null;
+        }
     }
 
     getLatestAnalysis(): WritingAnalysis | null {
@@ -161,6 +178,10 @@ export class WritingAnalysisManager {
     cleanup(): void {
         this.timeoutManager.clearAll();
         this.pendingAnalysisTimeout = null;
+        if (this.pendingIdleHandle !== null) {
+            cancelIdleAnalysis(this.pendingIdleHandle);
+            this.pendingIdleHandle = null;
+        }
         this.clearHighlights();
         this.activeView = null;
         this.highlightManager = null;
@@ -382,4 +403,29 @@ export class WritingAnalysisManager {
         // dashboard, which has its own analysis display.
         return this.currentLeafViewType !== VIEW_TYPE_WRITING_DASHBOARD;
     }
+}
+
+interface IdleCallbackWindow {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    cancelIdleCallback?: (handle: number) => void;
+}
+
+function requestIdleAnalysis(callback: () => void, timeoutMs: number): number {
+    const w = window as unknown as IdleCallbackWindow;
+    if (typeof w.requestIdleCallback === 'function') {
+        return w.requestIdleCallback(callback, { timeout: timeoutMs });
+    }
+    // Fallback for environments without requestIdleCallback (e.g. jsdom in
+    // tests). setTimeout(0) still yields a task, preserving the same ordering
+    // contract the callers depend on.
+    return window.setTimeout(callback, 0);
+}
+
+function cancelIdleAnalysis(handle: number): void {
+    const w = window as unknown as IdleCallbackWindow;
+    if (typeof w.cancelIdleCallback === 'function') {
+        w.cancelIdleCallback(handle);
+        return;
+    }
+    window.clearTimeout(handle);
 }
