@@ -49,12 +49,14 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 	switch (providerType) {
 		case 'claude':
 			return [
+				{ value: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
 				{ value: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
 				{ value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
 				{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' }
 			];
 		case 'openai':
 			return [
+				{ value: 'gpt-5.5', label: 'GPT-5.5' },
 				{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
 				{ value: 'gpt-5.4', label: 'GPT-5.4' },
 				{ value: 'gpt-5.3-chat-latest', label: 'GPT-5.3 Chat' },
@@ -92,6 +94,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	claude: {
 		// Claude models
+		'claude-opus-4-7': { tokens: 200000, maxOutputTokens: 128000 },
 		'claude-opus-4-6': { tokens: 200000, maxOutputTokens: 128000 },
 		'claude-sonnet-4-6': { tokens: 200000, maxOutputTokens: 64000 },
 		'claude-haiku-4-5': { tokens: 200000, maxOutputTokens: 64000 },
@@ -101,6 +104,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 
 	openai: {
 		// OpenAI models
+		'gpt-5.5': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4-pro': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.3-chat-latest': { tokens: 128000, maxOutputTokens: 16384 },
