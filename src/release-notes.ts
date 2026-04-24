@@ -6,6 +6,15 @@
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.5.3': [
+		'## What\'s New in Nova 1.5.3',
+		'',
+		'### New Models',
+		'- **Claude Opus 4.7** and **GPT-5.5** are now selectable in the model picker for their respective providers.',
+		'',
+		'### Bug Fixes',
+		'- **Further reduced typing freezes in long notes.** 1.5.2 cut the problem back but didn\'t eliminate it. The scheduler now defers analysis to a browser idle slice once the debounce fires, so if you keep typing past the debounce, the work yields to your keystrokes instead of blocking them. The analyzer itself also does less work per run: duplicate passive-voice scans were removed, position lookups are deduped, and lines with no inline code skip an unnecessary per-character copy.',
+	].join('\n'),
 	'1.5.2': [
 		'## What\'s New in Nova 1.5.2',
 		'',
