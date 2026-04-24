@@ -43,16 +43,20 @@ export class ClaudeProvider implements AIProvider {
 			throw new Error('Claude API key not configured');
 		}
 
-		const requestBody = JSON.stringify({
-			model: options?.model || this.config.model || 'claude-haiku-4-5-20251001',
-			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens,
-			temperature: options?.temperature || this.generalSettings.defaultTemperature,
-			system: options?.systemPrompt,
-			messages: messages.map(msg => ({
-				role: msg.role === 'assistant' ? 'assistant' : 'user',
-				content: msg.content
-			}))
-		});
+		const model = options?.model || this.config.model || 'claude-haiku-4-5-20251001';
+		const body: Record<string, unknown> = {
+			model,
+			max_tokens: options?.maxTokens || this.generalSettings.defaultMaxTokens
+		};
+		if (modelAcceptsTemperature(model)) {
+			body.temperature = options?.temperature || this.generalSettings.defaultTemperature;
+		}
+		body.system = options?.systemPrompt;
+		body.messages = messages.map(msg => ({
+			role: msg.role === 'assistant' ? 'assistant' : 'user',
+			content: msg.content
+		}));
+		const requestBody = JSON.stringify(body);
 
 		// Retry logic for 500-level errors
 		const maxRetries = 3;
@@ -207,4 +211,11 @@ export class ClaudeProvider implements AIProvider {
 	clearModelCache(): void {
 		this.cachedModels = null;
 	}
+}
+
+// Anthropic deprecated the `temperature` parameter starting with Opus 4.7;
+// sending it returns a 400 "temperature is deprecated for this model" error.
+// Extend this predicate as additional models drop the parameter.
+export function modelAcceptsTemperature(model: string): boolean {
+	return !model.startsWith('claude-opus-4-7');
 }

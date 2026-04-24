@@ -89,6 +89,19 @@ describe('ClaudeProvider', () => {
             expect(body.max_tokens).toBe(2000);
         });
 
+        test('omits temperature for Claude Opus 4.7 (Anthropic deprecated the parameter)', async () => {
+            await provider.complete('System prompt', 'User prompt', {
+                model: 'claude-opus-4-7',
+                temperature: 0.5
+            });
+
+            const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
+            const body = JSON.parse(callArgs.body);
+
+            expect(body.model).toBe('claude-opus-4-7');
+            expect(body).not.toHaveProperty('temperature');
+        });
+
         test('should throw error when API key is missing', async () => {
             const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings, new TimeoutManager());
 
