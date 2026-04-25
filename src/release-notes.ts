@@ -4,8 +4,25 @@
  * Add an entry before running `npm version`. Old entries can be pruned (keep ~5).
  */
 
+import { isVersionNewer } from './utils/version';
+
+export interface ReleaseNotesEntry {
+	version: string;
+	content: string;
+	isCurrent: boolean;
+}
+
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.5.5': [
+		'## What\'s New in Nova 1.5.5',
+		'',
+		'### New Models',
+		'- **GPT-5.5 and GPT-5.5 Pro are available.** OpenAI\'s latest GPT-5.5 models are now selectable in the model picker.',
+		'',
+		'### Release Notes',
+		'- **Update notes now show more context.** When Nova opens the update notes tab, it now shows the current release plus two recent prior releases in a cleaner, easier-to-scan layout.',
+	].join('\n'),
 	'1.5.4': [
 		'## What\'s New in Nova 1.5.4',
 		'',
@@ -39,58 +56,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'### Bug Fixes',
 		'- **Writing Analysis panel no longer disappears when clicking the file navigator.** Previously, clicking from an active editor into the file explorer cleared the panel. It now stays visible until you open a different document.',
 	].join('\n'),
-	'1.5.0': [
-		'## What\'s New in Nova 1.5.0',
-		'',
-		'### Writing Dashboard',
-		'Nova now includes a **vault-wide writing dashboard** that turns local analysis into a broader writing view — no AI calls needed.',
-		'',
-		'- **Composite writing score** — Clarity, conciseness, variety, and discipline combine into a single score for eligible notes.',
-		'- **Vault scan with caching** — Notes are analyzed incrementally and cached locally for faster follow-up scans.',
-		'- **Trend tracking** — Daily snapshots show how score and passive voice change over time.',
-		'- **Document table** — Sort and filter notes by score, readability, passive voice, and adverb density.',
-		'- **Explainability tooltips** — Hover any metric to see how Nova interpreted it.',
-		'',
-		'### Settings',
-		'- **Folder exclusions** — Skip templates, journals, archives, or any other folders from dashboard analysis.',
-		'- **Target readability grade** — Adjust the clarity target to match your writing goals.',
-	].join('\n'),
-	'1.4.0': [
-		'## What\'s New in Nova 1.4.0',
-		'',
-		'### Writing Analysis',
-		'Nova now includes a **deterministic writing analysis** panel that runs locally — no AI calls needed.',
-		'',
-		'- **Readability grade** — Flesch-Kincaid grade level with a plain-language label (e.g. "Grade 7 — easy to read").',
-		'- **Inline highlights** — Long sentences, very long sentences, passive voice, adverbs, and weak intensifiers are underlined directly in the editor with color-coded severity.',
-		'- **Stats at a glance** — Word count, sentence count, reading time, passive voice percentage, adverb density, and intensifier count in a collapsible panel.',
-		'- **Analyze button** — Re-run analysis on demand; automatically enables highlights if they\'re hidden.',
-		'- **Frontmatter opt-out** — Add `nova-writing: false` to any note\'s frontmatter to disable analysis.',
-		'- **Configurable thresholds** — Adjust long/very-long sentence word limits in settings.',
-		'',
-		'### Auto-Context Improvements',
-		'- **Live wikilink tracking** — Adding or removing `[[wikilinks]]` now updates the context panel automatically (previously required switching files).',
-		'',
-		'### Mobile Polish',
-		'- **Writing panel** — Proper touch targets, readable font sizes, and scroll behavior on mobile.',
-		'- **Consistent panels** — Writing and Context panels now share identical mobile styling.',
-		'- **Privacy indicator** — Left-aligned for a cleaner layout on both desktop and mobile.',
-		'',
-		'### Bug Fixes',
-		'- Fixed undo/redo not triggering writing analysis updates.',
-		'- Fixed weak intensifiers (e.g. "really") being double-highlighted as both adverbs and intensifiers.',
-		'- Fixed Ollama base URL trailing slash causing connection failures.',
-		'- Relaxed adverb and intensifier thresholds to reduce false alarms.',
-		'- Token budget bar now hidden when usage is negligible; shows percentage instead of raw counts.',
-	].join('\n'),
-	'1.3.3': [
-		'## What\'s New in Nova 1.3.3',
-		'',
-		'### Mobile Keyboard Fix',
-		'- **Composer stays visible** — On mobile, the input area now stays above the on-screen keyboard instead of getting hidden behind it.',
-		'- **Improved mobile layout** — Restructured the sidebar CSS for more reliable flexbox behavior on iOS and Android.',
-		'- **Quick panel polish** — Better sizing and scroll behavior for the context panel on mobile devices.',
-	].join('\n'),
 };
 
 /**
@@ -98,4 +63,23 @@ export const RELEASE_NOTES: Record<string, string> = {
  */
 export function getReleaseNotes(version: string): string | null {
 	return RELEASE_NOTES[version] ?? null;
+}
+
+/**
+ * Get the current release notes plus recent prior authored releases.
+ */
+export function getRecentReleaseNotes(currentVersion: string, count = 3): ReleaseNotesEntry[] {
+	return Object.keys(RELEASE_NOTES)
+		.filter(version => version === currentVersion || isVersionNewer(currentVersion, version))
+		.sort((a, b) => {
+			if (isVersionNewer(a, b)) return -1;
+			if (isVersionNewer(b, a)) return 1;
+			return 0;
+		})
+		.slice(0, count)
+		.map(version => ({
+			version,
+			content: RELEASE_NOTES[version],
+			isCurrent: version === currentVersion
+		}));
 }

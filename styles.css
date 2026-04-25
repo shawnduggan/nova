@@ -3807,22 +3807,147 @@
 
 /* Release Notes View */
 .nova-release-notes {
-    padding: var(--size-4-8) var(--size-4-6);
-    max-width: 700px;
+    overflow-y: auto;
+}
+
+.nova-release-notes-page {
+    max-width: 760px;
     margin: 0 auto;
+    padding: var(--size-4-8) var(--size-4-6);
+}
+
+.nova-release-notes-header {
+    margin-bottom: var(--size-4-6);
+}
+
+.nova-release-notes-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-3);
+    margin-bottom: var(--size-4-2);
+}
+
+.nova-release-notes-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    color: var(--interactive-accent);
+    background: var(--background-secondary);
+    font-weight: var(--font-bold);
+}
+
+.nova-release-notes h1 {
+    margin: 0;
+    font-size: var(--font-ui-larger);
+    line-height: 1.2;
+}
+
+.nova-release-notes-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.nova-release-notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-4);
+}
+
+.nova-release-card {
+    padding: var(--size-4-5);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-primary);
+}
+
+.nova-release-card-current {
+    border-color: var(--interactive-accent);
+    background: var(--background-primary-alt);
+}
+
+.nova-release-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-4-3);
+    margin-bottom: var(--size-4-3);
+}
+
+.nova-release-card-header h2 {
+    margin: 0;
+    font-size: var(--font-ui-large);
+    line-height: 1.25;
+}
+
+.nova-release-badge {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-medium);
+}
+
+.nova-release-badge-current {
+    color: var(--text-on-accent);
+    background: var(--interactive-accent);
+    border-color: var(--interactive-accent);
+}
+
+.nova-release-card-content > :first-child {
+    margin-top: 0;
+}
+
+.nova-release-card-content > :last-child {
+    margin-bottom: 0;
+}
+
+.nova-release-card-content h3 {
+    margin-top: var(--size-4-4);
+    margin-bottom: var(--size-4-2);
+    font-size: var(--font-ui-medium);
+}
+
+.nova-release-card-content ul {
+    margin: var(--size-4-2) 0 0;
+    padding-inline-start: var(--size-4-5);
+}
+
+.nova-release-card-content li {
+    margin-bottom: var(--size-4-2);
+    line-height: 1.45;
 }
 
 .nova-release-notes-support {
-    text-align: center;
-    margin-bottom: var(--size-4-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-4-3);
+    margin-top: var(--size-4-6);
+    padding-top: var(--size-4-4);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.nova-release-notes-support p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
 }
 
 .nova-kofi-link {
     display: inline-block;
-    padding: var(--size-4-2) var(--size-4-4);
-    background: var(--interactive-accent);
-    color: var(--text-on-accent) !important;
-    border-radius: var(--radius-m);
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    color: var(--interactive-accent) !important;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
     text-decoration: none;
     font-weight: var(--font-semibold);
     font-size: var(--font-ui-small);
@@ -3830,8 +3955,20 @@
 }
 
 .nova-kofi-link:hover {
-    opacity: 0.85;
+    background: var(--background-modifier-hover);
     text-decoration: none;
+}
+
+@media (max-width: 700px) {
+    .nova-release-notes-page {
+        padding: var(--size-4-5) var(--size-4-4);
+    }
+
+    .nova-release-card-header,
+    .nova-release-notes-support {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }
 
 /* ============================================================================

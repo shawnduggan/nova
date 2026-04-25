@@ -273,7 +273,8 @@ export class OpenAIProvider implements AIProvider {
 			
 			// Return hardcoded current models
 			const models = [
-				// 'gpt-5.5', // Not yet released to API
+				'gpt-5.5-pro',
+				'gpt-5.5',
 				'gpt-5.4-pro',
 				'gpt-5.4',
 				'gpt-5.3-chat-latest',

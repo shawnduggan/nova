@@ -56,7 +56,8 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 			];
 		case 'openai':
 			return [
-				// { value: 'gpt-5.5', label: 'GPT-5.5' }, // Not yet released to API
+				{ value: 'gpt-5.5-pro', label: 'GPT-5.5 Pro' },
+				{ value: 'gpt-5.5', label: 'GPT-5.5' },
 				{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
 				{ value: 'gpt-5.4', label: 'GPT-5.4' },
 				{ value: 'gpt-5.3-chat-latest', label: 'GPT-5.3 Chat' },
@@ -104,7 +105,8 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 
 	openai: {
 		// OpenAI models
-		// 'gpt-5.5': { tokens: 1050000, maxOutputTokens: 128000 }, // Not yet released to API
+		'gpt-5.5': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-5.5-pro': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4-pro': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.3-chat-latest': { tokens: 128000, maxOutputTokens: 16384 },

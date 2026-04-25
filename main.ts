@@ -4,7 +4,7 @@ import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
 import { ReleaseNotesView, VIEW_TYPE_RELEASE_NOTES } from './src/ui/release-notes-view';
 import { WritingDashboardView, VIEW_TYPE_WRITING_DASHBOARD } from './src/ui/writing-dashboard-view';
-import { getReleaseNotes } from './src/release-notes';
+import { getRecentReleaseNotes, getReleaseNotes, type ReleaseNotesEntry } from './src/release-notes';
 import { isVersionNewer } from './src/utils/version';
 import { DocumentEngine } from './src/core/document-engine';
 import { ContextBuilder } from './src/core/context-builder';
@@ -94,7 +94,7 @@ export default class NovaPlugin extends Plugin {
 	indicatorStateField!: StateField<{ decorations: DecorationSet; opportunities: Map<number, unknown> }>;
 	writingAnalysisManager!: WritingAnalysisManager;
 	writingAnalysisStateField!: StateField<DecorationSet>;
-	private pendingReleaseNotes: string | null = null;
+	private pendingReleaseNotes: ReleaseNotesEntry[] = [];
 	private pendingReleaseVersion: string | null = null;
 
 	async onload() {
@@ -197,7 +197,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.registerView(
 				VIEW_TYPE_RELEASE_NOTES,
-				(leaf) => new ReleaseNotesView(leaf, this.pendingReleaseNotes ?? '', this.pendingReleaseVersion ?? '')
+				(leaf) => new ReleaseNotesView(leaf, this.pendingReleaseNotes, this.pendingReleaseVersion ?? '')
 			);
 
 			this.registerView(
@@ -366,7 +366,7 @@ export default class NovaPlugin extends Plugin {
 		}
 
 		// Store content so the registerView factory can pick it up
-		this.pendingReleaseNotes = notes;
+		this.pendingReleaseNotes = getRecentReleaseNotes(currentVersion);
 		this.pendingReleaseVersion = currentVersion;
 
 		const leaf = this.app.workspace.getLeaf('tab');
