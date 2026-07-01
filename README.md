@@ -112,6 +112,7 @@ The plugin includes a "Supernova" tab in settings with information about support
 ## Roadmap
 
 **Recently shipped:**
+- OpenAI-Compatible Endpoints (v1.7) — Connect Nova to OpenAI-compatible Chat Completions gateways: LM Studio, LocalAI, LiteLLM, and OpenRouter. Easier model setup and clearer mobile handling.
 - Prose Linter (v1.6) — Free local clarity workbench for sharper prose, native to Obsidian: filled highlights, category filters, Markdown-aware analysis, safe local Apply actions, and jump-to-issue editing. No AI key or Supernova license required.
 - Writing Dashboard (v1.5) — Vault-wide writing quality scores, per-document breakdown, and historical trend tracking. Entirely local, free for all users.
 - Writing Analysis (v1.4) — Readability scoring, passive voice metrics, sentence-length analysis, adverb density, weak intensifier flagging, and sidebar stats. All local, zero API costs.
@@ -119,8 +120,8 @@ The plugin includes a "Supernova" tab in settings with information about support
 - Smart Fill (v1.2) — AI placeholders for structured documents. Now free for all users.
 
 **Coming next:**
-- Revision Mode (v1.7) — AI-proposed edits shown as inline tracked changes. Accept or reject each change individually. Supernova early access.
-- Voice Match (v1.8) — Nova learns your writing style and matches it on every transformation. Supernova early access.
+- Smart Revision (v1.8) — A controlled revision pass: Nova diagnoses a passage, proposes grouped editorial changes with meaning-risk and before/after clarity impact, and lets you accept only what improves the draft. Supernova early access.
+- Voice Match (v1.9) — Nova learns your writing style and matches it on every transformation. Supernova early access.
 
 **Multi-language support:** German writing analysis is in progress with a community contributor. Other languages to follow.
 
