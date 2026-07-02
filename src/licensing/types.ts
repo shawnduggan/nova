@@ -11,7 +11,8 @@ export interface SupernovaLicense {
 	licenseKey: string;
 }
 
-
+export type FeatureAccessPolicy = 'core' | 'permanent';
+export type FeatureCategory = 'core' | 'advanced-revision';
 
 export interface SupernovaValidationResult {
 	valid: boolean;
@@ -31,21 +32,20 @@ export interface FeatureFlag {
 	key: string;
 	enabled: boolean;
 	description: string;
-	isTimeGated?: boolean;
-	earlyAccessOnly?: boolean;
+	access?: FeatureAccessPolicy;
+	supernovaOnly?: boolean;
 }
-
 
 export interface FeatureAccessResult {
 	allowed: boolean;
 	reason?: string;
 	isSupernovaFeature?: boolean;
-	availableDate?: Date;
+	access?: FeatureAccessPolicy;
+	upgradeRequired?: boolean;
 }
 
 // Debug mode interfaces for development
 export interface DebugSettings {
 	enabled: boolean;
-	overrideDate?: string; // Allow date override for testing time gates
 	forceSupernova?: boolean; // Force Supernova status for testing
 }

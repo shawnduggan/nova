@@ -14,6 +14,25 @@ export interface ReleaseNotesEntry {
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.8.0': [
+		'## What\'s New in Nova 1.8.0',
+		'',
+		'### Supernova model update',
+		'',
+		'- **Nova\'s free core stays free.** Selection editing, cursor chat, auto-context, Smart Fill, Writing Analysis, Writing Dashboard, Prose Linter, and all supported providers remain available without a Supernova license.',
+		'- **Supernova now unlocks advanced AI revision workflows.** Smart Revision is the first permanent Supernova feature, with Voice Match planned next.',
+		'- **Lifetime is now the lead Supernova offer.** $79 lifetime unlocks Supernova features in Nova; $29/year remains available for users who prefer annual support.',
+		'- **Existing licenses carry forward.** Annual, lifetime, and founding Supernova licenses unlock the new revision tier.',
+		'',
+		'### Smart Revision',
+		'',
+		'- **Smart Revision gives Supernova users a reviewable revision pass.** Select prose, choose Clarity, Tighten, Flow, or More Human, add an optional brief, and review Nova\'s proposal before the note changes.',
+		'- **Revision cards explain the edit.** Each card shows the editorial move, rationale, receipt details, impact, risk, and accept/reject controls.',
+		'- **Meaning risk is deterministic-first.** Nova checks numbers, dates, names, wikilinks, Markdown links, quoted text, negations, and protected terms; high-risk cards stay out of Accept all.',
+		'- **Before/after impact uses Nova\'s local writing analysis.** The proposal shows readability, long sentences, weak phrases, passive voice, and adverb changes without extra analysis services.',
+		'- **Prose Linter now bridges into Smart Revision.** Issue rows include a Smart revision action so Supernova users can move from a local issue to a controlled revision session.',
+		'- **Free users can preview the workflow safely.** The preview shows a static Smart Revision card stack without generating a user-specific AI result.',
+	].join('\n'),
 	'1.7.1': [
 		'## What\'s New in Nova 1.7.1',
 		'',

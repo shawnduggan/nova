@@ -17,6 +17,7 @@ import {
 	type ProseIssue,
 	type ProseIssueType
 } from '../features/prose-linter/prose-linter-types';
+import type { SmartRevisionSourceIssue } from '../features/smart-revision/smart-revision-types';
 import { WRITING_ANALYSIS_UPDATED_EVENT, type WritingAnalysisUpdateDetail } from './writing-analysis-manager';
 
 export { VIEW_TYPE_PROSE_LINTER };
@@ -59,8 +60,8 @@ const PROSE_LINTER_CATEGORY_GROUPS: ProseLinterCategoryGroup[] = [
 		key: 'repetition',
 		issueTypes: ['repeated-word', 'repeated-phrase', 'sticky-sentence', 'sentence-start'],
 		displayType: 'repeated-phrase',
-		singular: 'repeated word or phrase',
-		plural: 'repeated words or phrases'
+		singular: 'repeated phrase',
+		plural: 'repeated phrases'
 	},
 	{
 		key: 'passive',
@@ -418,6 +419,9 @@ export class ProseLinterView extends ItemView {
 
 		const actionsEl = rowEl.createDiv({ cls: 'nova-prose-linter-row-actions' });
 		this.createRowButton(actionsEl, 'Jump', () => this.jumpToIssue(issue), true);
+		this.createRowButton(actionsEl, 'Smart revision', () => {
+			this.startSmartRevision(issue);
+		});
 		this.createRowButton(actionsEl, 'Ignore', () => {
 			void this.ignoreIssue(issue);
 		});
@@ -590,6 +594,60 @@ export class ProseLinterView extends ItemView {
 		}
 		editor.replaceRange(issue.replacement.replacement, { line: issue.line, ch: issue.startCh }, { line: issue.line, ch: issue.endCh });
 		void this.refresh(true);
+	}
+
+	private startSmartRevision(issue: ProseIssue): void {
+		const editor = this.getActiveEditor();
+		if (!editor || !this.isIssueRangeValid(editor, issue)) {
+			return;
+		}
+		const current = editor.getLine(issue.line).slice(issue.startCh, issue.endCh);
+		if (current !== issue.sourceText) {
+			return;
+		}
+		const target = this.getSmartRevisionIssueTarget(editor, issue);
+		if (!target) {
+			return;
+		}
+		const sourceIssue: SmartRevisionSourceIssue = {
+			id: issue.id,
+			type: issue.type,
+			label: PROSE_ISSUE_LABELS[issue.type],
+			excerpt: issue.excerpt,
+			sourceText: issue.sourceText,
+			targetText: target.text,
+			explanation: issue.explanation,
+			suggestion: issue.suggestion,
+			line: issue.line,
+			startCh: issue.startCh,
+			endCh: issue.endCh,
+			targetLine: target.line,
+			targetStartCh: target.startCh,
+			targetEndCh: target.endCh
+		};
+		this.plugin.openSmartRevisionForIssue(editor, sourceIssue, async () => {
+			await this.refresh(true);
+		});
+	}
+
+	private getSmartRevisionIssueTarget(editor: Editor, issue: ProseIssue): { text: string; line: number; startCh: number; endCh: number } | null {
+		const lineText = editor.getLine(issue.line);
+		const excerpt = issue.excerpt.trim();
+		const excerptStartCh = excerpt ? lineText.indexOf(excerpt) : -1;
+		if (excerptStartCh >= 0 && excerpt.length > issue.sourceText.trim().length) {
+			return {
+				text: excerpt,
+				line: issue.line,
+				startCh: excerptStartCh,
+				endCh: excerptStartCh + excerpt.length
+			};
+		}
+		return {
+			text: issue.sourceText,
+			line: issue.line,
+			startCh: issue.startCh,
+			endCh: issue.endCh
+		};
 	}
 
 	private canApplyReplacement(issue: ProseIssue): boolean {

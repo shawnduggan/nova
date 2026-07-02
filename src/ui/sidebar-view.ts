@@ -662,7 +662,7 @@ export class NovaSidebarView extends ItemView {
 	private async handleColonCommand(message: string): Promise<boolean> {
 		// Check if command system feature is enabled
 		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
-			this.addErrorMessage('Smart fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
+			this.addErrorMessage('Smart fill is unavailable.');
 			return true;
 		}
 
@@ -883,7 +883,7 @@ export class NovaSidebarView extends ItemView {
 
 	private toggleCommandMenu(): void {
 		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
-			this.addErrorMessage('Smart fill is currently in early access for Supernova supporters. Available to all users December 30, 2025.');
+			this.addErrorMessage('Smart fill is unavailable.');
 			return;
 		}
 

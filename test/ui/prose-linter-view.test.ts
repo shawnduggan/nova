@@ -50,6 +50,7 @@ describe('ProseLinterView', () => {
 				setProseLinterReviewActive: jest.fn(),
 				clearProseLinterHighlights: jest.fn()
 			},
+			openSmartRevisionForIssue: jest.fn(),
 			registerDomEvent: jest.fn((element: HTMLElement, type: string, handler: EventListener) => {
 				element.addEventListener(type, handler);
 			})
@@ -98,7 +99,9 @@ describe('ProseLinterView', () => {
 		expect(text).toContain('Grade');
 		expect(text).toContain('words');
 		expect(text).toContain('weakeners');
+		expect(text).toContain('repeated phrases');
 		expect(text).toContain('complex words');
+		expect(text).not.toContain('repeated words or phrases');
 		expect(text).toContain('Jump');
 		expect(text).not.toContain('per 1,000 words');
 		expect(text).not.toContain('Top categories');
@@ -309,6 +312,54 @@ describe('ProseLinterView', () => {
 
 		expect(replaceSpy).toHaveBeenCalledTimes(1);
 		expect(replaceSpy).toHaveBeenCalledWith('use', { line: 0, ch: 10 }, { line: 0, ch: 17 });
+	});
+
+	test('starts Smart revision from a prose issue row', async () => {
+		const content = 'We should utilize screenshots.';
+		const { plugin, editor } = createPlugin(content);
+		const view = await openView(plugin);
+
+		const revisionButton = Array.from(view.containerEl.querySelectorAll('button'))
+			.find((button) => button.textContent === 'Smart revision') as HTMLButtonElement;
+		revisionButton.click();
+
+		expect(plugin.openSmartRevisionForIssue).toHaveBeenCalledWith(
+			editor,
+			expect.objectContaining({
+				label: 'Complex word',
+				sourceText: 'utilize',
+				targetText: 'We should utilize screenshots.',
+				line: 0,
+				startCh: 10,
+				endCh: 17,
+				targetLine: 0,
+				targetStartCh: 0,
+				targetEndCh: 30
+			}),
+			expect.any(Function)
+		);
+	});
+
+	test('refreshes resolved issue rows after Smart revision completes', async () => {
+		const content = 'We should utilize screenshots.';
+		const { plugin, editor } = createPlugin(content);
+		plugin.writingAnalysisManager.getActiveContent.mockImplementation(() => editor.getValue());
+		const view = await openView(plugin);
+
+		const revisionButton = Array.from(view.containerEl.querySelectorAll('button'))
+			.find((button) => button.textContent === 'Smart revision') as HTMLButtonElement;
+		revisionButton.click();
+
+		const onComplete = plugin.openSmartRevisionForIssue.mock.calls[0][2] as () => Promise<void>;
+		editor.replaceRange('We should use screenshots.', { line: 0, ch: 0 }, { line: 0, ch: content.length });
+		await onComplete();
+
+		expect(view.containerEl.textContent).not.toContain('"utilize" is more complex than this sentence needs.');
+		expect(plugin.writingAnalysisManager.setProseLinterIssues).toHaveBeenLastCalledWith(
+			'notes/current.md',
+			hashContent('We should use screenshots.'),
+			[]
+		);
 	});
 
 	test('hides a category from the current view without persisting it', async () => {

@@ -1,7 +1,7 @@
 {
 	"id": "nova",
 	"name": "Nova",
-	"version": "1.7.1",
+	"version": "1.8.0",
 	"minAppVersion": "1.7.2",
 	"description": "AI writing editor, native to Obsidian. Sharpen your prose, refine selected text, write at the cursor, and review local clarity checks.",
 	"author": "Shawn Duggan",

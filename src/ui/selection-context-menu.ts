@@ -57,6 +57,12 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
         description: 'Critical analysis sent to sidebar chat'
     },
     {
+        id: 'smart-revision',
+        label: 'Smart revision',
+        icon: 'sparkles',
+        description: 'Review a controlled revision pass'
+    },
+    {
         id: 'custom',
         label: 'Custom prompt',
         icon: 'message-circle',
@@ -174,6 +180,11 @@ export class SelectionContextMenu {
             
             if (actionId === 'challenge') {
                 await this.executeChallengeAction(editor, selectedText);
+                return;
+            }
+
+            if (actionId === 'smart-revision') {
+                await this.plugin.startSmartRevisionFromEditor(editor);
                 return;
             }
 

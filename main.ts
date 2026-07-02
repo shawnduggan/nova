@@ -7,6 +7,9 @@ import { WritingDashboardView, VIEW_TYPE_WRITING_DASHBOARD } from './src/ui/writ
 import { ProseLinterView, VIEW_TYPE_PROSE_LINTER } from './src/ui/prose-linter-view';
 import { getRecentReleaseNotes, getReleaseNotes, type ReleaseNotesEntry } from './src/release-notes';
 import { isVersionNewer } from './src/utils/version';
+import { SmartRevisionService } from './src/features/smart-revision/smart-revision-service';
+import type { SmartRevisionSourceIssue, SmartRevisionTarget } from './src/features/smart-revision/smart-revision-types';
+import { SmartRevisionModal } from './src/ui/smart-revision-modal';
 import { DocumentEngine } from './src/core/document-engine';
 import { ContextBuilder } from './src/core/context-builder';
 import { CommandParser } from './src/core/command-parser';
@@ -33,6 +36,7 @@ import { createIndicatorExtension } from './src/features/commands/ui/codemirror-
 import { toSmartTimingSettings } from './src/features/commands/types';
 import { WritingAnalysisManager } from './src/ui/writing-analysis-manager';
 import { ProseLinterStore } from './src/features/prose-linter/prose-linter-store';
+import { FEATURE_SMART_REVISION, FEATURE_SMARTFILL } from './src/constants';
 import type { StateField } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
 
@@ -97,6 +101,7 @@ export default class NovaPlugin extends Plugin {
 	writingAnalysisManager!: WritingAnalysisManager;
 	writingAnalysisStateField!: StateField<DecorationSet>;
 	proseLinterStore!: ProseLinterStore;
+	smartRevisionService!: SmartRevisionService;
 	private pendingReleaseNotes: ReleaseNotesEntry[] = [];
 	private pendingReleaseVersion: string | null = null;
 
@@ -138,6 +143,7 @@ export default class NovaPlugin extends Plugin {
 
 			this.aiProviderManager = new AIProviderManager(this.settings, this.featureManager);
 			this.aiProviderManager.initialize();
+			this.smartRevisionService = new SmartRevisionService(this.aiProviderManager);
 
 			// Initialize conversation manager and document engine
 			const dataStore = {
@@ -269,6 +275,14 @@ export default class NovaPlugin extends Plugin {
 			});
 
 			this.addCommand({
+				id: 'smart-revision',
+				name: 'Smart revision',
+				editorCallback: async (editor: Editor) => {
+					await this.startSmartRevisionFromEditor(editor);
+				}
+			});
+
+			this.addCommand({
 				id: 'open-sidebar',
 				name: 'Open sidebar',
 				callback: () => {
@@ -298,7 +312,7 @@ export default class NovaPlugin extends Plugin {
 				name: 'Smart fill (/fill)',
 				checkCallback: (checking: boolean) => {
 					try {
-						const featureEnabled = this.featureManager?.isFeatureEnabled('smartfill') ?? false;
+						const featureEnabled = this.featureManager?.isFeatureEnabled(FEATURE_SMARTFILL) ?? false;
 
 						if (checking) {
 							return featureEnabled;
@@ -322,7 +336,7 @@ export default class NovaPlugin extends Plugin {
 				id: 'insert-placeholder',
 				name: 'Insert smart fill placeholder',
 				checkCallback: (checking: boolean) => {
-					const featureEnabled = this.featureManager?.isFeatureEnabled('smartfill') ?? false;
+					const featureEnabled = this.featureManager?.isFeatureEnabled(FEATURE_SMARTFILL) ?? false;
 					if (checking) return featureEnabled;
 					if (!featureEnabled) return false;
 					const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -524,7 +538,7 @@ export default class NovaPlugin extends Plugin {
 			const filteredFeatures: Record<string, unknown> = {};
 
 			// Only include Smart Fill settings if the feature is enabled
-			if (this.featureManager.isFeatureEnabled('smartfill') && settingsToSave.features.smartfill) {
+			if (this.featureManager.isFeatureEnabled(FEATURE_SMARTFILL) && settingsToSave.features.smartfill) {
 				filteredFeatures.smartfill = settingsToSave.features.smartfill;
 			}
 
@@ -641,6 +655,48 @@ export default class NovaPlugin extends Plugin {
 
 		// Cancel selection context menu operations (improve writing, etc.)
 		this.selectionContextMenu?.cancelCurrentOperation();
+	}
+
+	async startSmartRevisionFromEditor(editor: Editor): Promise<void> {
+		const selectedText = editor.getSelection();
+		if (!selectedText || selectedText.trim().length === 0) {
+			new Notice('Please select some text first');
+			return;
+		}
+
+		const target: SmartRevisionTarget = {
+			text: selectedText,
+			range: {
+				from: editor.getCursor('from'),
+				to: editor.getCursor('to')
+			},
+			filePath: this.app.workspace.getActiveFile()?.path ?? null
+		};
+		this.openSmartRevision(editor, target);
+	}
+
+	openSmartRevision(editor: Editor, target: SmartRevisionTarget, onComplete?: () => void | Promise<void>): void {
+		const accessAllowed = this.featureManager?.isFeatureEnabled(FEATURE_SMART_REVISION) ?? false;
+		new SmartRevisionModal(
+			this,
+			editor,
+			target,
+			this.smartRevisionService,
+			{ accessAllowed, onComplete }
+		).open();
+	}
+
+	openSmartRevisionForIssue(editor: Editor, sourceIssue: SmartRevisionSourceIssue, onComplete?: () => void | Promise<void>): void {
+		const from = { line: sourceIssue.targetLine, ch: sourceIssue.targetStartCh };
+		const to = { line: sourceIssue.targetLine, ch: sourceIssue.targetEndCh };
+		const target: SmartRevisionTarget = {
+			text: sourceIssue.targetText,
+			range: { from, to },
+			filePath: this.app.workspace.getActiveFile()?.path ?? null,
+			sourceIssue
+		};
+		editor.setSelection(from, to);
+		this.openSmartRevision(editor, target, onComplete);
 	}
 
 	async activateView() {

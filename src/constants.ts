@@ -8,6 +8,8 @@ export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 export const VIEW_TYPE_PROSE_LINTER = 'nova-prose-linter';
 export const NOVA_STAR_ICON = 'nova-star';
 export const NOVA_SUPERNOVA_ICON = 'nova-supernova';
+export const FEATURE_SMARTFILL = 'smartfill';
+export const FEATURE_SMART_REVISION = 'smart-revision';
 
 export const PROVIDER_CLAUDE = 'claude';
 export const PROVIDER_OPENAI = 'openai';
@@ -20,6 +22,7 @@ export const GEMINI_ALIAS = 'gemini';
 export const CUSTOM_PROMPT_HISTORY_MAX = 5;
 
 export const KOFI_URL = 'https://ko-fi.com/shawnduggan';
+export const SUPERNOVA_PLANS_URL = 'https://novawriter.ai/plans';
 
 export const CHALLENGE_SYSTEM_PROMPT = `You are a critical editor reviewing the selected text. Your job is NOT to improve the writing — it's to challenge the thinking.
 

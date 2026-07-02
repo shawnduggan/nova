@@ -1,7 +1,7 @@
 ---
 name: nova-codebase
 description: Auto-generated Nova codebase map. Regenerate with $nova-codebase-map.
-generated: 2026-06-12
+generated: 2026-07-01
 ---
 
 # Nova Codebase Map
@@ -11,10 +11,10 @@ generated: 2026-06-12
 
 ## Summary
 
-- Files scanned: 76
-- Files with `@file` descriptions: 76
+- Files scanned: 83
+- Files with `@file` descriptions: 83
 - Files missing `@file` descriptions: 0
-- Local dependency edges: 235
+- Local dependency edges: 255
 
 ## File Structure
 
@@ -119,6 +119,7 @@ generated: 2026-06-12
 | `selection-context-menu.ts` | SelectionContextMenu - Context menu for text selection actions | `SELECTION_ACTIONS`, `SelectionAction`, `SelectionContextMenu` |
 | `sidebar-events.ts` | SidebarEvents - Custom DOM events for decoupled sidebar communication | `SIDEBAR_CHAT_MESSAGE_EVENT`, `SIDEBAR_PROCESSING_EVENT`, `SidebarChatMessageDetail`, `SidebarChatMessageEvent`, `SidebarChatMessageType`, `SidebarProcessingDetail`, `SidebarProcessingEvent`, `dispatchSidebarChatMessage`, `dispatchSidebarProcessing`, `isSidebarAvailable` |
 | `sidebar-view.ts` | NovaSidebarView - Main sidebar view with chat interface | `NovaSidebarView`, `VIEW_TYPE_NOVA_SIDEBAR` |
+| `smart-revision-modal.ts` | SmartRevisionModal - Smart Revision pass, brief, and review surface | `SmartRevisionModal`, `SmartRevisionModalOptions` |
 | `streaming-manager.ts` | StreamingManager - Manages AI response streaming to editor | `ActionType`, `StreamingManager`, `StreamingOptions` |
 | `tone-selection-modal.ts` | ToneSelectionModal - Modal for selecting rewrite tone | `TONE_OPTIONS`, `ToneOption`, `ToneSelectionModal` |
 | `wikilink-suggest.ts` | WikilinkSuggest - Autocomplete for [[wikilinks]] in input | `NovaWikilinkAutocomplete` |
@@ -138,7 +139,7 @@ generated: 2026-06-12
 
 | File | Description | Key Exports |
 |------|-------------|-------------|
-| `constants.ts` | Constants - Shared constants and magic strings | `CHALLENGE_SYSTEM_PROMPT`, `CHATGPT_ALIAS`, `CUSTOM_PROMPT_HISTORY_MAX`, `GEMINI_ALIAS`, `KOFI_URL`, `NOVA_API_KEYS_SALT`, `NOVA_CONVERSATIONS_STORAGE_KEY`, `NOVA_STAR_ICON`, `NOVA_SUPERNOVA_ICON`, `PROVIDER_CLAUDE`, `PROVIDER_GOOGLE`, `PROVIDER_OLLAMA`, `PROVIDER_OPENAI`, `VIEW_TYPE_NOVA_SIDEBAR`, `VIEW_TYPE_PROSE_LINTER` |
+| `constants.ts` | Constants - Shared constants and magic strings | `CHALLENGE_SYSTEM_PROMPT`, `CHATGPT_ALIAS`, `CUSTOM_PROMPT_HISTORY_MAX`, `FEATURE_SMARTFILL`, `FEATURE_SMART_REVISION`, `GEMINI_ALIAS`, `KOFI_URL`, `NOVA_API_KEYS_SALT`, `NOVA_CONVERSATIONS_STORAGE_KEY`, `NOVA_STAR_ICON`, `NOVA_SUPERNOVA_ICON`, `PROVIDER_CLAUDE`, `PROVIDER_GOOGLE`, `PROVIDER_OLLAMA`, `PROVIDER_OPENAI`, `VIEW_TYPE_NOVA_SIDEBAR`, `VIEW_TYPE_PROSE_LINTER` |
 | `release-notes.ts` | Release notes content for each version. | `RELEASE_NOTES`, `ReleaseNotesEntry`, `getRecentReleaseNotes`, `getReleaseNotes` |
 | `settings.ts` | Settings - Plugin settings UI and configuration | `CustomCommand`, `DEFAULT_SETTINGS`, `DashboardSettings`, `NovaSettingTab`, `NovaSettings`, `WritingAnalysisSettings` |
 
@@ -364,6 +365,9 @@ generated: 2026-06-12
 
 ### Licensing Layer (src/licensing)
 
+**src/licensing/feature-config.ts** imports:
+- `../constants`
+
 **src/licensing/feature-manager.ts** imports:
 - `./license-validator`
 - `./types`
@@ -435,6 +439,7 @@ generated: 2026-06-12
 - `../features/prose-linter/prose-linter-runner`
 - `../features/prose-linter/prose-linter-store`
 - `../features/prose-linter/prose-linter-types`
+- `../features/smart-revision/smart-revision-types`
 - `./writing-analysis-manager`
 - `obsidian` (external)
 
@@ -483,6 +488,14 @@ generated: 2026-06-12
 - `./writing-analysis-manager`
 - `./writing-stats-panel`
 - `../core/writing-analysis`
+- `obsidian` (external)
+
+**src/ui/smart-revision-modal.ts** imports:
+- `../../main`
+- `../features/smart-revision/smart-revision-diff`
+- `../features/smart-revision/smart-revision-diff`
+- `../features/smart-revision/smart-revision-service`
+- `../features/smart-revision/smart-revision-types`
 - `obsidian` (external)
 
 **src/ui/streaming-manager.ts** imports:
@@ -550,6 +563,32 @@ generated: 2026-06-12
 **src/features/prose-linter/prose-linter-types.ts** imports:
 - `../../core/writing-analysis`
 
+**src/features/smart-revision/smart-revision-diff.ts** imports:
+- `./smart-revision-types`
+
+**src/features/smart-revision/smart-revision-impact.ts** imports:
+- `../../core/writing-analysis`
+- `./smart-revision-types`
+
+**src/features/smart-revision/smart-revision-prompts.ts** imports:
+- `./smart-revision-types`
+
+**src/features/smart-revision/smart-revision-risk.ts** imports:
+- `./smart-revision-types`
+
+**src/features/smart-revision/smart-revision-service.ts** imports:
+- `../../ai/provider-manager`
+- `../../utils/logger`
+- `./smart-revision-diff`
+- `./smart-revision-impact`
+- `./smart-revision-prompts`
+- `./smart-revision-risk`
+- `./smart-revision-types`
+
+**src/features/smart-revision/smart-revision-types.ts** imports:
+- `../prose-linter/prose-linter-types`
+- `obsidian` (external)
+
 **src/release-notes.ts** imports:
 - `./utils/version`
 
@@ -574,16 +613,16 @@ generated: 2026-06-12
 
 | Commit | Summary |
 |--------|---------|
+| `817788a` | docs: update roadmap version references |
+| `9acbbf0` | 1.7.1 |
+| `5be84c2` | docs(release-notes): add notes for 1.7.1 |
+| `44facd0` | fix: activate OpenAI-compatible model from settings |
+| `35e4e1c` | 1.7.0 |
+| `442d18a` | docs(release-notes): add notes for 1.7.0 |
+| `1585fc6` | feat: add OpenAI-compatible endpoints |
 | `e126a15` | docs: clarify feedback-only contribution policy |
 | `fcb9238` | chore(release): bump version to 1.6.3 |
 | `dcfaadd` | feat: add Claude Opus 4.8 |
-| `8ec914b` | chore(release): bump version to 1.6.2 |
-| `d6bfde6` | fix: polish prose linter review workflow |
-| `a80e384` | chore(release): bump version to 1.6.1 |
-| `d23adcd` | docs(release-notes): add notes for 1.6.1 |
-| `5adf8c6` | fix: improve Ollama model handling |
-| `1e5a145` | chore(release): bump version to 1.6.0 |
-| `98d29ba` | docs(release-notes): add notes for 1.6.0 |
 
 ## Missing File Headers
 

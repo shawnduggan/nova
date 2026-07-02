@@ -1,25 +1,30 @@
 /**
- * @file FeatureConfig - Time-gated feature configuration
+ * @file FeatureConfig - Feature access configuration
  */
 
-export interface TimeGatedFeature {
-    supernovaDate: string;  // YYYY-MM-DD format
-    generalDate: string;   // YYYY-MM-DD format
-    description: string;
+import { FEATURE_SMART_REVISION, FEATURE_SMARTFILL } from '../constants';
+import type { FeatureAccessPolicy, FeatureCategory } from './types';
+
+export interface FeatureConfig {
+	access: FeatureAccessPolicy;
+	category: FeatureCategory;
+	description: string;
 }
 
 /**
- * Feature release configuration for Supernova early access model
- * Supernova supporters get features on supernovaDate
- * All users get features on generalDate
- * 
- * Dates are in YYYY-MM-DD format and easy to modify post-launch
+ * Feature access configuration.
+ * Core features are available to everyone.
+ * Permanent features require Supernova access.
  */
-export const SUPERNOVA_FEATURES: Record<string, TimeGatedFeature> = {
-    // Smart Fill - Supernova early access now, GA April 1
-    'smartfill': {
-        supernovaDate: '2026-02-07',  // Supernova early access
-        generalDate: '2026-04-01',   // General availability
-        description: 'Smart fill with / triggers and placeholders'
-    }
+export const FEATURE_CONFIGS: Record<string, FeatureConfig> = {
+	[FEATURE_SMARTFILL]: {
+		access: 'core',
+		category: 'core',
+		description: 'Smart fill with / triggers and placeholders'
+	},
+	[FEATURE_SMART_REVISION]: {
+		access: 'permanent',
+		category: 'advanced-revision',
+		description: 'Smart Revision with snapshots, revision cards, meaning risk, and safe review'
+	}
 };

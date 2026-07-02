@@ -103,9 +103,13 @@ If `/models` is unavailable, enter the model name manually and test the connecti
 
 Nova is free and open source (AGPL-3.0). All core features work with your own API keys forever.
 
-**Supernova** ($29/year) gives supporters early access to new features before they become free. Every feature graduates to the free tier. Current and upcoming Supernova features are listed in the roadmap below.
+**Free core** includes selection editing, cursor chat, auto-context, Smart Fill, Writing Analysis, Writing Dashboard, Prose Linter, and all supported providers.
 
-The plugin includes a "Supernova" tab in settings with information about supporter benefits. No nag screens in the editor.
+**Supernova** ($79 lifetime or $29/year) unlocks premium features. Current and upcoming Supernova features are listed in the roadmap below.
+
+Supernova does not include hosted AI credits. Nova remains user-provider-first: you use your own API keys or local models.
+
+The plugin includes a "Supernova" tab in settings with information about supporter benefits.
 
 ---
 
@@ -120,10 +124,8 @@ The plugin includes a "Supernova" tab in settings with information about support
 - Smart Fill (v1.2) — AI placeholders for structured documents. Now free for all users.
 
 **Coming next:**
-- Smart Revision (v1.8) — A controlled revision pass: Nova diagnoses a passage, proposes grouped editorial changes with meaning-risk and before/after clarity impact, and lets you accept only what improves the draft. Supernova early access.
-- Voice Match (v1.9) — Nova learns your writing style and matches it on every transformation. Supernova early access.
-
-**Multi-language support:** German writing analysis is in progress with a community contributor. Other languages to follow.
+- Smart Revision (v1.8) — A controlled revision pass: Nova diagnoses a passage, proposes grouped editorial changes with meaning-risk and before/after clarity impact, and lets you accept only what improves the draft. Supernova.
+- Voice Match (v1.9) — Nova learns your writing style and matches it on every transformation. Supernova.
 
 ---
 

@@ -4466,6 +4466,7 @@
     --nova-prose-linter-green: rgb(78, 143, 67);
     --nova-prose-linter-blue: rgb(40, 142, 199);
     --nova-prose-linter-purple: rgb(126, 91, 203);
+    --nova-prose-linter-teal: rgb(38, 139, 129);
     container-type: inline-size;
     display: flex;
     flex-direction: column;
@@ -4571,10 +4572,35 @@
     --nova-prose-linter-row-accent: var(--text-muted);
     --nova-prose-linter-row-border: var(--background-modifier-border);
     --nova-prose-linter-row-background: var(--background-primary);
-    --nova-prose-linter-category-background: color-mix(in srgb, var(--nova-prose-linter-row-accent) 76%, var(--text-normal));
-    --nova-prose-linter-category-background-hover: color-mix(in srgb, var(--nova-prose-linter-row-accent) 84%, var(--text-normal));
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-row-accent);
+    --nova-prose-linter-category-background: color-mix(in srgb, var(--nova-prose-linter-category-accent) 76%, var(--text-normal));
+    --nova-prose-linter-category-background-hover: color-mix(in srgb, var(--nova-prose-linter-category-accent) 84%, var(--text-normal));
     --nova-prose-linter-category-foreground: #ffffff;
     --nova-prose-linter-category-count-background: color-mix(in srgb, var(--background-primary) 24%, transparent);
+}
+
+.nova-prose-linter-category--very-hard {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-red);
+}
+
+.nova-prose-linter-category--hard {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-yellow);
+}
+
+.nova-prose-linter-category--repetition {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-purple);
+}
+
+.nova-prose-linter-category--passive {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-green);
+}
+
+.nova-prose-linter-category--weakeners {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-blue);
+}
+
+.nova-prose-linter-category--alternatives {
+    --nova-prose-linter-category-accent: var(--nova-prose-linter-teal);
 }
 
 button.nova-prose-linter-category {
@@ -4786,6 +4812,506 @@ button.nova-prose-linter-category:hover {
 @container (max-width: 260px) {
     .nova-prose-linter-categories {
         grid-template-columns: 1fr;
+    }
+}
+
+.nova-smart-revision-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-4);
+    max-height: min(78vh, 760px);
+    overflow-y: auto;
+    color: var(--text-normal);
+    font-size: var(--font-ui-medium);
+}
+
+.nova-smart-revision-modal:focus {
+    outline: none;
+}
+
+.nova-smart-revision-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+    padding-bottom: var(--size-4-2);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nova-smart-revision-brand {
+    color: var(--interactive-accent);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    line-height: 1.2;
+}
+
+.nova-smart-revision-title {
+    margin: 0;
+    color: var(--text-normal);
+    font-size: var(--font-ui-large);
+    font-weight: var(--font-semibold);
+    line-height: 1.2;
+}
+
+.nova-smart-revision-form,
+.nova-smart-revision-section,
+.nova-smart-revision-review-summary,
+.nova-smart-revision-preview,
+.nova-smart-revision-loading,
+.nova-smart-revision-error,
+.nova-smart-revision-diff {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-2);
+}
+
+.nova-smart-revision-section-title,
+.nova-smart-revision-review-title,
+.nova-smart-revision-loading-title,
+.nova-smart-revision-error-title {
+    color: var(--text-normal);
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-semibold);
+    line-height: 1.3;
+}
+
+.nova-smart-revision-preview-copy,
+.nova-smart-revision-loading-copy,
+.nova-smart-revision-error-copy,
+.nova-smart-revision-review-rationale,
+.nova-smart-revision-field-label,
+.nova-smart-revision-pass-desc,
+.nova-smart-revision-card-rationale,
+.nova-smart-revision-card-meta,
+.nova-smart-revision-card-risk,
+.nova-smart-revision-card-flag,
+.nova-smart-revision-receipt-row,
+.nova-smart-revision-context-copy {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    line-height: 1.45;
+}
+
+.nova-smart-revision-checklist,
+.nova-smart-revision-impact-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-pass,
+.nova-smart-revision-segment,
+.nova-smart-revision-button {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    cursor: pointer;
+    font-size: var(--font-ui-medium);
+    line-height: 1.35;
+    min-height: 36px;
+    padding: var(--size-4-2) var(--size-4-3);
+}
+
+.nova-smart-revision-pass-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-pass {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--size-2-1);
+    width: 100%;
+    min-height: 58px;
+    border-color: transparent;
+    background: transparent;
+    text-align: left;
+}
+
+.nova-smart-revision-pass:hover,
+.nova-smart-revision-segment:hover,
+.nova-smart-revision-button:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nova-smart-revision-pass:focus-visible,
+.nova-smart-revision-segment:focus-visible,
+.nova-smart-revision-button:focus-visible,
+.nova-smart-revision-input:focus-visible,
+.nova-smart-revision-textarea:focus-visible,
+.nova-smart-revision-check:focus-within,
+.nova-smart-revision-context-summary:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--interactive-accent);
+}
+
+.nova-smart-revision-pass--selected,
+.nova-smart-revision-segment--selected {
+    border-color: var(--interactive-accent);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.nova-smart-revision-pass--selected .nova-smart-revision-pass-desc {
+    color: var(--text-muted);
+}
+
+.nova-smart-revision-pass-label {
+    color: inherit;
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-medium);
+    line-height: 1.25;
+    text-align: left;
+}
+
+.nova-smart-revision-pass-desc {
+    text-align: left;
+}
+
+.nova-smart-revision-segmented {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+}
+
+.nova-smart-revision-check {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+    min-height: 42px;
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    cursor: pointer;
+    padding: var(--size-4-2) var(--size-4-3);
+}
+
+.nova-smart-revision-check--checked {
+    background: color-mix(in srgb, var(--interactive-accent) 8%, var(--background-secondary));
+}
+
+.nova-smart-revision-check-input {
+    margin: 0;
+}
+
+.nova-smart-revision-check-label {
+    font-size: var(--font-ui-medium);
+    line-height: 1.35;
+}
+
+.nova-smart-revision-context {
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    padding: var(--size-4-2) var(--size-4-3);
+}
+
+.nova-smart-revision-context-summary {
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.nova-smart-revision-context-title {
+    font-weight: var(--font-medium);
+}
+
+.nova-smart-revision-context-optional {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    margin-inline-start: var(--size-2-2);
+}
+
+.nova-smart-revision-context-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-3);
+    padding-top: var(--size-4-3);
+}
+
+.nova-smart-revision-input,
+.nova-smart-revision-textarea {
+    width: 100%;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    font-family: var(--font-interface);
+    font-size: var(--font-ui-medium);
+    line-height: 1.45;
+    min-height: 40px;
+    padding: var(--size-4-2) var(--size-4-3);
+}
+
+.nova-smart-revision-textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.nova-smart-revision-review-summary,
+.nova-smart-revision-diff,
+.nova-smart-revision-card {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    padding: var(--size-4-2);
+}
+
+.nova-smart-revision-risk {
+    align-self: flex-start;
+    border-radius: var(--radius-s);
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    line-height: 1.25;
+    padding: 2px var(--size-2-2);
+}
+
+.nova-smart-revision-progress {
+    overflow: hidden;
+    height: 4px;
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+}
+
+.nova-smart-revision-progress-bar {
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--interactive-accent);
+    animation: nova-smart-revision-progress 1.35s ease-in-out infinite;
+}
+
+.nova-smart-revision-risk--low {
+    background: color-mix(in srgb, var(--color-green) 18%, var(--background-primary));
+}
+
+.nova-smart-revision-risk--medium {
+    background: color-mix(in srgb, var(--color-yellow) 24%, var(--background-primary));
+}
+
+.nova-smart-revision-risk--high {
+    background: color-mix(in srgb, var(--color-red) 20%, var(--background-primary));
+}
+
+.nova-smart-revision-impact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-impact-title {
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+}
+
+.nova-smart-revision-impact-metric {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--size-2-2);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    padding: var(--size-2-2);
+}
+
+.nova-smart-revision-impact-metric--improved {
+    background: color-mix(in srgb, var(--color-green) 12%, var(--background-secondary));
+}
+
+.nova-smart-revision-impact-label,
+.nova-smart-revision-impact-values {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    line-height: 1.35;
+}
+
+.nova-smart-revision-diff-body {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    font-size: var(--font-ui-medium);
+    line-height: 1.55;
+}
+
+.nova-smart-revision-diff-segment--insert {
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-green) 22%, transparent);
+}
+
+.nova-smart-revision-diff-segment--delete {
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-red) 20%, transparent);
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.nova-smart-revision-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-card {
+    border-left-width: 4px;
+    border-left-color: var(--interactive-accent);
+}
+
+.nova-smart-revision-card--risk-high {
+    border-left-color: var(--color-red);
+}
+
+.nova-smart-revision-card--risk-medium {
+    border-left-color: var(--color-yellow);
+}
+
+.nova-smart-revision-card--accepted {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-green) 30%, transparent);
+}
+
+.nova-smart-revision-card--rejected {
+    opacity: 0.68;
+}
+
+.nova-smart-revision-card-change {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+}
+
+.nova-smart-revision-card-change-label {
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+    font-weight: var(--font-medium);
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.nova-smart-revision-card-change-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-card-change-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    padding: var(--size-2-2);
+}
+
+.nova-smart-revision-card-change-tag,
+.nova-smart-revision-card-change-text {
+    font-size: var(--font-ui-small);
+    line-height: 1.35;
+}
+
+.nova-smart-revision-card-change-tag {
+    color: var(--text-muted);
+    font-weight: var(--font-medium);
+}
+
+.nova-smart-revision-card-change-text {
+    color: var(--text-normal);
+    overflow-wrap: anywhere;
+}
+
+.nova-smart-revision-card-header,
+.nova-smart-revision-card-actions,
+.nova-smart-revision-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--size-2-2);
+}
+
+.nova-smart-revision-card-header {
+    justify-content: space-between;
+}
+
+.nova-smart-revision-card-title {
+    color: var(--text-normal);
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-semibold);
+    line-height: 1.25;
+}
+
+.nova-smart-revision-card-status {
+    color: var(--text-faint);
+    font-size: var(--font-smallest);
+    line-height: 1.25;
+    text-transform: capitalize;
+}
+
+.nova-smart-revision-card-flags,
+.nova-smart-revision-receipt {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+}
+
+.nova-smart-revision-receipt summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.nova-smart-revision-button.mod-cta {
+    border-color: var(--interactive-accent);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.nova-smart-revision-button.mod-cta:hover {
+    border-color: var(--interactive-accent-hover);
+    background: var(--interactive-accent-hover);
+}
+
+.nova-smart-revision-footer {
+    justify-content: flex-end;
+    padding-top: var(--size-4-1);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+@media (max-width: 700px) {
+    .nova-smart-revision-checklist,
+    .nova-smart-revision-impact-metrics,
+    .nova-smart-revision-card-change-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nova-smart-revision-button {
+        flex: 1 1 120px;
+    }
+}
+
+@keyframes nova-smart-revision-progress {
+    0% {
+        transform: translateX(-120%);
+    }
+
+    55% {
+        transform: translateX(110%);
+    }
+
+    100% {
+        transform: translateX(260%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nova-smart-revision-progress-bar {
+        width: 100%;
+        opacity: 0.7;
+        animation: none;
     }
 }
 
