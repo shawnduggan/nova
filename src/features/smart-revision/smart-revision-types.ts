@@ -143,25 +143,25 @@ export const SMART_REVISION_PASSES: SmartRevisionPass[] = [
 		id: 'clarity',
 		label: 'Clarity',
 		description: 'Make the passage easier to understand.',
-		prompt: 'Make the passage easier to understand without changing the writer meaning.'
+		prompt: 'Focus on comprehension: make referents, logic, and sentence structure easier to follow. Avoid mere shortening unless it improves understanding; keep the writer\'s meaning and emphasis intact.'
 	},
 	{
 		id: 'tighten',
 		label: 'Tighten',
 		description: 'Remove clutter and weak phrasing.',
-		prompt: 'Remove clutter, redundancy, hedging, and weak phrasing while preserving key details.'
+		prompt: 'Focus on economy: remove redundancy, hedging, filler, and weak phrasing. Prefer fewer words and stronger verbs; avoid adding transitions, tone polish, or structural rewrites unless needed to preserve meaning.'
 	},
 	{
 		id: 'flow',
 		label: 'Flow',
 		description: 'Improve rhythm and transitions.',
-		prompt: 'Improve sentence rhythm, transitions, and paragraph flow without broad rewriting.'
+		prompt: 'Focus on cadence and movement: smooth transitions, sentence rhythm, parallel structure, and paragraph progression. Avoid optimizing for brevity alone; preserve the writer\'s voice and sequence of ideas.'
 	},
 	{
 		id: 'more-human',
 		label: 'More Human',
 		description: 'Reduce generic AI or corporate tone.',
-		prompt: 'Reduce generic, corporate, or AI-sounding phrasing while keeping the passage natural.'
+		prompt: 'Focus on natural, specific language: reduce generic AI, corporate, or over-polished phrasing. Prefer plain human cadence and concrete wording; avoid slang, forced warmth, or changing the writer\'s intent.'
 	}
 ];
 
