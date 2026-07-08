@@ -116,4 +116,20 @@ describe('OpenAIProvider Modernization', () => {
         expect(body).toHaveProperty('reasoning');
         expect(body.reasoning).toHaveProperty('effort', 'high');
     });
+
+    test('returns current OpenAI model list', async () => {
+        (requestUrl as jest.Mock).mockResolvedValue({
+            status: 200,
+            json: { data: [] }
+        });
+
+        await expect(provider.getAvailableModels()).resolves.toEqual([
+            'gpt-5.5-pro',
+            'gpt-5.5',
+            'gpt-5.4-pro',
+            'gpt-5.4',
+            'gpt-5.4-mini',
+            'gpt-5.4-nano'
+        ]);
+    });
 });

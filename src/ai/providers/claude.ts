@@ -193,6 +193,7 @@ export class ClaudeProvider implements AIProvider {
 			// Return current available models (from API docs)
 			const models = [
 				'claude-opus-4-8',
+				'claude-sonnet-5',
 				'claude-opus-4-7',
 				'claude-opus-4-6',
 				'claude-sonnet-4-6',
@@ -214,9 +215,11 @@ export class ClaudeProvider implements AIProvider {
 	}
 }
 
-// Anthropic deprecated the `temperature` parameter starting with Opus 4.7;
+// Anthropic deprecated the `temperature` parameter for newer Claude models;
 // sending it returns a 400 "temperature is deprecated for this model" error.
 // Extend this predicate as additional models drop the parameter.
 export function modelAcceptsTemperature(model: string): boolean {
-	return !model.startsWith('claude-opus-4-7') && !model.startsWith('claude-opus-4-8');
+	return !model.startsWith('claude-opus-4-7')
+		&& !model.startsWith('claude-opus-4-8')
+		&& !model.startsWith('claude-sonnet-5');
 }

@@ -26,6 +26,18 @@ export interface ProviderContextLimits {
 export const OLLAMA_DEFAULT_CONTEXT = 32000;
 export const OPENAI_COMPATIBLE_DEFAULT_CONTEXT = 32000;
 
+const LEGACY_MODEL_PROVIDER_TYPES: Record<string, string> = {
+	'gpt-5.3-chat-latest': 'openai',
+	'gpt-5.2-2025-12-11': 'openai',
+	'gpt-5.1-chat-latest': 'openai',
+	'gpt-5.1': 'openai',
+	'gpt-5-pro': 'openai',
+	'gpt-5-mini': 'openai',
+	'gpt-5-nano': 'openai',
+	'gpt-5': 'openai',
+	'gemini-3.1-flash-lite-preview': 'google'
+};
+
 /**
  * Get the provider type for a given model name by searching all providers
  */
@@ -41,8 +53,8 @@ export function getProviderTypeForModel(modelName: string, settings?: NovaSettin
 		}
 	}
 	
-	// If not found in any provider, return null
-	return null;
+	// Preserve provider routing for saved legacy models that no longer appear in pickers.
+	return LEGACY_MODEL_PROVIDER_TYPES[modelName] || null;
 }
 
 function addUniqueModel(models: ModelDefinition[], value: string | undefined, label?: string): void {
@@ -91,6 +103,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 		case 'claude':
 			return [
 				{ value: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
+				{ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
 				{ value: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
 				{ value: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
 				{ value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
@@ -102,19 +115,14 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 				{ value: 'gpt-5.5', label: 'GPT-5.5' },
 				{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
 				{ value: 'gpt-5.4', label: 'GPT-5.4' },
-				{ value: 'gpt-5.3-chat-latest', label: 'GPT-5.3 Chat' },
-				{ value: 'gpt-5.2-2025-12-11', label: 'GPT-5.2' },
-				{ value: 'gpt-5.1-chat-latest', label: 'GPT-5.1 Chat' },
-				{ value: 'gpt-5.1', label: 'GPT-5.1' },
-				{ value: 'gpt-5-pro', label: 'GPT-5 Pro' },
-				{ value: 'gpt-5-mini', label: 'GPT-5 Mini' },
-				{ value: 'gpt-5-nano', label: 'GPT-5 Nano' },
-				{ value: 'gpt-5', label: 'GPT-5' }
+				{ value: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
+				{ value: 'gpt-5.4-nano', label: 'GPT-5.4 nano' }
 			];
 		case 'google':
 			return [
+				{ value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
 				{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-				{ value: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash-Lite (Preview)' },
+				{ value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
 				{ value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
 				{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 				{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
@@ -136,6 +144,7 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	claude: {
 		// Claude models
 		'claude-opus-4-8': { tokens: 1000000, maxOutputTokens: 128000 },
+		'claude-sonnet-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-7': { tokens: 200000, maxOutputTokens: 128000 },
 		'claude-opus-4-6': { tokens: 200000, maxOutputTokens: 128000 },
 		'claude-sonnet-4-6': { tokens: 200000, maxOutputTokens: 64000 },
@@ -150,6 +159,8 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 		'gpt-5.5-pro': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.4-pro': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-5.4-mini': { tokens: 400000, maxOutputTokens: 128000 },
+		'gpt-5.4-nano': { tokens: 400000, maxOutputTokens: 128000 },
 		'gpt-5.3-chat-latest': { tokens: 128000, maxOutputTokens: 16384 },
 		'gpt-5.2-2025-12-11': { tokens: 400000, maxOutputTokens: 128000 },
 		'gpt-5.1-chat-latest': { tokens: 400000, maxOutputTokens: 128000 },
@@ -165,6 +176,8 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 
 	google: {
 		// Google models
+		'gemini-3.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
+		'gemini-3.1-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-pro': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-flash': { tokens: 1048576, maxOutputTokens: 65536 },
 		'gemini-2.5-flash-lite': { tokens: 1048576, maxOutputTokens: 65536 },

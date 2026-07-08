@@ -115,6 +115,19 @@ describe('ClaudeProvider', () => {
             expect(body).not.toHaveProperty('temperature');
         });
 
+        test('omits temperature for Claude Sonnet 5', async () => {
+            await provider.complete('System prompt', 'User prompt', {
+                model: 'claude-sonnet-5',
+                temperature: 0.5
+            });
+
+            const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
+            const body = JSON.parse(callArgs.body);
+
+            expect(body.model).toBe('claude-sonnet-5');
+            expect(body).not.toHaveProperty('temperature');
+        });
+
         test('should throw error when API key is missing', async () => {
             const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings, new TimeoutManager());
 
@@ -156,6 +169,17 @@ describe('ClaudeProvider', () => {
         test('should return false when API key is undefined', async () => {
             const providerWithoutKey = new ClaudeProvider({}, generalSettings, new TimeoutManager());
             expect(await providerWithoutKey.isAvailable()).toBe(false);
+        });
+    });
+
+    describe('getAvailableModels', () => {
+        test('includes Claude Sonnet 5 in the refreshed Claude model list', async () => {
+            (requestUrl as jest.Mock).mockResolvedValue({
+                status: 200,
+                json: { content: [{ text: 'ok' }] }
+            });
+
+            await expect(provider.getAvailableModels()).resolves.toContain('claude-sonnet-5');
         });
     });
 

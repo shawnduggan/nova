@@ -1696,11 +1696,11 @@
 }
 
 /* CTA title (replacing h3 element) */
-.nova-cta-title {
+.nova-supernova-info .nova-cta-title {
     font-size: 1.2em;
     font-weight: 600;
     margin: 0 0 4px 0;
-    color: var(--text-normal);
+    color: var(--text-on-accent);
 }
 
 .nova-supernova-info h3 {
@@ -1713,7 +1713,12 @@
 .nova-supernova-info p {
     margin: 0;
     font-size: 0.9em;
+    color: var(--text-on-accent);
     opacity: 0.9;
+}
+
+.nova-supernova-info strong {
+    color: var(--text-on-accent);
 }
 
 .nova-supernova-actions {
@@ -1735,6 +1740,7 @@
 .nova-supernova-btn.primary {
     background: var(--text-on-accent);
     color: var(--interactive-accent);
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .nova-supernova-btn.primary:hover {

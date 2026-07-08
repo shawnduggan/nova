@@ -277,14 +277,8 @@ export class OpenAIProvider implements AIProvider {
 				'gpt-5.5',
 				'gpt-5.4-pro',
 				'gpt-5.4',
-				'gpt-5.3-chat-latest',
-				'gpt-5.2-2025-12-11',
-				'gpt-5.1-chat-latest',
-				'gpt-5.1',
-				'gpt-5-pro',
-				'gpt-5-mini',
-				'gpt-5-nano',
-				'gpt-5'
+				'gpt-5.4-mini',
+				'gpt-5.4-nano'
 			];
 
 			this.cachedModels = models;

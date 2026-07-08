@@ -10,6 +10,8 @@
     "version": "node version-bump.mjs && git add manifest.json versions.json",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:models:live": "NOVA_LIVE_MODEL_TESTS=1 jest test/ai/live-model-smoke.test.ts --runInBand",
+    "test:models:live:all": "NOVA_LIVE_MODEL_TESTS=1 NOVA_LIVE_MODEL_INCLUDE_SLOW=1 jest test/ai/live-model-smoke.test.ts --runInBand",
     "lint": "eslint src/ test/ --ext .ts",
     "lint:fix": "eslint src/ test/ --ext .ts --fix",
     "lint:obsidian": "eslint src/ --ext .ts --no-ignore --max-warnings 0",

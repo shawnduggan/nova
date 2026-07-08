@@ -26,6 +26,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'',
 		'### Smart Revision',
 		'',
+		'- **Claude Sonnet 5 is available.** Anthropic\'s new Sonnet model is now selectable in the Claude model picker with its 1M-token context window.',
+		'- **Model pickers are current.** OpenAI now shows GPT-5.5 and GPT-5.4 family models, and Gemini adds Gemini 3.5 Flash plus stable Gemini 3.1 Flash-Lite while dropping the shut-down Flash-Lite preview.',
 		'- **Smart Revision gives Supernova users a reviewable revision pass.** Select prose, choose Clarity, Tighten, Flow, or More Human, add an optional brief, and review Nova\'s proposal before the note changes.',
 		'- **Revision cards explain the edit.** Each card shows the editorial move, rationale, receipt details, impact, risk, and accept/reject controls.',
 		'- **Meaning risk is deterministic-first.** Nova checks numbers, dates, names, wikilinks, Markdown links, quoted text, negations, and protected terms; high-risk cards stay out of Accept all.',
