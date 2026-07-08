@@ -99,12 +99,26 @@ describe('SmartRevisionModal', () => {
 		);
 
 		modal.open();
+		clickButtonContainingText(modal.contentEl, 'Flow');
+		clickButtonContainingText(modal.contentEl, 'Bold');
+		clickCheckboxByLabel(modal.contentEl, 'Preserve Markdown');
+		setFieldValue(modal.contentEl, 'Who this passage is for', 'Newsletter readers');
+		setFieldValue(modal.contentEl, 'What this passage needs to do', 'Make the point faster');
+		setFieldValue(modal.contentEl, 'Names, terms, claims, or phrases to preserve', 'Product names and quoted claims');
 		clickByText(modal.contentEl, 'Generate proposal');
 
 		const progressEl = modal.contentEl.querySelector('.nova-smart-revision-progress');
 		expect(progressEl?.getAttribute('role')).toBe('progressbar');
 		expect(progressEl?.getAttribute('aria-valuetext')).toBe('Generating proposal');
-		expect(modal.contentEl.textContent).toContain('Preparing revision pass');
+		expect(modal.contentEl.textContent).toContain('Preparing Flow revision');
+		expect(modal.contentEl.textContent).toContain('Request summary');
+		expect(modal.contentEl.textContent).toContain('Pass: Flow');
+		expect(modal.contentEl.textContent).toContain('Posture: Bold');
+		expect(modal.contentEl.textContent).toContain('Guardrails: Voice, Meaning, No new facts');
+		expect(modal.contentEl.textContent).toContain('Audience: Newsletter readers');
+		expect(modal.contentEl.textContent).toContain('Goal: Make the point faster');
+		expect(modal.contentEl.textContent).toContain('Do not change: Product names and quoted claims');
+		expect(modal.contentEl.textContent).not.toContain('Preserve Markdown');
 		expect(modal.contentEl.querySelector('.nova-smart-revision-loading-step')).toBeNull();
 		expect(modal.contentEl.textContent).not.toContain('Reviewing selection');
 

@@ -24,6 +24,11 @@ import { TimeoutManager } from '../utils/timeout-manager';
 
 type SmartRevisionModalMode = 'brief' | 'loading' | 'review' | 'error' | 'preview';
 
+interface SmartRevisionLoadingSummaryRow {
+	label: string;
+	value: string;
+}
+
 export interface SmartRevisionModalOptions {
 	accessAllowed: boolean;
 	plansUrl?: string;
@@ -123,13 +128,71 @@ export class SmartRevisionModal extends Modal {
 
 	private renderLoading(): void {
 		const loadingEl = this.contentEl.createDiv({ cls: 'nova-smart-revision-loading' });
-		loadingEl.createDiv({ cls: 'nova-smart-revision-loading-title', text: 'Preparing revision pass...' });
-		loadingEl.createDiv({ cls: 'nova-smart-revision-loading-copy', text: 'Nova is reading for clarity, meaning risk, and safe changes. The note will not change until you apply accepted cards.' });
+		const pass = this.getSelectedPass();
+		loadingEl.createDiv({ cls: 'nova-smart-revision-loading-title', text: `Preparing ${getSmartRevisionPassLabel(pass.id, pass.label)} revision...` });
+		loadingEl.createDiv({ cls: 'nova-smart-revision-loading-copy', text: 'Nova is reviewing the selection with these instructions. The note will not change until you apply accepted cards.' });
+		this.renderLoadingSummary(loadingEl);
 		const progressEl = loadingEl.createDiv({ cls: 'nova-smart-revision-progress' });
 		progressEl.setAttribute('role', 'progressbar');
 		progressEl.setAttribute('aria-label', 'Preparing revision pass');
 		progressEl.setAttribute('aria-valuetext', 'Generating proposal');
 		progressEl.createDiv({ cls: 'nova-smart-revision-progress-bar' });
+	}
+
+	private renderLoadingSummary(container: HTMLElement): void {
+		const summaryEl = container.createDiv({ cls: 'nova-smart-revision-loading-summary' });
+		summaryEl.createDiv({ cls: 'nova-smart-revision-loading-summary-title', text: 'Request summary' });
+		const listEl = summaryEl.createEl('ul', { cls: 'nova-smart-revision-loading-summary-list' });
+		for (const row of this.getLoadingSummaryRows()) {
+			const itemEl = listEl.createEl('li', { cls: 'nova-smart-revision-loading-summary-item' });
+			itemEl.createSpan({ cls: 'nova-smart-revision-loading-summary-label', text: `${row.label}: ` });
+			itemEl.createSpan({ cls: 'nova-smart-revision-loading-summary-value', text: row.value });
+		}
+	}
+
+	private getLoadingSummaryRows(): SmartRevisionLoadingSummaryRow[] {
+		const pass = this.getSelectedPass();
+		const rows: SmartRevisionLoadingSummaryRow[] = [
+			{ label: 'Pass', value: getSmartRevisionPassLabel(pass.id, pass.label) },
+			{ label: 'Posture', value: formatSmartRevisionPosture(this.brief.posture) }
+		];
+		const guardrails = this.getActiveGuardrailLabels();
+		if (guardrails.length > 0) {
+			rows.push({ label: 'Guardrails', value: guardrails.join(', ') });
+		}
+		this.addBriefSummaryRow(rows, 'Audience', this.brief.audience);
+		this.addBriefSummaryRow(rows, 'Goal', this.brief.goal);
+		this.addBriefSummaryRow(rows, 'Do not change', this.brief.doNotChange);
+		this.addBriefSummaryRow(rows, 'Custom instruction', this.brief.customInstruction);
+		return rows;
+	}
+
+	private getSelectedPass() {
+		return SMART_REVISION_PASSES.find((pass) => pass.id === this.brief.passId) ?? SMART_REVISION_PASSES[0];
+	}
+
+	private getActiveGuardrailLabels(): string[] {
+		const labels: string[] = [];
+		if (this.brief.preserveVoice) {
+			labels.push('Voice');
+		}
+		if (this.brief.preserveMeaning) {
+			labels.push('Meaning');
+		}
+		if (this.brief.preserveMarkdown) {
+			labels.push('Markdown');
+		}
+		if (this.brief.doNotAddFacts) {
+			labels.push('No new facts');
+		}
+		return labels;
+	}
+
+	private addBriefSummaryRow(rows: SmartRevisionLoadingSummaryRow[], label: string, value: string): void {
+		const normalized = formatBriefSummaryValue(value);
+		if (normalized) {
+			rows.push({ label, value: normalized });
+		}
 	}
 
 	private renderError(): void {
@@ -567,6 +630,25 @@ function formatChangeSnippet(text: string): string {
 
 function getSmartRevisionPassLabel(passId: SmartRevisionPassId, fallback: string): string {
 	return passId === 'more-human' ? 'Humanize' : fallback;
+}
+
+function formatSmartRevisionPosture(posture: SmartRevisionPosture): string {
+	switch (posture) {
+		case 'conservative':
+			return 'Conservative';
+		case 'bold':
+			return 'Bold';
+		default:
+			return 'Balanced';
+	}
+}
+
+function formatBriefSummaryValue(value: string): string {
+	const normalized = value.replace(/\s+/g, ' ').trim();
+	if (normalized.length <= 140) {
+		return normalized;
+	}
+	return `${normalized.slice(0, 137)}...`;
 }
 
 function countWords(text: string): number {

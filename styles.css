@@ -4820,6 +4820,9 @@ button.nova-prose-linter-category:hover {
     flex-direction: column;
     gap: var(--size-4-4);
     max-height: min(78vh, 760px);
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     color: var(--text-normal);
     font-size: var(--font-ui-medium);
@@ -4862,6 +4865,12 @@ button.nova-prose-linter-category:hover {
     display: flex;
     flex-direction: column;
     gap: var(--size-4-2);
+}
+
+.nova-smart-revision-loading {
+    width: 100%;
+    max-width: 680px;
+    min-width: 0;
 }
 
 .nova-smart-revision-section-title,
@@ -5087,6 +5096,51 @@ button.nova-prose-linter-category:hover {
     border-radius: inherit;
     background: var(--interactive-accent);
     animation: nova-smart-revision-progress 1.35s ease-in-out infinite;
+}
+
+.nova-smart-revision-loading-summary {
+    max-width: 100%;
+    min-width: 0;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    padding: var(--size-4-2) var(--size-4-3);
+}
+
+.nova-smart-revision-loading-summary-title {
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    line-height: 1.35;
+}
+
+.nova-smart-revision-loading-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+    min-width: 0;
+    margin: var(--size-2-2) 0 0;
+    padding-inline-start: var(--size-4-4);
+}
+
+.nova-smart-revision-loading-summary-item {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    line-height: 1.45;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.nova-smart-revision-loading-summary-label {
+    color: var(--text-normal);
+    font-weight: var(--font-medium);
+}
+
+.nova-smart-revision-loading-summary-value {
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 
 .nova-smart-revision-risk--low {
