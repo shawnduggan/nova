@@ -1983,21 +1983,6 @@ export class NovaSettingTab extends PluginSettingTab {
 			.setName('Custom commands')
 			.setHeading();
 
-		// Feature availability check
-		if (!this.plugin.featureManager.isFeatureEnabled('smartfill')) {
-			const noticeEl = containerEl.createDiv({ cls: 'nova-feature-notice' });
-			const noticeDiv = noticeEl.createDiv({ cls: 'nova-feature-card' });
-
-			const title = noticeDiv.createDiv({ cls: 'nova-feature-title' });
-			title.textContent = 'Supernova supporter feature';
-			
-			const description = noticeDiv.createEl('p', { cls: 'nova-feature-description' });
-			description.textContent = 'Smart fill is currently available to Supernova supporters. It will be available to all users on ';
-			description.createEl('strong', { text: 'January 1, 2026' });
-			description.appendText('.');
-			return;
-		}
-
 		// Description
 		const descEl = containerEl.createDiv({ cls: 'nova-command-description' });
 		const descP = descEl.createEl('p');

@@ -9,6 +9,6 @@ Nova eliminates the copy-paste mess with streaming edits that appear exactly whe
 
 ✅ Works on desktop and mobile  
 🔒 Local or cloud AI with your own keys  
-🆓 Core features free forever — supporters get early access to new features
+🆓 Core features free forever — Supernova unlocks advanced revision workflows
 
 [See full setup and features →](https://github.com/shawnduggan/nova)
