@@ -12,6 +12,13 @@
 - **NEVER write code until explicitly instructed** — Default mode is read-only analysis
 - **NEVER start new tasks without confirmation** — Always confirm scope first
 - **NEVER break existing interfaces** — Providers, UI, component contracts are stable
+- **GOALS AUTHORIZE EXECUTION** — An explicit user-established goal authorizes both planning and implementation. Do not request separate plan approval while pursuing that goal. Preserve any downstream approval gates the user explicitly sets, including commit, publish, and release gates.
+
+### Git Baseline (MANDATORY)
+- At the start of every new task, inspect the current branch and working tree, then fetch `origin/main`.
+- Treat `origin/main` as the authoritative production baseline unless the user explicitly names another base.
+- Create the task branch from the freshly fetched `origin/main`; never rely on a potentially stale local `main`.
+- If local changes or branch work would block synchronization, stop and ask whether the user wants it preserved before stashing, resetting, switching branches, or otherwise changing the working tree. Never assume preservation or disposal, and never reset, overwrite, stash, or discard user work without explicit authorization.
 
 ### Quality Gates (ALL MUST PASS)
 ```bash

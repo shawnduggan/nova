@@ -23,12 +23,14 @@ For all requests:
 2. **Write plan** to SCRATCHPAD.md with full details
 3. **STOP** and present the plan for review
 
-⚠️ **WAIT FOR EXPLICIT APPROVAL BEFORE PHASE 2**
+⚠️ **WAIT FOR EXPLICIT APPROVAL BEFORE PHASE 2 UNLESS THE USER ESTABLISHED AN IMPLEMENTATION GOAL**
 
 Do not proceed until you receive approval like:
 - "approved"
 - "looks good, proceed"
 - "go ahead"
+
+If the user explicitly established an implementation goal, the goal itself authorizes planning and implementation. Document the Plan, then proceed without requesting separate plan approval. Preserve any downstream approval gates the user explicitly set, including commit, publish, and release gates.
 
 ---
 
@@ -79,7 +81,7 @@ Do not proceed until you receive approval like:
 - `chore`: Maintenance tasks
 
 ## CRITICAL RULES
-- ❌ NEVER proceed past Phase 1 without explicit approval
+- ❌ NEVER proceed past Phase 1 without explicit approval or an explicit user-established implementation goal
 - ❌ NEVER auto-commit - always wait for approval
 - ❌ NEVER skip quality gates
 - ✅ Update SCRATCHPAD.md with progress

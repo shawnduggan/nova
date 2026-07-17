@@ -124,12 +124,12 @@ Output (≤1 page, in order):
 9. Rollback steps
 10. Optional Exploration: `PROPOSE: … BECAUSE …; IMPACT: …`
 
-Stop after Plan. Wait for approval.
+Stop after Plan and wait for approval unless the user has explicitly established an implementation goal. A user-established goal authorizes proceeding from the documented Plan into implementation without a separate plan-approval checkpoint. Preserve any explicit downstream approval gates, including commit, publish, and release gates.
 
 ---
 
 ## Implementer
-Purpose: Implement the approved Plan.
+Purpose: Implement the approved Plan, or the documented Plan for an explicit user-established implementation goal.
 
 - Work only in Scope Allowlist.
 - Show a `PATCH PREVIEW` (unified diff) before applying.
