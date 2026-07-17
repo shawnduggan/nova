@@ -22,7 +22,7 @@ export interface ContextQuickPanelDeps {
 	contextManager: ContextManager;
 	timeoutManager: TimeoutManager;
 	getCurrentFile: () => TFile | null;
-	getCurrentContext: () => { persistentDocs: DocumentReference[]; totalContextUsage?: ContextUsage } | null;
+	getCurrentContext: () => { persistentDocs: DocumentReference[]; tokenCount: number; totalContextUsage?: ContextUsage } | null;
 	refreshContext: () => Promise<void>;
 	registerDomEvent: <K extends keyof HTMLElementEventMap>(
 		el: HTMLElement | Document, 
@@ -36,6 +36,21 @@ function formatCompactTokens(count: number): string {
 		return `${(count / 1000).toFixed(1)}K`;
 	}
 	return count.toString();
+}
+
+export function formatCollapsedContextInfo(
+	currentFile: TFile | null,
+	context: { persistentDocs: DocumentReference[]; tokenCount: number } | null
+): string {
+	if (!currentFile || !context) {
+		return '0 notes · 0 tokens';
+	}
+
+	const additionalDocs = context.persistentDocs.filter(doc => doc.file.path !== currentFile.path);
+	const docCount = 1 + additionalDocs.length;
+	const fileTokens = Math.max(0, context.tokenCount);
+
+	return `${docCount} note${docCount !== 1 ? 's' : ''} · ${formatCompactTokens(fileTokens)} tokens`;
 }
 
 export class ContextQuickPanel {
@@ -139,17 +154,10 @@ export class ContextQuickPanel {
 	 */
 	private updateCollapsedInfo(infoEl: HTMLElement): void {
 		const context = this.deps.getCurrentContext();
-		const docCount = context?.persistentDocs?.length || 0;
 		const contextLimit = context?.totalContextUsage?.contextLimit || 32000;
 		const usagePercent = context?.totalContextUsage?.usagePercentage || 0;
 
-		// Sum only file token counts (not conversation history / system prompt)
-		const fileTokens = context?.persistentDocs?.reduce((sum, doc) => sum + (doc.tokenCount || 0), 0) || 0;
-
-		// Format: "3 notes · 5.9K tokens" or similar
-		const tokenText = formatCompactTokens(fileTokens);
-
-		infoEl.textContent = `${docCount} note${docCount !== 1 ? 's' : ''} · ${tokenText} tokens`;
+		infoEl.textContent = formatCollapsedContextInfo(this.deps.getCurrentFile(), context);
 
 		// Add warning class if near limit
 		infoEl.removeClass('nova-context-warning', 'nova-context-danger');
@@ -230,7 +238,9 @@ export class ContextQuickPanel {
 
 		if (docs.length === 0) {
 			const emptyEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-empty' });
-			emptyEl.textContent = 'Link notes with [[wikilinks]] or enable auto-context.';
+			emptyEl.textContent = this.deps.getCurrentFile()
+				? 'Current note is included. Link additional notes with [[wikilinks]] or enable auto-context.'
+				: 'Open a note to include it, then link additional notes with [[wikilinks]] or enable auto-context.';
 		} else {
 			const docListEl = (docListContainer as HTMLElement).createDiv({ cls: 'nova-quick-panel-doc-list' });
 

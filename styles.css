@@ -1177,7 +1177,7 @@
     flex: 1;
     overflow-y: auto;
     background: var(--background-secondary);
-    padding: var(--size-4-2);
+    padding: var(--size-4-1) var(--size-4-2);
     min-height: 0; /* Important for flex overflow */
 }
 
@@ -1186,7 +1186,7 @@
     animation: fadeIn 0.3s ease-in;
     word-wrap: break-word;
     line-height: var(--line-height-normal);
-    margin-bottom: 10px; /* Reduced from 16px for better density */
+    margin-bottom: var(--size-4-2);
     font-size: var(--nova-sidebar-text-size, var(--font-ui-medium));
 }
 
@@ -1195,9 +1195,9 @@
     margin-right: 0 !important;
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
-    padding: var(--size-4-2) var(--size-4-3);
+    padding: var(--size-2-3) var(--size-4-2);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
-    max-width: 80% !important;
+    max-width: 85% !important;
     width: auto !important;
     display: block !important;
     font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
@@ -1217,9 +1217,9 @@
     margin-left: 0 !important;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    padding: var(--size-4-2) var(--size-4-3);
+    padding: var(--size-2-3) var(--size-4-2);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
-    max-width: 80% !important;
+    max-width: 96% !important;
     width: auto !important;
     display: block !important;
     font-size: var(--nova-sidebar-text-size, var(--font-ui-medium));
@@ -2256,7 +2256,8 @@
 
 /* Desktop-specific textarea optimization */
 .is-desktop .nova-input-row textarea {
-    min-height: 120px !important; /* ~5-6 lines of text for better desktop UX */
+    min-height: 44px !important;
+    max-height: 160px !important;
 }
 
 /* Portrait orientation optimizations */
@@ -2316,7 +2317,28 @@
     align-items: center;
     gap: var(--size-4-2);
     flex: 1;
-    justify-content: space-between;
+    justify-content: flex-end;
+}
+
+.is-desktop .nova-document-stats-container {
+    margin-top: 0;
+    gap: var(--size-2-1);
+    flex: 0 0 auto;
+}
+
+.is-desktop .nova-stats-right-container {
+    gap: var(--size-2-1);
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+
+.is-desktop .nova-sidebar-header .nova-document-stats,
+.is-desktop .nova-sidebar-header .nova-token-usage {
+    display: none;
+}
+
+.is-desktop .nova-sidebar-header .nova-document-stats-container {
+    display: none;
 }
 
 /* Document Stats Analytics Text */
@@ -2530,11 +2552,11 @@
 
 /* Desktop Message Spacing Standardization */
 .is-desktop .nova-message {
-    margin-bottom: 12px !important; /* Standardized 12px spacing between all messages */
+    margin-bottom: var(--size-4-2) !important;
 }
 
-.is-desktop .nova-input-container {
-    padding-top: 16px !important; /* 16px before input area for clear separation */
+.is-desktop .nova-sidebar-wrapper > .nova-input-container {
+    padding: var(--size-4-1) var(--size-4-2) var(--size-4-2) !important;
 }
 
 .is-desktop .nova-context-preview {
@@ -2544,33 +2566,42 @@
 /* Unified message bubble styling for desktop - restore proper chat alignment */
 .is-desktop .nova-message-user,
 .is-desktop .nova-message-assistant {
-    border-radius: var(--radius-m) !important; /* Consistent corner radius */
-    max-width: 80% !important; /* Restore 80% width for proper chat flow */
+    border-radius: var(--radius-m) !important;
 }
 
 .is-desktop .nova-message-user {
     margin-left: auto !important;
     margin-right: 0 !important;
+    max-width: 85% !important;
 }
 
 .is-desktop .nova-message-assistant {
     margin-left: 0 !important;
     margin-right: auto !important;
+    max-width: 96% !important;
 }
 
 /* System message spacing for desktop */
 .is-desktop .nova-pill-success,
 .is-desktop .nova-pill-system {
-    margin: 0 auto 12px auto !important; /* Remove top margin, keep center alignment, standardize bottom spacing */
+    margin: 0 0 var(--size-4-2) 0 !important;
+    border-radius: var(--radius-s) !important;
+    max-width: 95% !important;
+    padding: var(--size-2-1) var(--size-4-2) !important;
+    text-align: left !important;
 }
 
 .is-desktop .nova-bubble-success,
 .is-desktop .nova-bubble-error {
-    margin-bottom: 12px !important;
+    margin-bottom: var(--size-4-2) !important;
+    max-width: 95% !important;
+    padding: var(--size-2-3) var(--size-4-2) !important;
 }
 
 .is-desktop .nova-bubble-warning {
-    margin-bottom: 12px !important;
+    margin-bottom: var(--size-4-2) !important;
+    max-width: 95% !important;
+    padding: var(--size-2-3) var(--size-4-2) !important;
 }
 
 /* Context Preview Styles */
@@ -2731,7 +2762,7 @@
 }
 
 .is-desktop .nova-sidebar-wrapper {
-    padding-bottom: var(--size-4-2);
+    padding-bottom: 0;
 }
 
 /* Mobile layout fix: single authoritative flow for header/context/chat/composer */
@@ -2888,11 +2919,11 @@
     /* Remove fixed height to allow proper sizing */
 }
 
-.nova-clear-button:not(.is-mobile) {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+.is-desktop .nova-clear-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
 }
 
@@ -2955,6 +2986,55 @@
     line-height: 1;
 }
 
+.is-desktop .nova-sidebar-header {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--size-2-3);
+    padding: var(--size-4-1) var(--size-4-2);
+    container: nova-sidebar-header / inline-size;
+}
+
+.is-desktop .nova-header-top-row {
+    justify-content: flex-start;
+    gap: var(--size-2-2);
+    flex: 1 1 auto;
+}
+
+.is-desktop .nova-header-title {
+    font-size: var(--font-ui-small);
+    gap: var(--size-2-1);
+    min-height: 32px;
+}
+
+.is-desktop .nova-header-right-container {
+    gap: var(--size-2-2);
+    min-height: 32px;
+}
+
+.is-desktop .nova-sidebar-header .nova-provider-dropdown-container {
+    flex: 1 1 120px;
+    min-width: 72px;
+}
+
+@container nova-sidebar-header (max-width: 310px) {
+    .nova-header-title > span:last-child,
+    .nova-privacy-label {
+        display: none;
+    }
+
+    .nova-header-title {
+        gap: 0;
+    }
+
+    .nova-privacy-indicator-styled {
+        padding: var(--size-2-2);
+    }
+
+    .nova-sidebar-header .nova-provider-dropdown-container {
+        min-width: 64px;
+    }
+}
+
 /* Duplicate container definition removed - kept definition above */
 
 
@@ -2981,7 +3061,7 @@
 .nova-chat-flex-container {
     flex: 1;
     overflow-y: auto;
-    padding: var(--size-4-2);
+    padding: var(--size-4-1) var(--size-4-2);
     background: var(--background-secondary);
 }
 
@@ -3118,6 +3198,63 @@
     color: var(--text-on-accent);
     border: none;
     cursor: pointer;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-input-wrapper {
+    padding: 0 !important;
+    border: 0;
+    background: transparent;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-input-wrapper:focus-within {
+    box-shadow: none;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-input-flex-row {
+    align-items: center;
+    gap: var(--size-4-2);
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-textarea-styled,
+.is-desktop .nova-sidebar-wrapper .nova-textarea-styled:focus {
+    min-height: 44px !important;
+    max-height: 160px !important;
+    padding: var(--size-4-2) var(--size-4-3) !important;
+    border: 1px solid var(--background-modifier-border) !important;
+    border-radius: var(--radius-m) !important;
+    background: var(--background-primary) !important;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-textarea-styled:focus {
+    border-color: var(--interactive-accent) !important;
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover) !important;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-send-button-styled {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    margin: 0;
+    border: 1px solid var(--text-muted);
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-send-button-styled:hover:not(:disabled) {
+    border-color: var(--interactive-accent);
+    background: var(--background-modifier-hover);
+    color: var(--interactive-accent);
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-send-button-styled:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.is-desktop .nova-sidebar-wrapper .nova-send-button-styled:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 /* Drop Zone Overlay Styles */

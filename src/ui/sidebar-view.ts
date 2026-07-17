@@ -1677,15 +1677,16 @@ USER REQUEST: ${processedMessage}`;
 			rightContainer = statsContainer.createEl('div', { cls: 'nova-stats-right-container' });
 		}
 
-		// Ensure privacy indicator exists (inside right container)
-		let privacyEl = rightContainer.querySelector('.nova-privacy-indicator') as HTMLElement;
+		// Ensure one privacy indicator exists and place it in its fixed header location
+		let privacyEl = headerEl.querySelector('.nova-privacy-indicator') as HTMLElement;
 		if (!privacyEl) {
 			privacyEl = rightContainer.createEl('div', { cls: 'nova-privacy-indicator' });
-			this.privacyIndicator = privacyEl;
 			this.updatePrivacyIndicator(privacyEl).catch(error => {
 				Logger.error('Failed to update privacy indicator:', error);
 			});
 		}
+		this.positionPrivacyIndicator(headerEl, privacyEl);
+		this.privacyIndicator = privacyEl;
 
 		// Ensure token element exists (inside right container)
 		let tokenEl = rightContainer.querySelector('.nova-token-usage') as HTMLElement;
@@ -1729,6 +1730,17 @@ USER REQUEST: ${processedMessage}`;
 		} else if (warningLevel === 'critical') {
 			tokenEl.addClass('nova-token-danger');
 			this.showTokenWarning(95); // 95% usage = 5% remaining
+		}
+	}
+
+	private positionPrivacyIndicator(
+		headerEl: Element,
+		privacyEl: HTMLElement
+	): void {
+		const headerControls = headerEl.querySelector('.nova-header-right-container');
+		const clearButton = headerControls?.querySelector('.nova-clear-button');
+		if (headerControls && clearButton) {
+			headerControls.insertBefore(privacyEl, clearButton);
 		}
 	}
 

@@ -217,6 +217,52 @@ describe('Streaming Completion Updates', () => {
             jest.useRealTimers();
         }
     });
+
+    it('should place one desktop privacy indicator immediately before clear conversation', () => {
+        const headerEl = document.createElement('div');
+        const headerControls = document.createElement('div');
+        headerControls.className = 'nova-header-right-container';
+        const modelEl = document.createElement('select');
+        const clearButton = document.createElement('button');
+        clearButton.className = 'nova-clear-button';
+        headerControls.append(modelEl, clearButton);
+
+        const statsRightContainer = document.createElement('div');
+        statsRightContainer.className = 'nova-stats-right-container';
+        const privacyEl = document.createElement('div');
+        privacyEl.className = 'nova-privacy-indicator';
+        statsRightContainer.appendChild(privacyEl);
+        headerEl.append(headerControls, statsRightContainer);
+
+        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
+        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
+
+        expect(Array.from(headerControls.children)).toEqual([modelEl, privacyEl, clearButton]);
+        expect(headerEl.querySelectorAll('.nova-privacy-indicator')).toHaveLength(1);
+    });
+
+    it('should move privacy from a mobile stats row beside clear conversation', () => {
+        const headerEl = document.createElement('div');
+        const headerControls = document.createElement('div');
+        headerControls.className = 'nova-header-right-container';
+        const modelEl = document.createElement('select');
+        const clearButton = document.createElement('button');
+        clearButton.className = 'nova-clear-button';
+        headerControls.append(modelEl, clearButton);
+
+        const statsRightContainer = document.createElement('div');
+        const tokenEl = document.createElement('div');
+        tokenEl.className = 'nova-token-usage';
+        const privacyEl = document.createElement('div');
+        privacyEl.className = 'nova-privacy-indicator';
+        statsRightContainer.append(privacyEl, tokenEl);
+        headerEl.append(headerControls, statsRightContainer);
+
+        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
+
+        expect(Array.from(headerControls.children)).toEqual([modelEl, privacyEl, clearButton]);
+        expect(Array.from(statsRightContainer.children)).toEqual([tokenEl]);
+    });
 });
 
 describe('Magical Scroll Functionality', () => {
