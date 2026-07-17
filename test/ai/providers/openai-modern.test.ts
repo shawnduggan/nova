@@ -117,6 +117,31 @@ describe('OpenAIProvider Modernization', () => {
         expect(body.reasoning).toHaveProperty('effort', 'high');
     });
 
+	test.each([
+		'gpt-5.6-sol',
+		'gpt-5.6-terra',
+		'gpt-5.6-luna'
+	])('should send %s through the Responses API', async model => {
+		provider = new OpenAIProvider({
+			apiKey: 'test-api-key',
+			model
+		}, generalSettings, timeoutManager);
+
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: { output_text: 'OK' }
+		});
+
+		await expect(provider.generateText('Hello')).resolves.toBe('OK');
+
+		const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
+		const body = JSON.parse(callArgs.body);
+
+		expect(callArgs.url).toContain('/responses');
+		expect(body).toHaveProperty('model', model);
+		expect(body).toHaveProperty('reasoning.effort', 'medium');
+	});
+
     test('returns current OpenAI model list', async () => {
         (requestUrl as jest.Mock).mockResolvedValue({
             status: 200,
@@ -124,6 +149,9 @@ describe('OpenAIProvider Modernization', () => {
         });
 
         await expect(provider.getAvailableModels()).resolves.toEqual([
+			'gpt-5.6-sol',
+			'gpt-5.6-terra',
+			'gpt-5.6-luna',
             'gpt-5.5-pro',
             'gpt-5.5',
             'gpt-5.4-pro',

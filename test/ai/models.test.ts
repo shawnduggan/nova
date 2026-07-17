@@ -76,6 +76,9 @@ describe('AI model registry', () => {
 		const openaiModels = getAvailableModels('openai');
 
 		expect(openaiModels).toEqual([
+			{ value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+			{ value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+			{ value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
 			{ value: 'gpt-5.5-pro', label: 'GPT-5.5 Pro' },
 			{ value: 'gpt-5.5', label: 'GPT-5.5' },
 			{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
@@ -86,6 +89,12 @@ describe('AI model registry', () => {
 	});
 
 	test('maps current GPT models to OpenAI context metadata', () => {
+		for (const model of ['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']) {
+			expect(getProviderTypeForModel(model)).toBe('openai');
+			expect(getContextLimit('openai', model)).toBe(1050000);
+			expect(getModelMaxOutputTokens('openai', model)).toBe(128000);
+		}
+
 		expect(getProviderTypeForModel('gpt-5.5')).toBe('openai');
 		expect(getProviderTypeForModel('gpt-5.5-pro')).toBe('openai');
 		expect(getProviderTypeForModel('gpt-5.4-mini')).toBe('openai');
