@@ -21,6 +21,11 @@
 - **ACTIVE RELEASE CONTINUITY** — Once a release branch is established, treat it as the baseline for every remaining task in that release. Stay on that branch and do not merge, rebase, switch to, or otherwise sync from `origin/main` between release tasks unless the user explicitly requests it. The normal `origin/main` baseline rule resumes when starting a different release or unrelated task.
 - If local changes or branch work would block synchronization, stop and ask whether the user wants it preserved before stashing, resetting, switching branches, or otherwise changing the working tree. Never assume preservation or disposal, and never reset, overwrite, stash, or discard user work without explicit authorization.
 
+### Release Notes Approval Gate (MANDATORY)
+- Before editing release notes, present the exact proposed release-note body that will appear in-app and on GitHub.
+- Require explicit user approval of that body. If it is revised, preview the complete revised body and obtain approval again.
+- Do not commit release notes, bump a version, create a tag, push, or create a GitHub release until the release-note body is approved.
+
 ### Quality Gates (ALL MUST PASS)
 ```bash
 npm run build          # 0 errors

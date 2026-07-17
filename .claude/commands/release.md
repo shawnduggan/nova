@@ -10,36 +10,42 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
    ```
    Abort if build fails, tests fail, or uncommitted changes exist.
 
-2. **Write release notes**
+2. **Draft and preview release notes**
    - Determine the upcoming version (read current from package.json, apply bump type)
    - Review `git log` since last tag to build the changelog
+   - Draft the exact user-friendly markdown body that will appear both in-app and on GitHub
+   - Present the complete body to the user and wait for explicit approval
+   - If revised, preview the complete revised body and obtain approval again
+   - Do not edit release notes, commit, bump, tag, push, or create a GitHub release before approval
+
+3. **Write approved release notes**
    - Add an entry to `RELEASE_NOTES` in `src/release-notes.ts` for the new version
    - Format: user-friendly markdown — this content is shown both in-app (Obsidian tab) and on GitHub
    - Prune old entries if more than 5 exist
    - Commit: `docs(release-notes): add notes for [VERSION]`
    - Run `npm run build` to verify the change compiles
 
-3. **Bump version**
+4. **Bump version**
    ```bash
    npm version patch
    ```
    This updates package.json, runs version-bump.mjs (updates manifest.json + versions.json), and auto-commits.
 
-4. **Get new version**
+5. **Get new version**
    Extract version from package.json for subsequent steps.
 
-5. **Production build**
+6. **Production build**
    ```bash
    npm run build:prod
    ```
    This ensures main.js is production-optimized before attaching to the release.
 
-6. **Push with tags**
+7. **Push with tags**
    ```bash
    git push origin main --tags
    ```
 
-7. **Create GitHub release**
+8. **Create GitHub release**
    Use the same release notes content from `src/release-notes.ts` (the entry written in step 2) as the `--notes` body:
    ```bash
    gh release create [VERSION] main.js manifest.json styles.css \
