@@ -14,6 +14,21 @@ export interface ReleaseNotesEntry {
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.8.1': [
+		'## What\'s New in Nova 1.8.1',
+		'',
+		'### Sidebar polish',
+		'',
+		'- **The model selector stays compact without hiding important context.** The new status pill always shows the active model and whether processing is local or cloud, then opens the full selector on click or tap.',
+		'- **Nova now shows one conversation state at a time.** The welcome card appears only for empty conversations, proactive “I noticed” notices have been removed, and model-switch confirmations disappear instead of becoming conversation history.',
+		'- **Sidebar typography keeps the focus on your document.** Conversation text, Context, and Writing now use Obsidian’s theme-aware small UI sizing and muted colors, with a clearer two-line welcome card.',
+		'- **Responsive controls stay usable.** The header, clear-conversation button, composer, and send button remain aligned and accessible across wide, narrow, desktop, and mobile sidebars.',
+		'- **Context summaries count short notes correctly.** The active note and its estimated tokens no longer incorrectly appear as zero.',
+		'',
+		'### GPT-5.6 models',
+		'',
+		'- **GPT-5.6 Sol, Terra, and Luna are available.** All three can be selected in Nova and use OpenAI’s Responses API, with support for their 1.05M-token context and up to 128K output.',
+	].join('\n'),
 	'1.8.0': [
 		'## What\'s New in Nova 1.8.0',
 		'',
@@ -65,33 +80,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'',
 		'- **Claude Opus 4.8 is available.** Anthropic\'s latest Opus model is now selectable in the Claude model picker with its 1M-token context window.',
 		'- **Opus requests avoid deprecated sampling settings.** Nova omits `temperature` for Opus 4.8, matching Anthropic\'s Messages API requirements so requests complete instead of returning a parameter error.',
-	].join('\n'),
-	'1.6.2': [
-		'## What\'s New in Nova 1.6.2',
-		'',
-		'### Prose Linter Polish',
-		'',
-		'- **Ignored issues now persist per note.** Use Ignore to hide a specific issue in the current note, then restore it later from the ignored-items section when you want it back.',
-		'- **Repeated phrase review is clearer.** Jump and editor highlights now account for related nearby phrase occurrences, making echoes easier to spot and revise.',
-		'- **Weakener guidance is more practical.** Nova now focuses the suggestion on removing the weakener or choosing more exact wording instead of implying an AI rewrite.',
-		'',
-		'### Thanks',
-		'',
-		'Thanks to Helmut for the thoughtful suggestions!',
-	].join('\n'),
-	'1.6.1': [
-		'## What\'s New in Nova 1.6.1',
-		'',
-		'### Ollama Improvements',
-		'',
-		'- **Ollama models now appear in the main model picker.** Testing your Ollama connection refreshes Nova\'s local model list, so configured Ollama models are available from the sidebar picker.',
-		'- **Ollama settings are clearer.** The settings panel now explains that adding or removing local Ollama models requires testing the connection again to refresh the picker.',
-		'- **Existing Ollama setups keep working.** Nova preserves your saved Ollama model during migration, even before the refreshed local model list is available.',
-		'',
-		'### Bug Fixes',
-		'',
-		'- **Reflective questions no longer trigger edit mode.** Messages like "I wish I knew..." now route to chat instead of being misread as edit requests.',
-		'- **Long notes no longer hit an obsolete prompt-length guard.** Nova removed the old 10,000-character generated-prompt limit that could block short requests when the active note was large.',
 	].join('\n'),
 };
 
