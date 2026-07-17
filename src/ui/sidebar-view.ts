@@ -3,12 +3,11 @@
  */
 
 import { ItemView, WorkspaceLeaf, ButtonComponent, TFile, Notice, MarkdownView, Platform, setIcon, EditorPosition, DropdownComponent } from 'obsidian';
-import { DocumentAnalyzer } from '../core/document-analysis';
 import NovaPlugin from '../../main';
 import { EditCommand, EditResult } from '../core/types';
 import { MultiDocContext } from './context-manager';
-import { getAvailableModels } from '../ai/models';
-import { ProviderType } from '../ai/types';
+import { getAvailableModels, getProviderTypeForModel } from '../ai/models';
+import { ProviderConfig, ProviderType } from '../ai/types';
 import { isLocalOpenAICompatibleBaseUrl } from '../ai/providers/openai-compatible';
 import { InputHandler } from './input-handler';
 import { CommandSystem } from './command-system';
@@ -31,6 +30,60 @@ import { WritingStatsPanel } from './writing-stats-panel';
 import { MAX_WRITING_ANALYSIS_CHAR_LENGTH } from '../core/writing-analysis';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
+
+type ModelStatusKind = 'configured' | 'pending' | 'error';
+type ProviderStatusState = NonNullable<ProviderConfig['status']>['state'];
+
+export interface ModelStatusPillDetails {
+	modelLabel: string;
+	privacyLabel: 'Local' | 'Cloud' | 'Unavailable';
+	privacyIcon: 'shield-check' | 'cloud' | 'help-circle';
+	privacyTooltip: string;
+	statusKind: ModelStatusKind;
+	statusLabel: string;
+	accessibleLabel: string;
+}
+
+export function buildModelStatusPillDetails(options: {
+	modelLabel: string;
+	providerType: Exclude<ProviderType, 'none'> | null;
+	isLocal: boolean;
+	isAvailable: boolean;
+	providerStatus?: ProviderStatusState;
+}): ModelStatusPillDetails {
+	const modelLabel = options.modelLabel.trim() || 'No model';
+	const hasProvider = options.providerType !== null;
+	const privacyLabel = hasProvider ? (options.isLocal ? 'Local' : 'Cloud') : 'Unavailable';
+	const privacyIcon = hasProvider ? (options.isLocal ? 'shield-check' : 'cloud') : 'help-circle';
+	const privacyTooltip = hasProvider
+		? options.isLocal
+			? 'Local processing - data stays on your device'
+			: 'Cloud processing - data sent to provider'
+		: 'No provider selected';
+
+	let statusKind: ModelStatusKind;
+	let statusLabel: string;
+	if (options.isAvailable) {
+		statusKind = 'configured';
+		statusLabel = 'Configured';
+	} else if (options.providerStatus === 'testing' || options.providerStatus === 'untested') {
+		statusKind = 'pending';
+		statusLabel = 'Connection not verified';
+	} else {
+		statusKind = 'error';
+		statusLabel = 'Provider unavailable';
+	}
+
+	return {
+		modelLabel,
+		privacyLabel,
+		privacyIcon,
+		privacyTooltip,
+		statusKind,
+		statusLabel,
+		accessibleLabel: `${modelLabel} · ${privacyLabel}. ${statusLabel}. Select model.`
+	};
+}
 
 export class NovaSidebarView extends ItemView {
 	plugin: NovaPlugin;
@@ -57,6 +110,7 @@ export class NovaSidebarView extends ItemView {
 	private contextQuickPanel!: ContextQuickPanel;
 	private writingStatsPanel!: WritingStatsPanel;
 	private providerDropdown: DropdownComponent | null = null;
+	private modelStatusPill: HTMLElement | null = null;
 	private rotationIntervals = new WeakMap<HTMLElement, number>();
 	
 	// Cursor-only architecture - delegate to new components
@@ -81,7 +135,6 @@ export class NovaSidebarView extends ItemView {
 	// Component references
 	private commandPicker!: HTMLElement;
 	private commandMenu!: HTMLElement;
-	private privacyIndicator?: HTMLElement;
 	
 	// Cursor position tracking - file-scoped like conversation history
 	private currentFileCursorPosition: EditorPosition | null = null;
@@ -488,6 +541,7 @@ export class NovaSidebarView extends ItemView {
 
 		// Clear all timeouts
 		this.clearTimeouts();
+		this.chatRenderer.cleanup();
 
 		// Clean up DOM elements
 		this.cleanupDOMElements();
@@ -530,9 +584,6 @@ export class NovaSidebarView extends ItemView {
 
 		// Initialize chatRenderer now that chatContainer exists
 		this.chatRenderer = new ChatRenderer(this.plugin, this.chatContainer);
-
-		// Welcome message with Nova branding
-		this.addWelcomeMessage();
 	}
 
 	private createInputInterface(container: HTMLElement) {
@@ -616,15 +667,11 @@ export class NovaSidebarView extends ItemView {
 
 	// REPLACE with simple delegation to ChatRenderer:
 	private addSuccessMessage(content: string): void {
-		this.chatRenderer.addSuccessMessage(content, true); // Always persist
+		this.chatRenderer.addSuccessMessage(content);
 	}
 
 	private addErrorMessage(content: string): void {
 		this.chatRenderer.addErrorMessage(content, true); // Always persist  
-	}
-
-	private addWelcomeMessage(message?: string): void {
-		this.chatRenderer.addWelcomeMessage(message);
 	}
 
 	private addSuccessIndicator(action: string) {
@@ -1482,20 +1529,21 @@ USER REQUEST: ${processedMessage}`;
 			}
 		}
 		
-		// If no file available and we have a current file, clear everything
-		if (!targetFile && this.currentFile) {
-			this.currentFile = null;
-			this.chatContainer.empty();
-			// Immediately clear context state to prevent bleeding
-			this.currentContext = null;
-			this.contextManager.setCurrentFile(null);
-			this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
-			this.addWelcomeMessage('Open a document to get started.');
+		// No document is an empty state, regardless of the previously active file.
+		if (!targetFile) {
+			if (this.currentFile) {
+				this.currentFile = null;
+				// Immediately clear context state to prevent bleeding
+				this.currentContext = null;
+				this.contextManager.setCurrentFile(null);
+				this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
+			}
+			this.chatRenderer.clearChat(true);
 			return;
 		}
 		
-		// If no file or same file, do nothing
-		if (!targetFile || targetFile === this.currentFile) {
+		// If the same file is already loaded, do nothing
+		if (targetFile === this.currentFile) {
 			return;
 		}
 		
@@ -1519,9 +1567,6 @@ USER REQUEST: ${processedMessage}`;
 		if (activeView && activeView.editor) {
 			this.trackCursorPosition(activeView.editor);
 		}
-		
-		// Clear current chat
-		this.chatContainer.empty();
 		
 		// PHASE 3 FIX: Check if this operation is still current before proceeding
 		if (this.currentFileLoadOperation !== operationId) {
@@ -1551,9 +1596,6 @@ USER REQUEST: ${processedMessage}`;
 			// Refresh the context UI after auto-context population
 			await this.refreshContext().catch(error => { Logger.error('Failed to refresh context:', error); });
 			
-			// Show document insights after loading conversation
-			await this.showDocumentInsights(targetFile);
-			
 			// PHASE 3 FIX: Final check after all async operations
 			if (this.currentFileLoadOperation !== operationId) {
 				return;
@@ -1562,16 +1604,12 @@ USER REQUEST: ${processedMessage}`;
 			// ChatRenderer will handle showing welcome message if no conversation exists
 		} catch (error) {
 			Logger.error('Conversation loading error:', error);
-			// Failed to load conversation history - graceful fallback
-			// Show welcome message on error
-			this.addWelcomeMessage();
+			// Preserve any history that rendered before a later context failure.
+			this.chatRenderer.addWelcomeMessage();
 		}
 	}
 
 	private async clearChat() {
-		// Clear the chat container
-		this.chatContainer.empty();
-		
 		// Clear conversation in conversation manager
 		if (this.currentFile) {
 			try {
@@ -1587,8 +1625,8 @@ USER REQUEST: ${processedMessage}`;
 		// Show notice to user
 		new Notice('Chat cleared');
 		
-		// Show welcome message first, before context refresh triggers warnings
-		this.addWelcomeMessage();
+		// Return to the exclusive empty state before context refresh warnings.
+		this.chatRenderer.clearChat(true);
 		
 		// Then refresh context to rebuild currentContext from persistent storage and update UI
 		if (this.currentFile) {
@@ -1671,22 +1709,11 @@ USER REQUEST: ${processedMessage}`;
 			statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
 		}
 
-		// Ensure right container exists for privacy + token (right side)
+		// Ensure right container exists for token usage
 		let rightContainer = statsContainer.querySelector('.nova-stats-right-container') as HTMLElement;
 		if (!rightContainer) {
 			rightContainer = statsContainer.createEl('div', { cls: 'nova-stats-right-container' });
 		}
-
-		// Ensure one privacy indicator exists and place it in its fixed header location
-		let privacyEl = headerEl.querySelector('.nova-privacy-indicator') as HTMLElement;
-		if (!privacyEl) {
-			privacyEl = rightContainer.createEl('div', { cls: 'nova-privacy-indicator' });
-			this.updatePrivacyIndicator(privacyEl).catch(error => {
-				Logger.error('Failed to update privacy indicator:', error);
-			});
-		}
-		this.positionPrivacyIndicator(headerEl, privacyEl);
-		this.privacyIndicator = privacyEl;
 
 		// Ensure token element exists (inside right container)
 		let tokenEl = rightContainer.querySelector('.nova-token-usage') as HTMLElement;
@@ -1730,17 +1757,6 @@ USER REQUEST: ${processedMessage}`;
 		} else if (warningLevel === 'critical') {
 			tokenEl.addClass('nova-token-danger');
 			this.showTokenWarning(95); // 95% usage = 5% remaining
-		}
-	}
-
-	private positionPrivacyIndicator(
-		headerEl: Element,
-		privacyEl: HTMLElement
-	): void {
-		const headerControls = headerEl.querySelector('.nova-header-right-container');
-		const clearButton = headerControls?.querySelector('.nova-clear-button');
-		if (headerControls && clearButton) {
-			headerControls.insertBefore(privacyEl, clearButton);
 		}
 	}
 
@@ -1825,47 +1841,6 @@ USER REQUEST: ${processedMessage}`;
 			oversized: currentDetail.oversized,
 			stale: currentDetail.stale
 		});
-	}
-
-	private async showDocumentInsights(file: TFile): Promise<void> {
-		try {
-			const content = await this.getFileContent(file);
-			const analysis = DocumentAnalyzer.analyzeStructure(content);
-			
-			if (analysis.emptyHeadings.length > 0 || analysis.incompleteBullets.length > 0) {
-				const insights: string[] = [];
-				
-				if (analysis.emptyHeadings.length > 0) {
-					insights.push(`${analysis.emptyHeadings.length} empty heading${analysis.emptyHeadings.length > 1 ? 's' : ''} to fill`);
-				}
-				
-				if (analysis.incompleteBullets.length > 0) {
-					insights.push(`${analysis.incompleteBullets.length} incomplete bullet${analysis.incompleteBullets.length > 1 ? 's' : ''}`);
-				}
-				
-				if (insights.length > 0) {
-					const bulletList = insights.map(insight => `• ${insight}`).join('\n');
-					
-					// Create a custom left-aligned message for document insights
-					const messageEl = this.chatContainer.createDiv({ cls: 'nova-message nova-message-assistant nova-insights' });
-
-					messageEl.createEl('div', { 
-						text: 'Nova',
-						cls: 'nova-message-role'
-					});
-
-					const contentEl = messageEl.createEl('div', { cls: 'nova-message-content nova-insights-content' });
-					contentEl.textContent = `I noticed:\n${bulletList}\n\nLet me help.`;
-
-					// Scroll to show the new message
-					this.timeoutManager.addTimeout(() => {
-						this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-					}, 50);
-				}
-			}
-		} catch (_) {
-			// Silently fail - analysis is optional
-		}
 	}
 
 	/**
@@ -2021,54 +1996,59 @@ USER REQUEST: ${processedMessage}`;
 		this.inputHandler.sendButtonComponent?.setDisabled(!currentProviderType);
 	}
 
-	/**
-	 * Update privacy indicator icon and tooltip based on current provider
-	 */
-	private async updatePrivacyIndicator(privacyIndicator: HTMLElement): Promise<void> {
-		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
-		
-		// Clear previous content
-		privacyIndicator.empty();
-		privacyIndicator.removeClass('nova-status-pill', 'local', 'cloud');
-		
-		// Apply inline styles for consistent sizing
-		privacyIndicator.addClass('nova-privacy-indicator-styled');
-		
-		if (currentProviderType) {
-			const isLocalProvider = this.isLocalProvider(currentProviderType);
-			
-			// Add pill styling classes
-			privacyIndicator.addClass('nova-status-pill');
-			privacyIndicator.addClass(isLocalProvider ? 'local' : 'cloud');
-			
-			// Create icon element
-			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
-			iconEl.addClass('nova-privacy-icon');
-			const iconName = isLocalProvider ? 'shield-check' : 'cloud';
-			setIcon(iconEl, iconName);
-			
-			// Add text label
-			const labelEl = privacyIndicator.createSpan({ text: isLocalProvider ? 'Local' : 'Cloud' });
-			labelEl.addClass('nova-privacy-label');
-			
-			// Set tooltip
-			const tooltip = isLocalProvider ? 'Local processing - data stays on your device' : 'Cloud processing - data sent to provider';
-			privacyIndicator.setAttribute('aria-label', tooltip);
-			privacyIndicator.setAttribute('title', tooltip);
-		} else {
-			// No provider available - show generic status
-			privacyIndicator.addClass('nova-status-pill');
-			
-			const iconEl = privacyIndicator.createSpan({ cls: 'nova-status-icon' });
-			iconEl.addClass('nova-privacy-icon');
-			setIcon(iconEl, 'help-circle');
-			
-			const labelEl = privacyIndicator.createSpan({ text: 'No provider' });
-			labelEl.addClass('nova-privacy-label');
-			
-			privacyIndicator.setAttribute('aria-label', 'No provider selected');
-			privacyIndicator.setAttribute('title', 'No provider selected');
+	private async updateModelStatusPill(): Promise<void> {
+		if (!this.modelStatusPill || !this.providerDropdown) return;
+
+		const platform = Platform.isMobile ? 'mobile' : 'desktop';
+		const platformSettings = this.plugin.settings.platformSettings[platform];
+		const selectedModel = platformSettings.selectedModel;
+		const hasSelectedModel = Boolean(selectedModel && selectedModel !== 'none');
+		const explicitProvider = platformSettings.selectedProvider;
+		const inferredProvider = getProviderTypeForModel(selectedModel, this.plugin.settings);
+		let selectedProvider: Exclude<ProviderType, 'none'> | null = null;
+		if (explicitProvider && this.isConfigurableProviderType(explicitProvider)) {
+			selectedProvider = explicitProvider;
+		} else if (inferredProvider && this.isConfigurableProviderType(inferredProvider)) {
+			selectedProvider = inferredProvider;
 		}
+		const availableProvider = await this.plugin.aiProviderManager.getCurrentProviderType();
+		const providerStatus = selectedProvider
+			? this.plugin.settings.aiProviders[selectedProvider]?.status?.state
+			: undefined;
+		const modelLabel = selectedProvider && hasSelectedModel
+			? this.getModelDisplayName(selectedProvider, selectedModel)
+			: 'No model';
+		const details = buildModelStatusPillDetails({
+			modelLabel,
+			providerType: selectedProvider,
+			isLocal: selectedProvider ? this.isLocalProvider(selectedProvider) : false,
+			isAvailable: selectedProvider !== null
+				&& hasSelectedModel
+				&& availableProvider === selectedProvider,
+			providerStatus
+		});
+
+		this.modelStatusPill.empty();
+		this.modelStatusPill.removeClass('is-configured', 'is-pending', 'is-error');
+		this.modelStatusPill.addClass(`is-${details.statusKind}`);
+		this.modelStatusPill.createSpan({ cls: 'nova-model-status-dot' });
+		this.modelStatusPill.createSpan({
+			cls: 'nova-model-status-name',
+			text: details.modelLabel
+		});
+		this.modelStatusPill.createSpan({ cls: 'nova-model-status-separator', text: '·' });
+		const privacyIcon = this.modelStatusPill.createSpan({ cls: 'nova-model-status-privacy-icon' });
+		setIcon(privacyIcon, details.privacyIcon);
+		this.modelStatusPill.createSpan({
+			cls: 'nova-model-status-privacy-label',
+			text: details.privacyLabel
+		});
+
+		this.providerDropdown.selectEl.setAttribute('aria-label', details.accessibleLabel);
+		this.providerDropdown.selectEl.setAttribute(
+			'title',
+			`${details.privacyTooltip}. Status: ${details.statusLabel}.`
+		);
 	}
 
 	/**
@@ -2085,23 +2065,18 @@ USER REQUEST: ${processedMessage}`;
 	 * Refresh all provider status indicators in the UI
 	 */
 	private async refreshProviderStatus(): Promise<void> {
-		// Update privacy indicator if it exists
-		if (this.privacyIndicator) {
-			await this.updatePrivacyIndicator(this.privacyIndicator);
-		}
-
-		// Update send button state
-		this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
-
-		// Update provider dropdown display
 		await this.refreshProviderDropdown();
+		this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 	}
 
 	/**
 	 * Create provider dropdown using Obsidian's DropdownComponent API
 	 */
 	private async createProviderDropdown(container: HTMLElement): Promise<void> {
-		const dropdownContainer = container.createDiv({ cls: 'nova-provider-dropdown-container' });
+		const statusControl = container.createDiv({ cls: 'nova-model-status-control' });
+		this.modelStatusPill = statusControl.createDiv({ cls: 'nova-model-status-pill' });
+		this.modelStatusPill.setAttribute('aria-hidden', 'true');
+		const dropdownContainer = statusControl.createDiv({ cls: 'nova-provider-dropdown-container' });
 		
 		// Create dropdown using Obsidian's DropdownComponent
 		this.providerDropdown = new DropdownComponent(dropdownContainer);
@@ -2109,6 +2084,7 @@ USER REQUEST: ${processedMessage}`;
 		
 		// Populate options and set current selection
 		await this.updateProviderOptions();
+		await this.updateModelStatusPill();
 		
 		// Handle provider/model changes
 		this.providerDropdown.onChange(async (value) => {
@@ -2278,6 +2254,7 @@ USER REQUEST: ${processedMessage}`;
 	private async refreshProviderDropdown(): Promise<void> {
 		if (this.providerDropdown) {
 			await this.updateProviderOptions();
+			await this.updateModelStatusPill();
 		}
 	}
 
@@ -2498,10 +2475,10 @@ USER REQUEST: ${processedMessage}`;
 				this.chatRenderer.addMessage('assistant', detail.content);
 				break;
 			case 'success':
-				this.chatRenderer.addSuccessMessage(detail.content, detail.persist ?? false);
+				this.chatRenderer.addSuccessMessage(detail.content);
 				break;
 			case 'error':
-				this.chatRenderer.addErrorMessage(detail.content, detail.persist ?? false);
+				this.chatRenderer.addErrorMessage(detail.content, detail.persist ?? true);
 				break;
 			case 'status':
 				this.chatRenderer.addStatusMessage(
@@ -2538,11 +2515,6 @@ USER REQUEST: ${processedMessage}`;
 			Logger.error('❌ Failed to update provider display after configuration:', error);
 		}
 
-		// Update privacy indicator
-		if (this.privacyIndicator) {
-			await this.updatePrivacyIndicator(this.privacyIndicator);
-		}
-
 		// Update send button state
 		await this.updateSendButtonState().catch(error => { Logger.error('Failed to update send button:', error); });
 	}
@@ -2577,11 +2549,6 @@ USER REQUEST: ${processedMessage}`;
 			await this.refreshProviderDropdown();
 		} catch (error) {
 			Logger.error('❌ Failed to update provider display after disconnection:', error);
-		}
-
-		// Update privacy indicator
-		if (this.privacyIndicator) {
-			await this.updatePrivacyIndicator(this.privacyIndicator);
 		}
 
 	}

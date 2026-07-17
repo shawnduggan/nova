@@ -2,6 +2,8 @@
  * @jest-environment jsdom
  */
 
+jest.mock('obsidian', () => ({ setIcon: jest.fn() }));
+
 describe('Unified Message System Integration', () => {
     let mockPlugin;
     let mockConversationManager;
@@ -9,12 +11,15 @@ describe('Unified Message System Integration', () => {
     let chatRenderer;
 
     beforeEach(() => {
+        jest.useFakeTimers();
+
         // Reset DOM
         document.body.textContent = '';
         
         // Create chat container with Obsidian extended methods
         chatContainer = document.createElement('div');
         chatContainer.className = 'nova-chat-container';
+        chatContainer.scrollTo = jest.fn();
         document.body.appendChild(chatContainer);
         
         // Add Obsidian extended methods to container
@@ -41,6 +46,9 @@ describe('Unified Message System Integration', () => {
                 while (this.firstChild) {
                     this.removeChild(this.firstChild);
                 }
+            };
+            el.addClass = function(...classes) {
+                this.classList.add(...classes);
             };
             
             this.appendChild(el);
@@ -108,35 +116,53 @@ describe('Unified Message System Integration', () => {
     });
 
     afterEach(() => {
+        chatRenderer.cleanup();
+        jest.clearAllTimers();
+        jest.useRealTimers();
         document.head.textContent = '';
         document.body.textContent = '';
     });
 
-    test('complete flow: short success message with persistence and restoration', async () => {
+	test('success acknowledgement replaces welcome, never persists, and returns to welcome after fading', () => {
         const shortMessage = '✓ Done';
-        
-        // 1. Add short success message with persistence
-        chatRenderer.addSuccessMessage(shortMessage, true);
-        
-        // Verify message appears in DOM with correct styling
+
+        chatRenderer.addWelcomeMessage();
+        expect(chatContainer.querySelectorAll('.nova-welcome')).toHaveLength(1);
+
+        chatRenderer.addSuccessMessage(shortMessage);
+
         const messageEl = chatContainer.querySelector('.nova-message');
         expect(messageEl).toBeTruthy();
         expect(messageEl.classList.contains('nova-pill-success')).toBe(true);
+        expect(messageEl.classList.contains('nova-message-ephemeral')).toBe(true);
         expect(messageEl.textContent).toBe(shortMessage);
-        
-        // Verify persistence was called with correct metadata
-        expect(mockConversationManager.addSystemMessage).toHaveBeenCalledWith(
-            { path: 'test.md', name: 'test.md' },
-            shortMessage,
-            { messageType: 'nova-pill-success' }
-        );
-        
-        // 2. Simulate conversation restoration
+        expect(chatContainer.querySelector('.nova-welcome')).toBeNull();
+        expect(mockConversationManager.addSystemMessage).not.toHaveBeenCalled();
+
+        jest.advanceTimersByTime(3000);
+        expect(messageEl.classList.contains('is-fading')).toBe(true);
+        jest.advanceTimersByTime(250);
+
+        expect(chatContainer.querySelector('.nova-message')).toBeNull();
+        expect(chatContainer.querySelectorAll('.nova-welcome')).toHaveLength(1);
+	});
+
+	test('welcome renders the greeting and instructions as separate hierarchy levels', () => {
+		chatRenderer.addWelcomeMessage();
+
+		expect(chatContainer.querySelector('.nova-welcome-greeting').textContent)
+			.toBe("Hi! I'm Nova, your writing partner.");
+		expect(chatContainer.querySelector('.nova-welcome-instructions').textContent)
+			.toBe('Select text and right-click to transform it, or chat below to add content at your cursor.');
+		expect(chatContainer.querySelector('.nova-welcome-text')).toBeNull();
+	});
+
+	test('legacy success acknowledgement does not restore or suppress the welcome', () => {
         mockConversationManager.getRecentMessages.mockReturnValue([
             {
                 id: 'msg1',
                 role: 'system',
-                content: shortMessage,
+				content: '✓ Done',
                 timestamp: Date.now(),
                 metadata: {
                     messageType: 'nova-pill-success',
@@ -144,18 +170,20 @@ describe('Unified Message System Integration', () => {
                 }
             }
         ]);
-        
-        // Clear current messages and restore
-        while (chatContainer.firstChild) {
-            chatContainer.removeChild(chatContainer.firstChild);
-        }
+
         chatRenderer.loadConversationHistory({ path: 'test.md', name: 'test.md' });
 
-        // Verify restoration maintains styling
-        const restoredEl = chatContainer.querySelector('.nova-message');
-        expect(restoredEl).toBeTruthy();
-        expect(restoredEl.classList.contains('nova-pill-success')).toBe(true);
-        expect(restoredEl.textContent).toBe(shortMessage);
+        expect(chatContainer.querySelector('.nova-message')).toBeNull();
+        expect(chatContainer.querySelectorAll('.nova-welcome')).toHaveLength(1);
+    });
+
+    test('new success acknowledgement replaces an older transient acknowledgement', () => {
+        chatRenderer.addSuccessMessage('First acknowledgement');
+        chatRenderer.addSuccessMessage('Second acknowledgement');
+
+        const transientMessages = chatContainer.querySelectorAll('.nova-message-ephemeral');
+        expect(transientMessages).toHaveLength(1);
+        expect(transientMessages[0].textContent).toBe('✓ Second acknowledgement');
     });
 
     test('complete flow: long error message with persistence and restoration', async () => {
@@ -249,25 +277,18 @@ describe('Unified Message System Integration', () => {
         expect(chatRenderer.addMessage).toHaveBeenCalledWith('user', 'Hello Nova');
         expect(chatRenderer.addMessage).toHaveBeenCalledWith('assistant', 'Hello! How can I help?');
 
-        // Check that status messages are restored with styling
+        // Legacy success is skipped while the genuine error is restored.
         const statusMessages = chatContainer.querySelectorAll('.nova-message');
-        expect(statusMessages.length).toBe(2);
-        
-        expect(statusMessages[0].classList.contains('nova-pill-success')).toBe(true);
-        expect(statusMessages[0].textContent).toBe('✓ Text improved');
-        
-        expect(statusMessages[1].classList.contains('nova-bubble-error')).toBe(true);
-        expect(statusMessages[1].textContent).toBe('Error: Failed to process the request due to network timeout');
+        expect(statusMessages.length).toBe(1);
+        expect(statusMessages[0].classList.contains('nova-bubble-error')).toBe(true);
+        expect(statusMessages[0].textContent).toBe('Error: Failed to process the request due to network timeout');
+        expect(chatContainer.querySelector('.nova-welcome')).toBeNull();
     });
 
-    test('no duplicates: same styling across components', () => {
-        // Test that different components using the unified system produce identical styling
-        
-        // Add message through ChatRenderer
-        chatRenderer.addSuccessMessage('✓ Done', false);
+    test('success wrapper adds transient semantics to the shared success styling', () => {
+        chatRenderer.addSuccessMessage('✓ Done');
         const chatMessage = chatContainer.querySelector('.nova-message');
-        
-        // Clear and add message through unified system directly
+
         while (chatContainer.firstChild) {
             chatContainer.removeChild(chatContainer.firstChild);
         }
@@ -277,10 +298,33 @@ describe('Unified Message System Integration', () => {
             persist: false
         });
         const statusMessage = chatContainer.querySelector('.nova-message');
-        
-        // Both should have identical CSS classes
-        expect(chatMessage.className).toBe(statusMessage.className);
+
         expect(chatMessage.classList.contains('nova-pill-success')).toBe(true);
+        expect(chatMessage.classList.contains('nova-message-ephemeral')).toBe(true);
         expect(statusMessage.classList.contains('nova-pill-success')).toBe(true);
+        expect(statusMessage.classList.contains('nova-message-ephemeral')).toBe(false);
+    });
+
+    test('welcome is exclusive with restored and live conversation messages', () => {
+        mockConversationManager.getRecentMessages.mockReturnValue([]);
+        chatRenderer.loadConversationHistory({ path: 'empty.md', name: 'empty.md' });
+        expect(chatContainer.querySelectorAll('.nova-welcome')).toHaveLength(1);
+
+        chatRenderer.addMessage('user', 'Hi');
+        expect(chatContainer.querySelector('.nova-welcome')).toBeNull();
+        expect(chatContainer.querySelectorAll('.nova-message')).toHaveLength(1);
+
+        chatRenderer.clearChat(true);
+        expect(chatContainer.querySelectorAll('.nova-welcome')).toHaveLength(1);
+        expect(chatContainer.querySelector('.nova-message')).toBeNull();
+
+        mockConversationManager.getRecentMessages.mockReturnValue([
+            { id: 'user', role: 'user', content: 'History', timestamp: Date.now() },
+            { id: 'assistant', role: 'assistant', content: 'Response', timestamp: Date.now() }
+        ]);
+        chatRenderer.loadConversationHistory({ path: 'history.md', name: 'history.md' });
+
+        expect(chatContainer.querySelector('.nova-welcome')).toBeNull();
+        expect(chatContainer.querySelectorAll('.nova-message')).toHaveLength(2);
     });
 });

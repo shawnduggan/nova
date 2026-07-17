@@ -73,8 +73,10 @@ export class ConversationManager {
             throw new Error('Invalid or missing filePath');
         }
 
-        // Ensure messages array exists and is valid
-        const messages = Array.isArray(conv.messages) ? conv.messages : [];
+        // Cosmetic success acknowledgements from older releases are not conversation history.
+        const messages = Array.isArray(conv.messages)
+            ? conv.messages.filter(message => !this.isLegacySuccessAcknowledgement(message))
+            : [];
 
         // Ensure contextDocuments array exists and is valid
         let contextDocuments: ContextDocumentRef[] = [];
@@ -131,6 +133,19 @@ export class ConversationManager {
             property: typeof docObj.property === 'string' ? docObj.property : undefined,
             addedAt: typeof docObj.addedAt === 'number' ? docObj.addedAt : Date.now()
         };
+    }
+
+    private isLegacySuccessAcknowledgement(message: unknown): boolean {
+        if (!message || typeof message !== 'object') return false;
+
+        const messageRecord = message as Record<string, unknown>;
+        if (messageRecord.role !== 'system') return false;
+
+        const metadata = messageRecord.metadata;
+        if (!metadata || typeof metadata !== 'object') return false;
+
+        const messageType = (metadata as Record<string, unknown>).messageType;
+        return messageType === 'nova-pill-success' || messageType === 'nova-bubble-success';
     }
 
     /**

@@ -29,7 +29,7 @@ describe('Selection Context Menu Unified System', () => {
         jest.clearAllMocks();
     });
 
-    test('should call addSuccessMessage with persistence=true', () => {
+    test('should call addSuccessMessage without persistence', () => {
         // Simulate the SelectionContextMenu logic
         const addSuccessChatMessage = (actionId: string, originalText: string, customInstruction?: string) => {
             try {
@@ -44,8 +44,7 @@ describe('Selection Context Menu Unified System', () => {
                         
                         const message = `✓ ${actionDescription} text: "${truncatedText}"`;
                         
-                        // Use unified system with persistence
-                        sidebarView.chatRenderer.addSuccessMessage(message, true);
+                        sidebarView.chatRenderer.addSuccessMessage(message);
                     }
                 }
             } catch (error) {
@@ -66,8 +65,7 @@ describe('Selection Context Menu Unified System', () => {
         addSuccessChatMessage('improve', 'This is some test text', undefined);
 
         expect(mockChatRenderer.addSuccessMessage).toHaveBeenCalledWith(
-            '✓ Improved text: "This is some test text"',
-            true  // persistence should be true
+            '✓ Improved text: "This is some test text"'
         );
     });
 
@@ -120,7 +118,7 @@ describe('Selection Context Menu Unified System', () => {
                         : originalText;
                     
                     const message = `✓ ${actionDescription} text: "${truncatedText}"`;
-                    sidebarView.chatRenderer.addSuccessMessage(message, true);
+                    sidebarView.chatRenderer.addSuccessMessage(message);
                 }
             }
         };
@@ -129,8 +127,7 @@ describe('Selection Context Menu Unified System', () => {
         addSuccessChatMessage('improve', longText, undefined);
 
         expect(mockChatRenderer.addSuccessMessage).toHaveBeenCalledWith(
-            '✓ Improved text: "This is a very long piece of text that should be t..."',
-            true
+            '✓ Improved text: "This is a very long piece of text that should be t..."'
         );
     });
 
@@ -144,7 +141,7 @@ describe('Selection Context Menu Unified System', () => {
                 if (leaves.length > 0) {
                     // This shouldn't execute
                     const sidebarView = leaves[0].view;
-                    sidebarView.chatRenderer.addSuccessMessage('test', true);
+                    sidebarView.chatRenderer.addSuccessMessage('test');
                 }
             } catch (error) {
                 console.warn('Failed to add success chat message:', error);

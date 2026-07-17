@@ -36,7 +36,7 @@ describe('ConversationManager', () => {
             expect(mockDataStore.loadData).toHaveBeenCalledWith('nova-conversations');
         });
 
-        it('should load existing conversations from data store', async () => {
+		it('should load existing conversations from data store', async () => {
             const existingConversations = [{
                 filePath: 'existing.md',
                 messages: [{
@@ -63,9 +63,76 @@ describe('ConversationManager', () => {
 
             const conversation = newManager.getConversation(new TFile('existing.md'));
             expect(conversation.messages).toHaveLength(1);
-            expect(conversation.messages[0].content).toBe('Hello');
-        });
-    });
+			expect(conversation.messages[0].content).toBe('Hello');
+		});
+
+		it('should discard legacy success acknowledgements while preserving meaningful history', async () => {
+			const existingConversations = [{
+				filePath: 'existing.md',
+				messages: [
+					{
+						id: 'success',
+						role: 'system',
+						content: '✓ Switched to GPT-5.5',
+						timestamp: Date.now(),
+						metadata: { messageType: 'nova-pill-success' }
+					},
+					{
+						id: 'user',
+						role: 'user',
+						content: 'Keep this question',
+						timestamp: Date.now()
+					},
+					{
+						id: 'error',
+						role: 'system',
+						content: '❌ Keep this error',
+						timestamp: Date.now(),
+						metadata: { messageType: 'nova-bubble-error' }
+					}
+				],
+				lastUpdated: Date.now()
+			}];
+			const dataStore = {
+				loadData: jest.fn().mockResolvedValue(existingConversations),
+				saveData: jest.fn().mockResolvedValue(undefined),
+				registerInterval: jest.fn().mockImplementation((id) => id)
+			};
+			const manager = new ConversationManager(dataStore);
+			await manager.init();
+			const file = new TFile('existing.md');
+
+			expect(manager.getRecentMessages(file, 50).map(message => message.id)).toEqual(['user', 'error']);
+			expect(manager.getConversationContext(file)).not.toContain('Switched to GPT-5.5');
+			expect(manager.getConversationContext(file)).toContain('Keep this question');
+			expect(manager.hasConversation(file)).toBe(true);
+		});
+
+		it('should treat legacy-success-only history as an empty conversation', async () => {
+			const dataStore = {
+				loadData: jest.fn().mockResolvedValue([{
+					filePath: 'legacy-only.md',
+					messages: [{
+						id: 'success',
+						role: 'system',
+						content: '✓ Content edited',
+						timestamp: Date.now(),
+						metadata: { messageType: 'nova-bubble-success' }
+					}],
+					lastUpdated: Date.now()
+				}]),
+				saveData: jest.fn().mockResolvedValue(undefined),
+				registerInterval: jest.fn().mockImplementation((id) => id)
+			};
+			const manager = new ConversationManager(dataStore);
+			await manager.init();
+			const file = new TFile('legacy-only.md');
+
+			expect(manager.hasConversation(file)).toBe(false);
+			expect(manager.getRecentMessages(file, 50)).toEqual([]);
+			expect(manager.getConversationContext(file)).toBe('');
+		});
+	});
 
     describe('getConversation', () => {
         it('should create new conversation for new file', () => {

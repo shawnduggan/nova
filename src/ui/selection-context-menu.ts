@@ -519,7 +519,7 @@ export class SelectionContextMenu {
                 : originalText;
             
             const message = `✓ ${actionDescription} text: "${truncatedText}"`;
-            dispatchSidebarChatMessage('success', message, { persist: true });
+            dispatchSidebarChatMessage('success', message);
         } catch (error) {
             Logger.warn('Failed to add success chat message:', error);
         }

@@ -1112,7 +1112,7 @@
 
 /* Sidebar Container */
 .nova-sidebar-container {
-    --nova-sidebar-text-size: var(--font-ui-medium);
+    --nova-sidebar-text-size: var(--font-ui-small);
     --nova-sidebar-small-text-size: var(--font-ui-small);
     --nova-sidebar-tiny-text-size: var(--font-ui-smaller);
     flex: 1;
@@ -1198,7 +1198,7 @@
     padding: var(--size-2-3) var(--size-4-2);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
     max-width: 85% !important;
-    width: auto !important;
+    width: fit-content !important;
     display: block !important;
     font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
     font-weight: 400; /* Less prominent weight */
@@ -1207,8 +1207,8 @@
 /* Mobile chat content optimizations */
 .is-mobile .nova-message-user {
     max-width: 90%; /* More screen real estate on mobile */
-    padding: 8px 12px; /* Further reduced padding for density */
-    line-height: 1.4; /* Compact line height for secondary text */
+    padding: var(--size-4-2) var(--size-4-3);
+    line-height: var(--line-height-normal);
     font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
 }
 
@@ -1228,8 +1228,8 @@
 
 .is-mobile .nova-message-assistant {
     max-width: 90%; /* More screen real estate on mobile */
-    padding: 10px 14px; /* Reduced padding for better density */
-    line-height: 1.5; /* Comfortable reading for primary content */
+    padding: var(--size-4-2) var(--size-4-3);
+    line-height: var(--line-height-normal);
     font-size: var(--nova-sidebar-text-size, var(--font-ui-medium));
 }
 
@@ -2106,41 +2106,6 @@
 
 /* Custom dropdown styles removed - now using native DropdownComponent */
 
-/* Privacy Status Pill Styles */
-.nova-status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px; /* Increased gap for better spacing */
-    padding: 3px 8px; /* Increased padding for better visual appearance */
-    border-radius: 8px; /* Smaller radius */
-    font-size: var(--nova-sidebar-tiny-text-size, var(--font-ui-smaller));
-    font-weight: 400; /* Less prominent */
-    transition: background-color 0.2s ease;
-}
-
-/* Mobile typography improvements */
-.is-mobile .nova-status-pill {
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
-    padding: 4px 8px; /* Consistent padding with desktop */
-}
-
-.nova-status-pill.local {
-    background: rgba(76, 175, 80, 0.15);
-    color: var(--text-success);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.nova-status-pill.cloud {
-    background: rgba(255, 152, 0, 0.15);
-    color: var(--text-warning);
-    border: 1px solid rgba(255, 152, 0, 0.3);
-}
-
-.nova-status-icon svg {
-    width: 14px;
-    height: 14px;
-}
-
 /* System Message Styles */
 .nova-message-system {
     margin: 0 auto !important;
@@ -2170,6 +2135,20 @@
     max-width: 200px !important;
     padding: 8px 12px !important;
     display: block !important;
+}
+
+.nova-message-ephemeral {
+    transition: opacity 250ms ease;
+}
+
+.nova-message-ephemeral.is-fading {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nova-message-ephemeral {
+        transition: none;
+    }
 }
 
 .nova-pill-system {
@@ -2379,12 +2358,6 @@
 
 
 /* Mobile dropdown spacing removed - using native DropdownComponent */
-
-/* Better spacing for status pills */
-.is-mobile .nova-status-pill {
-    margin: 0 4px; /* Space around status indicators */
-}
-
 
 .is-mobile .nova-message {
     margin-bottom: 8px !important; /* Dramatically reduced from 16px */
@@ -2701,7 +2674,7 @@
 
 /* Chat Welcome Message Styles */
 .nova-welcome {
-    padding: 20px;
+    padding: var(--size-4-3);
     margin-bottom: var(--size-4-3);
     background: var(--background-primary);
     border-radius: var(--radius-s);
@@ -2718,7 +2691,7 @@
     width: 32px;
     height: 32px;
     color: var(--interactive-accent);
-    margin-bottom: var(--size-4-2);
+    margin-bottom: var(--size-2-3);
 }
 
 .nova-welcome-icon svg {
@@ -2726,28 +2699,30 @@
     height: 32px !important;
 }
 
-.nova-welcome-text {
+.nova-welcome-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+    align-self: stretch;
+}
+
+.nova-welcome-greeting,
+.nova-welcome-instructions {
     margin: 0;
-    margin-left: var(--size-2-3);
+    line-height: var(--line-height-normal);
+    text-align: left;
+}
+
+.nova-welcome-greeting {
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-bold);
+    color: var(--text-normal);
+}
+
+.nova-welcome-instructions {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-normal);
     color: var(--text-muted);
-    font-size: var(--nova-sidebar-text-size, var(--font-ui-medium));
-    line-height: 1.4;
-    text-align: left;
-    align-self: flex-start;
-}
-
-/* Document Insights Message Styles */
-.nova-insights {
-    background: var(--background-modifier-hover) !important;
-    color: var(--text-muted) !important;
-    text-align: left !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-}
-
-.nova-insights-content {
-    white-space: pre-line;
-    text-align: left;
 }
 
 /* ===== REPLACEMENT CSS CLASSES FOR INLINE STYLES ===== */
@@ -2848,6 +2823,7 @@
     padding: var(--size-4-2);
     border-bottom: 1px solid var(--background-modifier-border);
     flex-shrink: 0;
+    container: nova-sidebar-header / inline-size;
 }
 
 .nova-header-top-row {
@@ -2855,6 +2831,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--size-2-3);
+    width: 100%;
     min-width: 0;
 }
 
@@ -2888,21 +2865,122 @@
     min-height: 24px; /* Match title height for consistent alignment */
     flex: 1 1 auto;
     min-width: 0;
-    justify-content: flex-start;
+    justify-content: flex-end;
 }
 
-.nova-sidebar-header .nova-provider-dropdown-container {
-    flex: 1 1 auto;
+.nova-model-status-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 0 1 220px;
+    min-width: 108px;
+    max-width: 220px;
+    min-height: 44px;
+}
+
+.nova-model-status-pill {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: var(--size-2-1);
+    width: 100%;
+    height: 32px;
+    padding: 0 var(--size-4-2);
+    color: var(--text-muted);
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    font-family: var(--font-interface);
+    font-size: var(--font-ui-small);
+    line-height: 1;
+    pointer-events: none;
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.nova-model-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.nova-model-status-pill.is-configured .nova-model-status-dot {
+    background: var(--text-success);
+}
+
+.nova-model-status-pill.is-pending .nova-model-status-dot {
+    background: transparent;
+    border: 1px solid var(--text-warning);
+}
+
+.nova-model-status-pill.is-error .nova-model-status-dot {
+    background: var(--text-error);
+    border-radius: 1px;
+    transform: rotate(45deg);
+}
+
+.nova-model-status-name {
     min-width: 0;
+    overflow: hidden;
+    color: var(--text-normal);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nova-model-status-separator {
+    color: var(--text-faint);
+}
+
+.nova-model-status-privacy-icon {
+    display: flex;
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+}
+
+.nova-model-status-privacy-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+.nova-model-status-privacy-label {
+    white-space: nowrap;
+}
+
+.nova-model-status-control .nova-provider-dropdown-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
     max-width: none;
 }
 
-.nova-sidebar-header .nova-provider-dropdown-select {
+.nova-model-status-control .nova-provider-dropdown-select {
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
+    min-height: 44px;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.nova-model-status-control:focus-within .nova-model-status-pill {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+@media (hover: hover) {
+    .nova-model-status-control:hover .nova-model-status-pill {
+        background: var(--background-modifier-hover);
+    }
 }
 
 .nova-sidebar-header .nova-clear-button {
-    flex: 0 0 32px;
+    flex: 0 0 44px;
 }
 
 .nova-clear-button {
@@ -2960,38 +3038,11 @@
     font-weight: 500;
 }
 
-.nova-privacy-indicator-styled {
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-1);
-    padding: var(--size-2-1) var(--size-2-2);
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-    font-size: var(--font-ui-smaller);
-    color: var(--text-muted);
-    font-weight: 500;
-    cursor: help;
-    transition: all 0.2s ease;
-}
-
-.nova-privacy-icon {
-    width: 12px;
-    height: 12px;
-    fill: currentColor;
-    flex-shrink: 0;
-}
-
-.nova-privacy-label {
-    line-height: 1;
-}
-
 .is-desktop .nova-sidebar-header {
     flex-direction: row;
     align-items: center;
     gap: var(--size-2-3);
     padding: var(--size-4-1) var(--size-4-2);
-    container: nova-sidebar-header / inline-size;
 }
 
 .is-desktop .nova-header-top-row {
@@ -3011,14 +3062,12 @@
     min-height: 32px;
 }
 
-.is-desktop .nova-sidebar-header .nova-provider-dropdown-container {
-    flex: 1 1 120px;
-    min-width: 72px;
+.is-desktop .nova-sidebar-header .nova-model-status-control {
+    flex: 0 1 220px;
 }
 
 @container nova-sidebar-header (max-width: 310px) {
-    .nova-header-title > span:last-child,
-    .nova-privacy-label {
+    .nova-header-title > span:last-child {
         display: none;
     }
 
@@ -3026,12 +3075,15 @@
         gap: 0;
     }
 
-    .nova-privacy-indicator-styled {
-        padding: var(--size-2-2);
+    .nova-model-status-control {
+        flex: 1 1 0;
+        min-width: 0;
     }
+}
 
-    .nova-sidebar-header .nova-provider-dropdown-container {
-        min-width: 64px;
+@container nova-sidebar-header (max-width: 220px) {
+    .nova-header-title {
+        display: none;
     }
 }
 
@@ -3342,7 +3394,7 @@
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
     color: var(--text-normal);
-    font-size: 13px;
+    font-size: var(--font-ui-small);
     font-weight: 500;
     cursor: pointer;
     padding: 0 var(--size-2-3);
@@ -3383,7 +3435,7 @@
     min-width: 0;
     max-width: 100%;
     width: 100%;
-    font-size: 12px;
+    font-size: var(--font-ui-small);
     padding: 0 var(--size-2-3);
     padding-right: calc(var(--size-2-3) + 16px); /* Make room for arrow on mobile */
     min-height: 32px;

@@ -23,6 +23,8 @@ export class ChatRenderer {
 	private plugin: NovaPlugin;
 	private chatContainer: HTMLElement;
 	private static readonly SCROLL_DELAY_MS = 50;
+	private static readonly SUCCESS_VISIBLE_DURATION_MS = 3000;
+	private static readonly SUCCESS_FADE_DURATION_MS = 250;
 	private timeoutManager = new TimeoutManager();
 
 	constructor(plugin: NovaPlugin, chatContainer: HTMLElement) {
@@ -34,7 +36,8 @@ export class ChatRenderer {
 	 * Add a chat message with role header
 	 */
 	addMessage(role: 'user' | 'assistant' | 'system', content: string): void {
-		
+		this.removeWelcomeMessage();
+
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 
 		messageEl.createEl('div', { 
@@ -52,7 +55,9 @@ export class ChatRenderer {
 	/**
 	 * Unified message creation - determines CSS class at creation time
 	 */
-	addStatusMessage(content: string, options: MessageOptions): void {
+	addStatusMessage(content: string, options: MessageOptions): HTMLElement {
+		this.removeWelcomeMessage();
+
 		// Determine CSS class based on type and variant
 		const cssClass = this.getMessageCSSClass(content, options);
 		
@@ -78,6 +83,7 @@ export class ChatRenderer {
 		}
 
 		this.scrollToBottom();
+		return messageEl;
 	}
 
 	private getMessageCSSClass(content: string, options: MessageOptions): string {
@@ -134,13 +140,23 @@ export class ChatRenderer {
 	}
 
 	// Simple wrapper methods for backward compatibility
-	addSuccessMessage(content: string, persist: boolean = false): void {
+	addSuccessMessage(content: string): void {
+		this.chatContainer
+			.querySelectorAll('.nova-message-ephemeral')
+			.forEach(messageEl => messageEl.remove());
+
 		// Auto-prepend checkmark if not already present
 		if (!content.startsWith('✓ ') && !content.includes('<svg')) {
 			content = '✓ ' + content;
 		}
-		// Always use pills for success messages to maintain consistency
-		this.addStatusMessage(content, { type: 'pill', variant: 'success', persist });
+
+		const messageEl = this.addStatusMessage(content, {
+			type: 'pill',
+			variant: 'success',
+			persist: false
+		});
+		messageEl.addClass('nova-message-ephemeral');
+		this.dismissSuccessMessage(messageEl);
 	}
 
 	addErrorMessage(content: string, persist: boolean = false): void {
@@ -162,6 +178,13 @@ export class ChatRenderer {
 	}
 
 	addWelcomeMessage(_message?: string): void {
+		if (
+			this.chatContainer.querySelector('.nova-message')
+			|| this.chatContainer.querySelector('.nova-welcome')
+		) {
+			return;
+		}
+
 		const welcomeEl = this.chatContainer.createDiv({ cls: 'nova-welcome' });
 
 		// Create welcome content using DOM API
@@ -171,16 +194,42 @@ export class ChatRenderer {
 		const iconDiv = contentDiv.createDiv({ cls: 'nova-welcome-icon' });
 		setIcon(iconDiv, 'nova-star');
 		
-		// Add welcome text
-		const textP = contentDiv.createEl('p', { cls: 'nova-welcome-text' });
-		textP.textContent = "Hi! I'm Nova, your AI writing partner — select any text and right-click to transform it directly, or chat with me to add content where your cursor is";
+		// Add welcome copy
+		const copyDiv = contentDiv.createDiv({ cls: 'nova-welcome-copy' });
+		copyDiv.createEl('p', {
+			cls: 'nova-welcome-greeting',
+			text: "Hi! I'm Nova, your writing partner."
+		});
+		copyDiv.createEl('p', {
+			cls: 'nova-welcome-instructions',
+			text: 'Select text and right-click to transform it, or chat below to add content at your cursor.'
+		});
 
 		this.scrollToBottom(true);
 	}
 
+	private removeWelcomeMessage(): void {
+		this.chatContainer.querySelector('.nova-welcome')?.remove();
+	}
 
-	clearChat(): void {
+	private dismissSuccessMessage(messageEl: HTMLElement): void {
+		this.timeoutManager.addTimeout(() => {
+			if (!messageEl.isConnected) return;
+			messageEl.addClass('is-fading');
+
+			this.timeoutManager.addTimeout(() => {
+				messageEl.remove();
+				this.addWelcomeMessage();
+			}, ChatRenderer.SUCCESS_FADE_DURATION_MS);
+		}, ChatRenderer.SUCCESS_VISIBLE_DURATION_MS);
+	}
+
+	clearChat(showWelcome: boolean = false): void {
+		this.timeoutManager.clearAll();
 		this.chatContainer.empty();
+		if (showWelcome) {
+			this.addWelcomeMessage();
+		}
 	}
 
 	private scrollToBottom(smooth: boolean = false): void {
@@ -197,15 +246,15 @@ export class ChatRenderer {
 	}
 
 	loadConversationHistory(file: TFile): void {
+		this.clearChat();
 		const messages = this.plugin.conversationManager.getRecentMessages(file, 50);
-		
-		if (messages.length === 0) {
-			// No conversation exists - show welcome message
-			this.addWelcomeMessage();
-			return;
-		}
-		
+
+		let renderedMessageCount = 0;
 		for (const message of messages) {
+			if (this.isLegacySuccessAcknowledgement(message)) {
+				continue;
+			}
+
 			if (message.role === 'system' && message.metadata?.messageType) {
 				// Restore system message with original styling
 				const messageEl = this.chatContainer.createDiv({ 
@@ -219,9 +268,23 @@ export class ChatRenderer {
 				// Regular user/assistant messages
 				this.addMessage(message.role, message.content);
 			}
+			renderedMessageCount++;
 		}
-		
+
+		if (renderedMessageCount === 0) {
+			this.addWelcomeMessage();
+		}
+
 		this.scrollToBottom();
+	}
+
+	private isLegacySuccessAcknowledgement(message: {
+		role: string;
+		metadata?: { messageType?: string };
+	}): boolean {
+		const messageType = message.metadata?.messageType;
+		return message.role === 'system'
+			&& (messageType === 'nova-pill-success' || messageType === 'nova-bubble-success');
 	}
 
 	/**

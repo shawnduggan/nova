@@ -5,7 +5,7 @@
 // @ts-nocheck - Temporary disable type checking for this test due to complex mock types
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { App, TFile, Vault, Workspace, MarkdownView, Editor } from 'obsidian';
-import { NovaSidebarView } from '../../src/ui/sidebar-view';
+import { NovaSidebarView, buildModelStatusPillDetails } from '../../src/ui/sidebar-view';
 import { StreamingManager } from '../../src/ui/streaming-manager';
 import { MAX_WRITING_ANALYSIS_CHAR_LENGTH } from '../../src/core/writing-analysis';
 import NovaPlugin from '../../main';
@@ -79,10 +79,30 @@ describe('Streaming Completion Updates', () => {
                 analyzeCurrentContext: jest.fn()
             }
         };
-        (sidebar as any).streamingManager = new StreamingManager(mockPlugin as any);
-    });
+		(sidebar as any).streamingManager = new StreamingManager(mockPlugin as any);
+	});
 
-    it('should update document stats after streaming completes', async () => {
+	it('should clean up chat renderer timers when the sidebar closes', async () => {
+		const cleanup = jest.fn();
+		(sidebar as any).chatRenderer = { cleanup };
+
+		await sidebar.onClose();
+
+		expect(cleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it('should persist sidebar error events by default', () => {
+		const addErrorMessage = jest.fn();
+		(sidebar as any).chatRenderer = { addErrorMessage };
+
+		(sidebar as any).handleSidebarChatMessage(new CustomEvent('nova-sidebar:chat-message', {
+			detail: { type: 'error', content: 'Something failed' }
+		}));
+
+		expect(addErrorMessage).toHaveBeenCalledWith('Something failed', true);
+	});
+
+	it('should update document stats after streaming completes', async () => {
         // Setup initial state
         const initialContent = '# Test Document\n\nShort content.';
         const streamedContent = '# Test Document\n\nThis is much longer content that was added through streaming. It has multiple sentences and more words than before.';
@@ -218,50 +238,88 @@ describe('Streaming Completion Updates', () => {
         }
     });
 
-    it('should place one desktop privacy indicator immediately before clear conversation', () => {
-        const headerEl = document.createElement('div');
-        const headerControls = document.createElement('div');
-        headerControls.className = 'nova-header-right-container';
-        const modelEl = document.createElement('select');
-        const clearButton = document.createElement('button');
-        clearButton.className = 'nova-clear-button';
-        headerControls.append(modelEl, clearButton);
+    it('should describe a configured cloud model in one persistent status value', () => {
+        const details = buildModelStatusPillDetails({
+            modelLabel: 'GPT-5.5',
+            providerType: 'openai',
+            isLocal: false,
+            isAvailable: true,
+            providerStatus: 'connected'
+        });
 
-        const statsRightContainer = document.createElement('div');
-        statsRightContainer.className = 'nova-stats-right-container';
-        const privacyEl = document.createElement('div');
-        privacyEl.className = 'nova-privacy-indicator';
-        statsRightContainer.appendChild(privacyEl);
-        headerEl.append(headerControls, statsRightContainer);
-
-        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
-        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
-
-        expect(Array.from(headerControls.children)).toEqual([modelEl, privacyEl, clearButton]);
-        expect(headerEl.querySelectorAll('.nova-privacy-indicator')).toHaveLength(1);
+        expect(details).toEqual({
+            modelLabel: 'GPT-5.5',
+            privacyLabel: 'Cloud',
+            privacyIcon: 'cloud',
+            privacyTooltip: 'Cloud processing - data sent to provider',
+            statusKind: 'configured',
+            statusLabel: 'Configured',
+            accessibleLabel: 'GPT-5.5 · Cloud. Configured. Select model.'
+        });
     });
 
-    it('should move privacy from a mobile stats row beside clear conversation', () => {
-        const headerEl = document.createElement('div');
-        const headerControls = document.createElement('div');
-        headerControls.className = 'nova-header-right-container';
-        const modelEl = document.createElement('select');
-        const clearButton = document.createElement('button');
-        clearButton.className = 'nova-clear-button';
-        headerControls.append(modelEl, clearButton);
+    it('should describe a configured local model with local-processing semantics', () => {
+        const details = buildModelStatusPillDetails({
+            modelLabel: 'Qwen 3',
+            providerType: 'ollama',
+            isLocal: true,
+            isAvailable: true,
+            providerStatus: 'connected'
+        });
 
-        const statsRightContainer = document.createElement('div');
-        const tokenEl = document.createElement('div');
-        tokenEl.className = 'nova-token-usage';
-        const privacyEl = document.createElement('div');
-        privacyEl.className = 'nova-privacy-indicator';
-        statsRightContainer.append(privacyEl, tokenEl);
-        headerEl.append(headerControls, statsRightContainer);
+        expect(details.privacyLabel).toBe('Local');
+        expect(details.privacyIcon).toBe('shield-check');
+        expect(details.privacyTooltip).toBe('Local processing - data stays on your device');
+        expect(details.statusKind).toBe('configured');
+        expect(details.accessibleLabel).toBe('Qwen 3 · Local. Configured. Select model.');
+    });
 
-        (sidebar as any).positionPrivacyIndicator(headerEl, privacyEl);
+    it.each([
+        ['testing', 'pending', 'Connection not verified'],
+        ['untested', 'pending', 'Connection not verified'],
+        ['error', 'error', 'Provider unavailable']
+    ])('should preserve model and privacy for %s provider status', (providerStatus, statusKind, statusLabel) => {
+        const details = buildModelStatusPillDetails({
+            modelLabel: 'Claude Sonnet',
+            providerType: 'claude',
+            isLocal: false,
+            isAvailable: false,
+            providerStatus
+        });
 
-        expect(Array.from(headerControls.children)).toEqual([modelEl, privacyEl, clearButton]);
-        expect(Array.from(statsRightContainer.children)).toEqual([tokenEl]);
+        expect(details.modelLabel).toBe('Claude Sonnet');
+        expect(details.privacyLabel).toBe('Cloud');
+        expect(details.statusKind).toBe(statusKind);
+        expect(details.statusLabel).toBe(statusLabel);
+    });
+
+    it('should report the no-provider state accessibly', () => {
+        const details = buildModelStatusPillDetails({
+            modelLabel: '',
+            providerType: null,
+            isLocal: false,
+            isAvailable: false
+        });
+
+        expect(details.modelLabel).toBe('No model');
+        expect(details.privacyLabel).toBe('Unavailable');
+        expect(details.privacyIcon).toBe('help-circle');
+        expect(details.statusKind).toBe('error');
+        expect(details.accessibleLabel).toBe('No model · Unavailable. Provider unavailable. Select model.');
+    });
+
+    it('should not describe a provider without a selected model as configured', () => {
+        const details = buildModelStatusPillDetails({
+            modelLabel: '',
+            providerType: 'openai',
+            isLocal: false,
+            isAvailable: false,
+            providerStatus: 'connected'
+        });
+
+        expect(details.modelLabel).toBe('No model');
+        expect(details.privacyLabel).toBe('Cloud');
+        expect(details.statusKind).toBe('error');
     });
 });
 

@@ -46,7 +46,7 @@ describe('Conversation History Restoration', () => {
         jest.clearAllMocks();
     });
 
-    test('should restore system messages with original styling', async () => {
+    test('should skip legacy success acknowledgements while restoring genuine errors', async () => {
         // Simulate conversation with metadata
         const messages = [
             {
@@ -78,6 +78,13 @@ describe('Conversation History Restoration', () => {
             const messages = await mockConversationManager.getRecentMessages(file, 50);
             
             for (const message of messages) {
+                if (
+                    message.role === 'system'
+                    && ['nova-pill-success', 'nova-bubble-success'].includes(message.metadata?.messageType)
+                ) {
+                    continue;
+                }
+
                 if (message.role === 'system' && message.metadata?.messageType) {
                     // Restore system message with original styling
                     const messageEl = document.createElement('div');
@@ -102,15 +109,9 @@ describe('Conversation History Restoration', () => {
         await loadConversationHistory({ path: 'test.md' });
         
         const messageElements = chatContainer.querySelectorAll('.nova-message');
-        expect(messageElements.length).toBe(2);
-        
-        // Check first message (success pill)
-        expect(messageElements[0].classList.contains('nova-pill-success')).toBe(true);
-        expect(messageElements[0].textContent).toBe('✓ Success message');
-        
-        // Check second message (error bubble)
-        expect(messageElements[1].classList.contains('nova-bubble-error')).toBe(true);
-        expect(messageElements[1].textContent).toBe('Error occurred in processing');
+        expect(messageElements.length).toBe(1);
+        expect(messageElements[0].classList.contains('nova-bubble-error')).toBe(true);
+        expect(messageElements[0].textContent).toBe('Error occurred in processing');
         
         // Verify conversation manager was called
         expect(mockConversationManager.getRecentMessages).toHaveBeenCalledWith({ path: 'test.md' }, 50);
@@ -162,7 +163,7 @@ describe('Conversation History Restoration', () => {
         expect(messageElements.length).toBe(0);
     });
 
-    test('should handle SVG content in restored messages', async () => {
+    test('should not restore legacy success acknowledgements containing SVG content', async () => {
         const messages = [
             {
                 id: 'msg1',
@@ -182,6 +183,13 @@ describe('Conversation History Restoration', () => {
             const messages = await mockConversationManager.getRecentMessages(file, 50);
             
             for (const message of messages) {
+                if (
+                    message.role === 'system'
+                    && ['nova-pill-success', 'nova-bubble-success'].includes(message.metadata?.messageType)
+                ) {
+                    continue;
+                }
+
                 if (message.role === 'system' && message.metadata?.messageType) {
                     const messageEl = document.createElement('div');
                     messageEl.className = `nova-message ${message.metadata.messageType}`;
@@ -199,11 +207,7 @@ describe('Conversation History Restoration', () => {
         };
 
         await loadConversationHistory({ path: 'test.md' });
-        
-        const messageEl = chatContainer.querySelector('.nova-message') as HTMLElement;
-        const contentEl = messageEl.querySelector('.nova-message-content') as HTMLElement;
-        
-        expect(contentEl.textContent).toContain('<svg>');
-        expect(contentEl.textContent).toContain('Success with icon');
+
+        expect(chatContainer.querySelector('.nova-message')).toBeNull();
     });
 });
