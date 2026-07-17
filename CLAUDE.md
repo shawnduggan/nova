@@ -18,6 +18,7 @@
 - At the start of every new task, inspect the current branch and working tree, then fetch `origin/main`.
 - Treat `origin/main` as the authoritative production baseline unless the user explicitly names another base.
 - Create the task branch from the freshly fetched `origin/main`; never rely on a potentially stale local `main`.
+- **ACTIVE RELEASE CONTINUITY** — Once a release branch is established, treat it as the baseline for every remaining task in that release. Stay on that branch and do not merge, rebase, switch to, or otherwise sync from `origin/main` between release tasks unless the user explicitly requests it. The normal `origin/main` baseline rule resumes when starting a different release or unrelated task.
 - If local changes or branch work would block synchronization, stop and ask whether the user wants it preserved before stashing, resetting, switching branches, or otherwise changing the working tree. Never assume preservation or disposal, and never reset, overwrite, stash, or discard user work without explicit authorization.
 
 ### Quality Gates (ALL MUST PASS)

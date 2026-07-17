@@ -91,6 +91,7 @@ Use the existing Claude Code project intelligence as the canonical source of rep
 
 ## Shared Rules (all agents)
 - Enforce Nova’s `CLAUDE.md` engineering principles.
+- Release continuity: all tasks in an active release remain on its release branch; do not sync it with `origin/main` between tasks unless explicitly requested.
 - Contracts: Never break provider/UI/StateManager interfaces.
 - Architecture: Event-driven only; UI listens to state; explicit `init()`.
 - Constants in `constants.ts` or `config.ts`.
