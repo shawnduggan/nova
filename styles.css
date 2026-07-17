@@ -4327,13 +4327,13 @@
     justify-content: center;
     width: 18px;
     height: 18px;
-    color: var(--nav-collapse-icon-color, var(--text-faint));
+    color: var(--text-muted);
 }
 
 .nova-quick-panel-label {
-    font-size: var(--font-ui-medium);
+    font-size: var(--font-ui-small);
     font-weight: var(--font-medium);
-    color: var(--interactive-accent);
+    color: var(--text-muted);
 }
 
 .nova-quick-panel-info {
@@ -4522,13 +4522,13 @@
     justify-content: center;
     width: 18px;
     height: 18px;
-    color: var(--nav-collapse-icon-color, var(--text-faint));
+    color: var(--text-muted);
 }
 
 .nova-writing-panel-label {
-    font-size: var(--font-ui-medium);
+    font-size: var(--font-ui-small);
     font-weight: var(--font-medium);
-    color: var(--interactive-accent);
+    color: var(--text-muted);
 }
 
 .nova-writing-panel-info {
@@ -6190,7 +6190,7 @@ button.nova-prose-linter-category:hover {
 }
 
 .is-mobile .nova-quick-panel-chevron {
-    color: var(--text-faint);
+    color: var(--text-muted);
 }
 
 .is-mobile .nova-quick-panel-body {
@@ -6233,9 +6233,9 @@ button.nova-prose-linter-category:hover {
 }
 
 .is-mobile .nova-quick-panel-label {
-    font-size: var(--font-ui-medium);
+    font-size: var(--font-ui-small);
     font-weight: var(--font-normal);
-    color: var(--interactive-accent);
+    color: var(--text-muted);
 }
 
 .is-mobile .nova-quick-panel-toggle-label {
@@ -6258,13 +6258,13 @@ button.nova-prose-linter-category:hover {
 }
 
 .is-mobile .nova-writing-panel-chevron {
-    color: var(--text-faint);
+    color: var(--text-muted);
 }
 
 .is-mobile .nova-writing-panel-label {
-    font-size: var(--font-ui-medium);
+    font-size: var(--font-ui-small);
     font-weight: var(--font-normal);
-    color: var(--interactive-accent);
+    color: var(--text-muted);
 }
 
 .is-mobile .nova-writing-panel-info {
