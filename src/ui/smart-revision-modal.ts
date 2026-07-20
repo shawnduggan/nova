@@ -104,7 +104,7 @@ export class SmartRevisionModal extends Modal {
 		const previewEl = this.contentEl.createDiv({ cls: 'nova-smart-revision-preview' });
 		previewEl.createDiv({
 			cls: 'nova-smart-revision-preview-copy',
-			text: 'Smart Revision is a Supernova advanced revision feature. Preview the review shape below without using an AI call.'
+			text: 'Smart Revision is a premium feature unlocked by Supernova. Preview the review shape below without using an AI call.'
 		});
 		const cardsEl = previewEl.createDiv({ cls: 'nova-smart-revision-card-list' });
 		this.renderStaticPreviewCard(cardsEl, 'Split long sentence', 'Grade 11 to 8', 'Low risk');

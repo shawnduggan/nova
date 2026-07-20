@@ -30,7 +30,7 @@ describe('SmartRevisionModal', () => {
 
 		modal.open();
 
-		expect(modal.contentEl.textContent).toContain('Supernova advanced revision feature');
+		expect(modal.contentEl.textContent).toContain('premium feature unlocked by Supernova');
 		expect(modal.contentEl.textContent).toContain('Unlock Smart Revision with Supernova');
 		expect(modal.contentEl.textContent).toContain('Split long sentence');
 		expect(service.generateSession).not.toHaveBeenCalled();

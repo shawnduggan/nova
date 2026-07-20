@@ -1,16 +1,17 @@
 # Nova User Guide
 
-Nova is an AI writing partner for Obsidian that enables direct, in-place editing of your documents. Unlike traditional AI tools that require copying and pasting, Nova writes exactly where you want it—right in your notes with real-time streaming updates.
+Nova is an AI writing editor for Obsidian that enables direct, in-place editing of your documents. Unlike traditional AI tools that require copying and pasting, Nova works exactly where you choose—right in your notes with real-time streaming updates.
 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
 2. [Selection-Based Editing](#selection-based-editing)
-3. [Chat Commands & Cursor-Based Editing](#chat-commands--cursor-based-editing)
-4. [Document Context System](#document-context-system)
-5. [AI Provider Management](#ai-provider-management)
-6. [Advanced Features](#advanced-features)
-7. [Troubleshooting](#troubleshooting)
+3. [Smart Revision](#smart-revision)
+4. [Chat Commands & Cursor-Based Editing](#chat-commands--cursor-based-editing)
+5. [Document Context System](#document-context-system)
+6. [AI Provider Management](#ai-provider-management)
+7. [Advanced Features](#advanced-features)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -109,6 +110,33 @@ Selection-based editing is perfect for quick transformations of existing text. S
 - Adding new content
 - Combining multiple operations
 - Need more control over the editing process
+
+---
+
+## Smart Revision
+
+Smart Revision is a Supernova workflow for controlled, reviewable editing. It creates a proposal without changing the note, then lets you decide which edits to accept.
+
+### Create a revision
+
+1. Select a passage in an editable Markdown note.
+2. Right-click and choose **Smart revision**, or run **Smart revision** from the command palette.
+3. Choose a pass: Clarity, Tighten, Flow, or More Human.
+4. Choose a conservative, balanced, or bold posture.
+5. Set guardrails and optionally add audience, goals, terms to preserve, or extra direction.
+6. Create the proposal using your configured AI provider.
+
+### Review before applying
+
+- Compare the original and proposed wording in the inline diff.
+- Review before-and-after clarity impact and meaning-risk signals.
+- Accept safe cards together, or accept and reject cards individually.
+- Review high-risk cards individually before applying anything.
+- Apply only the accepted cards when the result is ready.
+
+Nova records the selected passage when the revision begins and keeps it as the session snapshot. The review includes **Restore original**. If the passage changes before you apply the proposal, Nova refuses to apply the stale result.
+
+Smart Revision requires active Supernova access and uses your configured AI provider and API key. Supernova does not include hosted AI credits. Without Supernova access, Nova shows a static workflow preview without making an AI request.
 
 ---
 
@@ -574,7 +602,6 @@ remove unused properties
 2. Review Obsidian console for error messages (Ctrl+Shift+I)
 3. Try disabling other plugins to identify conflicts
 4. Report bugs through the plugin's GitHub repository
-5. Join the community discussions for user tips and solutions
 
 ---
 

@@ -322,7 +322,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const benefitsContent = benefitsSection.createDiv({ cls: 'nova-benefits-content' });
 		// Create benefits content using DOM API
 		const benefitsP = benefitsContent.createEl('p', { cls: 'nova-benefits-intro' });
-		benefitsP.textContent = 'Support Nova development and unlock advanced AI revision workflows. Nova\'s free core stays free.';
+		benefitsP.textContent = 'Supernova unlocks Nova\'s premium features. Smart revision is the first, and your purchase helps fund Nova\'s free core.';
 		
 		const benefitsList = benefitsContent.createDiv({ cls: 'nova-benefits-list' });
 		
@@ -335,16 +335,16 @@ export class NovaSettingTab extends PluginSettingTab {
 			content.createSpan({ text: description });
 		};
 		
-		createBenefitItem('✨', 'Advanced revision', 'Unlock Smart Revision and future reviewable AI editing workflows');
-		createBenefitItem('🧬', 'Voice Match next', 'Get the next Supernova revision workflow when it ships');
-		createBenefitItem('💬', 'Priority support', 'Direct access to developers for feature requests and bug reports');
-		createBenefitItem('🗳️', 'Vote on features', 'Help shape Nova\'s development and future direction');
+		createBenefitItem('✨', 'Smart Revision', 'Review grouped AI edits before the note changes');
+		createBenefitItem('⚠️', 'Meaning-risk checks', 'Hold potentially meaning-changing edits for individual review');
+		createBenefitItem('⇄', 'Before-and-after impact', 'Compare proposed wording and local clarity metrics');
+		createBenefitItem('🔐', 'Private by design', 'Uses your configured AI provider; Nova adds no telemetry');
 		createBenefitItem('❤️', 'Open source support', 'Directly fund continued development of Nova');
 		
 		
 		// Add closing message
 		const closingP = benefitsContent.createEl('p', { cls: 'nova-benefits-closing' });
-		closingP.textContent = 'Your support keeps Nova\'s free core available for everyone';
+		closingP.textContent = 'Your purchase supports continued development while Nova\'s free core remains available to everyone';
 		
 		// License settings section - styled like API keys
 		const licenseSection = container.createDiv({ cls: 'nova-provider-section nova-license-section' });
@@ -1115,7 +1115,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		const infoEl = licenseContainer.createDiv({ cls: 'nova-model-info' });
 		const infoCard = infoEl.createDiv({ cls: 'nova-info-card compact' });
 		const infoText = infoCard.createEl('p');
-		infoText.textContent = 'Nova\'s free core works with your own AI provider API keys. Supernova unlocks advanced AI revision workflows such as smart revision.';
+		infoText.textContent = 'Nova\'s free core works with your own AI provider API keys. Supernova unlocks Nova\'s premium features, beginning with smart revision.';
 
 		// Current Supernova status
 		const isSupernova = this.plugin.featureManager?.isSupernovaSupporter() || false;
@@ -1123,7 +1123,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const statusDisplay = licenseContainer.createDiv({ cls: 'nova-supernova-status' });
 		const badge = this.getLicenseBadge(supernovaLicense);
-		const statusText = badge?.text || (isSupernova ? 'Supernova supporter' : 'Nova user');
+		const statusText = badge?.text || (isSupernova ? 'Supernova access' : 'Nova user');
 		
 		// Create status badge element
 		const statusBadge = statusDisplay.createDiv({ 
@@ -1159,7 +1159,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			const statusEl = licenseContainer.createDiv({ cls: 'nova-license-status' });
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
-				: 'Lifetime support';
+				: 'No expiration';
 			const licenseInfo = statusEl.createDiv({ cls: 'license-info' });
 			licenseInfo.createSpan({ cls: 'license-email', text: supernovaLicense.email });
 			licenseInfo.createSpan({ cls: 'license-expiry', text: expiryText });
@@ -1168,7 +1168,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Supernova license key input using secure input pattern
 		this.createSecureApiKeyInput(licenseContainer, {
 			name: 'Supernova license key (optional)',
-			desc: 'Enter your Supernova license key to unlock advanced AI revision workflows',
+			desc: 'Enter your Supernova license key to unlock Nova\'s premium features',
 			placeholder: 'Enter Supernova license key...',
 			value: this.plugin.settings.licensing.supernovaLicenseKey || '',
 			onChange: async (value) => {
@@ -1215,7 +1215,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								const isSupernova = this.plugin.featureManager.isSupernovaSupporter();
 								
 								if (isSupernova) {
-									this.showLicenseMessage('Valid Supernova license! Advanced revision workflows are unlocked.', 'success');
+									this.showLicenseMessage('Valid Supernova license! Supernova premium features are unlocked.', 'success');
 									// Confetti animation removed
 								} else {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
@@ -1251,16 +1251,16 @@ export class NovaSettingTab extends PluginSettingTab {
 		const supernovaInfo = container.createDiv({ cls: 'nova-supernova-info' });
 		const infoCard = supernovaInfo.createDiv({ cls: 'nova-info-card' });
 		const cardTitle4 = infoCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle4.setText('Become a Supernova supporter');
+		cardTitle4.setText('Get Supernova access');
 		const description = infoCard.createEl('p');
-		description.textContent = 'Supernova unlocks advanced AI revision workflows while Nova\'s core editing, analysis, prose linter, dashboard, smart fill, and provider support stay free.';
+		description.textContent = 'Supernova unlocks Nova\'s premium features, beginning with smart revision, while Nova\'s core editing, analysis, prose linter, dashboard, smart fill, and provider support stay free.';
 		
 		const featuresList = infoCard.createEl('ul');
 		const features = [
-			'Smart Revision and future advanced revision workflows',
-			'Lifetime Supernova available as a one-time purchase',
-			'Priority support and feature requests',
-			'Directly support open-source development'
+			'Smart Revision with review cards, meaning risk, and before-and-after impact',
+			'One year of Supernova access for US$29',
+			'One-time payment with no automatic renewal',
+			'Uses your own supported AI provider; AI usage charges are not included'
 		];
 		
 		features.forEach(feature => {
@@ -1301,7 +1301,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (this.plugin.settings.licensing.debugSettings.enabled) {
 			new Setting(debugContainer)
 				.setName('Force Supernova status')
-				.setDesc('Override Supernova supporter status for testing')
+				.setDesc('Override Supernova access status for testing')
 				.addToggle(toggle => toggle
 					.setValue(this.plugin.settings.licensing.debugSettings.forceSupernova || false)
 					.onChange(async (value) => {
@@ -2129,7 +2129,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const contentDiv = headerDiv.createDiv({ cls: 'nova-welcome-content' });
 		// Remove redundant top-level heading as context is already clear in settings tab
-		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'Your AI writing partner to make the writing process smoother' });
+		contentDiv.createEl('p', { cls: 'nova-tagline', text: 'An AI writing editor that keeps you in control' });
 		contentDiv.createEl('p', { cls: 'nova-story', text: 'Removes the friction of copy/paste from LLMs to Obsidian, and provides actionable insights to help improve your writing' });
 	}
 
@@ -2226,7 +2226,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				return { 
 					icon: '🚀', 
 					color: '#3b82f6',
-					text: 'Annual Supernova',
+					text: 'One-year Supernova',
 					className: 'supernova'
 				};
 			default:
@@ -2280,7 +2280,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		// License key input - styled like API keys
 		this.createSecureApiKeyInput(container, {
 			name: 'License Key',
-			desc: 'Enter your Supernova supporter license key',
+			desc: 'Enter your Supernova access key',
 			placeholder: 'NOVA-XXXX-XXXX-XXXX',
 			value: this.plugin.settings.licensing.supernovaLicenseKey || '',
 			onChange: async (value) => {
@@ -2362,11 +2362,11 @@ export class NovaSettingTab extends PluginSettingTab {
 		
 		const infoDiv = headerDiv.createDiv({ cls: 'nova-supernova-info' });
 		const ctaTitle = infoDiv.createDiv({ cls: 'nova-cta-title' });
-		ctaTitle.setText('Supernova revision tier');
+		ctaTitle.setText('Supernova premium features');
 		const offerP = infoDiv.createEl('p', { cls: 'nova-cta-copy' });
 		offerP.textContent = isSupernova
-			? 'Advanced revision workflows are unlocked.'
-			: 'Unlock Smart Revision and future advanced revision workflows. Lifetime is $79; annual is $29/year.';
+			? 'Supernova premium features are unlocked.'
+			: 'Unlock Nova\'s premium features for one year, beginning with Smart Revision. US$29 once, with no automatic renewal. Uses your supported AI provider; AI usage charges are not included.';
 		const statusP = infoDiv.createEl('p');
 		statusP.textContent = 'Status: ';
 		statusP.createEl('strong', { text: statusText });
@@ -2377,7 +2377,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		if (buttonAction === 'tab') {
 			primaryBtn.setAttribute('data-tab', 'supernova');
 		}
-		primaryBtn.textContent = isSupernova ? (buttonAction === 'tab' ? 'Manage license' : 'Thank you for supporting!') : 'Become a supporter';
+		primaryBtn.textContent = isSupernova ? (buttonAction === 'tab' ? 'Manage license' : 'Supernova is active') : 'Get one-year access';
 		
 		if (showLearnMore) {
 			const secondaryBtn = actionsDiv.createEl('button', { cls: 'nova-supernova-btn secondary' });
@@ -2395,10 +2395,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			});
 		}
 
-		// Add click handler for direct action "Become a Supporter" button
+		// Add click handler for the direct access button
 		if (buttonAction === 'direct' && !isSupernova) {
-			const supporterBtn = primaryBtn;
-			this.registerEventListener(supporterBtn, 'click', (e: Event) => {
+			const accessBtn = primaryBtn;
+			this.registerEventListener(accessBtn, 'click', (e: Event) => {
 				e.preventDefault();
 				window.open(SUPERNOVA_PLANS_URL, '_blank', 'noopener');
 			});

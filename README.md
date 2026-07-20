@@ -2,7 +2,7 @@
 
 AI writing editor, native to Obsidian. Sharpen your prose, refine selected text, write at the cursor, and review local clarity checks. Not a generator. An editor.
 
-Use the local Ollama API, OpenAI-compatible endpoints like LM Studio, or your own API keys for Claude, OpenAI, and Gemini. Nova never sees your content, never stores your conversations, and collects zero telemetry.
+Use the local Ollama API, OpenAI-compatible endpoints like LM Studio, or your own API keys for Claude, OpenAI, and Gemini. Nova has no AI proxy or telemetry service: conversations stay in your vault, and cloud requests go directly to the provider you configure.
 
 ---
 
@@ -62,6 +62,14 @@ Use `<!-- nova: instruction -->` comments as AI placeholders. Place them through
 
 Smart fill pairs naturally with the Templater plugin. Use Templater for dynamic values (dates, file names, metadata) and Nova placeholders for AI-generated content. Insert a template, then generate all sections with `/fill` or command palette.
 
+### Smart Revision — Reviewable AI Editing
+
+Smart Revision is Nova's Supernova workflow for controlled AI revision. Select a passage, choose a revision pass and posture, add constraints, then review the proposal before the note changes.
+
+Nova groups proposed edits into review cards with before-and-after wording, local clarity impact, and meaning-risk signals. Safe cards can be accepted together; high-risk cards require individual review. Only accepted cards are applied, and Nova refuses to apply the proposal if the selected passage changed after the revision began.
+
+Smart Revision uses your configured AI provider and your API key. Supernova does not include hosted AI credits.
+
 ### Auto-Context: Your Knowledge Graph, Built In
 
 Nova automatically resolves your note's **outgoing wikilinks** and optionally its **backlinks**, pulling linked notes into the AI's context window — no manual references in chat required.
@@ -105,27 +113,26 @@ Nova is free and open source (AGPL-3.0). All core features work with your own AP
 
 **Free core** includes selection editing, cursor chat, auto-context, Smart Fill, Writing Analysis, Writing Dashboard, Prose Linter, and all supported providers.
 
-**Supernova** ($79 lifetime or $29/year) unlocks premium features. Current and upcoming Supernova features are listed in the roadmap below.
+**Supernova** costs US$29 for one year of access, paid once with no automatic renewal. It unlocks Nova's premium features available during that access period, beginning with Smart Revision. Continuing after the year ends requires another one-year purchase.
 
 Supernova does not include hosted AI credits. Nova remains user-provider-first: you use your own API keys or local models.
 
-The plugin includes a "Supernova" tab in settings with information about supporter benefits.
+Existing Founding Supernova and Lifetime Supernova licenses remain permanent and supported.
+
+The plugin includes a "Supernova" tab in settings with information about Supernova access and license status.
 
 ---
 
 ## Roadmap
 
 **Recently shipped:**
+- Smart Revision (v1.8) — A controlled revision pass: Nova diagnoses a passage, proposes grouped editorial changes with meaning-risk and before-and-after clarity impact, and lets you accept only what improves the draft. Supernova.
 - OpenAI-Compatible Endpoints (v1.7) — Connect Nova to OpenAI-compatible Chat Completions gateways: LM Studio, LocalAI, LiteLLM, and OpenRouter. Easier model setup and clearer mobile handling.
 - Prose Linter (v1.6) — Free local clarity workbench for sharper prose, native to Obsidian: filled highlights, category filters, Markdown-aware analysis, safe local Apply actions, and jump-to-issue editing. No AI key or Supernova license required.
 - Writing Dashboard (v1.5) — Vault-wide writing quality scores, per-document breakdown, and historical trend tracking. Entirely local, free for all users.
 - Writing Analysis (v1.4) — Readability scoring, passive voice metrics, sentence-length analysis, adverb density, weak intensifier flagging, and sidebar stats. All local, zero API costs.
 - Auto-Context (v1.3) — Wikilink resolution, backlinks, and the Context Quick Panel.
 - Smart Fill (v1.2) — AI placeholders for structured documents. Now free for all users.
-
-**Coming next:**
-- Smart Revision (v1.8) — A controlled revision pass: Nova diagnoses a passage, proposes grouped editorial changes with meaning-risk and before/after clarity impact, and lets you accept only what improves the draft. Supernova.
-- Voice Match (v1.9) — Nova learns your writing style and matches it on every transformation. Supernova.
 
 ---
 

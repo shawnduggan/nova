@@ -8,6 +8,14 @@
 import { CryptoService } from '../../src/core/crypto-service';
 
 describe('CryptoService', () => {
+    beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     describe('isEncrypted', () => {
         it('should return true for encrypted values', () => {
             expect(CryptoService.isEncrypted('encrypted:dGVzdA==')).toBe(true);
@@ -43,28 +51,28 @@ describe('CryptoService', () => {
         });
     });
 
-    describe('error handling (Node.js environment)', () => {
-        // In Node.js test environment, crypto API is not available
-        // These tests verify graceful error handling
-        
-        it('should handle missing crypto API gracefully for encryption', async () => {
+    describe('fail-closed error handling', () => {
+        it('should reject instead of returning plaintext when encryption fails', async () => {
             const testKey = 'sk-test-api-key';
-            const result = await CryptoService.encryptValue(testKey);
-            
-            // Should return original value when crypto is not available
-            expect(result).toBe(testKey);
+            jest.spyOn(CryptoService as any, 'getEncryptionKey')
+                .mockRejectedValue(new Error('Web Crypto unavailable'));
+
+            await expect(CryptoService.encryptValue(testKey))
+                .rejects.toThrow('Sensitive value encryption failed.');
         });
 
-        it('should handle missing crypto API gracefully for decryption', async () => {
-            // Non-encrypted value should pass through
+        it('should reject instead of stripping the prefix when encrypted decryption fails', async () => {
+            jest.spyOn(CryptoService as any, 'getEncryptionKey')
+                .mockRejectedValue(new Error('Web Crypto unavailable'));
+
+            await expect(CryptoService.decryptValue('encrypted:somedata'))
+                .rejects.toThrow('Sensitive value decryption failed.');
+        });
+
+        it('should continue to pass through legacy plaintext for migration', async () => {
             const plainValue = 'sk-plain-api-key';
             const result = await CryptoService.decryptValue(plainValue);
             expect(result).toBe(plainValue);
-            
-            // Encrypted value should handle error gracefully
-            const encryptedValue = 'encrypted:somedata';
-            const result2 = await CryptoService.decryptValue(encryptedValue);
-            expect(typeof result2).toBe('string');
         });
 
         it('should handle empty values correctly', async () => {
@@ -79,6 +87,7 @@ describe('CryptoService', () => {
             expect(typeof CryptoService.encryptValue).toBe('function');
             expect(typeof CryptoService.decryptValue).toBe('function');
             expect(typeof CryptoService.isEncrypted).toBe('function');
+            expect(typeof CryptoService.prepareStoredValue).toBe('function');
             
             // Check that functions are async where expected
             expect(CryptoService.encryptValue('')).toBeInstanceOf(Promise);
@@ -92,33 +101,53 @@ describe('CryptoService', () => {
             expect(staticMethods).toContain('encryptValue');
             expect(staticMethods).toContain('decryptValue');
             expect(staticMethods).toContain('isEncrypted');
+            expect(staticMethods).toContain('prepareStoredValue');
         });
     });
 
-    describe('integration requirements', () => {
-        it('should be compatible with settings save/load cycle', async () => {
-            // This tests the integration pattern used in main.ts
-            const mockApiKey = 'sk-test-integration-key';
-            
-            // Simulate saving (encrypting)
-            const encrypted = await CryptoService.encryptValue(mockApiKey);
-            
-            // In a working environment, this would be encrypted
-            // In Node.js test environment, it returns the original value
-            expect(typeof encrypted).toBe('string');
-            
-            // Simulate loading (decrypting)
-            const decrypted = await CryptoService.decryptValue(encrypted);
-            expect(typeof decrypted).toBe('string');
-            
-            // The isEncrypted check should work consistently
-            if (CryptoService.isEncrypted(encrypted)) {
-                // If it was actually encrypted, decryption should work
-                expect(decrypted).toBeDefined();
-            } else {
-                // If not encrypted (Node.js env), should be the same
-                expect(decrypted).toBe(encrypted);
-            }
+    describe('stored value preparation', () => {
+        it('should migrate plaintext while keeping it available at runtime', async () => {
+            const encryptSpy = jest.spyOn(CryptoService, 'encryptValue')
+                .mockResolvedValue('encrypted:migrated');
+
+            const result = await CryptoService.prepareStoredValue('sk-legacy-key');
+
+            expect(result).toEqual({
+                runtimeValue: 'sk-legacy-key',
+                storageValue: 'encrypted:migrated',
+                storageChanged: true
+            });
+            expect(encryptSpy).toHaveBeenCalledWith('sk-legacy-key');
+        });
+
+        it('should decrypt an encrypted value without rewriting storage', async () => {
+            const decryptSpy = jest.spyOn(CryptoService, 'decryptValue')
+                .mockResolvedValue('sk-runtime-key');
+
+            const result = await CryptoService.prepareStoredValue('encrypted:stored');
+
+            expect(result).toEqual({
+                runtimeValue: 'sk-runtime-key',
+                storageValue: 'encrypted:stored',
+                storageChanged: false
+            });
+            expect(decryptSpy).toHaveBeenCalledWith('encrypted:stored');
+        });
+
+        it('should propagate migration encryption failures', async () => {
+            jest.spyOn(CryptoService, 'encryptValue')
+                .mockRejectedValue(new Error('encryption failed'));
+
+            await expect(CryptoService.prepareStoredValue('sk-legacy-key'))
+                .rejects.toThrow('encryption failed');
+        });
+
+        it('should leave an empty stored value unchanged', async () => {
+            await expect(CryptoService.prepareStoredValue('')).resolves.toEqual({
+                runtimeValue: '',
+                storageValue: '',
+                storageChanged: false
+            });
         });
     });
 

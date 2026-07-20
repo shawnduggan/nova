@@ -457,6 +457,7 @@ export default class NovaPlugin extends Plugin {
 
 	async loadSettings() {
 		const savedData = await this.loadData();
+		const settingsMigrationData = JSON.parse(JSON.stringify(savedData ?? {}));
 		
 		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
@@ -491,36 +492,83 @@ export default class NovaPlugin extends Plugin {
 			this.settings.dashboard = Object.assign({}, DEFAULT_SETTINGS.dashboard, savedData.dashboard);
 		}
 		
-		// Decrypt API keys if they are encrypted
-		if (this.settings.aiProviders) {
+		const sensitiveValues: Array<{
+			label: string;
+			storedValue: string;
+			setRuntime: (value: string) => void;
+			setStored: (value: string) => void;
+		}> = [
+			{
+				label: 'Claude API key',
+				storedValue: savedData?.aiProviders?.claude?.apiKey ?? '',
+				setRuntime: (value) => { this.settings.aiProviders.claude.apiKey = value; },
+				setStored: (value) => { settingsMigrationData.aiProviders.claude.apiKey = value; }
+			},
+			{
+				label: 'OpenAI API key',
+				storedValue: savedData?.aiProviders?.openai?.apiKey ?? '',
+				setRuntime: (value) => { this.settings.aiProviders.openai.apiKey = value; },
+				setStored: (value) => { settingsMigrationData.aiProviders.openai.apiKey = value; }
+			},
+			{
+				label: 'Google API key',
+				storedValue: savedData?.aiProviders?.google?.apiKey ?? '',
+				setRuntime: (value) => { this.settings.aiProviders.google.apiKey = value; },
+				setStored: (value) => { settingsMigrationData.aiProviders.google.apiKey = value; }
+			},
+			{
+				label: 'OpenAI-compatible API key',
+				storedValue: savedData?.aiProviders?.['openai-compatible']?.apiKey ?? '',
+				setRuntime: (value) => { this.settings.aiProviders['openai-compatible'].apiKey = value; },
+				setStored: (value) => { settingsMigrationData.aiProviders['openai-compatible'].apiKey = value; }
+			},
+			{
+				label: 'Supernova license key',
+				storedValue: savedData?.licensing?.supernovaLicenseKey ?? '',
+				setRuntime: (value) => { this.settings.licensing.supernovaLicenseKey = value; },
+				setStored: (value) => { settingsMigrationData.licensing.supernovaLicenseKey = value; }
+			}
+		];
+		let sensitiveStorageChanged = false;
+		let sensitiveValueRemoved = false;
+		const migratedSensitiveValues: Array<(value: string) => void> = [];
+
+		for (const sensitiveValue of sensitiveValues) {
+			if (!sensitiveValue.storedValue) {
+				continue;
+			}
 			try {
-				if (this.settings.aiProviders.claude?.apiKey) {
-					this.settings.aiProviders.claude.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.claude.apiKey);
-				}
-				if (this.settings.aiProviders.openai?.apiKey) {
-					this.settings.aiProviders.openai.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.openai.apiKey);
-				}
-				if (this.settings.aiProviders.google?.apiKey) {
-					this.settings.aiProviders.google.apiKey = await CryptoService.decryptValue(this.settings.aiProviders.google.apiKey);
-				}
-				if (this.settings.aiProviders['openai-compatible']?.apiKey) {
-					this.settings.aiProviders['openai-compatible'].apiKey = await CryptoService.decryptValue(this.settings.aiProviders['openai-compatible'].apiKey);
+				const preparedValue = await CryptoService.prepareStoredValue(sensitiveValue.storedValue);
+				sensitiveValue.setRuntime(preparedValue.runtimeValue);
+				if (preparedValue.storageChanged) {
+					sensitiveValue.setStored(preparedValue.storageValue);
+					sensitiveStorageChanged = true;
+					migratedSensitiveValues.push(sensitiveValue.setRuntime);
 				}
 			} catch (error) {
-				Logger.error('Failed to decrypt API keys:', error);
+				Logger.error(`Failed to securely load ${sensitiveValue.label}; removing the stored value.`, error);
+				sensitiveValue.setRuntime('');
+				sensitiveValue.setStored('');
+				sensitiveStorageChanged = true;
+				sensitiveValueRemoved = true;
+				migratedSensitiveValues.push(sensitiveValue.setRuntime);
 			}
 		}
-		
-		// Decrypt license keys if they are encrypted
-		if (this.settings.licensing) {
+
+		if (sensitiveStorageChanged) {
 			try {
-				
-				if (this.settings.licensing.supernovaLicenseKey) {
-					this.settings.licensing.supernovaLicenseKey = await CryptoService.decryptValue(this.settings.licensing.supernovaLicenseKey);
-				}
+				await this.saveData(settingsMigrationData);
 			} catch (error) {
-				Logger.error('Failed to decrypt license keys:', error);
+				Logger.error('Failed to persist secure credential migration:', error);
+				for (const clearRuntimeValue of migratedSensitiveValues) {
+					clearRuntimeValue('');
+				}
+				sensitiveValueRemoved = true;
 			}
+		}
+
+		if (sensitiveValueRemoved) {
+			new Notice('Nova could not securely load one or more saved credentials. The affected values were removed; enter them again in settings.', 7000);
 		}
 
 		// Always use default debugSettings (transitory for development sessions)
@@ -555,46 +603,73 @@ export default class NovaPlugin extends Plugin {
 			delete settingsToSave.licensing.debugSettings;
 		}
 		
-		// Encrypt API keys before saving
-		if (settingsToSave.aiProviders) {
-			try {
-				if (settingsToSave.aiProviders.claude?.apiKey) {
-					settingsToSave.aiProviders.claude.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.claude.apiKey);
-				}
-				if (settingsToSave.aiProviders.openai?.apiKey) {
-					settingsToSave.aiProviders.openai.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.openai.apiKey);
-				}
-				if (settingsToSave.aiProviders.google?.apiKey) {
-					settingsToSave.aiProviders.google.apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders.google.apiKey);
-				}
-				if (settingsToSave.aiProviders['openai-compatible']?.apiKey) {
-					settingsToSave.aiProviders['openai-compatible'].apiKey = await CryptoService.encryptValue(settingsToSave.aiProviders['openai-compatible'].apiKey);
-				}
-			} catch (error) {
-				Logger.error('Failed to encrypt API keys:', error);
-				// Fall back to saving without encryption if encryption fails
+		const sensitiveValuesToSave: Array<{
+			label: string;
+			value: string;
+			setStored: (value: string) => void;
+			clearRuntime: () => void;
+		}> = [
+			{
+				label: 'Claude API key',
+				value: settingsToSave.aiProviders?.claude?.apiKey ?? '',
+				setStored: (value) => { settingsToSave.aiProviders.claude.apiKey = value; },
+				clearRuntime: () => { this.settings.aiProviders.claude.apiKey = ''; }
+			},
+			{
+				label: 'OpenAI API key',
+				value: settingsToSave.aiProviders?.openai?.apiKey ?? '',
+				setStored: (value) => { settingsToSave.aiProviders.openai.apiKey = value; },
+				clearRuntime: () => { this.settings.aiProviders.openai.apiKey = ''; }
+			},
+			{
+				label: 'Google API key',
+				value: settingsToSave.aiProviders?.google?.apiKey ?? '',
+				setStored: (value) => { settingsToSave.aiProviders.google.apiKey = value; },
+				clearRuntime: () => { this.settings.aiProviders.google.apiKey = ''; }
+			},
+			{
+				label: 'OpenAI-compatible API key',
+				value: settingsToSave.aiProviders?.['openai-compatible']?.apiKey ?? '',
+				setStored: (value) => { settingsToSave.aiProviders['openai-compatible'].apiKey = value; },
+				clearRuntime: () => { this.settings.aiProviders['openai-compatible'].apiKey = ''; }
+			},
+			{
+				label: 'Supernova license key',
+				value: settingsToSave.licensing?.supernovaLicenseKey ?? '',
+				setStored: (value) => { settingsToSave.licensing.supernovaLicenseKey = value; },
+				clearRuntime: () => { this.settings.licensing.supernovaLicenseKey = ''; }
 			}
-		}
-		
-		// Encrypt license keys before saving
-		if (settingsToSave.licensing) {
+		];
+		const failedSensitiveValues: string[] = [];
+
+		for (const sensitiveValue of sensitiveValuesToSave) {
+			if (!sensitiveValue.value) {
+				continue;
+			}
 			try {
-				
-				if (settingsToSave.licensing.supernovaLicenseKey) {
-					settingsToSave.licensing.supernovaLicenseKey = await CryptoService.encryptValue(settingsToSave.licensing.supernovaLicenseKey);
-				}
+				sensitiveValue.setStored(await CryptoService.encryptValue(sensitiveValue.value));
 			} catch (error) {
-				Logger.error('Failed to encrypt license keys:', error);
-				// Fall back to saving without encryption if encryption fails
+				Logger.error(`Failed to securely store ${sensitiveValue.label}; removing the value.`, error);
+				sensitiveValue.setStored('');
+				sensitiveValue.clearRuntime();
+				failedSensitiveValues.push(sensitiveValue.label);
 			}
 		}
 		
 		try {
 			await this.saveData(settingsToSave);
 			this.aiProviderManager?.updateSettings(this.settings);
+			if (failedSensitiveValues.includes('Supernova license key')) {
+				await this.featureManager?.updateSupernovaLicense(null);
+			}
 		} catch (error) {
 			Logger.error('Error during save operation:', error);
 			throw error;
+		}
+
+		if (failedSensitiveValues.length > 0) {
+			new Notice('Nova could not securely store one or more credentials. The affected values were removed; enter them again in settings.', 7000);
+			throw new Error('Sensitive settings could not be stored securely.');
 		}
 	}
 

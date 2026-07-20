@@ -40,7 +40,7 @@ describe('FeatureManager', () => {
 				isSupernovaFeature: true,
 				upgradeRequired: true
 			}));
-			expect(access.reason).toContain('Supernova advanced revision feature');
+			expect(access.reason).toContain('premium feature requires Supernova');
 			expect(access.reason).toContain('Free Nova keeps');
 			expect(access).not.toHaveProperty('availableDate');
 		});

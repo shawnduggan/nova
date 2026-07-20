@@ -146,7 +146,7 @@ export class FeatureManager {
 		if (feature.supernovaOnly) {
 			return {
 				allowed: false,
-				reason: 'This is a Supernova advanced revision feature. Free Nova keeps instant editing, Prose Linter, Smart Fill, and all providers.',
+				reason: 'This premium feature requires Supernova. Free Nova keeps instant editing, Prose Linter, Smart Fill, and all providers.',
 				isSupernovaFeature: true,
 				access: feature.access,
 				upgradeRequired: true

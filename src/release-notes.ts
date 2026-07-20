@@ -14,6 +14,27 @@ export interface ReleaseNotesEntry {
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The /release command handles this.
+	'1.8.2': [
+		'## What\'s New in Nova 1.8.2',
+		'',
+		'### Privacy and reliability',
+		'',
+		'- **Credential storage is more resilient.** API keys and Supernova license keys now receive stronger safeguards when Nova loads and saves settings.',
+		'',
+		'### Clearer Supernova access',
+		'',
+		'- **Supernova is US$29 for one year, paid once.** There is no automatic renewal; continuing after access expires requires another one-year purchase.',
+		'- **Your AI provider remains separate.** Smart Revision uses a supported provider you configure, and Supernova does not include AI usage charges.',
+		'- **Existing permanent licenses remain permanent.** Founding Supernova and Lifetime Supernova licenses continue to work without expiration.',
+		'- **Smart Revision is now documented end to end.** The README and user guide explain its review cards, meaning risk, before-and-after impact, selective acceptance, and snapshot safety.',
+		'',
+		'### Policies and communications',
+		'',
+		'- **Our public policies now match Nova\'s current operation.** The [Terms of Service](https://novawriter.ai/terms) and [Privacy Policy](https://novawriter.ai/privacy) reflect one-year Supernova access and the website services used for checkout and privacy-friendly analytics. Existing permanent licenses remain permanent.',
+		'- **The optional newsletter is paused.** New signups are closed and no newsletter launch email will be sent. Important Nova updates will continue through release notes and [novawriter.ai](https://novawriter.ai).',
+		'',
+		'Nova itself continues to collect zero telemetry and has no AI proxy.',
+	].join('\n'),
 	'1.8.1': [
 		'## What\'s New in Nova 1.8.1',
 		'',
@@ -35,7 +56,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'### Supernova licensing update',
 		'',
 		'- **Nova\'s free core stays free.** Selection editing, cursor chat, auto-context, Smart Fill, Writing Analysis, Writing Dashboard, Prose Linter, and all supported providers remain available without a Supernova license.',
-		'- **Supernova is Nova\'s premium feature tier.** Smart Revision is the first permanent Supernova feature, with more premium workflows planned.',
+		'- **Supernova unlocks Nova\'s premium features.** Smart Revision is the first, with room for more premium workflows over time.',
 		'- **Existing licenses carry forward.** Annual, lifetime, and founding Supernova licenses unlock premium features.',
 		'',
 		'### Model picker updates',
@@ -72,14 +93,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'### Polish',
 		'',
 		'- **Provider settings and sidebar layout are cleaner in Obsidian 1.13.** The settings cards, connection buttons, secure inputs, and sidebar model picker now keep their intended spacing in both the original and popout settings layouts.',
-	].join('\n'),
-	'1.6.3': [
-		'## What\'s New in Nova 1.6.3',
-		'',
-		'### New Models',
-		'',
-		'- **Claude Opus 4.8 is available.** Anthropic\'s latest Opus model is now selectable in the Claude model picker with its 1M-token context window.',
-		'- **Opus requests avoid deprecated sampling settings.** Nova omits `temperature` for Opus 4.8, matching Anthropic\'s Messages API requirements so requests complete instead of returning a parameter error.',
 	].join('\n'),
 };
 

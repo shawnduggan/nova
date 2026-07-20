@@ -4,6 +4,12 @@
 
 import { Logger } from '../utils/logger';
 
+interface PreparedSensitiveValue {
+    runtimeValue: string;
+    storageValue: string;
+    storageChanged: boolean;
+}
+
 export class CryptoService {
     // Obfuscated master secret for key derivation - shared with license generator
     private static readonly OBFUSCATED_SECRET = 'qryd-olfhqvh-vljqlqj-nhb-5358';
@@ -115,8 +121,8 @@ export class CryptoService {
             // Convert to base64 and add prefix to identify encrypted values
             return 'encrypted:' + this.base64Encode(String.fromCharCode(...combined));
         } catch (error) {
-            Logger.error('Failed to encrypt value:', error);
-            return value; // Return original value if encryption fails
+            Logger.error('Failed to encrypt sensitive value:', error);
+            throw new Error('Sensitive value encryption failed.');
         }
     }
 
@@ -153,12 +159,37 @@ export class CryptoService {
             const decoder = new TextDecoder();
             return decoder.decode(decrypted);
         } catch (error) {
-            Logger.error('Failed to decrypt value:', error);
-            // Return the original value without the prefix if decryption fails
-            return encryptedValue.startsWith('encrypted:') 
-                ? encryptedValue.substring('encrypted:'.length) 
-                : encryptedValue;
+            Logger.error('Failed to decrypt sensitive value:', error);
+            throw new Error('Sensitive value decryption failed.');
         }
+    }
+
+    /**
+     * Prepare a stored sensitive value for runtime use and migrate plaintext
+     * storage to the encrypted format.
+     */
+    static async prepareStoredValue(storedValue: string): Promise<PreparedSensitiveValue> {
+        if (!storedValue) {
+            return {
+                runtimeValue: '',
+                storageValue: '',
+                storageChanged: false
+            };
+        }
+
+        if (this.isEncrypted(storedValue)) {
+            return {
+                runtimeValue: await this.decryptValue(storedValue),
+                storageValue: storedValue,
+                storageChanged: false
+            };
+        }
+
+        return {
+            runtimeValue: storedValue,
+            storageValue: await this.encryptValue(storedValue),
+            storageChanged: true
+        };
     }
 
     /**
