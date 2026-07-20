@@ -1678,15 +1678,15 @@ export class NovaSettingTab extends PluginSettingTab {
 		// Model guidance card
 		const guidanceCard = infoEl.createDiv({ cls: 'nova-info-card nova-model-guidance' });
 		const cardTitle5 = guidanceCard.createDiv({ cls: 'nova-info-card-title' });
-		cardTitle5.setText('Recommended defaults');
+		cardTitle5.setText('Suggested starting points');
 		
 		const recommendationsList = guidanceCard.createEl('ul', { cls: 'nova-model-recommendations' });
 		const recommendations = [
-			{ model: 'Claude Sonnet 4', desc: ' - Latest generation with excellent instruction following for collaborative editing' },
-			{ model: 'GPT-5 Mini', desc: ' - Cost-effective model with strong performance across coding and general tasks' },
-			{ model: 'Gemini 2.5 Flash', desc: ' - Best price/performance with "thinking" capabilities and strong coding support' },
-			{ model: 'Ollama (local Ollama API)', desc: ' - Complete privacy with Ollama local processing - requires setup but keeps all data on your device' },
-			{ model: 'OpenAI-compatible (LM Studio and others)', desc: ' - Use LM Studio, LocalAI, OpenRouter, LiteLLM, and other Chat Completions endpoints' }
+			{ model: 'Claude Sonnet 5', desc: ' - Strong choice for nuanced writing, careful revision, and instruction following' },
+			{ model: 'GPT-5.6 Terra', desc: ' - Balanced OpenAI choice for capability and cost' },
+			{ model: 'Gemini 3.5 Flash', desc: ' - Fast, capable choice for everyday writing and editing' },
+			{ model: 'Ollama (local API)', desc: ' - Choose a recent instruction model sized for your device; local setups keep processing on your machine' },
+			{ model: 'OpenAI-compatible endpoints', desc: ' - Choose a model exposed by your endpoint and use Test and refresh to verify it' }
 		];
 		
 		recommendations.forEach(rec => {
@@ -1696,7 +1696,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		});
 		
 		const guidanceNote = guidanceCard.createEl('p', { cls: 'nova-guidance-note' });
-		guidanceNote.textContent = 'Cloud options offer modern AI capabilities without premium pricing, while local options provide complete privacy.';
+		guidanceNote.textContent = 'Model availability and pricing change. Test your provider connection, then select an available model in the Nova sidebar.';
 
 		// Configuration Subsection (within API Keys section)
 		const configSection = apiKeysSection.createDiv({ cls: 'nova-provider-config-section' });
