@@ -78,7 +78,7 @@ export class ClaudeProvider implements AIProvider {
 
 				if (response.status === 200) {
 					const data = response.json;
-					return data.content[0].text;
+					return extractClaudeTextContent(data);
 				}
 
 				// Check if it's a 500-level error that we should retry
@@ -192,6 +192,7 @@ export class ClaudeProvider implements AIProvider {
 
 			// Return current available models (from API docs)
 			const models = [
+				'claude-opus-5',
 				'claude-opus-4-8',
 				'claude-sonnet-5',
 				'claude-opus-4-7',
@@ -215,11 +216,36 @@ export class ClaudeProvider implements AIProvider {
 	}
 }
 
+function extractClaudeTextContent(data: unknown): string {
+	if (!isRecord(data) || !Array.isArray(data.content)) {
+		throw new Error('Claude API response did not include text content.');
+	}
+
+	const textBlocks: string[] = [];
+	for (const block of data.content) {
+		if (isRecord(block) && block.type === 'text' && typeof block.text === 'string') {
+			textBlocks.push(block.text);
+		}
+	}
+
+	const text = textBlocks.join('');
+	if (!text.trim()) {
+		throw new Error('Claude API response did not include text content.');
+	}
+
+	return text;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
 // Anthropic deprecated the `temperature` parameter for newer Claude models;
 // sending it returns a 400 "temperature is deprecated for this model" error.
 // Extend this predicate as additional models drop the parameter.
 export function modelAcceptsTemperature(model: string): boolean {
-	return !model.startsWith('claude-opus-4-7')
+	return !model.startsWith('claude-opus-5')
+		&& !model.startsWith('claude-opus-4-7')
 		&& !model.startsWith('claude-opus-4-8')
 		&& !model.startsWith('claude-sonnet-5');
 }

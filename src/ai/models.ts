@@ -102,6 +102,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 	switch (providerType) {
 		case 'claude':
 			return [
+				{ value: 'claude-opus-5', label: 'Claude Opus 5' },
 				{ value: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
 				{ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
 				{ value: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
@@ -146,6 +147,7 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	claude: {
 		// Claude models
+		'claude-opus-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-8': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-sonnet-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-7': { tokens: 200000, maxOutputTokens: 128000 },

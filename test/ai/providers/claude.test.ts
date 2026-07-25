@@ -32,7 +32,7 @@ describe('ClaudeProvider', () => {
         const mockResponse = {
             status: 200,
             json: {
-                content: [{ text: 'Test response from Claude' }]
+                content: [{ type: 'text', text: 'Test response from Claude' }]
             }
         };
 
@@ -70,6 +70,49 @@ describe('ClaudeProvider', () => {
         test('should return response text', async () => {
             const result = await provider.complete('System prompt', 'User prompt');
             expect(result).toBe('Test response from Claude');
+        });
+
+        test('returns text when a non-text content block appears first', async () => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: {
+                    content: [
+                        { type: 'thinking', thinking: 'Internal reasoning' },
+                        { type: 'text', text: 'Structured response' }
+                    ]
+                }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt'))
+                .resolves.toBe('Structured response');
+        });
+
+        test('combines multiple text content blocks in order', async () => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: {
+                    content: [
+                        { type: 'text', text: 'First' },
+                        { type: 'thinking', thinking: 'Internal reasoning' },
+                        { type: 'text', text: ' second' }
+                    ]
+                }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt'))
+                .resolves.toBe('First second');
+        });
+
+        test('throws a clear error when the response has no text content', async () => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: {
+                    content: [{ type: 'thinking', thinking: 'Internal reasoning' }]
+                }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt'))
+                .rejects.toThrow('Claude API response did not include text content.');
         });
 
         test('should use custom options when provided', async () => {
@@ -112,6 +155,19 @@ describe('ClaudeProvider', () => {
             const body = JSON.parse(callArgs.body);
 
             expect(body.model).toBe('claude-opus-4-8');
+            expect(body).not.toHaveProperty('temperature');
+        });
+
+        test('omits temperature for Claude Opus 5', async () => {
+            await provider.complete('System prompt', 'User prompt', {
+                model: 'claude-opus-5',
+                temperature: 0.5
+            });
+
+            const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
+            const body = JSON.parse(callArgs.body);
+
+            expect(body.model).toBe('claude-opus-5');
             expect(body).not.toHaveProperty('temperature');
         });
 
@@ -173,12 +229,13 @@ describe('ClaudeProvider', () => {
     });
 
     describe('getAvailableModels', () => {
-        test('includes Claude Sonnet 5 in the refreshed Claude model list', async () => {
+        test('includes Claude 5 models in the refreshed Claude model list', async () => {
             (requestUrl as jest.Mock).mockResolvedValue({
                 status: 200,
                 json: { content: [{ text: 'ok' }] }
             });
 
+            await expect(provider.getAvailableModels()).resolves.toContain('claude-opus-5');
             await expect(provider.getAvailableModels()).resolves.toContain('claude-sonnet-5');
         });
     });

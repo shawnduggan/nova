@@ -59,15 +59,19 @@ describe('AI model registry', () => {
 	test('includes current Claude models in the Claude picker list', () => {
 		const claudeModels = getAvailableModels('claude');
 
-		expect(claudeModels[0]).toEqual({ value: 'claude-opus-4-8', label: 'Claude Opus 4.8' });
-		expect(claudeModels[1]).toEqual({ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' });
+		expect(claudeModels[0]).toEqual({ value: 'claude-opus-5', label: 'Claude Opus 5' });
+		expect(claudeModels[1]).toEqual({ value: 'claude-opus-4-8', label: 'Claude Opus 4.8' });
+		expect(claudeModels[2]).toEqual({ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' });
 	});
 
 	test('maps current Claude models to Claude context metadata', () => {
+		expect(getProviderTypeForModel('claude-opus-5')).toBe('claude');
 		expect(getProviderTypeForModel('claude-opus-4-8')).toBe('claude');
 		expect(getProviderTypeForModel('claude-sonnet-5')).toBe('claude');
+		expect(getContextLimit('claude', 'claude-opus-5')).toBe(1000000);
 		expect(getContextLimit('claude', 'claude-opus-4-8')).toBe(1000000);
 		expect(getContextLimit('claude', 'claude-sonnet-5')).toBe(1000000);
+		expect(getModelMaxOutputTokens('claude', 'claude-opus-5')).toBe(128000);
 		expect(getModelMaxOutputTokens('claude', 'claude-opus-4-8')).toBe(128000);
 		expect(getModelMaxOutputTokens('claude', 'claude-sonnet-5')).toBe(128000);
 	});
