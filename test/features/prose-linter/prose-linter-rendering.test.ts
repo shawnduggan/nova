@@ -9,6 +9,7 @@ describe('createProseIssuePage', () => {
 	function issue(index: number, type: ProseIssue['type'] = 'adverb'): ProseIssue {
 		return {
 			id: `issue-${index}`,
+			ignoreKey: `test:${type}:${index}`,
 			type,
 			severity: 'suggestion',
 			line: index,

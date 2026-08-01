@@ -109,17 +109,17 @@ export abstract class TAbstractFile {
     }
 
     // Lazy vault getter to avoid circular reference during construction
-    get vault(): Vault {
+    get vault(): import('obsidian').Vault {
         let v = vaultMap.get(this);
         if (!v) {
             v = getMockVault();
             vaultMap.set(this, v);
         }
-        return v;
+        return v as unknown as import('obsidian').Vault;
     }
 
-    set vault(v: Vault) {
-        vaultMap.set(this, v);
+    set vault(v: import('obsidian').Vault) {
+        vaultMap.set(this, v as unknown as Vault);
     }
 }
 

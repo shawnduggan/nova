@@ -10,6 +10,7 @@ describe('runBudgetedProseLinter', () => {
 	const token = createAnalysisRunToken('note.md', 'hash', 1);
 	const issue: ProseIssue = {
 		id: 'issue',
+		ignoreKey: 'test:qualifier',
 		type: 'qualifier',
 		severity: 'suggestion',
 		line: 0,

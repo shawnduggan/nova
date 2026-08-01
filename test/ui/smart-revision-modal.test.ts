@@ -4,13 +4,17 @@
 
 import { Editor } from 'obsidian';
 import { SmartRevisionModal } from '../../src/ui/smart-revision-modal';
-import type { SmartRevisionService } from '../../src/features/smart-revision/smart-revision-service';
+import type {
+	GenerateSmartRevisionSessionInput,
+	SmartRevisionService
+} from '../../src/features/smart-revision/smart-revision-service';
 import {
 	DEFAULT_SMART_REVISION_BRIEF,
 	getSmartRevisionPass,
 	type SmartRevisionSourceIssue,
 	type SmartRevisionSession
 } from '../../src/features/smart-revision/smart-revision-types';
+import { createMockEditor } from '../helpers/mock-constructors';
 
 describe('SmartRevisionModal', () => {
 	beforeEach(() => {
@@ -266,7 +270,7 @@ function createPlugin(overrides: Record<string, unknown> = {}) {
 }
 
 function createEditor(content: string): Editor {
-	const editor = new Editor(content);
+	const editor = createMockEditor(content);
 	editor.setSelection({ line: 0, ch: 0 }, { line: 0, ch: content.length });
 	return editor;
 }
@@ -301,7 +305,7 @@ function createSourceIssue(text: string, type: SmartRevisionSourceIssue['type'])
 
 function createService(session: SmartRevisionSession): jest.Mocked<Pick<SmartRevisionService, 'generateSession'>> {
 	return {
-		generateSession: jest.fn(async () => session)
+		generateSession: jest.fn(async (_input: GenerateSmartRevisionSessionInput) => session)
 	};
 }
 
@@ -315,7 +319,7 @@ function createDeferredService(session: SmartRevisionSession): {
 	});
 	return {
 		service: {
-			generateSession: jest.fn(() => promise)
+			generateSession: jest.fn((_input: GenerateSmartRevisionSessionInput) => promise)
 		},
 		resolve: resolvePromise
 	};

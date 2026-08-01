@@ -2,12 +2,12 @@
  * @file ContextQuickPanel tests - Verifies collapsed context summary behavior
  */
 
-import { TFile } from 'obsidian';
 import { formatCollapsedContextInfo } from '../../src/ui/context-quick-panel';
 import { DocumentReference } from '../../src/ui/context-manager';
+import { createMockTFile } from '../helpers/mock-constructors';
 
 function createDocumentReference(path: string, tokenCount = 0): DocumentReference {
-	const file = new TFile(path);
+	const file = createMockTFile(path);
 	return {
 		file,
 		isPersistent: true,
@@ -17,7 +17,7 @@ function createDocumentReference(path: string, tokenCount = 0): DocumentReferenc
 }
 
 describe('formatCollapsedContextInfo', () => {
-	const currentFile = new TFile('notes/current.md');
+	const currentFile = createMockTFile('notes/current.md');
 
 	it('counts the active note with its aggregate token estimate', () => {
 		expect(formatCollapsedContextInfo(currentFile, {

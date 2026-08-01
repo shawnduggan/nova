@@ -28,7 +28,7 @@ describe('IndicatorWidget lifecycle', () => {
 			confidence: 0.9
 		}, onIndicatorClick, plugin as never);
 		const editorDom = document.createElement('div');
-		const indicator = widget.toDOM({ dom: editorDom } as EditorView);
+		const indicator = widget.toDOM({ dom: editorDom } as unknown as EditorView);
 
 		indicator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(onIndicatorClick).toHaveBeenCalledTimes(1);

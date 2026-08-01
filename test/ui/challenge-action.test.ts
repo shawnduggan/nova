@@ -68,11 +68,11 @@ describe('Challenge This Action', () => {
             mockPlugin = {
                 getCurrentSidebarView: jest.fn().mockReturnValue(mockSidebarView),
                 aiProviderManager: {
-                    chatCompletion: jest.fn().mockResolvedValue('Analysis response')
+                    chatCompletion: jest.fn(async (_messages: unknown, _options: unknown) => 'Analysis response')
                 },
                 conversationManager: {
-                    addUserMessage: jest.fn().mockResolvedValue({}),
-                    addAssistantMessage: jest.fn().mockResolvedValue({})
+                    addUserMessage: jest.fn(async (_file: unknown, _message: string, _metadata: unknown) => ({})),
+                    addAssistantMessage: jest.fn(async (_file: unknown, _message: string, _metadata: unknown) => ({}))
                 },
                 app: {
                     workspace: {

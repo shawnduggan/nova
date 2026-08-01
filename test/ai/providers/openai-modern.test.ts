@@ -175,11 +175,8 @@ describe('OpenAIProvider Modernization', () => {
 			json: { error: { message: privateResponse } }
 		});
 
-		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
-			.catch(error => error as Error);
-
-		expect(thrown).toBeInstanceOf(Error);
-		expect(thrown.message).toBe('OpenAI API error: 400');
+		await expect(provider.complete('private-system-prompt', 'private-user-prompt'))
+			.rejects.toThrow('OpenAI API error: 400');
 		const serializedLogs = JSON.stringify(errorLog.mock.calls);
 		expect(serializedLogs).not.toContain(privateResponse);
 		expect(serializedLogs).not.toContain('private-header-sentinel');

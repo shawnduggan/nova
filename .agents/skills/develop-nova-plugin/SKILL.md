@@ -99,6 +99,7 @@ not already clear.
 Run the narrowest relevant tests first. Then run the checks justified by the
 change:
 
+- npm run typecheck:test for test and mock typing changes
 - npm test -- <target>
 - npm run build
 - npm run lint

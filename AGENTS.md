@@ -67,7 +67,9 @@ explicit-only workflow such as release with `$release-nova-plugin`.
 - npm run dev: start esbuild in watch mode.
 - npm run build: type-check, lint, and build a development bundle.
 - npm run build:prod: production bundle with tree-shaking and no sourcemaps.
-- npm test / npm run test:watch: run Jest in jsdom.
+- npm run typecheck:test: type-check test sources and Obsidian mocks.
+- npm test: type-check tests, then run Jest in jsdom.
+- npm run test:watch: run Jest in watch mode.
 - npm run lint / npm run lint:fix: lint TypeScript or apply safe lint fixes.
 - npm run lint:obsidian: strict checks aligned with Obsidian review.
 - npm run lint:security: quick unsafe-DOM and security checks.

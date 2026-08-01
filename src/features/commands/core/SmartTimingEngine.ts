@@ -278,7 +278,8 @@ export class SmartTimingEngine {
     private getEffectiveSetting<K extends keyof SmartTimingSettings>(
         key: K
     ): SmartTimingSettings[K] {
-        const override = this.settings.documentTypeOverrides[this.currentDocumentType]?.[key];
+        const override = this.settings.documentTypeOverrides[this.currentDocumentType]?.[key] as
+            SmartTimingSettings[K] | undefined;
         return override !== undefined ? override : this.settings[key];
     }
 

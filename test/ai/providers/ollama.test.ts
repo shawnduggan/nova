@@ -96,11 +96,8 @@ describe('OllamaProvider', () => {
 			headers: { 'x-private': 'private-header-sentinel' }
 		});
 
-		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
-			.catch(error => error as Error);
-
-		expect(thrown).toBeInstanceOf(Error);
-		expect(thrown.message).toBe('Ollama API error: 500');
+		await expect(provider.complete('private-system-prompt', 'private-user-prompt'))
+			.rejects.toThrow('Ollama API error: 500');
 		const serializedLogs = JSON.stringify(errorLog.mock.calls);
 		expect(serializedLogs).not.toContain(privateResponse);
 		expect(serializedLogs).not.toContain('private-header-sentinel');

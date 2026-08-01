@@ -1,5 +1,5 @@
 import { AIProviderManager } from '../../src/ai/provider-manager';
-import { NovaSettings } from '../../src/settings';
+import type { NovaSettings } from '../../src/settings';
 import { ProviderType } from '../../src/ai/types';
 import { Logger } from '../../src/utils/logger';
 
@@ -35,7 +35,10 @@ describe('Provider Dropdown Performance', () => {
 			},
 			general: {
 				defaultTemperature: 0.7,
-				defaultMaxTokens: 4000
+				defaultMaxTokens: 4000,
+				showReleaseNotes: true,
+				lastSeenVersion: '',
+				customPromptHistory: []
 			},
 			commands: {
 				suggestionMode: 'balanced',
@@ -46,6 +49,16 @@ describe('Provider Dropdown Performance', () => {
 			licensing: {
 				supernovaLicenseKey: '',
 				debugSettings: { enabled: false }
+			},
+			writingAnalysis: {
+				enabled: true,
+				longSentenceThreshold: 25,
+				veryLongSentenceThreshold: 40,
+				showStatsPanel: true
+			},
+			dashboard: {
+				excludeFolders: [],
+				targetReadabilityGrade: 8
 			}
 		};
 		const mockSettingsTyped: NovaSettings = mockSettings;

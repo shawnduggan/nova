@@ -2,11 +2,12 @@
  * @file ProseLinterView Test Suite
  */
 
-import { Editor, MarkdownView, Platform, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Platform, WorkspaceLeaf } from 'obsidian';
 import { analyzeWriting, hashContent } from '../../src/core/writing-analysis';
 import { createAnalysisRunToken } from '../../src/core/writing-analysis-runner';
 import { ProseLinterStore } from '../../src/features/prose-linter/prose-linter-store';
 import { ProseLinterView } from '../../src/ui/prose-linter-view';
+import { createMockEditor, createMockTFile } from '../helpers/mock-constructors';
 
 describe('ProseLinterView', () => {
 	beforeEach(() => {
@@ -15,8 +16,8 @@ describe('ProseLinterView', () => {
 	});
 
 	function createPlugin(content: string, path = 'notes/current.md') {
-		const file = new TFile(path);
-		const editor = new Editor(content);
+		const file = createMockTFile(path);
+		const editor = createMockEditor(content);
 		const markdownView = new MarkdownView(null);
 		markdownView.file = file;
 		markdownView.editor = editor;

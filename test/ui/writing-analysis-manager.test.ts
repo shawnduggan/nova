@@ -6,6 +6,7 @@ import { Component, Editor, MarkdownView, TFile } from 'obsidian';
 import { VIEW_TYPE_NOVA_SIDEBAR, VIEW_TYPE_PROSE_LINTER } from '../../src/constants';
 import { hashContent, MAX_WRITING_ANALYSIS_CHAR_LENGTH } from '../../src/core/writing-analysis';
 import { WRITING_ANALYSIS_UPDATED_EVENT, WritingAnalysisManager, type WritingAnalysisUpdateDetail } from '../../src/ui/writing-analysis-manager';
+import { createMockEditor, createMockTFile } from '../helpers/mock-constructors';
 
 describe('WritingAnalysisManager', () => {
 	type WorkspaceEventCallback = (...data: unknown[]) => void;
@@ -82,8 +83,8 @@ describe('WritingAnalysisManager', () => {
 
 	function createTrackedMarkdownView(): MarkdownView {
 		const view = new MarkdownView(null);
-		view.file = new TFile('notes/current.md');
-		view.editor = new Editor('A tracked note with enough text to stand in for the active markdown editor.');
+		view.file = createMockTFile('notes/current.md');
+		view.editor = createMockEditor('A tracked note with enough text to stand in for the active markdown editor.');
 		return view;
 	}
 
@@ -526,7 +527,7 @@ describe('WritingAnalysisManager', () => {
 		const { manager } = createManager(VIEW_TYPE_PROSE_LINTER);
 		const content = 'Clear launch story matters.\nClear launch story spreads.';
 		const view = createTrackedMarkdownView();
-		view.editor = new Editor(content);
+		view.editor = createMockEditor(content);
 		(view.editor as unknown as { cm: unknown }).cm = createFakeEditorViewDoc(content);
 		(manager as any).activeView = view;
 		(manager as any).proseLinterReviewActive = true;
@@ -582,7 +583,7 @@ describe('WritingAnalysisManager', () => {
 				cm: { state: { doc: { length: docLength } } }
 			};
 			const view = new MarkdownView(null);
-			view.file = new TFile('notes/big.md');
+			view.file = createMockTFile('notes/big.md');
 			view.editor = fakeEditor as unknown as Editor;
 			(manager as any).activeView = view;
 
@@ -662,7 +663,7 @@ describe('WritingAnalysisManager', () => {
 				cm
 			};
 			const view = new MarkdownView(null);
-			view.file = new TFile('notes/current.md');
+			view.file = createMockTFile('notes/current.md');
 			view.editor = fakeEditor as unknown as Editor;
 			(manager as any).activeView = view;
 
@@ -731,7 +732,7 @@ describe('WritingAnalysisManager', () => {
 
 		function createView(path: string): MarkdownView {
 			const view = new MarkdownView(null);
-			view.file = new TFile(path);
+			view.file = createMockTFile(path);
 			view.editor = createAsyncEditor();
 			return view;
 		}

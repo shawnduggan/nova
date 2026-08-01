@@ -84,7 +84,7 @@ async function requestUrlViaFetch(request: { url: string; method?: string; heade
 	};
 }
 
-const providerCases: LiveProviderCase[] = [
+const configuredProviderCases: LiveProviderCase[] = [
 	{
 		providerType: 'claude',
 		displayName: 'Claude',
@@ -103,7 +103,11 @@ const providerCases: LiveProviderCase[] = [
 		envNames: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
 		createProvider: (apiKey, model) => new GoogleProvider({ apiKey, model }, GENERAL_SETTINGS, new TimeoutManager())
 	}
-].filter(providerCase => !PROVIDER_FILTER || providerCase.providerType === PROVIDER_FILTER);
+];
+
+const providerCases = configuredProviderCases.filter(
+	providerCase => !PROVIDER_FILTER || providerCase.providerType === PROVIDER_FILTER
+);
 
 const describeLive = LIVE_TESTS_ENABLED ? describe : describe.skip;
 

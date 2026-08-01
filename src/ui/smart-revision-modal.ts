@@ -49,7 +49,7 @@ export class SmartRevisionModal extends Modal {
 		private readonly plugin: NovaPlugin,
 		private readonly editor: Editor,
 		private readonly target: SmartRevisionTarget,
-		private readonly service: SmartRevisionService,
+		private readonly service: Pick<SmartRevisionService, 'generateSession'>,
 		options: SmartRevisionModalOptions
 	) {
 		super(plugin.app);

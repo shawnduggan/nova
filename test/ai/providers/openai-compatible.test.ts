@@ -144,11 +144,8 @@ describe('OpenAICompatibleProvider', () => {
 			json: { error: { message: privateResponse } }
 		});
 
-		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
-			.catch(error => error as Error);
-
-		expect(thrown).toBeInstanceOf(Error);
-		expect(thrown.message).toBe('OpenAI-compatible API error: 500');
+		await expect(provider.complete('private-system-prompt', 'private-user-prompt'))
+			.rejects.toThrow('OpenAI-compatible API error: 500');
 		const serializedLogs = JSON.stringify(errorLog.mock.calls);
 		expect(serializedLogs).not.toContain(privateResponse);
 		expect(serializedLogs).not.toContain('private-header-sentinel');

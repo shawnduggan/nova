@@ -53,11 +53,8 @@ describe('GoogleProvider', () => {
 			json: { error: { message: privateResponse } }
 		});
 
-		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
-			.catch(error => error as Error);
-
-		expect(thrown).toBeInstanceOf(Error);
-		expect(thrown.message).toBe('Google API error: 401 (check the API key in settings)');
+		await expect(provider.complete('private-system-prompt', 'private-user-prompt'))
+			.rejects.toThrow('Google API error: 401 (check the API key in settings)');
 		const serializedLogs = JSON.stringify(errorLog.mock.calls);
 		expect(serializedLogs).not.toContain(privateResponse);
 		expect(serializedLogs).not.toContain('private-header-sentinel');

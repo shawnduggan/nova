@@ -8,8 +8,10 @@ import type { ProseIssue } from '../../../src/features/prose-linter/prose-linter
 
 describe('buildProseLinterSummary', () => {
 	function issue(type: ProseIssue['type']): ProseIssue {
+		const id = type + Math.random().toString();
 		return {
-			id: type + Math.random().toString(),
+			id,
+			ignoreKey: `test:${id}`,
 			type,
 			severity: 'warning',
 			line: 0,
