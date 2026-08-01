@@ -43,15 +43,17 @@ export class OllamaProvider implements AIProvider {
 
 	async getAvailableModels(): Promise<string[]> {
 		const baseUrl = this.getBaseUrl();
-		const response = await requestUrl({
+			const response = await requestUrl({
 			url: `${baseUrl}/api/tags`,
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' },
-			throw: false
-		});
+				throw: false
+			}).catch(() => {
+				throw new Error('Ollama models API request failed');
+			});
 
-		if (response.status !== 200) {
-			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
+			if (response.status !== 200) {
+				throw new Error(`Ollama API error: ${response.status}`);
 		}
 
 		return this.extractModelNames(response.json);
@@ -87,7 +89,7 @@ export class OllamaProvider implements AIProvider {
 			throw new Error('Ollama model must be specified');
 		}
 
-		const response = await requestUrl({
+			const response = await requestUrl({
 			url: `${baseUrl}/api/generate`,
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -100,18 +102,17 @@ export class OllamaProvider implements AIProvider {
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			}),
-			throw: false
-		});
-
-		if (response.status !== 200) {
-			Logger.error('Ollama API Error Details:', {
-				status: response.status,
-				headers: response.headers,
-				errorText: response.text,
-				model: model,
-				endpoint: `${baseUrl}/api/generate`
+				throw: false
+			}).catch(() => {
+				throw new Error('Ollama API request failed');
 			});
-			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
+
+			if (response.status !== 200) {
+				Logger.error('Ollama API request failed', {
+					status: response.status,
+					model
+				});
+				throw new Error(`Ollama API error: ${response.status}`);
 		}
 
 		const data = response.json;
@@ -148,7 +149,7 @@ export class OllamaProvider implements AIProvider {
 			throw new Error('Ollama model must be specified');
 		}
 
-		const response = await requestUrl({
+			const response = await requestUrl({
 			url: `${baseUrl}/api/chat`,
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -164,18 +165,17 @@ export class OllamaProvider implements AIProvider {
 					num_predict: options?.maxTokens || this.generalSettings.defaultMaxTokens
 				}
 			}),
-			throw: false
-		});
-
-		if (response.status !== 200) {
-			Logger.error('Ollama API Error Details:', {
-				status: response.status,
-				headers: response.headers,
-				errorText: response.text,
-				model: model,
-				endpoint: `${baseUrl}/api/chat`
+				throw: false
+			}).catch(() => {
+				throw new Error('Ollama API request failed');
 			});
-			throw new Error(`Ollama API error: ${response.status} - ${response.text}`);
+
+			if (response.status !== 200) {
+				Logger.error('Ollama API request failed', {
+					status: response.status,
+					model
+				});
+				throw new Error(`Ollama API error: ${response.status}`);
 		}
 
 		const data = response.json;

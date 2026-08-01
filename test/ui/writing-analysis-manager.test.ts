@@ -2,19 +2,49 @@
  * @file WritingAnalysisManager Test Suite
  */
 
-import { Editor, MarkdownView, TFile } from 'obsidian';
+import { Component, Editor, MarkdownView, TFile } from 'obsidian';
 import { VIEW_TYPE_NOVA_SIDEBAR, VIEW_TYPE_PROSE_LINTER } from '../../src/constants';
 import { hashContent, MAX_WRITING_ANALYSIS_CHAR_LENGTH } from '../../src/core/writing-analysis';
 import { WRITING_ANALYSIS_UPDATED_EVENT, WritingAnalysisManager, type WritingAnalysisUpdateDetail } from '../../src/ui/writing-analysis-manager';
 
 describe('WritingAnalysisManager', () => {
-	function createManager(activeLeafViewType: string) {
-		const workspace = {
+	type WorkspaceEventCallback = (...data: unknown[]) => void;
+
+	function createWorkspace() {
+		const handlers = new Map<string, WorkspaceEventCallback[]>();
+		return {
 			containerEl: document.body,
-			getActiveViewOfType: jest.fn(() => null),
+			getActiveViewOfType: jest.fn(() => null as MarkdownView | null),
 			getLeavesOfType: jest.fn(() => []),
-			on: jest.fn(() => ({ unsubscribe: () => undefined }))
+			iterateAllLeaves: jest.fn((_callback: (leaf: unknown) => void) => undefined),
+			on: jest.fn((event: string, handler: WorkspaceEventCallback) => {
+				const eventHandlers = handlers.get(event) ?? [];
+				eventHandlers.push(handler);
+				handlers.set(event, eventHandlers);
+				return {
+					unsubscribe: () => {
+						const registeredHandlers = handlers.get(event) ?? [];
+						const index = registeredHandlers.indexOf(handler);
+						if (index >= 0) {
+							registeredHandlers.splice(index, 1);
+						}
+					}
+				};
+			}),
+			trigger: jest.fn((event: string, ...data: unknown[]) => {
+				(handlers.get(event) ?? []).forEach((handler) => handler(...data));
+			})
 		};
+	}
+
+	function getWritingAnalysisUpdates(workspace: ReturnType<typeof createWorkspace>): WritingAnalysisUpdateDetail[] {
+		return workspace.trigger.mock.calls
+			.filter(([event]) => event === WRITING_ANALYSIS_UPDATED_EVENT)
+			.map(([, detail]) => detail as WritingAnalysisUpdateDetail);
+	}
+
+	function createManager(activeLeafViewType: string) {
+		const workspace = createWorkspace();
 
 		const plugin = {
 			app: {
@@ -32,6 +62,14 @@ describe('WritingAnalysisManager', () => {
 			},
 			registerEvent: jest.fn(),
 			registerDomEvent: jest.fn(),
+			addChild: jest.fn((component: Component) => {
+				component.load();
+				return component;
+			}),
+			removeChild: jest.fn((component: Component) => {
+				component.unload();
+				return component;
+			}),
 			writingAnalysisStateField: {}
 		};
 
@@ -78,27 +116,19 @@ describe('WritingAnalysisManager', () => {
 	}
 
 	test('clears writing analysis when the active leaf becomes the writing dashboard', async () => {
-		const { manager } = createManager('nova-writing-dashboard');
+		const { manager, workspace } = createManager('nova-writing-dashboard');
 		const trackedView = createTrackedMarkdownView();
 		(manager as any).activeView = trackedView;
 		(manager as any).latestAnalysis = { readabilityGrade: 8 } as never;
 		(manager as any).currentLeafViewType = 'nova-writing-dashboard';
 
-		const updatePromise = new Promise<WritingAnalysisUpdateDetail>((resolve) => {
-			document.addEventListener(
-				WRITING_ANALYSIS_UPDATED_EVENT,
-				(event) => resolve((event as CustomEvent<WritingAnalysisUpdateDetail>).detail),
-				{ once: true }
-			);
-		});
-
 		await manager.refreshForActiveView(true);
-		const detail = await updatePromise;
+		const detail = getWritingAnalysisUpdates(workspace).at(-1);
 
 		expect(manager.getActiveFile()).toBeNull();
 		expect(manager.getLatestAnalysis()).toBeNull();
-		expect(detail.eligible).toBe(false);
-		expect(detail.filePath).toBeNull();
+		expect(detail?.eligible).toBe(false);
+		expect(detail?.filePath).toBeNull();
 	});
 
 	test('preserves writing analysis when focus moves to the file explorer', async () => {
@@ -203,56 +233,37 @@ describe('WritingAnalysisManager', () => {
 	});
 
 	test('marks current analysis stale on editor changes without discarding stats', () => {
-		const { manager } = createManager('markdown');
+		const { manager, workspace } = createManager('markdown');
 		const trackedView = createTrackedMarkdownView();
 		const previousAnalysis = { readabilityGrade: 8, wordCount: 12 } as never;
-		const emitted: WritingAnalysisUpdateDetail[] = [];
-		const listener = (event: Event) => {
-			emitted.push((event as CustomEvent<WritingAnalysisUpdateDetail>).detail);
-		};
-		document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+		(manager as any).activeView = trackedView;
+		(manager as any).latestAnalysis = previousAnalysis;
 
-		try {
-			(manager as any).activeView = trackedView;
-			(manager as any).latestAnalysis = previousAnalysis;
+		(manager as any).handleEditorChange(trackedView.editor);
 
-			(manager as any).handleEditorChange(trackedView.editor);
-
-			expect(manager.getLatestAnalysis()).toBe(previousAnalysis);
-			expect(manager.isAnalysisStale()).toBe(true);
-			expect(emitted).toHaveLength(1);
-			expect(emitted.at(-1)).toEqual(expect.objectContaining({
-				analysis: previousAnalysis,
-				eligible: true,
-				stale: true
-			}));
-		} finally {
-			document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
-		}
+		const emitted = getWritingAnalysisUpdates(workspace);
+		expect(manager.getLatestAnalysis()).toBe(previousAnalysis);
+		expect(manager.isAnalysisStale()).toBe(true);
+		expect(emitted).toHaveLength(1);
+		expect(emitted.at(-1)).toEqual(expect.objectContaining({
+			analysis: previousAnalysis,
+			eligible: true,
+			stale: true
+		}));
 	});
 
 	test('does not emit repeated stale updates while typing continues', () => {
-		const { manager } = createManager('markdown');
+		const { manager, workspace } = createManager('markdown');
 		const trackedView = createTrackedMarkdownView();
-		const emitted: WritingAnalysisUpdateDetail[] = [];
-		const listener = (event: Event) => {
-			emitted.push((event as CustomEvent<WritingAnalysisUpdateDetail>).detail);
-		};
-		document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+		(manager as any).activeView = trackedView;
+		(manager as any).latestAnalysis = { readabilityGrade: 8, wordCount: 12 } as never;
 
-		try {
-			(manager as any).activeView = trackedView;
-			(manager as any).latestAnalysis = { readabilityGrade: 8, wordCount: 12 } as never;
+		(manager as any).handleEditorChange(trackedView.editor);
+		(manager as any).handleEditorChange(trackedView.editor);
+		(manager as any).handleEditorChange(trackedView.editor);
 
-			(manager as any).handleEditorChange(trackedView.editor);
-			(manager as any).handleEditorChange(trackedView.editor);
-			(manager as any).handleEditorChange(trackedView.editor);
-
-			expect(manager.isAnalysisStale()).toBe(true);
-			expect(emitted).toHaveLength(1);
-		} finally {
-			document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
-		}
+		expect(manager.isAnalysisStale()).toBe(true);
+		expect(getWritingAnalysisUpdates(workspace)).toHaveLength(1);
 	});
 
 	test('keeps stale analysis when focus returns to the same markdown editor', async () => {
@@ -415,6 +426,80 @@ describe('WritingAnalysisManager', () => {
 		sidebar.remove();
 	});
 
+	test('reconciles Nova surfaces in the document that received the latest interaction', () => {
+		const { manager } = createManager(VIEW_TYPE_PROSE_LINTER);
+		(manager as any).activeView = createTrackedMarkdownView();
+		(manager as any).proseLinterReviewActive = false;
+		(manager as any).proseLinterHighlights = [{
+			from: 0,
+			to: 8,
+			type: 'complex-word',
+			title: 'Complex word: use a simpler alternative.'
+		}];
+		(manager as any).proseLinterHighlightFilePath = 'notes/current.md';
+		(manager as any).proseLinterHighlightContentHash = hashContent(manager.getActiveContent() ?? '');
+		const highlightManager = attachHighlightSpy(manager);
+
+		const mainWindowSidebar = document.createElement('div');
+		mainWindowSidebar.classList.add('nova-sidebar-container');
+		Object.defineProperty(mainWindowSidebar, 'getClientRects', {
+			value: () => ({ length: 1 })
+		});
+		document.body.appendChild(mainWindowSidebar);
+
+		const popoutDocument = document.implementation.createHTMLDocument('Nova pop-out');
+		const popoutProseLinter = popoutDocument.createElement('div');
+		popoutProseLinter.classList.add('nova-prose-linter-view');
+		Object.defineProperty(popoutProseLinter, 'getClientRects', {
+			value: () => ({ length: 1 })
+		});
+		const popoutTarget = popoutDocument.createElement('span');
+		popoutProseLinter.appendChild(popoutTarget);
+		popoutDocument.body.appendChild(popoutProseLinter);
+
+		(manager as any).handleWorkspaceInteraction({ target: popoutTarget });
+		(manager as any).reconcileProseLinterReviewMode();
+
+		expect((manager as any).activeSurfaceDocument).toBe(popoutDocument);
+		expect((manager as any).proseLinterReviewActive).toBe(true);
+		expect(highlightManager.updateHighlights).toHaveBeenCalledWith(expect.arrayContaining([
+			expect.objectContaining({ type: 'complex-word' })
+		]));
+		mainWindowSidebar.remove();
+	});
+
+	test('releases and re-registers pop-out listeners across close and reopen', () => {
+		const { manager, plugin, workspace } = createManager('markdown');
+		manager.init();
+		const popoutDocument = document.implementation.createHTMLDocument('Nova pop-out');
+		const target = popoutDocument.createElement('button');
+		popoutDocument.body.appendChild(target);
+
+		workspace.trigger('window-open', {}, { document: popoutDocument });
+		const firstLifecycle = (manager as any).interactionDocumentLifecycles.get(popoutDocument);
+		target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+		expect(firstLifecycle).toBeDefined();
+		expect((manager as any).activeSurfaceDocument).toBe(popoutDocument);
+
+		workspace.trigger('window-close', {}, { document: popoutDocument });
+		expect((manager as any).interactionDocumentLifecycles.has(popoutDocument)).toBe(false);
+		expect((manager as any).activeSurfaceDocument).toBeNull();
+		expect(plugin.removeChild).toHaveBeenCalledWith(firstLifecycle);
+
+		target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect((manager as any).activeSurfaceDocument).toBeNull();
+
+		workspace.trigger('window-open', {}, { document: popoutDocument });
+		const reopenedLifecycle = (manager as any).interactionDocumentLifecycles.get(popoutDocument);
+		target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+		expect(reopenedLifecycle).toBeDefined();
+		expect(reopenedLifecycle).not.toBe(firstLifecycle);
+		expect((manager as any).activeSurfaceDocument).toBe(popoutDocument);
+		manager.cleanup();
+	});
+
 	test('keeps prose linter review mode active when focus returns to the markdown editor', () => {
 		const { manager } = createManager('markdown');
 		(manager as any).activeView = createTrackedMarkdownView();
@@ -473,10 +558,7 @@ describe('WritingAnalysisManager', () => {
 
 	describe('size gate', () => {
 		function createManagerWithEditor(docLength: number) {
-			const workspace = {
-				getActiveViewOfType: jest.fn(() => null),
-				on: jest.fn(() => ({ unsubscribe: () => undefined }))
-			};
+			const workspace = createWorkspace();
 			const plugin = {
 				app: {
 					workspace,
@@ -504,7 +586,7 @@ describe('WritingAnalysisManager', () => {
 			view.editor = fakeEditor as unknown as Editor;
 			(manager as any).activeView = view;
 
-			return { manager, fakeEditor };
+			return { manager, fakeEditor, workspace };
 		}
 
 		test('analyzes medium-large notes during explicit snapshot analysis', async () => {
@@ -520,43 +602,32 @@ describe('WritingAnalysisManager', () => {
 		});
 
 		test('analyzeNow respects the oversized document gate', async () => {
-			const { manager } = createManagerWithEditor(MAX_WRITING_ANALYSIS_CHAR_LENGTH + 1);
-			const emitted: WritingAnalysisUpdateDetail[] = [];
-			const listener = (event: Event) => {
-				emitted.push((event as CustomEvent<WritingAnalysisUpdateDetail>).detail);
-			};
-			document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+			const { manager, workspace } = createManagerWithEditor(MAX_WRITING_ANALYSIS_CHAR_LENGTH + 1);
 
-			try {
-				await manager.analyzeNow();
+			await manager.analyzeNow();
 
-				expect(manager.isActiveFileOversized()).toBe(true);
-				expect(manager.isAnalysisStale()).toBe(false);
-				expect(manager.getLatestAnalysis()).toBeNull();
-				expect(emitted.at(-1)).toEqual(expect.objectContaining({
-					eligible: true,
-					oversized: true,
-					stale: false,
-					analysis: null,
-					filePath: 'notes/big.md'
-				}));
-			} finally {
-				document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
-			}
+			expect(manager.isActiveFileOversized()).toBe(true);
+			expect(manager.isAnalysisStale()).toBe(false);
+			expect(manager.getLatestAnalysis()).toBeNull();
+			expect(getWritingAnalysisUpdates(workspace).at(-1)).toEqual(expect.objectContaining({
+				eligible: true,
+				oversized: true,
+				stale: false,
+				analysis: null,
+				filePath: 'notes/big.md'
+			}));
 		});
 	});
 
 	describe('editor focus preservation', () => {
 		function createFocusedAnalysisManager(content = 'This is a short note. It has another sentence.'): {
 			manager: WritingAnalysisManager;
+			workspace: ReturnType<typeof createWorkspace>;
 			cm: { focus: jest.Mock };
 			editorInput: HTMLElement;
 			cleanup: () => void;
 		} {
-			const workspace = {
-				getActiveViewOfType: jest.fn(() => null),
-				on: jest.fn(() => ({ unsubscribe: () => undefined }))
-			};
+			const workspace = createWorkspace();
 			const plugin = {
 				app: {
 					workspace,
@@ -597,6 +668,7 @@ describe('WritingAnalysisManager', () => {
 
 			return {
 				manager,
+				workspace,
 				cm,
 				editorInput,
 				cleanup: () => editorDom.remove()
@@ -604,11 +676,11 @@ describe('WritingAnalysisManager', () => {
 		}
 
 		test('restores editor focus when analysis update leaves focus on the document shell', async () => {
-			const { manager, cm, editorInput, cleanup } = createFocusedAnalysisManager();
+			const { manager, workspace, cm, editorInput, cleanup } = createFocusedAnalysisManager();
 			const listener = () => {
 				editorInput.blur();
 			};
-			document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+			const eventRef = workspace.on(WRITING_ANALYSIS_UPDATED_EVENT, listener);
 
 			try {
 				(manager as any).analysisStale = true;
@@ -620,20 +692,20 @@ describe('WritingAnalysisManager', () => {
 				expect(manager.isAnalysisStale()).toBe(false);
 				expect(document.activeElement).toBe(editorInput);
 			} finally {
-				document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+				eventRef.unsubscribe();
 				cleanup();
 			}
 		});
 
 		test('does not steal focus from another interactive element', async () => {
-			const { manager, cm, editorInput, cleanup } = createFocusedAnalysisManager();
+			const { manager, workspace, cm, editorInput, cleanup } = createFocusedAnalysisManager();
 			const button = document.createElement('button');
 			button.textContent = 'Sidebar action';
 			document.body.appendChild(button);
 			const listener = () => {
 				button.focus();
 			};
-			document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+			const eventRef = workspace.on(WRITING_ANALYSIS_UPDATED_EVENT, listener);
 
 			try {
 				editorInput.focus();
@@ -643,7 +715,7 @@ describe('WritingAnalysisManager', () => {
 				expect(cm.focus).not.toHaveBeenCalled();
 				expect(document.activeElement).toBe(button);
 			} finally {
-				document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+				eventRef.unsubscribe();
 				button.remove();
 				cleanup();
 			}
@@ -676,10 +748,7 @@ describe('WritingAnalysisManager', () => {
 				}
 				return Promise.resolve(newContent);
 			});
-			const workspace = {
-				getActiveViewOfType: jest.fn(() => null),
-				on: jest.fn(() => ({ unsubscribe: () => undefined }))
-			};
+			const workspace = createWorkspace();
 			const plugin = {
 				app: {
 					workspace,
@@ -697,32 +766,22 @@ describe('WritingAnalysisManager', () => {
 				writingAnalysisStateField: {}
 			};
 			const manager = new WritingAnalysisManager(plugin as never);
-			const emitted: WritingAnalysisUpdateDetail[] = [];
-			const listener = (event: Event) => {
-				emitted.push((event as CustomEvent<WritingAnalysisUpdateDetail>).detail);
-			};
-			document.addEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
+			(manager as any).activeView = createView('notes/old.md');
+			const oldRun = (manager as any).runAnalysis();
 
-			try {
-				(manager as any).activeView = createView('notes/old.md');
-				const oldRun = (manager as any).runAnalysis();
+			(manager as any).activeView = createView('notes/new.md');
+			await (manager as any).runAnalysis();
+			resolveOldRead('The old report was written carefully.');
+			await oldRun;
 
-				(manager as any).activeView = createView('notes/new.md');
-				await (manager as any).runAnalysis();
-				resolveOldRead('The old report was written carefully.');
-				await oldRun;
-
-				expect(manager.getActiveFile()?.path).toBe('notes/new.md');
-				expect(manager.getLatestAnalysis()?.wordCount).toBe(5);
-				expect(manager.getActiveRunToken()).toEqual({
-					filePath: 'notes/new.md',
-					contentHash: hashContent(newContent),
-					sequence: 2
-				});
-				expect(emitted.map((detail) => detail.filePath)).toEqual(['notes/new.md']);
-			} finally {
-				document.removeEventListener(WRITING_ANALYSIS_UPDATED_EVENT, listener);
-			}
+			expect(manager.getActiveFile()?.path).toBe('notes/new.md');
+			expect(manager.getLatestAnalysis()?.wordCount).toBe(5);
+			expect(manager.getActiveRunToken()).toEqual({
+				filePath: 'notes/new.md',
+				contentHash: hashContent(newContent),
+				sequence: 2
+			});
+			expect(getWritingAnalysisUpdates(workspace).map((detail) => detail.filePath)).toEqual(['notes/new.md']);
 		});
 	});
 

@@ -11,6 +11,21 @@ export enum LogLevel {
     ERROR = 3
 }
 
+function isProduction(): boolean {
+    return process.env.NODE_ENV === 'production';
+}
+
+function getLogPayload(
+    prefix: string,
+    severity: 'Warning' | 'Error',
+    message: string,
+    args: unknown[]
+): [string, ...unknown[]] {
+    return isProduction()
+        ? [`${prefix} ${severity}`]
+        : [`${prefix} ${message}`, ...args];
+}
+
 export class Logger {
     private static readonly PREFIX = '[Nova]';
     public static currentLevel: LogLevel = LogLevel.INFO;
@@ -26,7 +41,7 @@ export class Logger {
      * Log debug information (development only)
      */
     static debug(message: string, ...args: unknown[]): void {
-        if (Logger.currentLevel <= LogLevel.DEBUG) {
+        if (!isProduction() && Logger.currentLevel <= LogLevel.DEBUG) {
             console.debug(`${Logger.PREFIX} ${message}`, ...args);
         }
     }
@@ -35,7 +50,7 @@ export class Logger {
      * Log general information
      */
     static info(message: string, ...args: unknown[]): void {
-        if (Logger.currentLevel <= LogLevel.INFO) {
+        if (!isProduction() && Logger.currentLevel <= LogLevel.INFO) {
             console.debug(`${Logger.PREFIX} ${message}`, ...args);
         }
     }
@@ -45,7 +60,7 @@ export class Logger {
      */
     static warn(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.WARN) {
-            console.warn(`${Logger.PREFIX} ${message}`, ...args);
+            console.warn(...getLogPayload(Logger.PREFIX, 'Warning', message, args));
         }
     }
 
@@ -54,7 +69,7 @@ export class Logger {
      */
     static error(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.ERROR) {
-            console.error(`${Logger.PREFIX} ${message}`, ...args);
+            console.error(...getLogPayload(Logger.PREFIX, 'Error', message, args));
         }
     }
 
@@ -77,28 +92,26 @@ export class ScopedLogger {
     }
 
     debug(message: string, ...args: unknown[]): void {
-        if (Logger.currentLevel <= LogLevel.DEBUG) {
+        if (!isProduction() && Logger.currentLevel <= LogLevel.DEBUG) {
             console.debug(`${this.prefix} ${message}`, ...args);
         }
     }
 
     info(message: string, ...args: unknown[]): void {
-        if (Logger.currentLevel <= LogLevel.INFO) {
+        if (!isProduction() && Logger.currentLevel <= LogLevel.INFO) {
             console.debug(`${this.prefix} ${message}`, ...args);
         }
     }
 
     warn(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.WARN) {
-            console.warn(`${this.prefix} ${message}`, ...args);
+            console.warn(...getLogPayload(this.prefix, 'Warning', message, args));
         }
     }
 
     error(message: string, ...args: unknown[]): void {
         if (Logger.currentLevel <= LogLevel.ERROR) {
-            console.error(`${this.prefix} ${message}`, ...args);
+            console.error(...getLogPayload(this.prefix, 'Error', message, args));
         }
     }
 }
-
- 

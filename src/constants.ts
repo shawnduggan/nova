@@ -10,6 +10,11 @@ export const NOVA_STAR_ICON = 'nova-star';
 export const NOVA_SUPERNOVA_ICON = 'nova-supernova';
 export const FEATURE_SMARTFILL = 'smartfill';
 export const FEATURE_SMART_REVISION = 'smart-revision';
+export const NOVA_PROVIDER_CONFIGURED_EVENT = 'nova-provider-configured';
+export const NOVA_PROVIDER_DISCONNECTED_EVENT = 'nova-provider-disconnected';
+export const NOVA_LICENSE_UPDATED_EVENT = 'nova-license-updated';
+export const NOVA_WRITING_ANALYSIS_UPDATED_EVENT = 'nova-writing-analysis-updated';
+export const NOVA_INDICATOR_CLICK_EVENT = 'nova-indicator-click';
 
 export const PROVIDER_CLAUDE = 'claude';
 export const PROVIDER_OPENAI = 'openai';

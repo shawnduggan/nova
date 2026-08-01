@@ -193,14 +193,25 @@ describe('ClaudeProvider', () => {
         });
 
         test('should throw error when API response is not ok', async () => {
+            const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+            const privateResponse = 'Unauthorized private-response-sentinel';
             (requestUrl as jest.Mock).mockResolvedValue({
                 status: 401,
-                text: 'Unauthorized'
+                text: privateResponse,
+                headers: { 'x-private': 'private-header-sentinel' }
             });
 
-            await expect(
-                provider.complete('System prompt', 'User prompt')
-            ).rejects.toThrow('Claude API error: 401 - Unauthorized');
+            const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
+                .catch(error => error as Error);
+
+            expect(thrown).toBeInstanceOf(Error);
+            expect(thrown.message).toBe('Claude API error: 401');
+            const serializedLogs = JSON.stringify(errorLog.mock.calls);
+            expect(serializedLogs).not.toContain(privateResponse);
+            expect(serializedLogs).not.toContain('private-header-sentinel');
+            expect(serializedLogs).not.toContain('private-user-prompt');
+            expect(serializedLogs).not.toContain('test-api-key');
+            errorLog.mockRestore();
         });
 
         test('should handle API error response', async () => {
@@ -208,7 +219,7 @@ describe('ClaudeProvider', () => {
 
             await expect(
                 provider.complete('System prompt', 'User prompt')
-            ).rejects.toThrow(/Network error|Failed to connect/);
+            ).rejects.toThrow('Claude API request failed');
         }, 15000); // Increased timeout for retry logic
     });
 

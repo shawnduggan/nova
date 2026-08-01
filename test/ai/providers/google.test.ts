@@ -42,4 +42,27 @@ describe('GoogleProvider', () => {
 			'gemini-2.5-flash-lite'
 		]);
 	});
+
+	test('does not expose prompts, keys, or response bodies in errors or logs', async () => {
+		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const privateResponse = 'private-google-response-sentinel';
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 401,
+			text: privateResponse,
+			headers: { 'x-private': 'private-header-sentinel' },
+			json: { error: { message: privateResponse } }
+		});
+
+		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
+			.catch(error => error as Error);
+
+		expect(thrown).toBeInstanceOf(Error);
+		expect(thrown.message).toBe('Google API error: 401 (check the API key in settings)');
+		const serializedLogs = JSON.stringify(errorLog.mock.calls);
+		expect(serializedLogs).not.toContain(privateResponse);
+		expect(serializedLogs).not.toContain('private-header-sentinel');
+		expect(serializedLogs).not.toContain('private-user-prompt');
+		expect(serializedLogs).not.toContain('test-api-key');
+		errorLog.mockRestore();
+	});
 });

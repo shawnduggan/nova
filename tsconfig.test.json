@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "skipLibCheck": true,
+    "isolatedModules": true,
     "strict": false,
     "noImplicitAny": false
   },

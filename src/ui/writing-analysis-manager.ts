@@ -2,19 +2,23 @@
  * @file WritingAnalysisManager - Coordinates deterministic writing analysis for the active Markdown editor
  */
 
-import { Editor, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
+import { Component, Editor, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import { analyzeWriting, hashContent, hasWritingAnalysisOptOut, MAX_WRITING_ANALYSIS_CHAR_LENGTH, type WritingAnalysis } from '../core/writing-analysis';
 import { createAnalysisRunToken, isStaleAnalysisRun, type AnalysisRunToken } from '../core/writing-analysis-runner';
 import { CodeMirrorWritingHighlightManager, type WritingHighlight } from '../features/commands/ui/codemirror-decorations';
 import { PROSE_ISSUE_LABELS, type ProseIssue, type ProseIssueRange } from '../features/prose-linter/prose-linter-types';
-import { VIEW_TYPE_NOVA_SIDEBAR, VIEW_TYPE_PROSE_LINTER } from '../constants';
+import {
+    NOVA_WRITING_ANALYSIS_UPDATED_EVENT,
+    VIEW_TYPE_NOVA_SIDEBAR,
+    VIEW_TYPE_PROSE_LINTER
+} from '../constants';
 import { VIEW_TYPE_WRITING_DASHBOARD } from './writing-dashboard-view';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
 
-export const WRITING_ANALYSIS_UPDATED_EVENT = 'nova-writing-analysis-updated';
+export const WRITING_ANALYSIS_UPDATED_EVENT = NOVA_WRITING_ANALYSIS_UPDATED_EVENT;
 
 export interface WritingAnalysisUpdateDetail {
     analysis: WritingAnalysis | null;
@@ -50,6 +54,8 @@ export class WritingAnalysisManager {
     private proseLinterHighlightContentHash: string | null = null;
     private proseLinterReviewActive = false;
     private pendingReviewModeReconcileTimeout: number | null = null;
+    private interactionDocumentLifecycles = new Map<Document, Component>();
+    private activeSurfaceDocument: Document | null = null;
 
     constructor(plugin: NovaPlugin) {
         this.plugin = plugin;
@@ -76,6 +82,7 @@ export class WritingAnalysisManager {
 
         this.plugin.registerEvent(
             this.plugin.app.workspace.on('layout-change', () => {
+                this.registerKnownWorkspaceDocuments();
                 this.scheduleProseLinterReviewReconcile();
             })
         );
@@ -86,18 +93,20 @@ export class WritingAnalysisManager {
             })
         );
 
-        this.plugin.registerDomEvent(document, 'click', (event: MouseEvent) => {
-            this.handleWorkspaceInteraction(event);
-        }, { capture: true });
+        this.plugin.registerEvent(
+            this.plugin.app.workspace.on('window-open', (_workspaceWindow, ownerWindow) => {
+                this.registerInteractionDocument(ownerWindow.document);
+            })
+        );
 
-        this.plugin.registerDomEvent(document, 'pointerdown', (event: PointerEvent) => {
-            this.handleWorkspaceInteraction(event);
-        }, { capture: true });
+        this.plugin.registerEvent(
+            this.plugin.app.workspace.on('window-close', (_workspaceWindow, ownerWindow) => {
+                this.unregisterInteractionDocument(ownerWindow.document);
+                this.scheduleProseLinterReviewReconcile();
+            })
+        );
 
-        this.plugin.registerDomEvent(document, 'focusin', (event: FocusEvent) => {
-            this.handleWorkspaceInteraction(event);
-        }, { capture: true });
-
+        this.registerKnownWorkspaceDocuments();
         this.reconcileProseLinterReviewMode();
         void this.refreshForActiveView(false);
     }
@@ -234,6 +243,10 @@ export class WritingAnalysisManager {
         this.latestAnalysis = null;
         this.oversizedActiveNote = false;
         this.analysisStale = false;
+        for (const ownerDocument of this.interactionDocumentLifecycles.keys()) {
+            this.unregisterInteractionDocument(ownerDocument);
+        }
+        this.activeSurfaceDocument = null;
         this.invalidateAnalysisRun(null);
     }
 
@@ -350,17 +363,15 @@ export class WritingAnalysisManager {
     }
 
     private emitUpdate(eligible: boolean): void {
-        document.dispatchEvent(new CustomEvent(WRITING_ANALYSIS_UPDATED_EVENT, {
-            detail: {
-                analysis: this.latestAnalysis,
-                filePath: this.activeView?.file?.path ?? null,
-                eligible,
-                disabledByFrontmatter: this.disabledByFrontmatter,
-                oversized: this.oversizedActiveNote,
-                stale: this.analysisStale,
-                runToken: this.activeRunToken
-            } satisfies WritingAnalysisUpdateDetail
-        }));
+        this.plugin.app.workspace.trigger(WRITING_ANALYSIS_UPDATED_EVENT, {
+            analysis: this.latestAnalysis,
+            filePath: this.activeView?.file?.path ?? null,
+            eligible,
+            disabledByFrontmatter: this.disabledByFrontmatter,
+            oversized: this.oversizedActiveNote,
+            stale: this.analysisStale,
+            runToken: this.activeRunToken
+        } satisfies WritingAnalysisUpdateDetail);
     }
 
     private handleEditorChange(editor: Editor): void {
@@ -589,6 +600,11 @@ export class WritingAnalysisManager {
 
     private handleActiveLeafChange(leaf: WorkspaceLeaf | null): void {
         this.currentLeafViewType = leaf?.view.getViewType() ?? null;
+        const ownerDocument = (leaf?.view as { containerEl?: HTMLElement } | undefined)?.containerEl?.ownerDocument;
+        if (ownerDocument) {
+            this.activeSurfaceDocument = ownerDocument;
+            this.registerInteractionDocument(ownerDocument);
+        }
 
         if (this.currentLeafViewType === VIEW_TYPE_PROSE_LINTER) {
             this.setProseLinterReviewActive(true);
@@ -600,6 +616,11 @@ export class WritingAnalysisManager {
     }
 
     private handleWorkspaceInteraction(event: Event): void {
+        const targetNode = event.target as Node | null;
+        if (targetNode?.ownerDocument) {
+            this.activeSurfaceDocument = targetNode.ownerDocument;
+        }
+
         const clickedViewType = this.getClickedNovaViewType(event.target);
         if (clickedViewType === VIEW_TYPE_PROSE_LINTER) {
             this.setProseLinterReviewActive(true);
@@ -693,7 +714,8 @@ export class WritingAnalysisManager {
     }
 
     private reconcileProseLinterReviewMode(): void {
-        const topVisibleSurface = this.getTopVisibleNovaSurfaceViewType();
+        const ownerDocument = this.getActiveSurfaceDocument();
+        const topVisibleSurface = this.getTopVisibleNovaSurfaceViewType(ownerDocument);
         if (topVisibleSurface === VIEW_TYPE_PROSE_LINTER) {
             this.setProseLinterReviewActive(true);
             return;
@@ -704,7 +726,7 @@ export class WritingAnalysisManager {
             return;
         }
 
-        const visibleNovaSurface = this.getVisibleNovaSurfaceViewType();
+        const visibleNovaSurface = this.getVisibleNovaSurfaceViewType(ownerDocument);
         if (visibleNovaSurface === VIEW_TYPE_PROSE_LINTER) {
             this.setProseLinterReviewActive(true);
             return;
@@ -736,9 +758,9 @@ export class WritingAnalysisManager {
         }, 0);
     }
 
-    private getVisibleNovaSurfaceViewType(): string | null {
-        const proseLinterVisible = this.isAnyElementVisible('.nova-prose-linter-view');
-        const sidebarVisible = this.isAnyElementVisible('.nova-sidebar-container');
+    private getVisibleNovaSurfaceViewType(ownerDocument: Document): string | null {
+        const proseLinterVisible = this.isAnyElementVisible('.nova-prose-linter-view', ownerDocument);
+        const sidebarVisible = this.isAnyElementVisible('.nova-sidebar-container', ownerDocument);
 
         if (proseLinterVisible && !sidebarVisible) {
             return VIEW_TYPE_PROSE_LINTER;
@@ -751,8 +773,7 @@ export class WritingAnalysisManager {
         return null;
     }
 
-    private getTopVisibleNovaSurfaceViewType(): string | null {
-        const ownerDocument = this.plugin.app.workspace.containerEl?.ownerDocument ?? document;
+    private getTopVisibleNovaSurfaceViewType(ownerDocument: Document): string | null {
         if (typeof ownerDocument.elementFromPoint !== 'function') {
             return null;
         }
@@ -815,9 +836,57 @@ export class WritingAnalysisManager {
         return null;
     }
 
-    private isAnyElementVisible(selector: string): boolean {
-        const ownerDocument = this.plugin.app.workspace.containerEl.ownerDocument;
+    private isAnyElementVisible(selector: string, ownerDocument: Document): boolean {
         return Array.from(ownerDocument.querySelectorAll(selector)).some(element => this.isElementVisible(element));
+    }
+
+    private getActiveSurfaceDocument(): Document {
+        return this.activeSurfaceDocument ??
+            this.activeView?.containerEl?.ownerDocument ??
+            this.plugin.app.workspace.containerEl?.ownerDocument ??
+            document;
+    }
+
+    private registerKnownWorkspaceDocuments(): void {
+        const workspace = this.plugin.app.workspace;
+        this.registerInteractionDocument(workspace.containerEl?.ownerDocument ?? document);
+        workspace.iterateAllLeaves((leaf) => {
+            const ownerDocument = (leaf.view as { containerEl?: HTMLElement }).containerEl?.ownerDocument;
+            if (ownerDocument) {
+                this.registerInteractionDocument(ownerDocument);
+            }
+        });
+    }
+
+    private registerInteractionDocument(ownerDocument: Document): void {
+        if (this.interactionDocumentLifecycles.has(ownerDocument)) {
+            return;
+        }
+        const lifecycle = this.plugin.addChild(new Component());
+        this.interactionDocumentLifecycles.set(ownerDocument, lifecycle);
+
+        lifecycle.registerDomEvent(ownerDocument, 'click', (event: MouseEvent) => {
+            this.handleWorkspaceInteraction(event);
+        }, { capture: true });
+        lifecycle.registerDomEvent(ownerDocument, 'pointerdown', (event: PointerEvent) => {
+            this.handleWorkspaceInteraction(event);
+        }, { capture: true });
+        lifecycle.registerDomEvent(ownerDocument, 'focusin', (event: FocusEvent) => {
+            this.handleWorkspaceInteraction(event);
+        }, { capture: true });
+    }
+
+    private unregisterInteractionDocument(ownerDocument: Document): void {
+        const lifecycle = this.interactionDocumentLifecycles.get(ownerDocument);
+        if (!lifecycle) {
+            return;
+        }
+
+        this.interactionDocumentLifecycles.delete(ownerDocument);
+        this.plugin.removeChild(lifecycle);
+        if (this.activeSurfaceDocument === ownerDocument) {
+            this.activeSurfaceDocument = null;
+        }
     }
 
     private isElementVisible(element: Element): boolean {

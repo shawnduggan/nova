@@ -114,7 +114,7 @@ export class CommandEngine {
             || markers.find(m => m.line === lineNumber);
 
         if (!targetMarker) {
-            this.logger.warn(`No marker found — line: ${lineNumber}, instruction: "${instruction}", detected: ${markers.map(m => `L${m.line}:"${m.instruction}"`).join(', ')}`);
+            this.logger.warn(`No marker found at line ${lineNumber}; ${markers.length} markers were detected`);
             new Notice('No placeholder found at this line');
             return;
         }
@@ -206,8 +206,9 @@ export class CommandEngine {
             new Notice('Failed to fill placeholder: ' + errorMessage);
 
             // Display error in chat
-            if (this.plugin.sidebarView?.chatRenderer) {
-                this.plugin.sidebarView.chatRenderer.addErrorMessage(
+            const sidebarView = this.plugin.getCurrentSidebarView();
+            if (sidebarView?.chatRenderer) {
+                sidebarView.chatRenderer.addErrorMessage(
                     `Failed to fill placeholder at line ${targetMarker.line + 1}: ${errorMessage}`,
                     true
                 );
@@ -355,8 +356,9 @@ export class CommandEngine {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
                     // Show error in chat for this specific marker
-                    if (this.plugin.sidebarView?.chatRenderer) {
-                        this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                    const sidebarView = this.plugin.getCurrentSidebarView();
+                    if (sidebarView?.chatRenderer) {
+                        sidebarView.chatRenderer.addErrorMessage(
                             `Failed to fill placeholder ${markerNum}/${sortedMarkers.length}: ${errorMessage}`,
                             true
                         );
@@ -389,8 +391,9 @@ export class CommandEngine {
                 new Notice(`Filled ${successCount}/${successCount + failCount} placeholders (${failCount} failed)`);
 
                 // Show summary error in chat if some failed
-                if (this.plugin.sidebarView?.chatRenderer) {
-                    this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                const sidebarView = this.plugin.getCurrentSidebarView();
+                if (sidebarView?.chatRenderer) {
+                    sidebarView.chatRenderer.addErrorMessage(
                         `Batch fill completed with errors: ${successCount} succeeded, ${failCount} failed`,
                         true
                     );
@@ -399,8 +402,9 @@ export class CommandEngine {
                 new Notice('Failed to fill placeholders');
 
                 // Show error in chat if all failed
-                if (this.plugin.sidebarView?.chatRenderer) {
-                    this.plugin.sidebarView.chatRenderer.addErrorMessage(
+                const sidebarView = this.plugin.getCurrentSidebarView();
+                if (sidebarView?.chatRenderer) {
+                    sidebarView.chatRenderer.addErrorMessage(
                         'Failed to fill all placeholders',
                         true
                     );

@@ -6,8 +6,10 @@
 
 import { MarkdownView, Editor } from 'obsidian';
 import { EditorView } from '@codemirror/view';
+import { NOVA_INDICATOR_CLICK_EVENT } from '../../../constants';
 import { Logger } from '../../../utils/logger';
 import { TimeoutManager } from '../../../utils/timeout-manager';
+import { onWorkspaceEvent } from '../../../utils/workspace-events';
 import { CommandEngine, MarkerInsight } from '../core/CommandEngine';
 import { InsightPanel } from './InsightPanel';
 import { CodeMirrorIndicatorManager } from './codemirror-decorations';
@@ -81,12 +83,14 @@ export class MarginIndicators {
             })
         );
 
-        // Set up global event listener for indicator clicks (once only)
-        this.plugin.registerDomEvent(document, 'nova-indicator-click' as keyof DocumentEventMap, (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { opportunity, element } = customEvent.detail;
+        // Set up workspace event listener for indicator clicks (once only)
+        this.plugin.registerEvent(onWorkspaceEvent(this.plugin.app.workspace, NOVA_INDICATOR_CLICK_EVENT, (detail: {
+                opportunity: IndicatorOpportunity;
+                element: HTMLElement;
+            }) => {
+            const { opportunity, element } = detail;
             this.onIndicatorClick(opportunity, element);
-        });
+        }));
 
         // Initialize with current active editor
         this.onActiveEditorChange();
@@ -192,7 +196,7 @@ export class MarginIndicators {
             // Get current line for analysis
             const cursor = this.activeEditor.getCursor();
             const currentLine = this.activeEditor.getLine(cursor.line);
-            this.logger.debug(`Analyzing line ${cursor.line}: "${currentLine}"`);
+            this.logger.debug(`Analyzing line ${cursor.line}`);
 
             // Find opportunities (including markers)
             const opportunities = this.findOpportunities();

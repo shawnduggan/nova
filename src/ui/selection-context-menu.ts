@@ -249,7 +249,7 @@ export class SelectionContextMenu {
         const signal = this.abortController.signal;
 
         // Set processing state to show stop button (via event)
-        dispatchSidebarProcessing(true);
+        dispatchSidebarProcessing(this.app.workspace, true);
 
         // Start selection animation
         this.startSelectionAnimation(editor);
@@ -336,7 +336,7 @@ export class SelectionContextMenu {
             this.abortController = null;
 
             // Clear processing state (via event)
-            dispatchSidebarProcessing(false);
+            dispatchSidebarProcessing(this.app.workspace, false);
         }
     }
 
@@ -355,7 +355,7 @@ export class SelectionContextMenu {
         }
 
         // Set processing state to show stop button (via event)
-        dispatchSidebarProcessing(true);
+        dispatchSidebarProcessing(this.app.workspace, true);
 
         // Show thinking notice
         this.streamingManager.showThinkingNotice('challenge' as ActionType, 'notice');
@@ -365,7 +365,7 @@ export class SelectionContextMenu {
             ? selectedText.substring(0, 100) + '...'
             : selectedText;
         const userMessage = `Challenge this: "${truncatedText}"`;
-        dispatchSidebarChatMessage('user', userMessage);
+        dispatchSidebarChatMessage(this.app.workspace, 'user', userMessage);
 
         // Persist user message
         const activeFile = this.app.workspace.getActiveFile();
@@ -386,7 +386,7 @@ export class SelectionContextMenu {
             });
 
             if (signal.aborted) {
-                dispatchSidebarChatMessage('status', 'Challenge canceled', {
+                dispatchSidebarChatMessage(this.app.workspace, 'status', 'Challenge canceled', {
                     statusOptions: { type: 'pill', variant: 'system' }
                 });
                 return;
@@ -396,7 +396,7 @@ export class SelectionContextMenu {
             this.streamingManager.stopAnimation();
 
             // Add assistant response to chat (via event)
-            dispatchSidebarChatMessage('assistant', response);
+            dispatchSidebarChatMessage(this.app.workspace, 'assistant', response);
 
             // Persist assistant response
             if (activeFile) {
@@ -406,20 +406,20 @@ export class SelectionContextMenu {
             this.streamingManager.stopAnimation();
 
             if (signal.aborted || (error as Error).name === 'AbortError') {
-                dispatchSidebarChatMessage('status', 'Challenge canceled', {
+                dispatchSidebarChatMessage(this.app.workspace, 'status', 'Challenge canceled', {
                     statusOptions: { type: 'pill', variant: 'system' }
                 });
             } else {
                 Logger.error('Challenge This failed:', error);
                 const errorMessage = (error as Error).message || 'Failed to analyze text';
-                dispatchSidebarChatMessage('error', `Challenge failed: ${errorMessage}`, { persist: true });
+                dispatchSidebarChatMessage(this.app.workspace, 'error', `Challenge failed: ${errorMessage}`, { persist: true });
             }
         } finally {
             this.streamingManager.stopAnimation();
             this.abortController = null;
 
             // Clear processing state (via event)
-            dispatchSidebarProcessing(false);
+            dispatchSidebarProcessing(this.app.workspace, false);
         }
     }
 
@@ -448,7 +448,7 @@ export class SelectionContextMenu {
             // Fallback to CodeMirror dom or document query if needed
             if (!editorContainer) {
                 const editorWithCM = editor as Editor & { cm?: { dom: Element } };
-                const ownerDocument = this.app.workspace.containerEl.ownerDocument;
+                const ownerDocument = activeView?.containerEl.ownerDocument ?? this.app.workspace.containerEl.ownerDocument;
                 editorContainer = editorWithCM.cm?.dom || ownerDocument.querySelector('.cm-editor');
             }
             
@@ -516,7 +516,7 @@ export class SelectionContextMenu {
                 : originalText;
             
             const message = `✓ ${actionDescription} text: "${truncatedText}"`;
-            dispatchSidebarChatMessage('success', message);
+            dispatchSidebarChatMessage(this.app.workspace, 'success', message);
         } catch (error) {
             Logger.warn('Failed to add success chat message:', error);
         }
@@ -538,7 +538,7 @@ export class SelectionContextMenu {
 
             // Don't add ✗ since addErrorMessage adds ❌ emoji
             const message = `Failed to ${verbForm} text: ${errorMessage}`;
-            dispatchSidebarChatMessage('error', message, { persist: true });
+            dispatchSidebarChatMessage(this.app.workspace, 'error', message, { persist: true });
         } catch (error) {
             Logger.warn('Failed to add error chat message:', error);
         }
@@ -561,7 +561,7 @@ export class SelectionContextMenu {
             // Message must be >30 chars for bubble format (not pill)
             // Don't include ❌ - addErrorMessage adds it automatically
             const message = `Operation canceled: ${verbForm} text`;
-            dispatchSidebarChatMessage('error', message, { persist: true });
+            dispatchSidebarChatMessage(this.app.workspace, 'error', message, { persist: true });
         } catch (error) {
             Logger.warn('Failed to add cancel chat message:', error);
         }

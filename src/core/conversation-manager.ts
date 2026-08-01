@@ -45,9 +45,9 @@ export class ConversationManager {
                         // Validate and sanitize conversation data
                         const sanitizedConversation = this.sanitizeConversationData(conversation);
                         this.conversations.set(sanitizedConversation.filePath, sanitizedConversation);
-                    } catch (error) {
+                    } catch {
                         // Skip corrupted individual conversations
-                        Logger.warn(`Skipped corrupted conversation for file: ${String(conversation?.filePath) || 'unknown'}`, error);
+                        Logger.warn('Skipped a corrupted conversation');
                     }
                 }
             }

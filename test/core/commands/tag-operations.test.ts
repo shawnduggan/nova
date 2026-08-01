@@ -15,17 +15,63 @@ jest.mock('../../../src/core/document-engine');
 jest.mock('../../../src/core/context-builder');
 jest.mock('../../../src/ai/provider-manager');
 
+function parseTestFrontmatter(content: string): Record<string, unknown> {
+    const lines = content.split('\n');
+    if (lines[0] !== '---') {
+        return {};
+    }
+
+    const frontmatter: Record<string, unknown> = {};
+    for (const line of lines.slice(1)) {
+        if (line === '---') {
+            break;
+        }
+        const match = line.match(/^([^:]+):\s*(.*)$/);
+        if (!match) {
+            continue;
+        }
+        const [, key, rawValue] = match;
+        try {
+            frontmatter[key.trim()] = JSON.parse(rawValue);
+        } catch {
+            frontmatter[key.trim()] = rawValue.trim();
+        }
+    }
+    return frontmatter;
+}
+
 describe('Tag Operations', () => {
     let metadataCommand: MetadataCommand;
     let mockApp: jest.Mocked<App>;
     let mockDocumentEngine: jest.Mocked<DocumentEngine>;
     let mockContextBuilder: jest.Mocked<ContextBuilder>;
     let mockProviderManager: jest.Mocked<AIProviderManager>;
+    let frontmatterByPath: Map<string, Record<string, unknown>>;
 
     beforeEach(() => {
+        frontmatterByPath = new Map();
+        const readFrontmatter = (file: TFile): Record<string, unknown> => {
+            const stored = frontmatterByPath.get(file.path);
+            if (stored) {
+                return stored;
+            }
+            const context = mockDocumentEngine?.getDocumentContext();
+            return context?.file.path === file.path ? parseTestFrontmatter(context.content) : {};
+        };
+
         mockApp = {
-            vault: {
-                modify: jest.fn()
+            workspace: {
+                getActiveFile: jest.fn(() => mockDocumentEngine.getDocumentContext()?.file ?? null)
+            },
+            metadataCache: {
+                getFileCache: jest.fn((file: TFile) => ({ frontmatter: readFrontmatter(file) }))
+            },
+            fileManager: {
+                processFrontMatter: jest.fn(async (file: TFile, update: (frontmatter: Record<string, unknown>) => void) => {
+                    const frontmatter = { ...readFrontmatter(file) };
+                    update(frontmatter);
+                    frontmatterByPath.set(file.path, frontmatter);
+                })
             }
         } as any;
 
@@ -68,7 +114,8 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Added 2 tags: research, important');
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
+            expect(frontmatterByPath.get(mockFile.path)?.tags).toEqual(['existing-tag', 'research', 'important']);
         });
 
         it('should remove tags case-insensitively', async () => {
@@ -95,7 +142,8 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Removed 2 tags');
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
+            expect(frontmatterByPath.get(mockFile.path)?.tags).toEqual(['important']);
         });
 
         it('should set/replace all tags', async () => {
@@ -122,7 +170,8 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Set 2 tags');
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
+            expect(frontmatterByPath.get(mockFile.path)?.tags).toEqual(['new-tag1', 'new-tag2']);
         });
 
         it('should create frontmatter if missing when adding tags', async () => {
@@ -149,7 +198,8 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             expect(result.successMessage).toBe('Added 2 tags: test, example');
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
+            expect(frontmatterByPath.get(mockFile.path)?.tags).toEqual(['test', 'example']);
         });
     });
 
@@ -194,7 +244,7 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toContain('Could not parse AI tag suggestions');
-            expect(result.error).toContain('I cannot determine appropriate tags');
+            expect(result.error).not.toContain(aiResponse);
         });
 
         it('should treat "add tags" (no colon) as AI suggestion', async () => {
@@ -344,7 +394,6 @@ describe('Tag Operations', () => {
                 config: { temperature: 0.7, maxTokens: 1000 }
             });
             mockContextBuilder.validatePrompt.mockReturnValue({ valid: true, issues: [] });
-            mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
         });
 
         it('should normalize spaces to hyphens in direct tag operations', async () => {
@@ -358,7 +407,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should normalize spaces to hyphens in set tag operations', async () => {
@@ -372,7 +421,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should normalize spaces in AI tag suggestions', async () => {
@@ -402,7 +451,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should normalize spaces in general metadata updates', async () => {
@@ -432,7 +481,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should normalize spaces in YAML-like AI responses', async () => {
@@ -462,7 +511,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should handle multiple spaces and mixed case', async () => {
@@ -476,7 +525,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should preserve tags without spaces unchanged', async () => {
@@ -490,7 +539,7 @@ describe('Tag Operations', () => {
             const result = await metadataCommand.execute(command);
 
             expect(result.success).toBe(true);
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
         });
 
         it('should route "update metadata" to general metadata flow, not tag-only', async () => {
@@ -521,8 +570,13 @@ describe('Tag Operations', () => {
 
             expect(result.success).toBe(true);
             
-            // Should update ALL properties, not just tags - now using editor API
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalled();
+            expect(frontmatterByPath.get(mockFile.path)).toMatchObject({
+                tags: ['updated-tag', 'new-content'],
+                type: 'article',
+                status: 'published',
+                priority: 'high'
+            });
         });
     });
 });

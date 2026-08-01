@@ -18,21 +18,33 @@ import { SelectionContextMenu, SELECTION_ACTIONS } from './selection-context-men
 import { formatContextUsage, getContextWarningLevel, getContextTooltip } from '../core/context-calculator';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
+import { onWorkspaceEvent } from '../utils/workspace-events';
 import {
 	SIDEBAR_PROCESSING_EVENT,
 	SIDEBAR_CHAT_MESSAGE_EVENT,
-	SidebarProcessingEvent,
-	SidebarChatMessageEvent
+	type SidebarProcessingDetail,
+	type SidebarChatMessageDetail
 } from './sidebar-events';
 import { ContextQuickPanel } from './context-quick-panel';
 import { WRITING_ANALYSIS_UPDATED_EVENT, type WritingAnalysisUpdateDetail } from './writing-analysis-manager';
 import { WritingStatsPanel } from './writing-stats-panel';
 import { MAX_WRITING_ANALYSIS_CHAR_LENGTH } from '../core/writing-analysis';
+import {
+	NOVA_LICENSE_UPDATED_EVENT,
+	NOVA_PROVIDER_CONFIGURED_EVENT,
+	NOVA_PROVIDER_DISCONNECTED_EVENT
+} from '../constants';
 
 export const VIEW_TYPE_NOVA_SIDEBAR = 'nova-sidebar';
 
 type ModelStatusKind = 'configured' | 'pending' | 'error';
 type ProviderStatusState = NonNullable<ProviderConfig['status']>['state'];
+
+interface ProviderConfigurationDetail {
+	provider: string;
+	status?: string;
+	message?: string;
+}
 
 export interface ModelStatusPillDetails {
 	modelLabel: string;
@@ -187,16 +199,24 @@ export class NovaSidebarView extends ItemView {
 	}
 
 	async onOpen() {
-		// Register DOM events for cross-component communication
-		// Must be in onOpen() — view container doesn't exist during construction
-		this.registerDomEvent(document, 'nova-provider-configured' as keyof DocumentEventMap, this.handleProviderConfigured.bind(this));
-		this.registerDomEvent(document, 'nova-provider-disconnected' as keyof DocumentEventMap, this.handleProviderDisconnected.bind(this));
-		this.registerDomEvent(document, 'nova-license-updated' as keyof DocumentEventMap, this.handleLicenseUpdated.bind(this));
-		this.registerDomEvent(document, WRITING_ANALYSIS_UPDATED_EVENT as keyof DocumentEventMap, this.handleWritingAnalysisUpdated.bind(this));
-
-		// Sidebar event bus — decoupled communication from SelectionContextMenu
-		this.registerDomEvent(document, SIDEBAR_PROCESSING_EVENT as keyof DocumentEventMap, this.handleSidebarProcessing.bind(this));
-		this.registerDomEvent(document, SIDEBAR_CHAT_MESSAGE_EVENT as keyof DocumentEventMap, this.handleSidebarChatMessage.bind(this));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, NOVA_PROVIDER_CONFIGURED_EVENT, (detail: ProviderConfigurationDetail) => {
+			void this.handleProviderConfigured(detail);
+		}));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, NOVA_PROVIDER_DISCONNECTED_EVENT, (detail: ProviderConfigurationDetail) => {
+			void this.handleProviderDisconnected(detail);
+		}));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, NOVA_LICENSE_UPDATED_EVENT, () => {
+			this.handleLicenseUpdated();
+		}));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, WRITING_ANALYSIS_UPDATED_EVENT, (detail: WritingAnalysisUpdateDetail) => {
+			this.handleWritingAnalysisUpdated(detail);
+		}));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, SIDEBAR_PROCESSING_EVENT, (detail: SidebarProcessingDetail) => {
+			this.handleSidebarProcessing(detail);
+		}));
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, SIDEBAR_CHAT_MESSAGE_EVENT, (detail: SidebarChatMessageDetail) => {
+			this.handleSidebarChatMessage(detail);
+		}));
 
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
@@ -551,13 +571,6 @@ export class NovaSidebarView extends ItemView {
 
 	onResize(): void {
 		this.deactivateProseLinterReviewIfShown();
-	}
-	
-	/**
-	 * Add event listener using Obsidian's registration system
-	 */
-	private addTrackedEventListener<K extends keyof HTMLElementEventMap>(element: EventTarget, event: K, handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void): void {
-		this.registerDomEvent(element as HTMLElement, event, handler);
 	}
 	
 	/**
@@ -922,12 +935,12 @@ export class NovaSidebarView extends ItemView {
 		this.commandMenu = this.inputContainer.createDiv({ cls: 'nova-command-menu nova-panel-base nova-command-menu-panel' });
 
 		// Close menu when clicking outside
-		const commandMenuClickHandler: EventListener = (event: Event) => {
-			if (!this.commandMenu.contains(event.target as Node)) {
+		const commandMenuClickHandler = (event: MouseEvent): void => {
+			if (!this.commandMenu.contains(event.target as Node | null)) {
 				this.hideCommandMenu();
 			}
 		};
-		this.addTrackedEventListener(document, 'click', commandMenuClickHandler);
+		this.registerDomEvent(this.commandMenu.ownerDocument, 'click', commandMenuClickHandler);
 	}
 
 	private toggleCommandMenu(): void {
@@ -1810,9 +1823,8 @@ USER REQUEST: ${processedMessage}`;
 		return '';
 	}
 
-	private handleWritingAnalysisUpdated(event: Event): void {
-		const customEvent = event as CustomEvent<WritingAnalysisUpdateDetail>;
-		this.updateWritingStatsPanel(customEvent.detail);
+	private handleWritingAnalysisUpdated(detail: WritingAnalysisUpdateDetail): void {
+		this.updateWritingStatsPanel(detail);
 	}
 
 	private updateWritingStatsPanel(detail?: WritingAnalysisUpdateDetail): void {
@@ -2451,8 +2463,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle processing-state events dispatched by SelectionContextMenu
 	 */
-	private handleSidebarProcessing(event: Event): void {
-		const { processing } = (event as SidebarProcessingEvent).detail;
+	private handleSidebarProcessing({ processing }: SidebarProcessingDetail): void {
 		if (this.inputHandler) {
 			this.inputHandler.setProcessingState(processing);
 		}
@@ -2461,8 +2472,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle chat-message events dispatched by SelectionContextMenu
 	 */
-	private handleSidebarChatMessage(event: Event): void {
-		const detail = (event as SidebarChatMessageEvent).detail;
+	private handleSidebarChatMessage(detail: SidebarChatMessageDetail): void {
 		if (!this.chatRenderer) return;
 
 		switch (detail.type) {
@@ -2490,9 +2500,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider configuration events
 	 */
-	private handleProviderConfigured = async (event: Event) => {
-		const customEvent = event as CustomEvent;
-		const { provider, status } = customEvent.detail;
+	private handleProviderConfigured = async ({ provider, status }: ProviderConfigurationDetail) => {
 
 		// If mobile was just enabled and no model is selected, select first available
 		if (provider === 'mobile-settings' && status === 'enabled' && Platform.isMobile) {
@@ -2520,9 +2528,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle provider disconnection events - auto-switch to valid model if current becomes invalid
 	 */
-	private handleProviderDisconnected = async (event: Event) => {
-		const customEvent = event as CustomEvent;
-		const { provider: failedProvider } = customEvent.detail;
+	private handleProviderDisconnected = async ({ provider: failedProvider }: ProviderConfigurationDetail) => {
 		
 		// Check if current model belongs to the failed provider
 		const currentProviderType = await this.plugin.aiProviderManager.getCurrentProviderType();
@@ -2554,11 +2560,7 @@ USER REQUEST: ${processedMessage}`;
 	/**
 	 * Handle license update events
 	 */
-	private handleLicenseUpdated = (_event: Event) => {
-		// Event parameter prefixed with _ to indicate intentionally unused
-		// const customEvent = event as CustomEvent;
-		// const { _hasLicense, _licenseKey, _action } = customEvent.detail;
-
+	private handleLicenseUpdated = () => {
 		// Refresh Supernova UI when license status changes
 		try {
 			this.refreshSupernovaUI();

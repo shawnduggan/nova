@@ -5,7 +5,8 @@
 
 import { StateField, StateEffect, Transaction } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType } from '@codemirror/view';
-import { Platform } from 'obsidian';
+import { Component, Platform } from 'obsidian';
+import { NOVA_INDICATOR_CLICK_EVENT } from '../../../constants';
 import { Logger } from '../../../utils/logger';
 import type { MarkdownCommand } from '../types';
 import type NovaPlugin from '../../../../main';
@@ -51,8 +52,9 @@ export const clearWritingHighlightsEffect = StateEffect.define<void>();
  * Widget class for margin indicators
  * Renders as a CodeMirror widget positioned by the editor
  */
-class IndicatorWidget extends WidgetType {
+export class IndicatorWidget extends WidgetType {
     private logger = Logger.scope('IndicatorWidget');
+    private lifecycle: Component | null = null;
 
     constructor(
         private opportunity: IndicatorOpportunity,
@@ -63,6 +65,9 @@ class IndicatorWidget extends WidgetType {
     }
 
     toDOM(view: EditorView): HTMLElement {
+        this.releaseLifecycle();
+        const lifecycle = this.plugin.addChild(new Component());
+        this.lifecycle = lifecycle;
         const indicator = view.dom.ownerDocument.createElement('span');
         indicator.className = 'nova-margin-indicator';
         indicator.textContent = this.opportunity.icon;
@@ -76,7 +81,7 @@ class IndicatorWidget extends WidgetType {
         indicator.setAttribute('title', this.getTooltipText());
 
         // Use Obsidian's registerDomEvent for proper cleanup
-        this.plugin.registerDomEvent(indicator, 'click', (event: MouseEvent) => {
+        lifecycle.registerDomEvent(indicator, 'click', (event: MouseEvent) => {
             event.preventDefault();
             event.stopPropagation();
 
@@ -92,11 +97,11 @@ class IndicatorWidget extends WidgetType {
         });
 
         // Add hover class for CSS transitions
-        this.plugin.registerDomEvent(indicator, 'mouseenter', () => {
+        lifecycle.registerDomEvent(indicator, 'mouseenter', () => {
             indicator.addClass('hover');
         });
 
-        this.plugin.registerDomEvent(indicator, 'mouseleave', () => {
+        lifecycle.registerDomEvent(indicator, 'mouseleave', () => {
             indicator.removeClass('hover');
         });
 
@@ -141,11 +146,19 @@ class IndicatorWidget extends WidgetType {
 
     /**
      * Destroy the widget (cleanup)
-     * Note: Event listeners registered via plugin.registerDomEvent() are automatically
-     * cleaned up when the plugin unloads, so no manual cleanup needed here.
      */
-    destroy(dom: HTMLElement): void {
+    destroy(_dom: HTMLElement): void {
+        this.releaseLifecycle();
         this.logger.debug(`Destroyed indicator widget for line ${this.opportunity.line}`);
+    }
+
+    private releaseLifecycle(): void {
+        if (!this.lifecycle) {
+            return;
+        }
+
+        this.plugin.removeChild(this.lifecycle);
+        this.lifecycle = null;
     }
 }
 
@@ -187,12 +200,10 @@ function createIndicatorStateField(plugin: NovaPlugin) {
                 // Create widget decoration with plugin instance for proper event registration
                 const decoration = Decoration.widget({
                     widget: new IndicatorWidget(opportunity, (opp, element) => {
-                        // Dispatch custom event for handling clicks
-                        // Use document to ensure the event bubbles up properly
-                        document.dispatchEvent(new CustomEvent('nova-indicator-click', {
-                            detail: { opportunity: opp, element },
-                            bubbles: true
-                        }));
+                        plugin.app.workspace.trigger(NOVA_INDICATOR_CLICK_EVENT, {
+                            opportunity: opp,
+                            element
+                        });
                     }, plugin),
                     side: 1, // Position after the line content
                     block: false

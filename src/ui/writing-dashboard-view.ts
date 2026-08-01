@@ -70,10 +70,15 @@ export class WritingDashboardView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: NovaPlugin) {
 		super(leaf);
 		this.plugin = plugin;
-		this.analyzer = new VaultAnalyzer({
-			app: plugin.app,
-			pluginId: plugin.manifest.id,
-			getSettings: () => ({
+			this.analyzer = new VaultAnalyzer({
+				app: plugin.app,
+				pluginId: plugin.manifest.id,
+				dataStore: {
+					loadData: (key) => plugin.loadDataWithKey(key),
+					saveData: (key, data) => plugin.saveDataWithKey(key, data),
+					deleteData: (key) => plugin.deleteDataWithKey(key)
+				},
+				getSettings: () => ({
 				dashboard: plugin.settings.dashboard,
 				writingAnalysis: plugin.settings.writingAnalysis
 			})
@@ -116,15 +121,15 @@ export class WritingDashboardView extends ItemView {
 		await Promise.resolve();
 	}
 
+	onResize(): void {
+		this.scheduleRender();
+	}
+
 	private buildLayout(): void {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 		container.addClass('nova-writing-dashboard-view');
 		this.rootEl = container;
-		const ownerWindow = container.ownerDocument.defaultView ?? window;
-		this.registerDomEvent(ownerWindow, 'resize', () => {
-			this.scheduleRender();
-		});
 
 		const headerEl = container.createDiv({ cls: 'nova-writing-dashboard-header' });
 		const titleGroupEl = headerEl.createDiv({ cls: 'nova-writing-dashboard-title-group' });

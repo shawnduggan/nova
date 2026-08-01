@@ -368,8 +368,8 @@ export class InputHandler {
 							}
 						}
 					}
-				} catch (error) {
-					Logger.warn('Failed to parse Obsidian URL:', urlString, error);
+					} catch {
+						Logger.warn('Failed to parse an Obsidian URL');
 				}
 			}
 		}

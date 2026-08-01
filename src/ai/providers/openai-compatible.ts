@@ -123,32 +123,27 @@ export class OpenAICompatibleProvider implements AIProvider {
 			stream: false
 		};
 
-		const response = await requestUrl({
+			const response = await requestUrl({
 			url: endpoint,
 			method: 'POST',
 			headers: this.getHeaders(),
 			body: JSON.stringify(requestBody),
-			throw: false
-		});
-
-		if (response.status !== 200) {
-			Logger.error('OpenAI-compatible API error details:', {
-				status: response.status,
-				headers: response.headers,
-				errorText: response.text,
-				model: modelName,
-				endpoint
+				throw: false
+			}).catch(() => {
+				throw new Error('OpenAI-compatible API request failed');
 			});
-			throw new Error(`OpenAI-compatible API error: ${this.formatErrorMessage(response.status, response.text, response.json)}`);
+
+			if (response.status !== 200) {
+				Logger.error('OpenAI-compatible API request failed', {
+					status: response.status,
+					model: modelName
+				});
+				throw new Error(`OpenAI-compatible API error: ${response.status}`);
 		}
 
 		const content = this.extractChatCompletionText(response.json);
 		if (!content) {
-			Logger.error('OpenAI-compatible API response error: unexpected format', {
-				data: response.json,
-				model: modelName,
-				endpoint
-			});
+				Logger.error('OpenAI-compatible API response had an unexpected format', { model: modelName });
 			throw new Error('OpenAI-compatible API: Unexpected response format');
 		}
 
@@ -189,15 +184,17 @@ export class OpenAICompatibleProvider implements AIProvider {
 			throw new Error('OpenAI-compatible base URL not configured');
 		}
 
-		const response = await requestUrl({
+			const response = await requestUrl({
 			url: `${baseUrl}/models`,
 			method: 'GET',
 			headers: this.getHeaders(),
-			throw: false
-		});
+				throw: false
+			}).catch(() => {
+				throw new Error('OpenAI-compatible models API request failed');
+			});
 
-		if (response.status !== 200) {
-			throw new Error(`OpenAI-compatible models API error: ${this.formatErrorMessage(response.status, response.text, response.json)}`);
+			if (response.status !== 200) {
+				throw new Error(`OpenAI-compatible models API error: ${response.status}`);
 		}
 
 		const models = this.extractModelNames(response.json);
@@ -307,30 +304,4 @@ export class OpenAICompatibleProvider implements AIProvider {
 		}).join('');
 	}
 
-	private formatErrorMessage(status: number, responseText: string, responseJson: unknown): string {
-		const errorMessage = this.extractErrorMessage(responseJson);
-		if (errorMessage) {
-			return `${status}: ${errorMessage}`;
-		}
-
-		return responseText ? `${status}: ${responseText}` : `${status}`;
-	}
-
-	private extractErrorMessage(responseJson: unknown): string {
-		if (!responseJson || typeof responseJson !== 'object') {
-			return '';
-		}
-
-		const error = (responseJson as { error?: unknown }).error;
-		if (typeof error === 'string') {
-			return error;
-		}
-		if (error && typeof error === 'object') {
-			const errorObject = error as { message?: unknown; type?: unknown; code?: unknown };
-			const message = errorObject.message || errorObject.type || errorObject.code;
-			return typeof message === 'string' ? message : '';
-		}
-
-		return '';
-	}
 }

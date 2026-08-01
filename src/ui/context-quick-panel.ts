@@ -274,7 +274,7 @@ export class ContextQuickPanel {
 				const removeEl = metaEl.createEl('button', { cls: 'nova-quick-panel-doc-remove' });
 				removeEl.textContent = '×';
 				removeEl.setAttribute('aria-label', `Remove ${doc.file.basename}`);
-				Logger.debug(`[QuickPanel] Created remove button for ${doc.file.basename}, parent:`, removeEl.parentElement?.className);
+					Logger.debug('[QuickPanel] Created document remove button');
 				removeEl.onclick = (e) => {
 					e.stopPropagation();
 					void (async () => {

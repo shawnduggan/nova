@@ -90,18 +90,13 @@ export class ClaudeProvider implements AIProvider {
 					continue; // Retry
 				}
 
-				// Log detailed error for debugging
-				Logger.error('Claude API Error Details:', {
-					status: response.status,
-					headers: response.headers,
-					errorText: response.text,
-					requestBody: JSON.parse(requestBody),
-					model: options?.model || this.config.model,
-					attempt: attempt + 1
-				});
+					Logger.error('Claude API request failed', {
+						status: response.status,
+						model,
+						attempt: attempt + 1
+					});
 
-				// For all other errors or final attempt, throw error
-				throw new Error(`Claude API error: ${response.status} - ${response.text}`);
+					throw new Error(`Claude API error: ${response.status}`);
 
 			} catch (error) {
 				// Network/connection errors - retry if not final attempt
@@ -116,8 +111,10 @@ export class ClaudeProvider implements AIProvider {
 					continue;
 				}
 				
-				// Re-throw the error if it's the final attempt or not a retryable error
-				throw error;
+					if (error instanceof Error && error.message.startsWith('Claude API')) {
+						throw error;
+					}
+					throw new Error('Claude API request failed');
 			}
 		}
 
@@ -186,8 +183,8 @@ export class ClaudeProvider implements AIProvider {
 				})
 			});
 
-			if (response.status !== 200) {
-				throw new Error(`API key validation failed: ${response.status} - ${response.text}`);
+				if (response.status !== 200) {
+					throw new Error(`Claude API key validation failed: ${response.status}`);
 			}
 
 			// Return current available models (from API docs)
@@ -203,8 +200,8 @@ export class ClaudeProvider implements AIProvider {
 
 			this.cachedModels = models;
 			return models;
-		} catch (error) {
-			throw new Error(`Failed to fetch Claude models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			} catch {
+				throw new Error('Failed to fetch Claude models');
 		}
 	}
 

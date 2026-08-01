@@ -131,4 +131,30 @@ describe('OpenAICompatibleProvider', () => {
 		expect(isLocalOpenAICompatibleBaseUrl('http://studio:1234/v1')).toBe(true);
 		expect(isLocalOpenAICompatibleBaseUrl('https://openrouter.ai/api/v1')).toBe(false);
 	});
+
+	test('does not expose prompts, credentials, endpoints, or response bodies in errors or logs', async () => {
+		config.baseUrl = 'https://private-endpoint.example/v1';
+		config.apiKey = 'private-compatible-key';
+		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const privateResponse = 'private-compatible-response-sentinel';
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 500,
+			text: privateResponse,
+			headers: { 'x-private': 'private-header-sentinel' },
+			json: { error: { message: privateResponse } }
+		});
+
+		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
+			.catch(error => error as Error);
+
+		expect(thrown).toBeInstanceOf(Error);
+		expect(thrown.message).toBe('OpenAI-compatible API error: 500');
+		const serializedLogs = JSON.stringify(errorLog.mock.calls);
+		expect(serializedLogs).not.toContain(privateResponse);
+		expect(serializedLogs).not.toContain('private-header-sentinel');
+		expect(serializedLogs).not.toContain('private-user-prompt');
+		expect(serializedLogs).not.toContain('private-compatible-key');
+		expect(serializedLogs).not.toContain('private-endpoint.example');
+		errorLog.mockRestore();
+	});
 });

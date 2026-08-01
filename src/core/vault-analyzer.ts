@@ -14,8 +14,10 @@ import {
 
 const DASHBOARD_CACHE_VERSION = 1;
 const DASHBOARD_HISTORY_VERSION = 1;
-const DASHBOARD_CACHE_FILE = 'dashboard-cache.json';
-const DASHBOARD_HISTORY_FILE = 'dashboard-history.json';
+export const DASHBOARD_CACHE_DATA_KEY = 'dashboardCache';
+export const DASHBOARD_HISTORY_DATA_KEY = 'dashboardHistory';
+export const LEGACY_DASHBOARD_CACHE_FILE = 'dashboard-cache.json';
+export const LEGACY_DASHBOARD_HISTORY_FILE = 'dashboard-history.json';
 const MAIN_THREAD_YIELD_BATCH_SIZE = 20;
 const CACHE_FLUSH_BATCH_SIZE = 100;
 const HISTORY_RETENTION_DAYS = 365;
@@ -66,26 +68,35 @@ export interface DashboardHistoryFile {
 	snapshots: VaultSnapshot[];
 }
 
+export interface DashboardDataStore {
+	loadData(key: string): Promise<unknown>;
+	saveData(key: string, data: unknown): Promise<void>;
+	deleteData(key: string): Promise<void>;
+}
+
 interface VaultAnalyzerOptions {
 	app: App;
 	pluginId: string;
+	dataStore: DashboardDataStore;
 	getSettings: () => Pick<NovaSettings, 'dashboard' | 'writingAnalysis'>;
 }
 
 export class VaultAnalyzer {
 	private readonly app: App;
 	private readonly pluginId: string;
+	private readonly dataStore: DashboardDataStore;
 	private readonly getSettings: VaultAnalyzerOptions['getSettings'];
 	private readonly logger = Logger.scope('VaultAnalyzer');
 
 	constructor(options: VaultAnalyzerOptions) {
 		this.app = options.app;
 		this.pluginId = options.pluginId;
+		this.dataStore = options.dataStore;
 		this.getSettings = options.getSettings;
 	}
 
 	async hasStoredCache(): Promise<boolean> {
-		const cache = await this.readJsonFile<DashboardCacheFile>(this.getDashboardPath(DASHBOARD_CACHE_FILE));
+		const cache = await this.readData<DashboardCacheFile>(DASHBOARD_CACHE_DATA_KEY);
 		return Boolean(cache && cache.version === DASHBOARD_CACHE_VERSION && cache.entries && typeof cache.entries === 'object');
 	}
 
@@ -133,8 +144,8 @@ export class VaultAnalyzer {
 
 			try {
 				latest = await this.analyzeFile(file, cache.entries[file.path]);
-			} catch (error) {
-				this.logger.warn(`Failed to analyze "${file.path}"`, error);
+				} catch {
+					this.logger.warn('Failed to analyze a vault file');
 			}
 
 			if (latest) {
@@ -166,15 +177,11 @@ export class VaultAnalyzer {
 	}
 
 	async clearCache(): Promise<void> {
-		const adapter = this.app.vault.adapter;
-		const cachePath = this.getDashboardPath(DASHBOARD_CACHE_FILE);
-		if (await adapter.exists(cachePath)) {
-			await adapter.remove(cachePath);
-		}
+		await this.dataStore.deleteData(DASHBOARD_CACHE_DATA_KEY);
 	}
 
 	async loadHistory(): Promise<VaultSnapshot[]> {
-		const history = await this.readJsonFile<DashboardHistoryFile>(this.getDashboardPath(DASHBOARD_HISTORY_FILE));
+		const history = await this.readData<DashboardHistoryFile>(DASHBOARD_HISTORY_DATA_KEY);
 		if (!history || history.version !== DASHBOARD_HISTORY_VERSION || !Array.isArray(history.snapshots)) {
 			return [];
 		}
@@ -194,7 +201,7 @@ export class VaultAnalyzer {
 			nextSnapshots.shift();
 		}
 
-		await this.writeJsonFile<DashboardHistoryFile>(this.getDashboardPath(DASHBOARD_HISTORY_FILE), {
+		await this.writeData<DashboardHistoryFile>(DASHBOARD_HISTORY_DATA_KEY, {
 			version: DASHBOARD_HISTORY_VERSION,
 			snapshots: nextSnapshots
 		});
@@ -250,7 +257,7 @@ export class VaultAnalyzer {
 	private async loadCache(): Promise<DashboardCacheFile> {
 		const settings = this.getSettings();
 		const freshCache = this.createEmptyCacheFile();
-		const cache = await this.readJsonFile<DashboardCacheFile>(this.getDashboardPath(DASHBOARD_CACHE_FILE));
+		const cache = await this.readData<DashboardCacheFile>(DASHBOARD_CACHE_DATA_KEY);
 
 		if (!cache || cache.version !== DASHBOARD_CACHE_VERSION) {
 			return freshCache;
@@ -288,7 +295,7 @@ export class VaultAnalyzer {
 	}
 
 	private async saveCache(cache: DashboardCacheFile): Promise<void> {
-		await this.writeJsonFile(this.getDashboardPath(DASHBOARD_CACHE_FILE), cache);
+		await this.writeData(DASHBOARD_CACHE_DATA_KEY, cache);
 	}
 
 	private buildSnapshot(summaries: DocumentAnalysisSummary[]): VaultSnapshot {
@@ -342,45 +349,21 @@ export class VaultAnalyzer {
 		return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
 	}
 
-	private getDashboardPath(fileName: string): string {
-		return `${this.app.vault.configDir}/plugins/${this.pluginId}/${fileName}`;
-	}
-
-	private async ensureDashboardDirectory(): Promise<void> {
-		const adapter = this.app.vault.adapter;
-		const pluginsDir = `${this.app.vault.configDir}/plugins`;
-		const pluginDir = `${pluginsDir}/${this.pluginId}`;
-
-		if (!await adapter.exists(pluginsDir)) {
-			await adapter.mkdir(pluginsDir);
-		}
-
-		if (!await adapter.exists(pluginDir)) {
-			await adapter.mkdir(pluginDir);
-		}
-	}
-
-	private async readJsonFile<T>(path: string): Promise<T | null> {
-		const adapter = this.app.vault.adapter;
-		if (!await adapter.exists(path)) {
-			return null;
-		}
-
+	private async readData<T>(key: string): Promise<T | null> {
 		try {
-			const raw = await adapter.read(path);
-			return JSON.parse(raw) as T;
-		} catch (error) {
-			this.logger.warn(`Failed to read dashboard data from "${path}"`, error);
+			const data = await this.dataStore.loadData(key);
+			return data === undefined || data === null ? null : data as T;
+		} catch {
+			this.logger.warn('Failed to read dashboard data');
 			return null;
 		}
 	}
 
-	private async writeJsonFile<T>(path: string, data: T): Promise<void> {
+	private async writeData<T>(key: string, data: T): Promise<void> {
 		try {
-			await this.ensureDashboardDirectory();
-			await this.app.vault.adapter.write(path, JSON.stringify(data, null, 2));
-		} catch (error) {
-			this.logger.error(`Failed to write dashboard data to "${path}"`, error);
+			await this.dataStore.saveData(key, data);
+		} catch {
+			this.logger.error('Failed to write dashboard data');
 		}
 	}
 

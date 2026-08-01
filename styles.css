@@ -409,7 +409,7 @@
 
 .nova-provider-status.testing .nova-status-dot {
     background: var(--color-blue);
-    animation: pulse 1s infinite;
+    animation: nova-pulse 1s infinite;
 }
 
 /* Status Tooltip */
@@ -641,19 +641,19 @@
     border-radius: var(--radius-xs);
 }
 
-.license-info {
+.nova-license-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 0.9em;
 }
 
-.license-email {
+.nova-license-summary-email {
     font-weight: bold;
     color: var(--text-accent);
 }
 
-.license-expiry {
+.nova-license-summary-expiry {
     color: var(--text-muted);
 }
 
@@ -869,15 +869,6 @@
     font-weight: bold;
 }
 
-.feature-yes {
-    color: var(--text-success);
-    font-weight: bold;
-}
-
-.feature-no {
-    color: var(--text-error);
-}
-
 .nova-upgrade-container {
     text-align: center;
     margin-top: 1em;
@@ -921,16 +912,6 @@
     border-radius: var(--radius-xs);
     padding: 1em;
     margin-bottom: 1em;
-}
-
-.restriction-badge {
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    padding: var(--size-2-1) var(--size-2-3);
-    border-radius: var(--radius-xs);
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-left: 0.5em;
 }
 
 /* Settings Page Specific Styles */
@@ -1074,22 +1055,6 @@
     margin-bottom: 8px;
 }
 
-.restriction-text {
-    margin: 0.5em 0 0 0;
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: 0.9em;
-}
-
-.upgrade-link {
-    color: var(--text-accent);
-    text-decoration: underline;
-}
-
-.upgrade-link:hover {
-    color: var(--text-accent-hover);
-}
-
 /* Ensure Obsidian's workspace leaves constrain Nova right-pane views */
 .workspace-leaf-content[data-type="nova-sidebar"],
 .workspace-leaf-content[data-type="nova-prose-linter"] {
@@ -1169,7 +1134,7 @@
 
 .nova-status-dot-small.loading {
     background-color: var(--text-warning);
-    animation: pulse 1s infinite;
+    animation: nova-pulse 1s infinite;
 }
 
 /* Chat Container */
@@ -1183,7 +1148,7 @@
 
 /* Message Styles */
 .nova-message {
-    animation: fadeIn 0.3s ease-in;
+    animation: nova-fade-in 0.3s ease-in;
     word-wrap: break-word;
     line-height: var(--line-height-normal);
     margin-bottom: var(--size-4-2);
@@ -1412,16 +1377,10 @@
     height: 44px;
 }
 
-/* Mobile button and interactive element enhancements */
-.is-mobile button {
-    min-height: 44px; /* Ensure all buttons meet touch target guidelines */
-    padding: 8px 16px;
-}
-
 /* Mobile-specific hover states (lighter touch feedback) */
 /* Mobile dropdown item styling removed - using native DropdownComponent */
 .is-mobile .nova-tab:active,
-.is-mobile button:active {
+.is-mobile .nova-input-row button:active {
     background: var(--background-modifier-active);
     transform: scale(0.98); /* Subtle press feedback */
     transition: all 0.1s ease;
@@ -1441,7 +1400,7 @@
 }
 
 /* Animations */
-@keyframes fadeIn {
+@keyframes nova-fade-in {
     from {
         opacity: 0;
         transform: translateY(10px);
@@ -1452,7 +1411,7 @@
     }
 }
 
-@keyframes pulse {
+@keyframes nova-pulse {
     0% {
         opacity: 1;
     }
@@ -1903,14 +1862,14 @@
         margin-bottom: 1.5em;
     }
     
-    .license-info {
+    .nova-license-info {
         flex-direction: column;
         align-items: stretch;
         gap: 8px;
     }
     
-    .license-email,
-    .license-expiry {
+    .nova-license-summary-email,
+    .nova-license-summary-expiry {
         text-align: center;
     }
 }
@@ -2587,7 +2546,7 @@
     font-size: var(--font-ui-small);
     color: var(--text-muted);
     transition: all 0.2s ease;
-    animation: slideIn 0.2s ease-out;
+    animation: nova-slide-in 0.2s ease-out;
     display: none;
 }
 
@@ -2611,7 +2570,7 @@
     font-weight: 500;
 }
 
-@keyframes slideIn {
+@keyframes nova-slide-in {
     from {
         opacity: 0;
         transform: translateY(-4px);
@@ -2640,7 +2599,7 @@
 
 .nova-license-badge.founding {
     background: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
-    animation: foundingGlow 2s ease-in-out infinite alternate;
+    animation: nova-founding-glow 2s ease-in-out infinite alternate;
 }
 
 .nova-license-badge.lifetime {
@@ -2658,12 +2617,12 @@
     background: rgba(var(--color-yellow-rgb), 0.1);
 }
 
-.nova-status-badge.founding .status-icon {
+.nova-status-badge.founding .nova-status-icon {
     filter: drop-shadow(0 0 4px rgba(var(--color-yellow-rgb), 0.6));
 }
 
 /* Founding badge glow animation */
-@keyframes foundingGlow {
+@keyframes nova-founding-glow {
     0% {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(var(--color-yellow-rgb), 0.4);
     }

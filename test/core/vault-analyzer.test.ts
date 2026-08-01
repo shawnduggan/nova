@@ -3,7 +3,13 @@
  */
 
 import type { App } from 'obsidian';
-import { VaultAnalyzer, type DashboardCacheFile, type DocumentAnalysisSummary } from '../../src/core/vault-analyzer';
+import {
+	DASHBOARD_CACHE_DATA_KEY,
+	DASHBOARD_HISTORY_DATA_KEY,
+	VaultAnalyzer,
+	type DashboardCacheFile,
+	type DocumentAnalysisSummary
+} from '../../src/core/vault-analyzer';
 
 type FileRecord = {
 	path: string;
@@ -15,40 +21,25 @@ describe('VaultAnalyzer', () => {
 		// eslint-disable-next-line obsidianmd/hardcoded-config-path -- Test fixture needs a concrete config dir
 		const configDir = '.obsidian';
 		const contents = new Map(Object.entries(initialFiles));
-		const storage = new Map<string, string>();
-		const directories = new Set<string>([configDir]);
+			const storage = new Map<string, unknown>();
 		const files = new Map<string, FileRecord>(
 			Object.keys(initialFiles).map((path) => [path, { path, basename: path.split('/').pop()?.replace(/\.md$/, '') ?? path }])
 		);
 
-		const adapter = {
-			exists: jest.fn(async (path: string) => directories.has(path) || storage.has(path)),
-			read: jest.fn(async (path: string) => {
-				const value = storage.get(path);
-				if (value === undefined) {
-					throw new Error(`Missing path: ${path}`);
-				}
-				return value;
-			}),
-			write: jest.fn(async (path: string, data: string) => {
-				storage.set(path, data);
-				const segments = path.split('/');
-				segments.pop();
-				directories.add(segments.join('/'));
-			}),
-			mkdir: jest.fn(async (path: string) => {
-				directories.add(path);
-			}),
-			remove: jest.fn(async (path: string) => {
-				storage.delete(path);
-			})
-		};
+			const dataStore = {
+				loadData: jest.fn(async (key: string) => storage.get(key)),
+				saveData: jest.fn(async (key: string, data: unknown) => {
+					storage.set(key, data);
+				}),
+				deleteData: jest.fn(async (key: string) => {
+					storage.delete(key);
+				})
+			};
 
 		const app = {
-			vault: {
-				configDir,
-				adapter,
-				getMarkdownFiles: () => Array.from(files.values()),
+				vault: {
+					configDir,
+					getMarkdownFiles: () => Array.from(files.values()),
 				getFileByPath: (path: string) => files.get(path) ?? null,
 				cachedRead: async (file: FileRecord) => contents.get(file.path) ?? ''
 			},
@@ -57,17 +48,18 @@ describe('VaultAnalyzer', () => {
 			}
 		} as unknown as App;
 
-		return { app, adapter, contents, files, storage };
+			return { app, dataStore, contents, files, storage };
 	}
 
 	function createAnalyzer(env: ReturnType<typeof createEnvironment>, settings: {
 		dashboard: { excludeFolders: string[]; targetReadabilityGrade: number };
 		writingAnalysis: { longSentenceThreshold: number; veryLongSentenceThreshold: number };
 	}) {
-		return new VaultAnalyzer({
-			app: env.app,
-			pluginId: 'nova',
-			getSettings: () => settings as never
+			return new VaultAnalyzer({
+				app: env.app,
+				pluginId: 'nova',
+				dataStore: env.dataStore,
+				getSettings: () => settings as never
 		});
 	}
 
@@ -161,8 +153,7 @@ describe('VaultAnalyzer', () => {
 
 		await analyzer.analyzeVault(() => undefined);
 
-		const rawCache = env.storage.get(`${env.app.vault.configDir}/plugins/nova/dashboard-cache.json`);
-		const cache = JSON.parse(rawCache ?? '{}') as DashboardCacheFile;
+			const cache = env.storage.get(DASHBOARD_CACHE_DATA_KEY) as DashboardCacheFile;
 
 		expect(Object.keys(cache.entries)).toEqual(['notes/keep.md']);
 	});
@@ -189,12 +180,11 @@ describe('VaultAnalyzer', () => {
 
 		expect(secondResults.map((summary) => summary.filePath)).toEqual(['notes/keep.md']);
 
-		const rawCache = env.storage.get(`${env.app.vault.configDir}/plugins/nova/dashboard-cache.json`);
-		const cache = JSON.parse(rawCache ?? '{}') as DashboardCacheFile;
+			const cache = env.storage.get(DASHBOARD_CACHE_DATA_KEY) as DashboardCacheFile;
 		expect(Object.keys(cache.entries)).toEqual(['notes/keep.md']);
 	});
 
-	test('detects whether dashboard cache has been stored yet', async () => {
+		test('detects whether dashboard cache has been stored yet', async () => {
 		const env = createEnvironment({
 			'notes/keep.md': 'This note should create a cache file after the first scan.'
 		});
@@ -208,8 +198,45 @@ describe('VaultAnalyzer', () => {
 
 		await analyzer.analyzeVault(() => undefined);
 
-		expect(await analyzer.hasStoredCache()).toBe(true);
-	});
+			expect(await analyzer.hasStoredCache()).toBe(true);
+		});
+
+		test('clears cached dashboard data through the plugin data store', async () => {
+			const env = createEnvironment({
+				'notes/keep.md': 'This note should create a cache before it is cleared.'
+			});
+			const analyzer = createAnalyzer(env, {
+				dashboard: { excludeFolders: [], targetReadabilityGrade: 8 },
+				writingAnalysis: { longSentenceThreshold: 25, veryLongSentenceThreshold: 40 }
+			});
+
+			await analyzer.analyzeVault(() => undefined);
+			await analyzer.clearCache();
+
+			expect(env.dataStore.deleteData).toHaveBeenCalledWith(DASHBOARD_CACHE_DATA_KEY);
+			expect(env.storage.has(DASHBOARD_CACHE_DATA_KEY)).toBe(false);
+		});
+
+		test('records and reloads dashboard history through the plugin data store', async () => {
+			const env = createEnvironment({
+				'notes/keep.md': 'This note provides a dashboard snapshot for persisted history.'
+			});
+			const analyzer = createAnalyzer(env, {
+				dashboard: { excludeFolders: [], targetReadabilityGrade: 8 },
+				writingAnalysis: { longSentenceThreshold: 25, veryLongSentenceThreshold: 40 }
+			});
+			const summaries = await analyzer.analyzeVault(() => undefined);
+
+			const recorded = await analyzer.recordSnapshot(summaries);
+			const restored = await analyzer.loadHistory();
+
+			expect(recorded).toHaveLength(1);
+			expect(restored).toEqual(recorded);
+			expect(env.storage.get(DASHBOARD_HISTORY_DATA_KEY)).toMatchObject({
+				version: 1,
+				snapshots: recorded
+			});
+		});
 
 	test('loads existing cached summaries for still-included files', async () => {
 		const env = createEnvironment({
@@ -248,10 +275,9 @@ describe('VaultAnalyzer', () => {
 
 		await analyzer.analyzeVault(() => undefined);
 
-		const rawCache = env.storage.get(`${env.app.vault.configDir}/plugins/nova/dashboard-cache.json`);
-		const cache = JSON.parse(rawCache ?? '{}') as DashboardCacheFile;
-		delete cache.entries['notes/keep.md'].fileName;
-		env.storage.set(`${env.app.vault.configDir}/plugins/nova/dashboard-cache.json`, JSON.stringify(cache));
+			const cache = env.storage.get(DASHBOARD_CACHE_DATA_KEY) as DashboardCacheFile;
+			delete cache.entries['notes/keep.md'].fileName;
+			env.storage.set(DASHBOARD_CACHE_DATA_KEY, cache);
 
 		const restored = await analyzer.loadCachedSummaries();
 		expect(restored[0].fileName).toBe('keep');
@@ -273,7 +299,7 @@ describe('VaultAnalyzer', () => {
 
 		await analyzer.analyzeVault(() => undefined);
 
-		expect(env.adapter.write).toHaveBeenCalledTimes(2);
+			expect(env.dataStore.saveData).toHaveBeenCalledTimes(2);
 	});
 
 	test('yields through the workspace window during long scans', async () => {

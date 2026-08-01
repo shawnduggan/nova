@@ -95,9 +95,10 @@ describe('Streaming Completion Updates', () => {
 		const addErrorMessage = jest.fn();
 		(sidebar as any).chatRenderer = { addErrorMessage };
 
-		(sidebar as any).handleSidebarChatMessage(new CustomEvent('nova-sidebar:chat-message', {
-			detail: { type: 'error', content: 'Something failed' }
-		}));
+		(sidebar as any).handleSidebarChatMessage({
+			type: 'error',
+			content: 'Something failed'
+		});
 
 		expect(addErrorMessage).toHaveBeenCalledWith('Something failed', true);
 	});

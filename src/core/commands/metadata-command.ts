@@ -164,8 +164,7 @@ export class MetadataCommand {
             // Parse the AI response to extract property updates
             const updates = this.parsePropertyUpdates(aiResponse);
             if (!updates || Object.keys(updates).length === 0) {
-                // Log for debugging
-                Logger.error('Failed to parse metadata updates. AI response:', aiResponse);
+                Logger.error('Failed to parse metadata updates');
                 return {
                     success: false,
                     error: 'No property updates found in AI response',
@@ -173,27 +172,15 @@ export class MetadataCommand {
                 };
             }
             
-            // Update or create frontmatter
-            const updatedContent = this.updateFrontmatter(documentContext.content, updates);
-            
-            // Use editor interface to preserve cursor, selections, undo/redo
-            const editor = this.documentEngine.getActiveEditor();
-            if (!editor) {
-                return {
-                    success: false,
-                    error: 'No active editor',
-                    editType: 'replace'
-                };
-            }
-            editor.setValue(updatedContent);
+            await this.processFrontmatter(documentContext, frontmatter => {
+                this.applyMetadataUpdates(frontmatter, updates);
+            });
             
             // Generate success message based on updates
             const successMessage = this.generateSuccessMessage(updates);
             
             return {
                 success: true,
-                content: updatedContent,
-                appliedAt: { line: 0, ch: 0 },
                 editType: 'replace',
                 successMessage
             };
@@ -313,212 +300,52 @@ export class MetadataCommand {
         return filtered;
     }
 
-    /**
-     * Update or create frontmatter in document content
-     */
-    private updateFrontmatter(content: string, updates: Record<string, unknown>): string {
-        const lines = content.split('\n');
-        
-        // Check if frontmatter exists
-        if (lines[0] !== '---') {
-            // No frontmatter exists - create new frontmatter for metadata operations
-            if (Object.keys(updates).length === 0) {
-                return content; // No updates to apply
-            }
-            
-            // Create new frontmatter
-            const newFrontmatter = ['---'];
-            for (const [key, value] of Object.entries(updates)) {
-                if (value === null || value === undefined) {
-                    continue; // Skip null/undefined values
-                }
-                
-                const formattedValue = (typeof value === 'object' && value !== null)
-                    ? JSON.stringify(value)
-                    : String(value as string | number | boolean);
-
-                newFrontmatter.push(`${key}: ${formattedValue}`);
-            }
-            newFrontmatter.push('---');
-            
-            // Return content with new frontmatter prepended
-            return [
-                ...newFrontmatter,
-                ...lines
-            ].join('\n');
-        }
-        
-        // Find the closing ---
-        let endIndex = -1;
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i] === '---') {
-                endIndex = i;
-                break;
-            }
-        }
-        
-        if (endIndex === -1) {
-            // Malformed frontmatter - return original content
-            return content;
-        }
-        
-        // Parse existing frontmatter and collect field names
-        const existingProps: Record<string, unknown> = {};
-        const existingFieldNames = new Set<string>();
-        
-        for (let i = 1; i < endIndex; i++) {
-            const match = lines[i].match(/^([^:]+):\s*(.*)$/);
-            if (match) {
-                const key = match[1].trim();
-                let value = match[2].trim();
-                
-                existingFieldNames.add(key);
-                
-                // Try to parse as JSON
-                try {
-                    value = JSON.parse(value);
-                } catch {
-                    // Keep as string
-                }
-                
-                existingProps[key] = value;
-            }
-        }
-        
-        // Filter updates - allow any non-protected field for metadata operations
+    private applyMetadataUpdates(frontmatter: Record<string, unknown>, updates: Record<string, unknown>): void {
+        const existingFieldNames = new Set(Object.keys(frontmatter));
         const filteredUpdates = this.filterUpdatesForMetadata(updates, existingFieldNames);
-        
-        // Apply updates to existing properties
-        const updatedProps = { ...existingProps, ...filteredUpdates };
-        
-        // Rebuild frontmatter with clean formatting
-        const newFrontmatter = ['---'];
-        const processedKeys = new Set<string>();
-        
-        // Process all properties, skipping duplicates based on normalized keys
-        for (const [key, value] of Object.entries(updatedProps)) {
+
+        for (const [key, value] of Object.entries(filteredUpdates)) {
             if (value === null || value === undefined) {
-                // Skip null/undefined values (allows deletion)
-                continue;
+                delete frontmatter[key];
+            } else {
+                frontmatter[key] = value;
             }
-            
-            // Check if we've already processed this key (case-insensitive)
-            const normalizedKey = this.normalizeKey(key);
-            if (processedKeys.has(normalizedKey)) {
-                continue;
-            }
-            processedKeys.add(normalizedKey);
-
-            const formattedValue = (typeof value === 'object' && value !== null)
-                ? JSON.stringify(value)
-                : String(value as string | number | boolean);
-
-            newFrontmatter.push(`${key}: ${formattedValue}`);
         }
-        newFrontmatter.push('---');
-
-        // Return updated content
-        return [
-            ...newFrontmatter,
-            ...lines.slice(endIndex + 1)
-        ].join('\n');
     }
 
-    /**
-     * Update frontmatter specifically for tag operations - allows creating frontmatter for tags
-     */
-    private updateFrontmatterForTags(content: string, updates: Record<string, unknown>): string {
-        const lines = content.split('\n');
-        
-        // Check if frontmatter exists
-        if (lines[0] !== '---') {
-            // No frontmatter exists - create new one for tags only
-            if (updates.tags && Array.isArray(updates.tags) && updates.tags.length > 0) {
-                const newFrontmatter = [
-                    '---',
-                    `tags: ${JSON.stringify(updates.tags)}`,
-                    '---',
-                    ''
-                ];
-                return newFrontmatter.join('\n') + content;
-            }
-            return content;
+    private async processFrontmatter(
+        documentContext: DocumentContext,
+        update: (frontmatter: Record<string, unknown>) => void
+    ): Promise<void> {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.path !== documentContext.file.path) {
+            throw new Error('Active document changed before metadata could be applied');
         }
-        
-        // Find the closing ---
-        let endIndex = -1;
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i] === '---') {
-                endIndex = i;
-                break;
-            }
-        }
-        
-        if (endIndex === -1) {
-            // Malformed frontmatter - return original content
-            return content;
-        }
-        
-        // Parse existing frontmatter and collect field names
-        const existingProps: Record<string, unknown> = {};
-        const existingFieldNames = new Set<string>();
-        
-        for (let i = 1; i < endIndex; i++) {
-            const match = lines[i].match(/^([^:]+):\s*(.*)$/);
-            if (match) {
-                const key = match[1].trim();
-                let value = match[2].trim();
-                
-                existingFieldNames.add(key);
-                
-                // Try to parse as JSON
-                try {
-                    value = JSON.parse(value);
-                } catch {
-                    // Keep as string
-                }
-                
-                existingProps[key] = value;
-            }
-        }
-        
-        // For tags specifically, always allow adding even if tags field doesn't exist
-        const updatedProps = { ...existingProps };
-        if (updates.tags) {
-            updatedProps.tags = updates.tags;
-        }
-        
-        // Rebuild frontmatter with clean formatting
-        const newFrontmatter = ['---'];
-        const processedKeys = new Set<string>();
-        
-        // Process all properties, skipping duplicates based on normalized keys
-        for (const [key, value] of Object.entries(updatedProps)) {
-            if (value === null || value === undefined) {
-                // Skip null/undefined values (allows deletion)
-                continue;
-            }
-            
-            // Check if we've already processed this key (case-insensitive)
-            const normalizedKey = this.normalizeKey(key);
-            if (processedKeys.has(normalizedKey)) {
-                continue;
-            }
-            processedKeys.add(normalizedKey);
 
-            const formattedValue = (typeof value === 'object' && value !== null)
-                ? JSON.stringify(value)
-                : String(value as string | number | boolean);
+        await this.app.fileManager.processFrontMatter(documentContext.file, update);
+    }
 
-            newFrontmatter.push(`${key}: ${formattedValue}`);
+    private getTagsFromFrontmatter(frontmatter: Record<string, unknown>): string[] {
+        const tagsKey = Object.keys(frontmatter).find(key => this.normalizeKey(key) === 'tags');
+        if (!tagsKey) {
+            return [];
         }
-        newFrontmatter.push('---');
 
-        // Return updated content
-        return [
-            ...newFrontmatter,
-            ...lines.slice(endIndex + 1)
-        ].join('\n');
+        const tags = frontmatter[tagsKey];
+        if (Array.isArray(tags)) {
+            return tags.map(tag => String(tag).trim()).filter(Boolean);
+        }
+
+        if (typeof tags === 'string') {
+            return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+        }
+
+        return [];
+    }
+
+    private setFrontmatterTags(frontmatter: Record<string, unknown>, tags: string[]): void {
+        const tagsKey = Object.keys(frontmatter).find(key => this.normalizeKey(key) === 'tags') ?? 'tags';
+        frontmatter[tagsKey] = tags;
     }
 
     /**
@@ -539,66 +366,45 @@ export class MetadataCommand {
                 return await this.handleAITagOperation('add suggested tags', documentContext);
             }
             
-            // Get current tags
-            const currentTags = this.getCurrentTags(documentContext.content);
-            
-            let updatedTags: string[] = [];
             let message = '';
-            
-            switch (action) {
-                case 'add': {
-                    // Add new tags without duplicates
-                    const normalizedCurrentTags = currentTags.map(t => this.normalizeTagValue(t));
-                    const tagsToAdd = newTags.filter(tag => 
-                        !normalizedCurrentTags.includes(tag)
-                    );
-                    updatedTags = [...currentTags, ...tagsToAdd];
-                    message = tagsToAdd.length > 0 
-                        ? `Added ${tagsToAdd.length} tag${tagsToAdd.length !== 1 ? 's' : ''}: ${tagsToAdd.join(', ')}`
-                        : 'No new tags to add (duplicates filtered)';
-                    break;
+
+            await this.processFrontmatter(documentContext, frontmatter => {
+                const currentTags = this.getTagsFromFrontmatter(frontmatter);
+                let updatedTags: string[] = [];
+
+                switch (action) {
+                    case 'add': {
+                        const normalizedCurrentTags = currentTags.map(tag => this.normalizeTagValue(tag));
+                        const tagsToAdd = newTags.filter(tag => !normalizedCurrentTags.includes(tag));
+                        updatedTags = [...currentTags, ...tagsToAdd];
+                        message = tagsToAdd.length > 0
+                            ? `Added ${tagsToAdd.length} tag${tagsToAdd.length !== 1 ? 's' : ''}: ${tagsToAdd.join(', ')}`
+                            : 'No new tags to add (duplicates filtered)';
+                        break;
+                    }
+
+                    case 'remove': {
+                        const beforeCount = currentTags.length;
+                        updatedTags = currentTags.filter(tag => !newTags.includes(this.normalizeTagValue(tag)));
+                        const removedCount = beforeCount - updatedTags.length;
+                        message = removedCount > 0
+                            ? `Removed ${removedCount} tag${removedCount !== 1 ? 's' : ''}`
+                            : 'No tags found to remove';
+                        break;
+                    }
+
+                    case 'set':
+                    case 'update':
+                        updatedTags = [...new Set(newTags)];
+                        message = `Set ${updatedTags.length} tag${updatedTags.length !== 1 ? 's' : ''}`;
+                        break;
                 }
-                    
-                case 'remove': {
-                    // Remove specified tags
-                    const beforeCount = currentTags.length;
-                    updatedTags = currentTags.filter(tag => 
-                        !newTags.includes(this.normalizeTagValue(tag))
-                    );
-                    const removedCount = beforeCount - updatedTags.length;
-                    message = removedCount > 0
-                        ? `Removed ${removedCount} tag${removedCount !== 1 ? 's' : ''}`
-                        : 'No tags found to remove';
-                    break;
-                }
-                    
-                case 'set':
-                case 'update':
-                    // Replace all tags
-                    updatedTags = [...new Set(newTags)];
-                    message = `Set ${updatedTags.length} tag${updatedTags.length !== 1 ? 's' : ''}`;
-                    break;
-            }
-            
-            // Update content
-            const updates = { tags: updatedTags };
-            const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
-            
-            // Use editor interface to preserve cursor, selections, undo/redo
-            const editor = this.documentEngine.getActiveEditor();
-            if (!editor) {
-                return {
-                    success: false,
-                    error: 'No active editor',
-                    editType: 'replace'
-                };
-            }
-            editor.setValue(updatedContent);
+
+                this.setFrontmatterTags(frontmatter, updatedTags);
+            });
             
             return {
                 success: true,
-                content: updatedContent,
-                appliedAt: { line: 0, ch: 0 },
                 editType: 'replace',
                 successMessage: message
             };
@@ -621,7 +427,7 @@ export class MetadataCommand {
      * Handle AI-powered tag operations (suggest, optimize, clean up)
      */
     private async handleAITagOperation(instruction: string, documentContext: DocumentContext): Promise<EditResult> {
-        const currentTags = this.getCurrentTags(documentContext.content);
+        const currentTags = this.getCurrentTags(documentContext.file);
         
         // Build AI prompt for tag operation
         const systemPrompt = `You are an expert at document tagging and metadata organization. Your task is to analyze documents and provide optimal tags.
@@ -709,49 +515,33 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             // Parse AI response
             const parsed = this.parseAITagResponse(aiResponse);
             if (!parsed || !parsed.tags || parsed.tags.length === 0) {
-                // Show the actual AI response in the error for debugging
-                const preview = aiResponse.length > 100 
-                    ? aiResponse.substring(0, 100) + '...' 
-                    : aiResponse;
                 return {
                     success: false,
-                    error: `Could not parse AI tag suggestions. AI response: "${preview}"`,
+                    error: 'Could not parse AI tag suggestions',
                     editType: 'replace'
                 };
             }
-            
-            // Update tags
-            const updates = { tags: parsed.tags };
-            const updatedContent = this.updateFrontmatterForTags(documentContext.content, updates);
-            
-            // Use editor interface to preserve cursor, selections, undo/redo
-            const editor = this.documentEngine.getActiveEditor();
-            if (!editor) {
-                return {
-                    success: false,
-                    error: 'No active editor',
-                    editType: 'replace'
-                };
-            }
-            editor.setValue(updatedContent);
-            
-            // Generate appropriate message
             let message = '';
-            if (/add suggested/i.test(instruction) || /^add tags$/i.test(instruction)) {
-                const addedTags = parsed.tags.filter(tag => 
-                    !currentTags.some(existing => existing.toLowerCase() === tag.toLowerCase())
-                );
-                message = `Added ${addedTags.length} suggested tag${addedTags.length !== 1 ? 's' : ''}: ${addedTags.join(', ')}`;
-            } else if (/clean up|cleanup/i.test(instruction)) {
-                message = `Cleaned up tags: ${currentTags.length} → ${parsed.tags.length} tags`;
-            } else {
-                message = `Optimized tags: ${parsed.tags.length} tag${parsed.tags.length !== 1 ? 's' : ''} (was ${currentTags.length})`;
-            }
+            await this.processFrontmatter(documentContext, frontmatter => {
+                const liveTags = this.getTagsFromFrontmatter(frontmatter);
+                let updatedTags = [...new Set(parsed.tags)];
+
+                if (/add suggested/i.test(instruction) || /^add tags$/i.test(instruction)) {
+                    const normalizedLiveTags = new Set(liveTags.map(tag => this.normalizeTagValue(tag)));
+                    const addedTags = updatedTags.filter(tag => !normalizedLiveTags.has(this.normalizeTagValue(tag)));
+                    updatedTags = [...liveTags, ...addedTags];
+                    message = `Added ${addedTags.length} suggested tag${addedTags.length !== 1 ? 's' : ''}: ${addedTags.join(', ')}`;
+                } else if (/clean up|cleanup/i.test(instruction)) {
+                    message = `Cleaned up tags: ${liveTags.length} → ${updatedTags.length} tags`;
+                } else {
+                    message = `Optimized tags: ${updatedTags.length} tag${updatedTags.length !== 1 ? 's' : ''} (was ${liveTags.length})`;
+                }
+
+                this.setFrontmatterTags(frontmatter, updatedTags);
+            });
             
             return {
                 success: true,
-                content: updatedContent,
-                appliedAt: { line: 0, ch: 0 },
                 editType: 'replace',
                 successMessage: message
             };
@@ -764,43 +554,9 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
         }
     }
 
-    /**
-     * Get current tags from document content
-     */
-    private getCurrentTags(content: string): string[] {
-        if (!content) return [];
-        
-        const lines = content.split('\n');
-        
-        if (lines.length > 0 && lines[0] === '---') {
-            const inFrontmatter = true;
-            for (let i = 1; i < lines.length && inFrontmatter; i++) {
-                if (lines[i] === '---') {
-                    break;
-                }
-                
-                const tagMatch = lines[i].match(/^tags:\s*(.*)$/);
-                if (tagMatch) {
-                    const tagValue = tagMatch[1].trim();
-                    
-                    if (!tagValue) return [];
-                    
-                    // Try parsing as JSON array
-                    try {
-                        const parsed = JSON.parse(tagValue);
-                        if (Array.isArray(parsed)) {
-                            return parsed.filter(t => t);
-                        }
-                    } catch {
-                        // Not JSON, try comma-separated
-                        return tagValue.split(',').map(t => t.trim()).filter(t => t);
-                    }
-                }
-            }
-        }
-        
-        // No frontmatter or no tags found
-        return [];
+    private getCurrentTags(file: DocumentContext['file']): string[] {
+        const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+        return frontmatter ? this.getTagsFromFrontmatter(frontmatter) : [];
     }
 
     /**
@@ -906,11 +662,10 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                 return { tags: validTags };
             }
             
-            // If we still can't parse, log the response for debugging
-            Logger.error('Failed to parse AI tag response:', cleanResponse);
+            Logger.error('Failed to parse AI tag response');
             return null;
-        } catch (error) {
-            Logger.error('Error parsing AI tag response:', error, 'Response was:', response);
+        } catch {
+            Logger.error('Error parsing AI tag response');
             return null;
         }
     }

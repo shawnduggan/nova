@@ -133,12 +133,7 @@ export class OpenAIProvider implements AIProvider {
 						return data.choices[0].message.content;
 					}
 					
-					// If we get here, the response format is unexpected
-					Logger.error('OpenAI API Response Error: Unexpected format', {
-						data: data,
-						model: modelName,
-						endpoint: endpoint
-					});
+					Logger.error('OpenAI API response had an unexpected format', { model: modelName });
 					throw new Error('OpenAI API: Unexpected response format');
 				}
 
@@ -151,32 +146,13 @@ export class OpenAIProvider implements AIProvider {
 					continue; // Retry
 				}
 
-				// For all other errors or final attempt, log details and throw error
-
-				// Try to parse error message if JSON
-				let errorMessage = `${response.status}`;
-				try {
-					const errorData = JSON.parse(response.text) as { error?: { message?: string; type?: string } };
-					if (errorData.error) {
-						errorMessage = `${response.status}: ${String(errorData.error.message || errorData.error.type || response.text)}`;
-					}
-				} catch {
-					errorMessage = `${response.status}: ${response.text}`;
-				}
-
-				// Log detailed error for debugging (following Google provider pattern)
-				Logger.error('OpenAI API Error Details:', {
+				Logger.error('OpenAI API request failed', {
 					status: response.status,
-					headers: response.headers,
-					errorText: response.text,
-					requestBody: requestBodyObj,
 					model: modelName,
-					endpoint: endpoint,
-					attempt: attempt + 1,
-					maxRetries: maxRetries
+					attempt: attempt + 1
 				});
 
-				throw new Error(`OpenAI API error: ${errorMessage}`);
+				throw new Error(`OpenAI API error: ${response.status}`);
 
 			} catch (error) {
 				// Network errors - retry if not final attempt
@@ -191,17 +167,15 @@ export class OpenAIProvider implements AIProvider {
 					continue;
 				}
 				
-				// Log the error before re-throwing if it wasn't retried or if retries failed
-				Logger.error('OpenAI API Request Failed (Exception):', {
-					error: error,
-					message: error instanceof Error ? error.message : String(error),
+				Logger.error('OpenAI API request failed', {
 					model: modelName,
-					endpoint: endpoint,
 					attempt: attempt + 1
 				});
-				
-				// Re-throw the error if it's the final attempt or not a network error
-				throw error;
+
+				if (error instanceof Error && error.message.startsWith('OpenAI API')) {
+					throw error;
+				}
+				throw new Error('OpenAI API request failed');
 			}
 		}
 
@@ -286,8 +260,8 @@ export class OpenAIProvider implements AIProvider {
 
 			this.cachedModels = models;
 			return models;
-		} catch (error) {
-			throw new Error(`Failed to fetch OpenAI models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			} catch {
+				throw new Error('Failed to fetch OpenAI models');
 		}
 	}
 

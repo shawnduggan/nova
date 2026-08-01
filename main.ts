@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, addIcon, Notice, Editor, MarkdownView } from 'obsidian';
+import { Component, Plugin, WorkspaceLeaf, addIcon, Notice, Editor, MarkdownView, normalizePath } from 'obsidian';
 import { NovaSettings, NovaSettingTab, DEFAULT_SETTINGS } from './src/settings';
 import { AIProviderManager } from './src/ai/provider-manager';
 import { NovaSidebarView, VIEW_TYPE_NOVA_SIDEBAR } from './src/ui/sidebar-view';
@@ -36,7 +36,13 @@ import { createIndicatorExtension } from './src/features/commands/ui/codemirror-
 import { toSmartTimingSettings } from './src/features/commands/types';
 import { WritingAnalysisManager } from './src/ui/writing-analysis-manager';
 import { ProseLinterStore } from './src/features/prose-linter/prose-linter-store';
-import { FEATURE_SMART_REVISION, FEATURE_SMARTFILL } from './src/constants';
+import { FEATURE_SMART_REVISION, FEATURE_SMARTFILL, NOVA_LICENSE_UPDATED_EVENT } from './src/constants';
+import {
+	DASHBOARD_CACHE_DATA_KEY,
+	DASHBOARD_HISTORY_DATA_KEY,
+	LEGACY_DASHBOARD_CACHE_FILE,
+	LEGACY_DASHBOARD_HISTORY_FILE
+} from './src/core/vault-analyzer';
 import type { StateField } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
 
@@ -73,6 +79,18 @@ const SUPERNOVA_ICON_SVG = `
   <path d="M8.464 8.464L5.636 5.636" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
 </svg>`;
 
+const SETTINGS_DATA_KEYS: ReadonlyArray<keyof NovaSettings> = [
+	'aiProviders',
+	'platformSettings',
+	'general',
+	'licensing',
+	'commands',
+	'writingAnalysis',
+	'dashboard',
+	'autoContext',
+	'features'
+];
+
 export default class NovaPlugin extends Plugin {
 	settings!: NovaSettings;
 	aiProviderManager!: AIProviderManager;
@@ -91,7 +109,6 @@ export default class NovaPlugin extends Plugin {
 	featureManager!: FeatureManager;
 	licenseValidator!: LicenseValidator;
 	settingTab!: NovaSettingTab;
-	sidebarView!: NovaSidebarView;
 	selectionContextMenu!: SelectionContextMenu;
 	commandEngine!: CommandEngine;
 	smartVariableResolver!: SmartVariableResolver;
@@ -104,10 +121,13 @@ export default class NovaPlugin extends Plugin {
 	smartRevisionService!: SmartRevisionService;
 	private pendingReleaseNotes: ReleaseNotesEntry[] = [];
 	private pendingReleaseVersion: string | null = null;
+	private dataMutationQueue: Promise<void> = Promise.resolve();
+	private insightPanelDocumentLifecycles = new Map<Document, Component>();
 
 	async onload() {
 		try {
 			await this.loadSettings();
+			await this.migrateLegacyDashboardData();
 
 
 			// Initialize licensing system
@@ -124,13 +144,7 @@ export default class NovaPlugin extends Plugin {
 
 			// Dispatch license update event to refresh Supernova UI after startup
 			this.app.workspace.onLayoutReady(async () => {
-				document.dispatchEvent(new CustomEvent('nova-license-updated', {
-					detail: {
-						hasLicense: this.featureManager.isSupernovaSupporter(),
-						licenseKey: this.settings.licensing.supernovaLicenseKey,
-						action: 'startup'
-					}
-				}));
+				this.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 
 				// Check for release notes after update
 				await this.checkAndShowReleaseNotes();
@@ -369,6 +383,9 @@ export default class NovaPlugin extends Plugin {
 		this.marginIndicators?.cleanup();
 		this.writingAnalysisManager?.cleanup();
 		this.commandEngine?.cleanup();
+		for (const ownerDocument of this.insightPanelDocumentLifecycles.keys()) {
+			this.unregisterInsightPanelDocument(ownerDocument);
+		}
 	}
 
 	/**
@@ -416,11 +433,37 @@ export default class NovaPlugin extends Plugin {
 	 * These handlers are registered once and check if a panel is active before acting
 	 */
 	private registerGlobalInsightPanelHandlers(): void {
-		// Global click handler for dismissing panels when clicking outside
-		this.registerDomEvent(document, 'click', (event: MouseEvent) => {
+		const registerKnownDocuments = (): void => {
+			this.registerInsightPanelDocument(this.app.workspace.containerEl.ownerDocument);
+			this.app.workspace.iterateAllLeaves((leaf) => {
+				this.registerInsightPanelDocument(leaf.view.containerEl.ownerDocument);
+			});
+		};
+
+		registerKnownDocuments();
+		this.registerEvent(this.app.workspace.on('layout-change', registerKnownDocuments));
+		this.registerEvent(this.app.workspace.on('window-open', (_workspaceWindow, ownerWindow) => {
+			this.registerInsightPanelDocument(ownerWindow.document);
+		}));
+		this.registerEvent(this.app.workspace.on('window-close', (_workspaceWindow, ownerWindow) => {
+			this.unregisterInsightPanelDocument(ownerWindow.document);
+		}));
+	}
+
+	private registerInsightPanelDocument(ownerDocument: Document): void {
+		if (this.insightPanelDocumentLifecycles.has(ownerDocument)) {
+			return;
+		}
+		const lifecycle = this.addChild(new Component());
+		this.insightPanelDocumentLifecycles.set(ownerDocument, lifecycle);
+
+		lifecycle.registerDomEvent(ownerDocument, 'click', (event: MouseEvent) => {
 			if (this.marginIndicators?.insightPanel?.isActive()) {
 				const panelElement = this.marginIndicators.insightPanel.getActivePanel();
-				const target = event.target as HTMLElement;
+				const target = event.target as Element | null;
+				if (typeof target?.closest !== 'function') {
+					return;
+				}
 				
 				// Don't dismiss if clicking on panel, indicator, or indicator preview
 				if (panelElement && !panelElement.contains(target) && 
@@ -432,11 +475,21 @@ export default class NovaPlugin extends Plugin {
 		});
 
 		// Global keydown handler for dismissing panels on Escape key
-		this.registerDomEvent(document, 'keydown', (event: KeyboardEvent) => {
+		lifecycle.registerDomEvent(ownerDocument, 'keydown', (event: KeyboardEvent) => {
 			if (event.key === 'Escape' && this.marginIndicators?.insightPanel?.isActive()) {
 				this.marginIndicators.insightPanel.hidePanel();
 			}
 		});
+	}
+
+	private unregisterInsightPanelDocument(ownerDocument: Document): void {
+		const lifecycle = this.insightPanelDocumentLifecycles.get(ownerDocument);
+		if (!lifecycle) {
+			return;
+		}
+
+		this.insightPanelDocumentLifecycles.delete(ownerDocument);
+		this.removeChild(lifecycle);
 	}
 
 	private migrateDynamicModelCache(provider: 'ollama' | 'openai-compatible'): void {
@@ -456,8 +509,9 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const savedData = await this.loadData();
-		const settingsMigrationData = JSON.parse(JSON.stringify(savedData ?? {}));
+		const allSavedData = await this.loadData();
+		const savedData = this.selectSettingsData(allSavedData);
+		const settingsMigrationData = JSON.parse(JSON.stringify(this.toPluginDataRecord(allSavedData)));
 		
 		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
@@ -657,7 +711,7 @@ export default class NovaPlugin extends Plugin {
 		}
 		
 		try {
-			await this.saveData(settingsToSave);
+			await this.saveSettingsData(settingsToSave);
 			this.aiProviderManager?.updateSettings(this.settings);
 			if (failedSensitiveValues.includes('Supernova license key')) {
 				await this.featureManager?.updateSupernovaLicense(null);
@@ -673,9 +727,75 @@ export default class NovaPlugin extends Plugin {
 		}
 	}
 
+	private toPluginDataRecord(data: unknown): Record<string, unknown> {
+		return data && typeof data === 'object' && !Array.isArray(data)
+			? data as Record<string, unknown>
+			: {};
+	}
+
+	private selectSettingsData(data: unknown): Partial<NovaSettings> {
+		const allData = this.toPluginDataRecord(data);
+		const settingsData: Record<string, unknown> = {};
+		for (const key of SETTINGS_DATA_KEYS) {
+			if (Object.prototype.hasOwnProperty.call(allData, key)) {
+				settingsData[key] = allData[key];
+			}
+		}
+		return settingsData as Partial<NovaSettings>;
+	}
+
+	private async mutatePluginData(update: (data: Record<string, unknown>) => void): Promise<void> {
+		const operation = this.dataMutationQueue.then(async () => {
+			const currentData = this.toPluginDataRecord(await this.loadData());
+			const nextData = { ...currentData };
+			update(nextData);
+			await this.saveData(nextData);
+		});
+		this.dataMutationQueue = operation.catch(() => undefined);
+		await operation;
+	}
+
+	private async saveSettingsData(settingsData: Record<string, unknown>): Promise<void> {
+		await this.mutatePluginData((allData) => {
+			for (const key of SETTINGS_DATA_KEYS) {
+				if (Object.prototype.hasOwnProperty.call(settingsData, key)) {
+					allData[key] = settingsData[key];
+				} else {
+					delete allData[key];
+				}
+			}
+		});
+	}
+
+	private async migrateLegacyDashboardData(): Promise<void> {
+		const pluginDirectory = `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+		const legacyEntries = [
+			{ fileName: LEGACY_DASHBOARD_CACHE_FILE, dataKey: DASHBOARD_CACHE_DATA_KEY },
+			{ fileName: LEGACY_DASHBOARD_HISTORY_FILE, dataKey: DASHBOARD_HISTORY_DATA_KEY }
+		];
+
+		for (const entry of legacyEntries) {
+			const legacyPath = normalizePath(`${pluginDirectory}/${entry.fileName}`);
+			if (!await this.app.vault.adapter.exists(legacyPath)) {
+				continue;
+			}
+
+			try {
+				const existingData = await this.loadDataWithKey(entry.dataKey);
+				if (existingData === undefined || existingData === null) {
+					const legacyData = JSON.parse(await this.app.vault.adapter.read(legacyPath));
+					await this.saveDataWithKey(entry.dataKey, legacyData);
+				}
+				await this.app.vault.adapter.remove(legacyPath);
+			} catch {
+				Logger.warn('Failed to migrate legacy dashboard data; the legacy file was retained');
+			}
+		}
+	}
+
 	/**
 	 * Get the current sidebar view from the workspace (dynamic lookup)
-	 * This is more reliable than using the cached this.sidebarView
+	 * Obsidian owns view instances, so callers resolve the current leaf on demand.
 	 */
 	getCurrentSidebarView(): NovaSidebarView | null {
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NOVA_SIDEBAR);
@@ -794,10 +914,6 @@ export default class NovaPlugin extends Plugin {
 		await workspace.revealLeaf(leaf);
 		this.writingAnalysisManager?.setProseLinterReviewActive(false);
 
-		// Store reference to sidebar view
-		if (leaf?.view instanceof NovaSidebarView) {
-			this.sidebarView = leaf.view;
-		}
 	}
 
 	async activateWritingDashboard() {
@@ -881,13 +997,20 @@ export default class NovaPlugin extends Plugin {
 
 	// DataStore interface implementation for ConversationManager
 	async loadDataWithKey(key: string): Promise<unknown> {
+		await this.dataMutationQueue;
 		const allData = await this.loadData();
-		return allData ? allData[key] : undefined;
+		return this.toPluginDataRecord(allData)[key];
 	}
 
 	async saveDataWithKey(key: string, data: unknown): Promise<void> {
-		const allData = await this.loadData() || {};
-		allData[key] = data;
-		return await this.saveData(allData);
+		await this.mutatePluginData((allData) => {
+			allData[key] = data;
+		});
+	}
+
+	async deleteDataWithKey(key: string): Promise<void> {
+		await this.mutatePluginData((allData) => {
+			delete allData[key];
+		});
 	}
 }

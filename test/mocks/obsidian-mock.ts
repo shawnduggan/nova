@@ -25,6 +25,16 @@ export const Platform = {
     isDesktopApp: true
 };
 
+export function normalizePath(path: string): string {
+    const segments: string[] = [];
+    for (const segment of path.replace(/\\/g, '/').split('/')) {
+        if (!segment || segment === '.') continue;
+        if (segment === '..') segments.pop();
+        else segments.push(segment);
+    }
+    return segments.join('/');
+}
+
 // DataAdapter interface (minimal mock)
 export interface DataAdapter {
     getName(): string;
@@ -426,7 +436,8 @@ interface WorkspaceLeafLike {
 
 export class Workspace {
     activeEditor: { editor: Editor | null; file: TFile | null } | null = null;
-    private eventHandlers: Map<string, Array<() => void>> = new Map();
+    containerEl: HTMLElement = document.body;
+    private eventHandlers: Map<string, Array<(...data: unknown[]) => void>> = new Map();
 
     getActiveFile(): TFile | null {
         return this.activeEditor?.file || null;
@@ -440,7 +451,7 @@ export class Workspace {
         return [];
     }
     
-    on(event: string, handler: () => void): { unsubscribe: () => void } {
+    on(event: string, handler: (...data: unknown[]) => void): { unsubscribe: () => void } {
         if (!this.eventHandlers.has(event)) {
             this.eventHandlers.set(event, []);
         }
@@ -459,9 +470,13 @@ export class Workspace {
         };
     }
     
-    trigger(event: string): void {
+    trigger(event: string, ...data: unknown[]): void {
         const handlers = this.eventHandlers.get(event) || [];
-        handlers.forEach(handler => handler());
+        handlers.forEach(handler => handler(...data));
+    }
+
+    iterateAllLeaves(_callback: (leaf: WorkspaceLeafLike) => unknown): void {
+        // No leaves by default.
     }
 }
 
@@ -544,6 +559,71 @@ class ExtendedHTMLElement extends HTMLElement {
     }
 }
 
+export class Component {
+    private loaded = false;
+    private children = new Set<Component>();
+    private cleanupCallbacks: Array<() => unknown> = [];
+
+    load(): void {
+        if (this.loaded) return;
+        this.loaded = true;
+        void this.onload();
+        this.children.forEach(child => child.load());
+    }
+
+    onload(): void | Promise<void> {}
+
+    unload(): void {
+        if (!this.loaded && this.children.size === 0 && this.cleanupCallbacks.length === 0) {
+            return;
+        }
+
+        this.children.forEach(child => child.unload());
+        this.children.clear();
+        [...this.cleanupCallbacks].reverse().forEach(cleanup => cleanup());
+        this.cleanupCallbacks = [];
+        this.onunload();
+        this.loaded = false;
+    }
+
+    onunload(): void {}
+
+    addChild<T extends Component>(component: T): T {
+        this.children.add(component);
+        component.load();
+        return component;
+    }
+
+    removeChild<T extends Component>(component: T): T {
+        this.children.delete(component);
+        component.unload();
+        return component;
+    }
+
+    register(callback: () => unknown): void {
+        this.cleanupCallbacks.push(callback);
+    }
+
+    registerEvent(eventRef: EventRef): void {
+        this.register(() => eventRef.unsubscribe?.());
+    }
+
+    registerDomEvent(
+        element: EventTarget,
+        type: string,
+        handler: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+    ): void {
+        element.addEventListener(type, handler, options);
+        this.register(() => element.removeEventListener(type, handler, options));
+    }
+
+    registerInterval(intervalId: number): number {
+        this.register(() => window.clearInterval(intervalId));
+        return intervalId;
+    }
+}
+
 export class ItemView {
     app: App;
     containerEl: ExtendedHTMLElement;
@@ -606,11 +686,12 @@ export class MarkdownView extends ItemView {
     getViewType(): string { return 'markdown'; }
 }
 
-export class Plugin {
+export class Plugin extends Component {
     app: App;
     manifest: any;
     
     constructor(app: App, manifest: any) {
+        super();
         this.app = app;
         this.manifest = manifest;
     }
@@ -1001,12 +1082,17 @@ export class FuzzySuggestModal<T> extends Modal {
     }
 }
 
+export function setIcon(el: HTMLElement, icon: string): void {
+    el.setAttribute('data-icon', icon);
+}
+
 export function setTooltip(el: HTMLElement, tooltip: string): void {
     el.setAttribute('title', tooltip);
 }
 
 export default {
     App,
+    Component,
     Editor,
     ItemView,
     MarkdownView,
@@ -1025,5 +1111,6 @@ export default {
     TextAreaComponent,
     Modal,
     FuzzySuggestModal,
+    setIcon,
     setTooltip
 };

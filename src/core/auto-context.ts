@@ -214,8 +214,8 @@ export async function truncateDocumentContent(
 			includedSections
 		};
 		
-	} catch (error) {
-		Logger.debug('Failed to truncate document content', { error });
+		} catch {
+			Logger.debug('Failed to truncate document content');
 		return null;
 	}
 }

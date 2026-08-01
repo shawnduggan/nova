@@ -1,16 +1,17 @@
 # Nova Codebase Map
 
-Generated 2026-08-01 from branch `codex/scorecard-remediation`, base commit
-`081e4d5067b3`, and the live working tree. Source count: 83 TypeScript files.
-Test count: 76 TypeScript files. Missing `@file` headers: 0.
+Generated 2026-08-01 from branch `codex/scorecard-remediation`, HEAD commit
+`9414a1123aa1`, and the live working tree. Source count: 84 TypeScript files.
+Test count: 80 TypeScript files. Missing `@file` headers: 0.
 
 This is a navigation index. Live source and tests are canonical; revalidate
 every task-relevant claim and regenerate after structural changes.
 
 ## Entry Points and Lifecycle
 
-- `main.ts` defines `NovaPlugin`. `onload()` loads settings and licensing,
-  constructs managers/services, registers CodeMirror extensions, four views,
+- `main.ts` defines `NovaPlugin`. `onload()` loads settings, migrates legacy
+  dashboard files into keyed plugin data, initializes licensing, constructs
+  managers/services, and registers CodeMirror extensions, four views,
   commands, ribbon actions, the settings tab, and registered events.
 - Layout-dependent startup for release notes, margin indicators, and writing
   analysis uses `workspace.onLayoutReady()`.
@@ -28,14 +29,14 @@ every task-relevant claim and regenerate after structural changes.
 | AI | `src/ai/types.ts`, `models.ts`, `provider-manager.ts`; provider adapters in `src/ai/providers/` |
 | Editing core | `document-engine.ts`, `command-parser.ts`, `intent-detector.ts`, `ai-intent-classifier.ts`, command handlers in `src/core/commands/` |
 | Context and prompts | `context-builder.ts`, `context-calculator.ts`, `auto-context.ts`, `prompt-builder.ts` |
-| Persistence and security | `conversation-manager.ts`, `crypto-service.ts` |
+| Persistence and security | `conversation-manager.ts`, `crypto-service.ts`, and dashboard plugin-data contracts in `vault-analyzer.ts` |
 | Writing analysis | `document-analysis.ts`, `writing-analysis*.ts`, `writing-score.ts`, `vault-analyzer.ts` |
 | Smart fill commands | `src/features/commands/core/`, `types.ts`, `constants.ts`, and `ui/` |
 | Prose linter | `src/features/prose-linter/` rule, runner, issue, store, rendering, summary, and type modules |
 | Smart Revision | `src/features/smart-revision/` service, prompt/parser, risk, diff, impact, and session types |
 | Licensing | `src/licensing/feature-manager.ts`, `feature-config.ts`, `license-validator.ts`, `types.ts` |
 | UI | Sidebar, registered views, context controls, provider/input/rendering managers, selection menu, modals, suggestions, analysis manager, and stats panel in `src/ui/` |
-| Utilities | `src/utils/logger.ts`, `timeout-manager.ts`, and `version.ts` |
+| Utilities | `src/utils/logger.ts`, `timeout-manager.ts`, `version.ts`, and typed custom workspace registration in `workspace-events.ts` |
 
 ## Stable Contracts and State Ownership
 
@@ -45,6 +46,8 @@ every task-relevant claim and regenerate after structural changes.
   config, conversation messages/data, and context-document references.
 - `src/core/conversation-manager.ts`: `DataStore` boundary and file-scoped
   conversation persistence.
+- `src/core/vault-analyzer.ts`: `DashboardDataStore`, cache/history schemas,
+  and legacy dashboard-file migration constants.
 - `src/features/commands/types.ts`: command registry, execution context,
   variables, suggestion settings, and timing contracts.
 - `src/features/prose-linter/prose-linter-types.ts`: issue, range,
@@ -63,13 +66,18 @@ every task-relevant claim and regenerate after structural changes.
 - Registered Obsidian workspace events drive active-file, editor, layout,
   metadata, resize, and menu behavior.
 - `src/ui/sidebar-events.ts` owns typed `nova-sidebar-processing` and
-  `nova-sidebar-chat-message` CustomEvent helpers.
-- Writing analysis publishes `nova-writing-analysis-updated`.
-- Provider, license, and indicator changes currently use
+  `nova-sidebar-chat-message` workspace-event helpers.
+- Writing analysis publishes `nova-writing-analysis-updated` through the
+  workspace event bus. `src/utils/workspace-events.ts` bridges plugin-defined
+  names to Obsidian's core-only TypeScript overloads without weakening payload
+  types.
+- Provider, license, and indicator changes also use workspace events named
   `nova-provider-configured`, `nova-provider-disconnected`,
   `nova-license-updated`, and `nova-indicator-click`.
-- Persistence uses plugin data through keyed adapters for conversations and
-  prose-linter ignores; settings remain owned by NovaPlugin.
+- Persistence uses serialized keyed plugin-data mutations for settings,
+  conversations, prose-linter ignores, dashboard cache, and dashboard history.
+- Metadata commands mutate active-note frontmatter through
+  `FileManager.processFrontMatter` and preserve unrelated structured fields.
 
 ## Provider and Streaming Flow
 
@@ -106,11 +114,16 @@ every task-relevant claim and regenerate after structural changes.
   helpers are `test/setup.ts` and `test/test-utils.ts`.
 - Release-note behavior is covered by `test/release-notes.test.ts`.
 - Streaming, provider status, intent routing, persistence, Smart Revision,
-  prose linter, dashboard analysis, and lifecycle-sensitive UI have focused
-  suites in their matching directories.
+  prose linter, dashboard analysis, workspace events, pop-out behavior,
+  privacy-safe logging, and lifecycle-sensitive UI have focused suites in
+  their matching directories.
 
 ## Recent Structural Changes
 
+- August 2026 moved Nova-internal DOM events to the Obsidian workspace bus,
+  made analysis and insight handlers pop-out aware, consolidated dashboard
+  persistence into plugin data, and moved metadata writes to Obsidian's
+  frontmatter API.
 - July 2026 added Smart Revision permanent-tier behavior and refreshed release
   and model support.
 - June 2026 added OpenAI-compatible endpoints.

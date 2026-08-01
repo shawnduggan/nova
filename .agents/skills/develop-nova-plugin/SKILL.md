@@ -48,6 +48,9 @@ not already clear.
   for frontmatter and FileManager.trashFile for deletion.
 - Prefer Vault APIs over Adapter APIs. Use Plugin.loadData and Plugin.saveData
   for plugin data, and use the plugin's app reference rather than global app.
+- Register every ItemView with a factory that creates and returns a fresh view
+  instance. Let Obsidian own each view lifecycle; do not retain a mutable
+  singleton view reference or detach leaves during routine plugin unload.
 - Never use innerHTML, outerHTML, direct style mutation, or document-global
   selectors when a component-local safe DOM API is available.
 - Build DOM with createEl, textContent, attributes, and CSS classes.

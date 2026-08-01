@@ -22,11 +22,23 @@ describe('MetadataCommand', () => {
     let mockDocumentEngine: jest.Mocked<DocumentEngine>;
     let mockContextBuilder: jest.Mocked<ContextBuilder>;
     let mockProviderManager: jest.Mocked<AIProviderManager>;
+    let writtenFrontmatter: Record<string, unknown> | null;
 
     beforeEach(() => {
+        writtenFrontmatter = null;
         mockApp = {
-            vault: {
-                modify: jest.fn()
+            workspace: {
+                getActiveFile: jest.fn(() => mockDocumentEngine.getDocumentContext()?.file ?? null)
+            },
+            metadataCache: {
+                getFileCache: jest.fn(() => ({ frontmatter: writtenFrontmatter ?? {} }))
+            },
+            fileManager: {
+                processFrontMatter: jest.fn(async (_file, update) => {
+                    const frontmatter = { ...(writtenFrontmatter ?? {}) };
+                    update(frontmatter);
+                    writtenFrontmatter = frontmatter;
+                })
             }
         } as any;
 
@@ -80,7 +92,16 @@ describe('MetadataCommand', () => {
 
             expect(result.success).toBe(true);
             expect(mockProviderManager.complete).toHaveBeenCalled();
-            expect(mockDocumentEngine.getActiveEditor).toHaveBeenCalled();
+            expect(mockApp.fileManager.processFrontMatter).toHaveBeenCalledWith(
+                mockDocumentContext.file,
+                expect.any(Function)
+            );
+            expect(mockDocumentEngine.getActiveEditor).not.toHaveBeenCalled();
+            expect(writtenFrontmatter).toEqual({
+                title: 'Test Document',
+                tags: ['work', 'important'],
+                date: '2025-01-01'
+            });
         });
 
         it('should handle JSON response in code block', async () => {
@@ -131,94 +152,95 @@ describe('MetadataCommand', () => {
             expect(result.success).toBe(false);
             expect(result.error).toContain('Prompt validation failed');
         });
+
+        it('should not apply an AI response after the active document changes', async () => {
+            const otherFile = createMockTFile('other.md', 'other.md');
+            (mockApp.workspace.getActiveFile as jest.Mock).mockReturnValue(otherFile);
+            mockProviderManager.complete.mockResolvedValue('{"status":"published"}');
+
+            const result = await metadataCommand.execute(mockCommand);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Active document changed');
+            expect(mockApp.fileManager.processFrontMatter).not.toHaveBeenCalled();
+        });
     });
 
-    describe('updateFrontmatter', () => {
-        it('should create frontmatter for non-existing frontmatter (correct behavior for metadata operations)', () => {
-            const content = '# Test Document\nSome content here.';
-            const updates = { title: 'Test', tags: ['test'] };
-            
-            // Access the private method through any
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            // Should create new frontmatter when none exists
-            expect(result).toContain('---\ntitle: Test\ntags: ["test"]\n---');
-            expect(result).toContain('# Test Document\nSome content here.');
+    describe('applyMetadataUpdates', () => {
+        it('should create fields when frontmatter is empty', () => {
+            const frontmatter: Record<string, unknown> = {};
+
+            (metadataCommand as any).applyMetadataUpdates(frontmatter, { title: 'Test', tags: ['test'] });
+
+            expect(frontmatter).toEqual({ title: 'Test', tags: ['test'] });
         });
 
-        it('should return original content when no updates provided and no frontmatter exists', () => {
-            const content = '# Test Document\nSome content here.';
-            const updates = {};
-            
-            // Access the private method through any
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            // Should return original content when no updates to apply
-            expect(result).toBe(content);
+        it('should preserve existing key casing and unrelated nested values', () => {
+            const nested = { audience: ['writers'], flags: { reviewed: true } };
+            const frontmatter: Record<string, unknown> = {
+                Title: 'Old Title',
+                status: 'draft',
+                details: nested
+            };
+
+            (metadataCommand as any).applyMetadataUpdates(frontmatter, {
+                title: 'New Title',
+                tags: ['updated']
+            });
+
+            expect(frontmatter).toEqual({
+                Title: 'New Title',
+                status: 'draft',
+                details: nested,
+                tags: ['updated']
+            });
         });
 
-        it('should update existing fields and add new non-protected fields (correct behavior)', () => {
-            const content = '---\ntitle: Old Title\nstatus: draft\n---\n# Test Document\nContent here.';
-            const updates = { title: 'New Title', tags: ['updated'] };
-            
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            expect(result).toContain('title: New Title'); // Updated existing field
-            expect(result).toContain('tags: ["updated"]'); // Added new field (now allowed)
-            expect(result).toContain('status: draft'); // Preserved existing
-        });
+        it('should delete null fields and reject protected field changes', () => {
+            const frontmatter: Record<string, unknown> = {
+                title: 'Test',
+                status: 'draft',
+                created: '2025-01-01'
+            };
 
-        it('should handle null values for property deletion', () => {
-            const content = '---\ntitle: Test\nstatus: draft\n---\n# Document';
-            const updates = { title: 'Updated', status: null };
-            
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            expect(result).toContain('title: Updated');
-            expect(result).not.toContain('status:'); // Should be removed
+            (metadataCommand as any).applyMetadataUpdates(frontmatter, {
+                title: 'Updated',
+                status: null,
+                created: 'replaced'
+            });
+
+            expect(frontmatter).toEqual({ title: 'Updated', created: '2025-01-01' });
         });
 
         it('should not create duplicates when parsing quoted property names', () => {
-            const content = '---\ntags: ["existing"]\nstatus: draft\n---\n# Document';
-            
-            // Simulate AI response with quoted key names
+            const frontmatter: Record<string, unknown> = { tags: ['existing'], status: 'draft' };
             const aiResponse = '"tags": ["updated", "work"]\n"status": "published"';
             const updates = (metadataCommand as any).parsePropertyUpdates(aiResponse);
-            
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            // Should not have both `tags:` and `"tags":` in the result
-            const tagMatches = result.match(/tags:/g);
-            expect(tagMatches).toHaveLength(1); // Only one tags field
-            
-            const statusMatches = result.match(/status:/g);
-            expect(statusMatches).toHaveLength(1); // Only one status field
-            
-            expect(result).toContain('tags: ["updated","work"]');
-            expect(result).toContain('status: published');
+
+            (metadataCommand as any).applyMetadataUpdates(frontmatter, updates);
+
+            expect(frontmatter).toEqual({ tags: ['updated', 'work'], status: 'published' });
+            expect(Object.keys(frontmatter)).toEqual(['tags', 'status']);
         });
 
         it('should handle direct JSON response without code blocks', () => {
-            const content = '---\nalias: \ntags: []\ntype: \nstatus: \n---\n# Document';
-            
-            // Simulate direct JSON AI response (the problematic case)
+            const frontmatter: Record<string, unknown> = { alias: '', tags: [], type: '', status: '' };
             const aiResponse = '{"tags": ["Canada", "Maritime provinces", "Nova Scotia", "Geography", "History"], "type": "reference", "status": "complete"}';
             const updates = (metadataCommand as any).parsePropertyUpdates(aiResponse);
-            
+
             expect(updates).not.toBeNull();
             expect(updates.tags).toEqual(["canada", "maritime-provinces", "nova-scotia", "geography", "history"]);
             expect(updates.type).toBe("reference");
             expect(updates.status).toBe("complete");
-            
-            const result = (metadataCommand as any).updateFrontmatter(content, updates);
-            
-            // Should properly update the frontmatter without duplicates
-            expect(result).toContain('tags: ["canada","maritime-provinces","nova-scotia","geography","history"]');
-            expect(result).toContain('type: reference');
-            expect(result).toContain('status: complete');
-            
-            // Should not contain the raw JSON object
-            expect(result).not.toContain('{"tags":');
+
+            (metadataCommand as any).applyMetadataUpdates(frontmatter, updates);
+
+            expect(frontmatter).toEqual({
+                alias: '',
+                tags: ['canada', 'maritime-provinces', 'nova-scotia', 'geography', 'history'],
+                type: 'reference',
+                status: 'complete'
+            });
         });
     });
 

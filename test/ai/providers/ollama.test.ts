@@ -85,4 +85,27 @@ describe('OllamaProvider', () => {
 		const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
 		expect(callArgs.url).toBe('http://localhost:11434/api/chat');
 	});
+
+	test('does not expose prompts, endpoints, or response bodies in errors or logs', async () => {
+		config.baseUrl = 'https://private-ollama.example/';
+		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const privateResponse = 'private-ollama-response-sentinel';
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 500,
+			text: privateResponse,
+			headers: { 'x-private': 'private-header-sentinel' }
+		});
+
+		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
+			.catch(error => error as Error);
+
+		expect(thrown).toBeInstanceOf(Error);
+		expect(thrown.message).toBe('Ollama API error: 500');
+		const serializedLogs = JSON.stringify(errorLog.mock.calls);
+		expect(serializedLogs).not.toContain(privateResponse);
+		expect(serializedLogs).not.toContain('private-header-sentinel');
+		expect(serializedLogs).not.toContain('private-user-prompt');
+		expect(serializedLogs).not.toContain('private-ollama.example');
+		errorLog.mockRestore();
+	});
 });

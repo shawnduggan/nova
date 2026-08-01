@@ -18,6 +18,7 @@ import {
 	type ProseIssueType
 } from '../features/prose-linter/prose-linter-types';
 import type { SmartRevisionSourceIssue } from '../features/smart-revision/smart-revision-types';
+import { onWorkspaceEvent } from '../utils/workspace-events';
 import { WRITING_ANALYSIS_UPDATED_EVENT, type WritingAnalysisUpdateDetail } from './writing-analysis-manager';
 
 export { VIEW_TYPE_PROSE_LINTER };
@@ -140,9 +141,9 @@ export class ProseLinterView extends ItemView {
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
 			void this.refresh();
 		}));
-		this.registerDomEvent(document, WRITING_ANALYSIS_UPDATED_EVENT as keyof DocumentEventMap, (event: Event) => {
-			this.handleWritingAnalysisUpdated(event);
-		});
+		this.registerEvent(onWorkspaceEvent(this.app.workspace, WRITING_ANALYSIS_UPDATED_EVENT, (detail: WritingAnalysisUpdateDetail) => {
+			this.handleWritingAnalysisUpdated(detail);
+		}));
 		await this.refresh();
 		this.activateReviewIfShown();
 	}
@@ -685,8 +686,7 @@ export class ProseLinterView extends ItemView {
 			null;
 	}
 
-	private handleWritingAnalysisUpdated(event: Event): void {
-		const detail = (event as CustomEvent<WritingAnalysisUpdateDetail>).detail;
+	private handleWritingAnalysisUpdated(detail: WritingAnalysisUpdateDetail): void {
 		if (detail.filePath === this.state.file?.path || (!detail.filePath && !this.state.file)) {
 			void this.refresh();
 		}

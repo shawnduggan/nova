@@ -493,7 +493,7 @@ export class ContextManager {
 				try {
 					// Validate context document structure
 					if (!contextDoc || !contextDoc.path || typeof contextDoc.path !== 'string') {
-						Logger.warn('Invalid context document structure:', contextDoc);
+							Logger.warn('Invalid context document structure');
 						continue;
 					}
 					
@@ -514,9 +514,9 @@ export class ContextManager {
 						// File missing - track for cleanup
 						invalidPaths.push(contextDoc.path);
 					}
-				} catch (docError) {
-					// Skip corrupted individual context documents
-					Logger.warn('Error processing context document, skipping:', docError);
+					} catch {
+						// Skip corrupted individual context documents
+						Logger.warn('Error processing context document; skipping it');
 				}
 			}
 			

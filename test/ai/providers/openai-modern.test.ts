@@ -1,7 +1,6 @@
 import { OpenAIProvider } from '../../../src/ai/providers/openai';
 import { ProviderConfig } from '../../../src/ai/types';
 import { TimeoutManager } from '../../../src/utils/timeout-manager';
-import { Logger } from '../../../src/utils/logger';
 
 // Mock Obsidian's requestUrl
 jest.mock('obsidian', () => ({
@@ -160,4 +159,33 @@ describe('OpenAIProvider Modernization', () => {
             'gpt-5.4-nano'
         ]);
     });
+
+	test('does not expose prompts, credentials, endpoints, or response bodies in errors or logs', async () => {
+		provider = new OpenAIProvider({
+			apiKey: 'private-openai-key',
+			baseUrl: 'https://private-openai.example/v1',
+			model: 'gpt-5.4'
+		}, generalSettings, timeoutManager);
+		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const privateResponse = 'private-openai-response-sentinel';
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 400,
+			text: privateResponse,
+			headers: { 'x-private': 'private-header-sentinel' },
+			json: { error: { message: privateResponse } }
+		});
+
+		const thrown = await provider.complete('private-system-prompt', 'private-user-prompt')
+			.catch(error => error as Error);
+
+		expect(thrown).toBeInstanceOf(Error);
+		expect(thrown.message).toBe('OpenAI API error: 400');
+		const serializedLogs = JSON.stringify(errorLog.mock.calls);
+		expect(serializedLogs).not.toContain(privateResponse);
+		expect(serializedLogs).not.toContain('private-header-sentinel');
+		expect(serializedLogs).not.toContain('private-user-prompt');
+		expect(serializedLogs).not.toContain('private-openai-key');
+		expect(serializedLogs).not.toContain('private-openai.example');
+		errorLog.mockRestore();
+	});
 });

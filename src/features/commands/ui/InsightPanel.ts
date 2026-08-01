@@ -435,7 +435,7 @@ export class InsightPanel {
             // Set the selection in the editor
             editor.setSelection(lineStart, lineEnd);
             
-            this.logger.debug(`Selected line ${lineNumber} for command execution: "${lineContent.substring(0, 50)}..."`);
+            this.logger.debug(`Selected line ${lineNumber} for command execution`);
             
         } catch (error) {
             this.logger.error('Failed to select opportunity text:', error);

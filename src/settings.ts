@@ -31,7 +31,12 @@ import {
 	getProviderTypeForModel,
 	OPENAI_COMPATIBLE_DEFAULT_CONTEXT
 } from './ai/models';
-import { SUPERNOVA_PLANS_URL } from './constants';
+import {
+	NOVA_LICENSE_UPDATED_EVENT,
+	NOVA_PROVIDER_CONFIGURED_EVENT,
+	NOVA_PROVIDER_DISCONNECTED_EVENT,
+	SUPERNOVA_PLANS_URL
+} from './constants';
 
 
 export interface CustomCommand {
@@ -455,9 +460,10 @@ export class NovaSettingTab extends PluginSettingTab {
 						}
 
 						// Emit event to update sidebar UI
-						document.dispatchEvent(new CustomEvent('nova-provider-configured', {
-							detail: { provider: 'mobile-settings', status: value ? 'enabled' : 'disabled' }
-						}));
+						this.plugin.app.workspace.trigger(NOVA_PROVIDER_CONFIGURED_EVENT, {
+							provider: 'mobile-settings',
+							status: value ? 'enabled' : 'disabled'
+						});
 					});
 			});
 	}
@@ -698,9 +704,7 @@ export class NovaSettingTab extends PluginSettingTab {
 			shouldRefreshSettingsContent = provider === 'ollama' || provider === 'openai-compatible';
 			
 			// Emit event to notify sidebar of provider configuration
-			document.dispatchEvent(new CustomEvent('nova-provider-configured', { 
-				detail: { provider, status: 'connected' } 
-			}));
+			this.plugin.app.workspace.trigger(NOVA_PROVIDER_CONFIGURED_EVENT, { provider, status: 'connected' });
 			
 		} catch (error: unknown) {
 			Logger.error(`Connection test failed for ${provider}:`, error);
@@ -743,9 +747,11 @@ export class NovaSettingTab extends PluginSettingTab {
 			this.setConnectionStatus(statusContainer, 'error', `● ${errorMessage}`);
 			
 			// Emit event to notify sidebar that provider has failed
-			document.dispatchEvent(new CustomEvent('nova-provider-disconnected', { 
-				detail: { provider, status: 'error', message: errorMessage } 
-			}));
+			this.plugin.app.workspace.trigger(NOVA_PROVIDER_DISCONNECTED_EVENT, {
+				provider,
+				status: 'error',
+				message: errorMessage
+			});
 		} finally {
 			// Clear backup timer and restore button
 			this.timeoutManager.removeTimeout(backupTimer);
@@ -1011,9 +1017,10 @@ export class NovaSettingTab extends PluginSettingTab {
 			this.plugin.aiProviderManager.updateSettings(this.plugin.settings);
 		}
 
-		document.dispatchEvent(new CustomEvent('nova-provider-configured', {
-			detail: { provider: 'openai-compatible', status: 'configured' }
-		}));
+		this.plugin.app.workspace.trigger(NOVA_PROVIDER_CONFIGURED_EVENT, {
+			provider: 'openai-compatible',
+			status: 'configured'
+		});
 	}
 
 	private createOpenAICompatibleModelSetting(container: HTMLElement): void {
@@ -1136,7 +1143,7 @@ export class NovaSettingTab extends PluginSettingTab {
 		}
 		
 		// Create status icon
-		const statusIcon = statusBadge.createSpan({ cls: 'status-icon' });
+		const statusIcon = statusBadge.createSpan({ cls: 'nova-status-icon' });
 		if (badge && badge.icon) {
 			// Badge icons are emoji strings, use textContent
 			statusIcon.textContent = badge.icon;
@@ -1159,9 +1166,9 @@ export class NovaSettingTab extends PluginSettingTab {
 			const expiryText = supernovaLicense.expiresAt 
 				? `Expires: ${supernovaLicense.expiresAt.toLocaleDateString()}`
 				: 'No expiration';
-			const licenseInfo = statusEl.createDiv({ cls: 'license-info' });
-			licenseInfo.createSpan({ cls: 'license-email', text: supernovaLicense.email });
-			licenseInfo.createSpan({ cls: 'license-expiry', text: expiryText });
+			const licenseInfo = statusEl.createDiv({ cls: 'nova-license-info' });
+			licenseInfo.createSpan({ cls: 'nova-license-summary-email', text: supernovaLicense.email });
+			licenseInfo.createSpan({ cls: 'nova-license-summary-expiry', text: expiryText });
 		}
 
 		// Supernova license key input using secure input pattern
@@ -1178,14 +1185,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (this.plugin.featureManager) {
 					await this.plugin.featureManager.updateSupernovaLicense(value || null);
 					
-					// Fire event for sidebar to update Supernova features
-					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-						detail: { 
-							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
-							licenseKey: value,
-							action: 'change'
-						} 
-					}));
+					this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 					
 					// Refresh the content to show updated status
 					this.updateTabContent();
@@ -1220,14 +1220,7 @@ export class NovaSettingTab extends PluginSettingTab {
 									this.showLicenseMessage('Invalid or expired Supernova license key.', 'error');
 								}
 								
-								// Dispatch license update event
-								document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-									detail: { 
-										hasLicense: isSupernova,
-										licenseKey: licenseKey,
-										action: 'validate'
-									} 
-								}));
+								this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 								
 								// Refresh content 
 								this.updateTabContent();
@@ -1284,14 +1277,7 @@ export class NovaSettingTab extends PluginSettingTab {
 						this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 					}
 					
-					// Dispatch event to update UI components
-					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-						detail: { 
-							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
-							licenseKey: this.plugin.settings.licensing.supernovaLicenseKey,
-							action: 'debug-mode-toggle'
-						} 
-					}));
+					this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 					
 					// Refresh display to show/hide debug options
 					this.display();
@@ -1316,14 +1302,7 @@ export class NovaSettingTab extends PluginSettingTab {
 							// Confetti animation removed
 						}
 						
-						// Dispatch license update event
-						document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-							detail: { 
-								hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
-								licenseKey: this.plugin.settings.licensing.supernovaLicenseKey,
-								action: 'debug-toggle'
-							} 
-						}));
+						this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 						
 						// Refresh content to show updated feature status
 						this.updateTabContent();
@@ -1360,14 +1339,7 @@ export class NovaSettingTab extends PluginSettingTab {
 										this.plugin.featureManager.updateDebugSettings(this.plugin.settings.licensing.debugSettings);
 									}
 
-								// Dispatch license update event
-								document.dispatchEvent(new CustomEvent('nova-license-updated', {
-									detail: {
-										hasLicense: false,
-										licenseKey: '',
-										action: 'clear'
-									}
-								}));
+								this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 
 									// Show success message
 									this.showLicenseMessage('All licenses cleared successfully.', 'success');
@@ -1825,9 +1797,10 @@ export class NovaSettingTab extends PluginSettingTab {
 							compatibleSettings.contextSize = numValue;
 							await this.plugin.saveSettings();
 
-							document.dispatchEvent(new CustomEvent('nova-provider-configured', {
-								detail: { provider: 'openai-compatible', status: 'connected' }
-							}));
+							this.plugin.app.workspace.trigger(NOVA_PROVIDER_CONFIGURED_EVENT, {
+								provider: 'openai-compatible',
+								status: 'connected'
+							});
 						}
 					});
 			});
@@ -1915,9 +1888,10 @@ export class NovaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 						
 						// Trigger UI update for token count display
-						document.dispatchEvent(new CustomEvent('nova-provider-configured', { 
-							detail: { provider: 'ollama', status: 'connected' } 
-						}));
+						this.plugin.app.workspace.trigger(NOVA_PROVIDER_CONFIGURED_EVENT, {
+							provider: 'ollama',
+							status: 'connected'
+						});
 					}
 				});
 			});
@@ -2290,14 +2264,7 @@ export class NovaSettingTab extends PluginSettingTab {
 				if (this.plugin.featureManager) {
 					await this.plugin.featureManager.updateSupernovaLicense(value || null);
 					
-					// Fire event for sidebar to update Supernova features
-					document.dispatchEvent(new CustomEvent('nova-license-updated', { 
-						detail: { 
-							hasLicense: this.plugin.featureManager.isSupernovaSupporter(),
-							licenseKey: value,
-							action: 'change'
-						} 
-					}));
+					this.plugin.app.workspace.trigger(NOVA_LICENSE_UPDATED_EVENT);
 					
 					// Refresh the content to show updated status
 					this.updateTabContent();
@@ -2541,8 +2508,11 @@ Try typing in the areas below to see how your suggestion settings work:
 		try {
 			// Ensure Nova folder exists
 			const novaFolder = 'Nova';
-			if (!await this.app.vault.adapter.exists(novaFolder)) {
+			const existingNovaFolder = this.app.vault.getAbstractFileByPath(novaFolder);
+			if (!existingNovaFolder) {
 				await this.app.vault.createFolder(novaFolder);
+			} else if (!(existingNovaFolder instanceof TFolder)) {
+				throw new Error('Cannot create the Nova folder because a file already uses that path.');
 			}
 			
 			// Create new file with test content in Nova folder

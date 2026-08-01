@@ -100,47 +100,26 @@ export class GoogleProvider implements AIProvider {
 			},
 			body: JSON.stringify(requestBody),
 			throw: false
+		}).catch(() => {
+			throw new Error('Google API request failed');
 		});
 
 		if (response.status !== 200) {
-			const errorText = response.text;
-			let errorMessage = '';
-			
-			try {
-				const errorData = JSON.parse(errorText);
-				if (errorData.error) {
-					// Format as [CODE]: message
-					const code = errorData.error.code || response.status;
-					const message = errorData.error.message || errorData.error.status;
-					errorMessage = `[${String(code)}]: ${String(message)}`;
-					
-					// Add specific guidance for common errors
-					if (response.status === 400) {
-						errorMessage += ' (Check request format or model name)';
-					} else if (response.status === 401) {
-						errorMessage += ' (Check API key in settings)';
-					} else if (response.status === 404) {
-						errorMessage += ' (Model may not be available)';
-					} else if (response.status === 429) {
-						errorMessage += ' (Rate limit exceeded)';
-					}
-				} else {
-					errorMessage = `[${response.status}]: ${errorText}`;
-				}
-			} catch {
-				errorMessage = `[${response.status}]: ${errorText}`;
-			}
-			
-			// Log detailed error for debugging
-			Logger.error('Google API Error Details:', {
+			const guidance = response.status === 400
+				? ' (check the request format or model name)'
+				: response.status === 401
+					? ' (check the API key in settings)'
+					: response.status === 404
+						? ' (the model may not be available)'
+						: response.status === 429
+							? ' (rate limit exceeded)'
+							: '';
+			Logger.error('Google API request failed', {
 				status: response.status,
-				errorText: errorText,
-				requestBody: requestBody,
-				model: model,
-				url: url
+				model
 			});
-			
-			throw new Error(`Google API error ${errorMessage}`);
+
+			throw new Error(`Google API error: ${response.status}${guidance}`);
 		}
 
 		const data = response.json;
@@ -148,9 +127,8 @@ export class GoogleProvider implements AIProvider {
 		
 		// Check if response has valid structure
 		if (!data.candidates || data.candidates.length === 0) {
-			// Check if there's an error message in the response
 			if (data.error) {
-				throw new Error(`Google API error: ${String(data.error.message) || JSON.stringify(data.error)}`);
+				throw new Error('Google API returned an error response');
 			}
 			throw new Error('Google API returned no candidates');
 		}
@@ -260,8 +238,8 @@ export class GoogleProvider implements AIProvider {
 
 			this.cachedModels = models;
 			return models;
-		} catch (error) {
-			throw new Error(`Failed to fetch Google models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			} catch {
+				throw new Error('Failed to fetch Google models');
 		}
 	}
 
