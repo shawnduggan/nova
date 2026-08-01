@@ -121,7 +121,8 @@ export class WritingDashboardView extends ItemView {
 		container.empty();
 		container.addClass('nova-writing-dashboard-view');
 		this.rootEl = container;
-		this.registerDomEvent(window, 'resize', () => {
+		const ownerWindow = container.ownerDocument.defaultView ?? window;
+		this.registerDomEvent(ownerWindow, 'resize', () => {
 			this.scheduleRender();
 		});
 

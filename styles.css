@@ -5723,6 +5723,10 @@ button.nova-prose-linter-category:hover {
     gap: var(--size-2-2);
 }
 
+.nova-writing-dashboard-progress.nova-hidden {
+    display: none;
+}
+
 .nova-writing-dashboard-progress-text {
     color: var(--text-muted);
     font-size: var(--font-ui-small);
@@ -5934,6 +5938,10 @@ button.nova-prose-linter-category:hover {
     display: flex;
     flex-direction: column;
     gap: var(--size-2-3);
+}
+
+.nova-writing-dashboard-mobile-list.nova-hidden {
+    display: none;
 }
 
 .nova-writing-dashboard-mobile-card {
@@ -6281,6 +6289,10 @@ button.nova-prose-linter-category:hover {
     display: flex;
     flex-direction: column;
     max-height: min(44vh, 340px);
+}
+
+.is-mobile .nova-writing-panel.nova-hidden {
+    display: none;
 }
 
 .is-mobile .nova-writing-panel.nova-writing-panel-expanded .nova-writing-panel-body {
