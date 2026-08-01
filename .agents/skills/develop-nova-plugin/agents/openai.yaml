@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop Nova Plugin"
+  short_description: "Apply Nova and Obsidian coding rules"
+  default_prompt: "Use $develop-nova-plugin to implement this Nova change safely."

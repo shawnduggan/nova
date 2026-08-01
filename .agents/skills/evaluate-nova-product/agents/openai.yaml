@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evaluate Nova Product"
+  short_description: "Ground Nova decisions in canonical product docs"
+  default_prompt: "Use $evaluate-nova-product to assess this Nova product proposal."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Nova PR"
+  short_description: "Review Nova branch changes before merge"
+  default_prompt: "Use $review-nova-pr to review this branch against its release baseline."

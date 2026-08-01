@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestrate Nova Work"
+  short_description: "Coordinate safe parallel Codex workstreams"
+  default_prompt: "Use $orchestrate-nova-work to coordinate this large Nova task."

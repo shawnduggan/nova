@@ -1,0 +1,6 @@
+interface:
+  display_name: "Release Nova Plugin"
+  short_description: "Run Nova approval-gated releases"
+  default_prompt: "Use $release-nova-plugin to prepare and release the requested Nova version."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Nova Change"
+  short_description: "Plan, implement, and verify Nova changes"
+  default_prompt: "Use $implement-nova-change to implement this Nova task safely."

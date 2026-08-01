@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Nova Compliance"
+  short_description: "Run Nova Obsidian compliance audits"
+  default_prompt: "Use $audit-nova-compliance to audit Nova for plugin-store readiness."

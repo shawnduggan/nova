@@ -1,0 +1,4 @@
+interface:
+  display_name: "Navigate Nova Codebase"
+  short_description: "Map Nova files, contracts, and dependencies"
+  default_prompt: "Use $navigate-nova-codebase to map the code paths affected by this task."

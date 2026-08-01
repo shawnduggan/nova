@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Nova Codebase"
+  short_description: "Refresh Nova generated codebase maps"
+  default_prompt: "Use $sync-nova-codebase to refresh Nova's codebase map after this refactor."
