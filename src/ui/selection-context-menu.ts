@@ -14,7 +14,6 @@ import { CHALLENGE_SYSTEM_PROMPT } from '../constants';
 import {
     dispatchSidebarProcessing,
     dispatchSidebarChatMessage,
-    SidebarChatMessageType,
     isSidebarAvailable
 } from './sidebar-events';
 
@@ -184,7 +183,7 @@ export class SelectionContextMenu {
             }
 
             if (actionId === 'smart-revision') {
-                await this.plugin.startSmartRevisionFromEditor(editor);
+                this.plugin.startSmartRevisionFromEditor(editor);
                 return;
             }
 
@@ -449,11 +448,13 @@ export class SelectionContextMenu {
             // Fallback to CodeMirror dom or document query if needed
             if (!editorContainer) {
                 const editorWithCM = editor as Editor & { cm?: { dom: Element } };
-                editorContainer = editorWithCM.cm?.dom || document.querySelector('.cm-editor');
+                const ownerDocument = this.app.workspace.containerEl.ownerDocument;
+                editorContainer = editorWithCM.cm?.dom || ownerDocument.querySelector('.cm-editor');
             }
             
             if (editorContainer) {
                 editorContainer.classList.add('nova-selection-processing');
+                this.animatedEditorContainer = editorContainer;
             }
 
             // Store the original selection for later cleanup
@@ -474,13 +475,8 @@ export class SelectionContextMenu {
      */
     private stopSelectionAnimation(): void {
         try {
-            // Remove animation class from all possible editor elements
-            const editorElements = document.querySelectorAll('.CodeMirror, .cm-editor');
-            editorElements.forEach(el => {
-                el.classList.remove('nova-selection-processing');
-            });
-
-
+            this.animatedEditorContainer?.classList.remove('nova-selection-processing');
+            this.animatedEditorContainer = null;
             this.animatedSelection = null;
         } catch (error) {
             Logger.warn('Failed to stop selection animation:', error);
@@ -488,6 +484,7 @@ export class SelectionContextMenu {
     }
 
     private animatedSelection: { from: EditorPosition; to: EditorPosition } | null = null;
+    private animatedEditorContainer: Element | null = null;
 
 
 

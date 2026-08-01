@@ -10,6 +10,7 @@ import { WRITING_ANALYSIS_UPDATED_EVENT, WritingAnalysisManager, type WritingAna
 describe('WritingAnalysisManager', () => {
 	function createManager(activeLeafViewType: string) {
 		const workspace = {
+			containerEl: document.body,
 			getActiveViewOfType: jest.fn(() => null),
 			getLeavesOfType: jest.fn(() => []),
 			on: jest.fn(() => ({ unsubscribe: () => undefined }))

@@ -386,8 +386,9 @@ export class VaultAnalyzer {
 
 	private async yieldToMainThread(): Promise<void> {
 		await new Promise<void>((resolve) => {
-			if (typeof requestAnimationFrame === 'function') {
-				requestAnimationFrame(() => resolve());
+			const ownerWindow = this.app.workspace.containerEl.ownerDocument.defaultView ?? window;
+			if (typeof ownerWindow.requestAnimationFrame === 'function') {
+				ownerWindow.requestAnimationFrame(() => resolve());
 				return;
 			}
 

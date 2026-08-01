@@ -136,4 +136,4 @@ The plugin includes a "Supernova" tab in settings with information about Superno
 
 ---
 
-© 2026 Shawn Duggan • Built with pride in Halifax, NS
+© 2025–2026 Shawn Duggan • Built with pride in Halifax, NS

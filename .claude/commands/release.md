@@ -52,6 +52,11 @@ Automate the release workflow: version bump, tag, push, and GitHub release.
      --title "[VERSION]" --notes "[RELEASE_NOTES content for VERSION]"
    ```
 
+9. **Verify release attestations**
+   - Wait for the `Attest release assets` workflow to complete successfully.
+   - Confirm the workflow rebuilt the release tag and byte-matched the published `main.js` and `styles.css` before attesting them.
+   - Download both published assets and verify them with `gh attestation verify` against this repository.
+
 ## Important
 
 - **No `v` prefix on tags or release titles.** Obsidian's store and release process breaks with `v`-prefixed tags. Tags must be bare version numbers (e.g. `1.1.2`, not `v1.1.2`).

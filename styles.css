@@ -3,7 +3,7 @@
 /* Hidden notice — used to dismiss thinking notices without calling hide(),
    which removes the notice container and breaks subsequent Notice creation */
 .nova-notice-hidden {
-    display: none !important;
+    display: none;
 }
 
 /* Settings Tab Navigation */
@@ -129,8 +129,8 @@
 .nova-tab-content input[type="text"],
 .nova-tab-content input[type="password"],
 .nova-tab-content select {
-    height: 40px !important;
-    min-height: 40px !important;
+    height: 40px;
+    min-height: 40px;
 }
 
 .nova-tab-content input[type="text"]:not(.nova-api-key),
@@ -141,21 +141,21 @@
 /* API key specific styling */
 .nova-tab-content .nova-provider-section input[type="text"],
 .nova-tab-content .nova-provider-section input[type="password"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-family: var(--font-monospace) !important;
+    width: 100%;
+    max-width: 100%;
+    font-family: var(--font-monospace);
 }
 
 /* Model dropdowns */
 .nova-tab-content .nova-provider-section select {
-    width: 200px !important;
-    height: 40px !important;
+    width: 200px;
+    height: 40px;
 }
 
 .nova-tab-content .nova-provider-section select.nova-settings-model-select {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 40px !important;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
     box-sizing: border-box;
     padding: 0 36px 0 14px;
     background-color: var(--background-modifier-form-field);
@@ -182,18 +182,18 @@
 /* URL/Endpoint fields */
 .nova-tab-content input[placeholder*="localhost"],
 .nova-tab-content input[placeholder*="http"] {
-    width: 350px !important;
+    width: 350px;
 }
 
 /* General settings inputs */
 .nova-tab-content input[type="number"] {
-    width: 150px !important;
-    height: 40px !important;
+    width: 150px;
+    height: 40px;
 }
 
 /* Test Connection Buttons - Fixed width to prevent jumping */
 .nova-tab-content button {
-    min-width: 120px !important;
+    min-width: 120px;
 }
 
 /* Provider Status Indicators */
@@ -263,7 +263,7 @@
 }
 
 .nova-provider-section > .setting-item:not(.setting-item-heading) .setting-item-control button {
-    min-width: 0 !important;
+    min-width: 0;
     min-height: 32px;
     height: 32px;
     padding: 4px 10px;
@@ -271,16 +271,16 @@
 }
 
 .nova-provider-section > .setting-item:not(.setting-item-heading) .setting-item-control button.nova-test-connection-button {
-    background-color: var(--interactive-accent) !important;
-    border: 1px solid var(--interactive-accent) !important;
-    color: var(--text-on-accent) !important;
+    background-color: var(--interactive-accent);
+    border: 1px solid var(--interactive-accent);
+    color: var(--text-on-accent);
     font-weight: 600;
     line-height: 1;
 }
 
 .nova-provider-section > .setting-item:not(.setting-item-heading) .setting-item-control button.nova-test-connection-button:hover {
-    background-color: var(--interactive-accent-hover) !important;
-    border-color: var(--interactive-accent-hover) !important;
+    background-color: var(--interactive-accent-hover);
+    border-color: var(--interactive-accent-hover);
 }
 
 .nova-provider-section > .setting-item.nova-provider-full-width-setting {
@@ -305,13 +305,13 @@
     position: relative;
     width: min(100%, var(--nova-provider-control-width));
     max-width: 100%;
-    padding: 0 !important;
-    background: transparent !important;
+    padding: 0;
+    background: transparent;
     flex-shrink: initial;
 }
 
 .nova-tab-content .nova-provider-section .nova-input-container input.nova-api-input {
-    padding-right: 44px !important;
+    padding-right: 44px;
 }
 
 .nova-tab-content .nova-provider-section .nova-toggle-btn {
@@ -320,9 +320,9 @@
     right: 6px;
     width: 32px;
     height: 32px;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    padding: 4px !important;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
     transform: translateY(-50%);
     background: transparent;
     border: 0;
@@ -1191,15 +1191,15 @@
 }
 
 .nova-message-user {
-    margin-left: auto !important;
-    margin-right: 0 !important;
+    margin-left: auto;
+    margin-right: 0;
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
     padding: var(--size-2-3) var(--size-4-2);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-s) var(--radius-m);
-    max-width: 85% !important;
-    width: fit-content !important;
-    display: block !important;
+    max-width: 85%;
+    width: fit-content;
+    display: block;
     font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
     font-weight: 400; /* Less prominent weight */
 }
@@ -1213,15 +1213,15 @@
 }
 
 .nova-message-assistant {
-    margin-right: auto !important;
-    margin-left: 0 !important;
+    margin-right: auto;
+    margin-left: 0;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     padding: var(--size-2-3) var(--size-4-2);
     border-radius: var(--radius-m) var(--radius-m) var(--radius-m) var(--radius-s);
-    max-width: 96% !important;
-    width: auto !important;
-    display: block !important;
+    max-width: 96%;
+    width: auto;
+    display: block;
     font-size: var(--nova-sidebar-text-size, var(--font-ui-medium));
     font-weight: 400; /* Normal weight */
 }
@@ -1370,8 +1370,8 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-size: var(--font-ui-medium);
     line-height: var(--line-height-normal);
-    min-height: 80px !important;
-    padding: var(--size-2-2) var(--size-2-3) !important;
+    min-height: 80px;
+    padding: var(--size-2-2) var(--size-2-3);
 }
 
 .nova-input-row textarea:focus {
@@ -1387,9 +1387,9 @@
 
 /* Mobile placeholder enhancement for better visibility */
 .is-mobile .nova-input-row textarea::placeholder {
-    opacity: 0.85 !important;
-    font-size: 16px !important;
-    color: var(--text-muted) !important; /* Better contrast than text-faint */
+    opacity: 0.85;
+    font-size: 16px;
+    color: var(--text-muted); /* Better contrast than text-faint */
     font-weight: 400;
 }
 
@@ -1414,15 +1414,15 @@
 
 /* Mobile button and interactive element enhancements */
 .is-mobile button {
-    min-height: 44px !important; /* Ensure all buttons meet touch target guidelines */
-    padding: 8px 16px !important;
+    min-height: 44px; /* Ensure all buttons meet touch target guidelines */
+    padding: 8px 16px;
 }
 
 /* Mobile-specific hover states (lighter touch feedback) */
 /* Mobile dropdown item styling removed - using native DropdownComponent */
 .is-mobile .nova-tab:active,
 .is-mobile button:active {
-    background: var(--background-modifier-active) !important;
+    background: var(--background-modifier-active);
     transform: scale(0.98); /* Subtle press feedback */
     transition: all 0.1s ease;
 }
@@ -1857,23 +1857,23 @@
     }
     
     .nova-tab-content {
-        padding: 16px !important; /* Override inline styles on mobile */
+        padding: 16px; /* Override inline styles on mobile */
     }
     
     /* License input mobile sizing */
     .nova-tab-content input[type="text"],
     .nova-tab-content input[type="password"],
     .nova-tab-content select {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 100%;
+        max-width: 100%;
         box-sizing: border-box;
     }
     
     /* API key fields on mobile */
     .nova-tab-content .nova-provider-section input[type="text"],
     .nova-tab-content .nova-provider-section input[type="password"] {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 100%;
+        max-width: 100%;
     }
     
     /* Provider sections on mobile */
@@ -1893,7 +1893,7 @@
     
     /* Buttons on mobile */
     .nova-tab-content button {
-        min-width: 44px !important;
+        min-width: 44px;
         padding: 8px 16px;
     }
     
@@ -2108,13 +2108,13 @@
 
 /* System Message Styles */
 .nova-message-system {
-    margin: 0 auto !important;
-    background: var(--background-modifier-hover) !important;
-    color: var(--text-muted) !important;
-    text-align: center !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: 12px !important;
-    max-width: 70% !important;
+    margin: 0 auto;
+    background: var(--background-modifier-hover);
+    color: var(--text-muted);
+    text-align: center;
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: 12px;
+    max-width: 70%;
 }
 
 .nova-message-system .nova-message-role {
@@ -2125,16 +2125,16 @@
 
 /* Unified Static Message Classes */
 .nova-pill-success {
-    margin: 8px auto !important;
-    background: rgba(var(--color-green-rgb), 0.1) !important;
-    color: var(--color-green) !important;
-    border: 1px solid rgba(var(--color-green-rgb), 0.3) !important;
-    text-align: center !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: 20px !important;
-    max-width: 200px !important;
-    padding: 8px 12px !important;
-    display: block !important;
+    margin: 8px auto;
+    background: rgba(var(--color-green-rgb), 0.1);
+    color: var(--color-green);
+    border: 1px solid rgba(var(--color-green-rgb), 0.3);
+    text-align: center;
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: 20px;
+    max-width: 200px;
+    padding: 8px 12px;
+    display: block;
 }
 
 .nova-message-ephemeral {
@@ -2152,52 +2152,52 @@
 }
 
 .nova-pill-system {
-    margin: 8px auto !important;
-    background: var(--background-modifier-hover) !important;
-    color: var(--text-muted) !important;
-    border: 1px solid var(--background-modifier-border) !important;
-    text-align: center !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: 20px !important;
-    max-width: 250px !important;
-    padding: 8px 12px !important;
-    display: block !important;
+    margin: 8px auto;
+    background: var(--background-modifier-hover);
+    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
+    text-align: center;
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: 20px;
+    max-width: 250px;
+    padding: 8px 12px;
+    display: block;
 }
 
 .nova-bubble-success {
-    margin-right: auto !important;
-    background: rgba(var(--color-green-rgb), 0.1) !important;
-    color: var(--color-green) !important;
-    border: 1px solid rgba(var(--color-green-rgb), 0.3) !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: var(--radius-m) !important;
-    max-width: 80% !important;
-    padding: var(--size-4-2) var(--size-4-3) !important;
-    text-align: left !important;
+    margin-right: auto;
+    background: rgba(var(--color-green-rgb), 0.1);
+    color: var(--color-green);
+    border: 1px solid rgba(var(--color-green-rgb), 0.3);
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: var(--radius-m);
+    max-width: 80%;
+    padding: var(--size-4-2) var(--size-4-3);
+    text-align: left;
 }
 
 .nova-bubble-error {
-    margin-right: auto !important;
-    background: rgba(var(--color-red-rgb), 0.1) !important;
-    color: var(--color-red) !important;
-    border: 1px solid rgba(var(--color-red-rgb), 0.3) !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: var(--radius-m) !important;
-    max-width: 80% !important;
-    padding: var(--size-4-2) var(--size-4-3) !important;
-    text-align: left !important;
+    margin-right: auto;
+    background: rgba(var(--color-red-rgb), 0.1);
+    color: var(--color-red);
+    border: 1px solid rgba(var(--color-red-rgb), 0.3);
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: var(--radius-m);
+    max-width: 80%;
+    padding: var(--size-4-2) var(--size-4-3);
+    text-align: left;
 }
 
 .nova-bubble-warning {
-    margin-right: auto !important;
-    background: rgba(var(--color-orange-rgb), 0.1) !important;
-    color: var(--color-orange) !important;
-    border: 1px solid rgba(var(--color-orange-rgb), 0.3) !important;
-    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small)) !important;
-    border-radius: var(--radius-m) !important;
-    max-width: 80% !important;
-    padding: var(--size-4-2) var(--size-4-3) !important;
-    text-align: left !important;
+    margin-right: auto;
+    background: rgba(var(--color-orange-rgb), 0.1);
+    color: var(--color-orange);
+    border: 1px solid rgba(var(--color-orange-rgb), 0.3);
+    font-size: var(--nova-sidebar-small-text-size, var(--font-ui-small));
+    border-radius: var(--radius-m);
+    max-width: 80%;
+    padding: var(--size-4-2) var(--size-4-3);
+    text-align: left;
 }
 
 /* Hide role headers for pills and status messages */
@@ -2212,31 +2212,31 @@
 
 /* Mobile-specific textarea and spacing optimizations */
 .is-mobile .nova-input-row textarea {
-    min-height: 54px !important; /* Comfortable touch target */
-    max-height: 100px !important; /* Reduced max height */
-    font-size: 16px !important; /* Prevent iOS zoom, ensure visibility */
-    border: 1px solid var(--interactive-accent-hover) !important; /* Thinner border */
-    background: var(--background-secondary) !important; /* Subtle background for contrast */
+    min-height: 54px; /* Comfortable touch target */
+    max-height: 100px; /* Reduced max height */
+    font-size: 16px; /* Prevent iOS zoom, ensure visibility */
+    border: 1px solid var(--interactive-accent-hover); /* Thinner border */
+    background: var(--background-secondary); /* Subtle background for contrast */
     transition: min-height 0.2s ease; /* Smooth transition */
-    padding: 8px 12px !important; /* Minimal padding */
+    padding: 8px 12px; /* Minimal padding */
 }
 
 /* Expand textarea when focused for better typing experience */
 .is-mobile .nova-input-row textarea:focus {
-    min-height: 72px !important; /* Reasonable expansion when typing */
+    min-height: 72px; /* Reasonable expansion when typing */
 }
 
 /* Enhanced mobile focus states */
 .is-mobile .nova-input-row textarea:focus {
-    border-color: var(--interactive-accent) !important;
-    background: var(--background-primary) !important;
-    box-shadow: 0 0 0 3px var(--interactive-accent-hover) !important;
+    border-color: var(--interactive-accent);
+    background: var(--background-primary);
+    box-shadow: 0 0 0 3px var(--interactive-accent-hover);
 }
 
 /* Desktop-specific textarea optimization */
 .is-desktop .nova-input-row textarea {
-    min-height: 44px !important;
-    max-height: 160px !important;
+    min-height: 44px;
+    max-height: 160px;
 }
 
 /* Portrait orientation optimizations */
@@ -2264,7 +2264,7 @@
 
 /* Mobile-specific padding reduction */
 .is-mobile .nova-chat-container {
-    padding: 12px !important; /* Further reduced to maximize conversation space */
+    padding: 12px; /* Further reduced to maximize conversation space */
 }
 
 /* Enhanced input row spacing for mobile */
@@ -2274,7 +2274,7 @@
 
 /* Enhanced spacing between interactive elements */
 .is-mobile .nova-header {
-    padding: 6px var(--size-4-2) !important; /* Dramatically reduced from 14px */
+    padding: 6px var(--size-4-2); /* Dramatically reduced from 14px */
     gap: 4px; /* Minimal gap for maximum compactness */
     min-height: 36px; /* Ensure minimal touch targets */
 }
@@ -2360,7 +2360,7 @@
 /* Mobile dropdown spacing removed - using native DropdownComponent */
 
 .is-mobile .nova-message {
-    margin-bottom: 8px !important; /* Dramatically reduced from 16px */
+    margin-bottom: 8px; /* Dramatically reduced from 16px */
 }
 
 /* Mobile Tab Navigation with proper touch targets */
@@ -2409,7 +2409,7 @@
     }
     
     .nova-tab-content {
-        padding: 12px !important; /* Reduced content padding */
+        padding: 12px; /* Reduced content padding */
     }
     
     .nova-input-container button {
@@ -2429,11 +2429,11 @@
     
     /* Additional mobile spacing for status bar - ELIMINATED */
     .nova-wrapper {
-        padding-bottom: 0px !important; /* Eliminated all wrapper bottom space */
+        padding-bottom: 0px; /* Eliminated all wrapper bottom space */
     }
     
     .nova-input-container {
-        padding-bottom: 0px !important; /* Eliminated all container bottom space */
+        padding-bottom: 0px; /* Eliminated all container bottom space */
     }
 }
 
@@ -2525,56 +2525,56 @@
 
 /* Desktop Message Spacing Standardization */
 .is-desktop .nova-message {
-    margin-bottom: var(--size-4-2) !important;
+    margin-bottom: var(--size-4-2);
 }
 
 .is-desktop .nova-sidebar-wrapper > .nova-input-container {
-    padding: var(--size-4-1) var(--size-4-2) var(--size-4-2) !important;
+    padding: var(--size-4-1) var(--size-4-2) var(--size-4-2);
 }
 
 .is-desktop .nova-context-preview {
-    margin-bottom: 12px !important; /* Match message spacing */
+    margin-bottom: 12px; /* Match message spacing */
 }
 
 /* Unified message bubble styling for desktop - restore proper chat alignment */
 .is-desktop .nova-message-user,
 .is-desktop .nova-message-assistant {
-    border-radius: var(--radius-m) !important;
+    border-radius: var(--radius-m);
 }
 
 .is-desktop .nova-message-user {
-    margin-left: auto !important;
-    margin-right: 0 !important;
-    max-width: 85% !important;
+    margin-left: auto;
+    margin-right: 0;
+    max-width: 85%;
 }
 
 .is-desktop .nova-message-assistant {
-    margin-left: 0 !important;
-    margin-right: auto !important;
-    max-width: 96% !important;
+    margin-left: 0;
+    margin-right: auto;
+    max-width: 96%;
 }
 
 /* System message spacing for desktop */
 .is-desktop .nova-pill-success,
 .is-desktop .nova-pill-system {
-    margin: 0 0 var(--size-4-2) 0 !important;
-    border-radius: var(--radius-s) !important;
-    max-width: 95% !important;
-    padding: var(--size-2-1) var(--size-4-2) !important;
-    text-align: left !important;
+    margin: 0 0 var(--size-4-2) 0;
+    border-radius: var(--radius-s);
+    max-width: 95%;
+    padding: var(--size-2-1) var(--size-4-2);
+    text-align: left;
 }
 
 .is-desktop .nova-bubble-success,
 .is-desktop .nova-bubble-error {
-    margin-bottom: var(--size-4-2) !important;
-    max-width: 95% !important;
-    padding: var(--size-2-3) var(--size-4-2) !important;
+    margin-bottom: var(--size-4-2);
+    max-width: 95%;
+    padding: var(--size-2-3) var(--size-4-2);
 }
 
 .is-desktop .nova-bubble-warning {
-    margin-bottom: var(--size-4-2) !important;
-    max-width: 95% !important;
-    padding: var(--size-2-3) var(--size-4-2) !important;
+    margin-bottom: var(--size-4-2);
+    max-width: 95%;
+    padding: var(--size-2-3) var(--size-4-2);
 }
 
 /* Context Preview Styles */
@@ -2653,8 +2653,8 @@
 
 /* Status badge styling for founding licenses */
 .nova-status-badge.founding {
-    border-color: var(--color-yellow) !important;
-    color: var(--color-yellow) !important;
+    border-color: var(--color-yellow);
+    color: var(--color-yellow);
     background: rgba(var(--color-yellow-rgb), 0.1);
 }
 
@@ -2695,8 +2695,8 @@
 }
 
 .nova-welcome-icon svg {
-    width: 32px !important;
-    height: 32px !important;
+    width: 32px;
+    height: 32px;
 }
 
 .nova-welcome-copy {
@@ -2747,7 +2747,7 @@
     --nova-composer-height: 0px;
     --nova-composer-left: 0px;
     --nova-composer-width: 100%;
-    padding: 0 !important;
+    padding: 0;
     height: 100%;
     min-height: 0;
     overflow: hidden;
@@ -2767,13 +2767,13 @@
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px !important;
+    padding-bottom: 8px;
 }
 
 .is-mobile .nova-sidebar-wrapper > .nova-input-container {
     flex: 0 0 auto;
     margin: 0;
-    padding: 0 !important;
+    padding: 0;
     border-top: 1px solid var(--background-modifier-border);
     background: var(--background-primary);
     position: relative;
@@ -2784,26 +2784,26 @@
 
 .is-mobile .nova-sidebar-wrapper > .nova-input-container > .nova-input-wrapper {
     margin: 0;
-    padding: 8px 12px 8px !important;
+    padding: 8px 12px 8px;
     border-top: 0;
     background: var(--background-primary);
 }
 
 .is-mobile .nova-sidebar-wrapper .nova-input-row textarea {
-    min-height: 56px !important;
-    max-height: 128px !important;
-    border: 1px solid var(--background-modifier-border) !important;
-    background: var(--background-primary) !important;
+    min-height: 56px;
+    max-height: 128px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
 }
 
 .is-mobile .nova-sidebar-wrapper .nova-input-row textarea:focus {
-    min-height: 72px !important;
-    border-color: var(--interactive-accent) !important;
-    box-shadow: 0 0 0 2px var(--interactive-accent-hover) !important;
+    min-height: 72px;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
 .is-mobile.nova-sidebar-container.nova-composer-focused .nova-sidebar-wrapper > .nova-chat-container {
-    padding-bottom: calc(var(--nova-composer-height, 0px) + var(--nova-keyboard-effective-offset, 0px) + 16px) !important;
+    padding-bottom: calc(var(--nova-composer-height, 0px) + var(--nova-keyboard-effective-offset, 0px) + 16px);
 }
 
 .is-mobile.nova-sidebar-container.nova-composer-focused .nova-sidebar-wrapper > .nova-input-container {
@@ -3253,7 +3253,7 @@
 }
 
 .is-desktop .nova-sidebar-wrapper .nova-input-wrapper {
-    padding: 0 !important;
+    padding: 0;
     border: 0;
     background: transparent;
 }
@@ -3269,17 +3269,17 @@
 
 .is-desktop .nova-sidebar-wrapper .nova-textarea-styled,
 .is-desktop .nova-sidebar-wrapper .nova-textarea-styled:focus {
-    min-height: 44px !important;
-    max-height: 160px !important;
-    padding: var(--size-4-2) var(--size-4-3) !important;
-    border: 1px solid var(--background-modifier-border) !important;
-    border-radius: var(--radius-m) !important;
-    background: var(--background-primary) !important;
+    min-height: 44px;
+    max-height: 160px;
+    padding: var(--size-4-2) var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
 }
 
 .is-desktop .nova-sidebar-wrapper .nova-textarea-styled:focus {
-    border-color: var(--interactive-accent) !important;
-    box-shadow: 0 0 0 2px var(--interactive-accent-hover) !important;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
 .is-desktop .nova-sidebar-wrapper .nova-send-button-styled {
@@ -4066,7 +4066,6 @@
 
 .nova-command-option-action {
     font-size: 0.75em;
-    color: var(--interactive-accent);
     padding: 2px 6px;
     border-radius: var(--radius-xs);
     background: var(--interactive-accent);
@@ -4255,7 +4254,7 @@
     display: inline-block;
     flex: 0 0 auto;
     padding: 6px 12px;
-    color: var(--interactive-accent) !important;
+    color: var(--interactive-accent);
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     text-decoration: none;
@@ -4286,7 +4285,7 @@
    ============================================================================ */
 
 .nova-hidden {
-    display: none !important;
+    display: none;
 }
 
 /* Quick Panel Container */
@@ -4803,8 +4802,8 @@ button.nova-prose-linter-category {
     appearance: none;
     min-width: 0;
     border-color: transparent;
-    background: var(--nova-prose-linter-category-background) !important;
-    background-color: var(--nova-prose-linter-category-background) !important;
+    background: var(--nova-prose-linter-category-background);
+    background-color: var(--nova-prose-linter-category-background);
     box-shadow: none;
     display: flex;
     justify-content: flex-start;
@@ -4842,8 +4841,8 @@ button.nova-prose-linter-category {
 
 button.nova-prose-linter-category:hover {
     border-color: transparent;
-    background: var(--nova-prose-linter-category-background-hover) !important;
-    background-color: var(--nova-prose-linter-category-background-hover) !important;
+    background: var(--nova-prose-linter-category-background-hover);
+    background-color: var(--nova-prose-linter-category-background-hover);
 }
 
 .nova-prose-linter-row-button {
@@ -6019,13 +6018,13 @@ button.nova-prose-linter-category:hover {
     cursor: pointer;
     font: inherit;
     line-height: inherit;
-    min-width: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .nova-writing-dashboard-table td:first-child {

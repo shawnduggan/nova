@@ -94,7 +94,7 @@ export function parseSmartRevisionModelResult(rawOutput: string): SmartRevisionM
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(jsonText);
-	} catch (_error) {
+	} catch {
 		throw new Error('Smart Revision received malformed structured output.');
 	}
 

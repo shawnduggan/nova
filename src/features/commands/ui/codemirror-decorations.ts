@@ -62,8 +62,8 @@ class IndicatorWidget extends WidgetType {
         super();
     }
 
-    toDOM(): HTMLElement {
-        const indicator = document.createElement('span');
+    toDOM(view: EditorView): HTMLElement {
+        const indicator = view.dom.ownerDocument.createElement('span');
         indicator.className = 'nova-margin-indicator';
         indicator.textContent = this.opportunity.icon;
 
@@ -81,8 +81,10 @@ class IndicatorWidget extends WidgetType {
             event.stopPropagation();
 
             // On mobile, blur any focused element to prevent virtual keyboard from opening
-            if (Platform.isMobile && document.activeElement && document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur();
+            const ownerWindow = indicator.ownerDocument.defaultView;
+            const activeElement = indicator.ownerDocument.activeElement;
+            if (Platform.isMobile && ownerWindow && activeElement instanceof ownerWindow.HTMLElement) {
+                activeElement.blur();
             }
 
             this.onIndicatorClick(this.opportunity, indicator);

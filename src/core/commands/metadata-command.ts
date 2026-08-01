@@ -278,7 +278,7 @@ export class MetadataCommand {
             }
             
             return Object.keys(updates).length > 0 ? updates : null;
-        } catch (_) {
+        } catch {
             // Failed to parse property updates - graceful fallback
             return null;
         }
@@ -822,7 +822,7 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
                             reasoning: parsed.reasoning
                         };
                     }
-                } catch (_) {
+                } catch {
                     // JSON parse failed, continue to other formats
                 }
             }

@@ -280,30 +280,25 @@ export class InputHandler {
 
 	private handleDragEnter(): void {
 		if (this.isDragging) return;
+		const textAreaContainer = this.textArea.inputEl.parentElement;
+		if (!textAreaContainer) return;
 		this.isDragging = true;
 
 		// Create overlay for visual feedback
 		if (!this.dropZoneOverlay) {
-			this.dropZoneOverlay = document.createElement('div');
-			this.dropZoneOverlay.className = 'nova-drop-zone-overlay';
+			this.dropZoneOverlay = textAreaContainer.createDiv({ cls: 'nova-drop-zone-overlay' });
 
 			// Add icon container
-			const iconContainer = document.createElement('div');
-			iconContainer.className = 'nova-drop-icon-container';
+			const iconContainer = this.dropZoneOverlay.createDiv({ cls: 'nova-drop-icon-container' });
 
 			// Add Obsidian's plus icon using DOM API
-			const icon = document.createElement('div');
-			icon.className = 'nova-drop-icon-svg';
+			const icon = iconContainer.createDiv({ cls: 'nova-drop-icon-svg' });
 			
 			// Use Obsidian's built-in plus icon
 			setIcon(icon, 'plus');
-
-			iconContainer.appendChild(icon);
-			this.dropZoneOverlay.appendChild(iconContainer);
 		}
 
 		// Position relative to textarea
-		const textAreaContainer = this.textArea.inputEl.parentElement!;
 		// Position already set by CSS class
 		textAreaContainer.appendChild(this.dropZoneOverlay);
 
@@ -387,7 +382,6 @@ export class InputHandler {
 		} else if (textPlainData && textPlainData.includes('obsidian://open?')) {
 			// User dropped something from Obsidian but no files were extracted
 			// This likely means they dropped non-markdown files
-			// eslint-disable-next-line obsidianmd/ui/sentence-case -- "Markdown" is a proper noun
 			new Notice('Only Markdown files can be added to context', 3000);
 		} else if (textPlainData && textPlainData.trim() && !textPlainData.includes('://')) {
 			// User dropped a folder (plain text path without protocol)

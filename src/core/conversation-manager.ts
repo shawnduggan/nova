@@ -574,7 +574,7 @@ export class ConversationManager {
      */
     cleanup(): void {
         if (this.cleanupInterval !== null) {
-            clearInterval(this.cleanupInterval);
+            window.clearInterval(this.cleanupInterval);
             this.cleanupInterval = null;
         }
     }

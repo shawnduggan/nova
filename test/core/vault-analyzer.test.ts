@@ -51,6 +51,9 @@ describe('VaultAnalyzer', () => {
 				getMarkdownFiles: () => Array.from(files.values()),
 				getFileByPath: (path: string) => files.get(path) ?? null,
 				cachedRead: async (file: FileRecord) => contents.get(file.path) ?? ''
+			},
+			workspace: {
+				containerEl: document.body
 			}
 		} as unknown as App;
 
@@ -271,5 +274,46 @@ describe('VaultAnalyzer', () => {
 		await analyzer.analyzeVault(() => undefined);
 
 		expect(env.adapter.write).toHaveBeenCalledTimes(2);
+	});
+
+	test('yields through the workspace window during long scans', async () => {
+		const fileEntries = Object.fromEntries(
+			Array.from({ length: 20 }, (_, index) => [
+				`notes/file-${index + 1}.md`,
+				'This note has enough content to produce a dashboard summary during the vault scan.'
+			])
+		);
+		const env = createEnvironment(fileEntries);
+		const iframe = document.createElement('iframe');
+		document.body.appendChild(iframe);
+		const iframeDocument = iframe.contentDocument;
+		const iframeWindow = iframe.contentWindow;
+
+		expect(iframeDocument).not.toBeNull();
+		expect(iframeWindow).not.toBeNull();
+		if (!iframeDocument || !iframeWindow) return;
+
+		const containerEl = iframeDocument.createElement('div');
+		iframeDocument.body.appendChild(containerEl);
+		(env.app.workspace as { containerEl: HTMLElement }).containerEl = containerEl;
+		const requestAnimationFrame = jest.fn((callback: FrameRequestCallback): number => {
+			callback(0);
+			return 1;
+		});
+		Object.defineProperty(iframeWindow, 'requestAnimationFrame', {
+			configurable: true,
+			value: requestAnimationFrame
+		});
+		const analyzer = createAnalyzer(env, {
+			dashboard: { excludeFolders: [], targetReadabilityGrade: 8 },
+			writingAnalysis: { longSentenceThreshold: 25, veryLongSentenceThreshold: 40 }
+		});
+
+		try {
+			await analyzer.analyzeVault(() => undefined);
+			expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+		} finally {
+			iframe.remove();
+		}
 	});
 });

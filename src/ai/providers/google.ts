@@ -127,7 +127,7 @@ export class GoogleProvider implements AIProvider {
 				} else {
 					errorMessage = `[${response.status}]: ${errorText}`;
 				}
-			} catch (_) {
+			} catch {
 				errorMessage = `[${response.status}]: ${errorText}`;
 			}
 			

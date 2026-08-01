@@ -365,7 +365,9 @@ export class NovaSidebarView extends ItemView {
 			return;
 		}
 
-		const visualViewport = window.visualViewport;
+		const ownerDocument = container.ownerDocument;
+		const ownerWindow = ownerDocument.defaultView ?? window;
+		const visualViewport = ownerWindow.visualViewport;
 		if (!visualViewport) {
 			container.setCssProps({
 				'--nova-keyboard-offset': '0px',
@@ -379,11 +381,11 @@ export class NovaSidebarView extends ItemView {
 
 		const textAreaEl = this.inputHandler?.getTextArea()?.inputEl;
 		let maxObservedViewportHeight = visualViewport.height;
-		let maxObservedWindowHeight = window.innerHeight;
-		let maxObservedDocumentHeight = document.documentElement.clientHeight;
+		let maxObservedWindowHeight = ownerWindow.innerHeight;
+		let maxObservedDocumentHeight = ownerDocument.documentElement.clientHeight;
 		const keyboardOpenThresholdPx = 140;
 		const hasComposerFocus = () => {
-			return Boolean(textAreaEl && document.activeElement === textAreaEl);
+			return Boolean(textAreaEl && ownerDocument.activeElement === textAreaEl);
 		};
 		const syncComposerMetrics = () => {
 			const composerHeight = Math.round(this.inputContainer?.getBoundingClientRect().height || 0);
@@ -408,14 +410,14 @@ export class NovaSidebarView extends ItemView {
 		const updateKeyboardOffset = () => {
 			const composerFocused = hasComposerFocus();
 			const viewportBottom = visualViewport.height + visualViewport.offsetTop;
-			const rawOffsetFromWindow = Math.max(0, Math.round(window.innerHeight - viewportBottom));
+			const rawOffsetFromWindow = Math.max(0, Math.round(ownerWindow.innerHeight - viewportBottom));
 			const rawOffsetFromViewportDelta = Math.max(0, Math.round(maxObservedViewportHeight - visualViewport.height));
-			const rawOffsetFromWindowDelta = Math.max(0, Math.round(maxObservedWindowHeight - window.innerHeight));
-			const rawOffsetFromDocumentDelta = Math.max(0, Math.round(maxObservedDocumentHeight - document.documentElement.clientHeight));
+			const rawOffsetFromWindowDelta = Math.max(0, Math.round(maxObservedWindowHeight - ownerWindow.innerHeight));
+			const rawOffsetFromDocumentDelta = Math.max(0, Math.round(maxObservedDocumentHeight - ownerDocument.documentElement.clientHeight));
 			const observedVisibleBottom = Math.min(
-				window.innerHeight,
+				ownerWindow.innerHeight,
 				viewportBottom,
-				document.documentElement.clientHeight || Number.POSITIVE_INFINITY
+				ownerDocument.documentElement.clientHeight || Number.POSITIVE_INFINITY
 			);
 			const composerBottom = Math.round(this.inputContainer?.getBoundingClientRect().bottom || 0);
 			const composerOverflow = Math.max(0, composerBottom - observedVisibleBottom + 12);
@@ -430,7 +432,7 @@ export class NovaSidebarView extends ItemView {
 				? estimatedKeyboardOffset
 				: 0;
 			const fallbackKeyboardOffset = composerFocused
-				? Math.round(Math.min(Math.max(window.innerHeight * 0.33, 250), 330))
+				? Math.round(Math.min(Math.max(ownerWindow.innerHeight * 0.33, 250), 330))
 				: 0;
 			const effectiveKeyboardOffset = composerFocused
 				? Math.max(keyboardOffset, fallbackKeyboardOffset)
@@ -438,8 +440,8 @@ export class NovaSidebarView extends ItemView {
 
 			if (effectiveKeyboardOffset === 0) {
 				maxObservedViewportHeight = Math.max(maxObservedViewportHeight, visualViewport.height);
-				maxObservedWindowHeight = Math.max(maxObservedWindowHeight, window.innerHeight);
-				maxObservedDocumentHeight = Math.max(maxObservedDocumentHeight, document.documentElement.clientHeight);
+				maxObservedWindowHeight = Math.max(maxObservedWindowHeight, ownerWindow.innerHeight);
+				maxObservedDocumentHeight = Math.max(maxObservedDocumentHeight, ownerDocument.documentElement.clientHeight);
 			}
 
 			syncComposerMetrics();
@@ -484,8 +486,8 @@ export class NovaSidebarView extends ItemView {
 		const handleOrientationChange = () => {
 			this.timeoutManager.addTimeout(() => {
 				maxObservedViewportHeight = visualViewport.height;
-				maxObservedWindowHeight = window.innerHeight;
-				maxObservedDocumentHeight = document.documentElement.clientHeight;
+				maxObservedWindowHeight = ownerWindow.innerHeight;
+				maxObservedDocumentHeight = ownerDocument.documentElement.clientHeight;
 				updateKeyboardOffset();
 			}, 120);
 		};
@@ -494,8 +496,8 @@ export class NovaSidebarView extends ItemView {
 		// Manual cleanup is handled in this.cleanupMobileViewportTracking(), called from onClose().
 		visualViewport.addEventListener('resize', updateKeyboardOffset);
 		visualViewport.addEventListener('scroll', updateKeyboardOffset);
-		this.registerDomEvent(window, 'resize', updateKeyboardOffset);
-		this.registerDomEvent(window, 'orientationchange', handleOrientationChange);
+		this.registerDomEvent(ownerWindow, 'resize', updateKeyboardOffset);
+		this.registerDomEvent(ownerWindow, 'orientationchange', handleOrientationChange);
 
 		if (textAreaEl) {
 			this.registerDomEvent(textAreaEl, 'focus', handleTextFocus);
@@ -1617,7 +1619,7 @@ USER REQUEST: ${processedMessage}`;
 				
 				// Clear token warnings
 				this.lastTokenWarnings = {};
-			} catch (_) {
+			} catch {
 				// Failed to clear conversation - graceful fallback
 			}
 		}
@@ -1659,10 +1661,6 @@ USER REQUEST: ${processedMessage}`;
 			const content = await this.getFileContent(activeFile);
 			if (!content) return;
 			
-			// Calculate basic stats
-			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
-			// const headingCount = (content.match(/^#{1,6}\s/gm) || []).length;
-			
 			// Update stats display in header
 			const headerEl = this.containerEl.querySelector('.nova-header');
 			if (headerEl) {
@@ -1683,7 +1681,7 @@ USER REQUEST: ${processedMessage}`;
 					statsEl.textContent = '';
 				}
 			}
-		} catch (_) {
+		} catch {
 			// Silently fail - stats are optional
 		}
 	}
@@ -3033,7 +3031,7 @@ USER REQUEST: ${processedMessage}`;
 		// Get interval from WeakMap and clean up
 		const rotationInterval = this.rotationIntervals.get(textEl);
 		if (rotationInterval) {
-			clearInterval(rotationInterval);
+			window.clearInterval(rotationInterval);
 			this.rotationIntervals.delete(textEl);
 		}
 	}

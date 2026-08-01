@@ -108,9 +108,7 @@ export class CustomInstructionModal extends Modal {
 
         // Make the control take full width
         const control = textAreaSetting.settingEl.querySelector('.setting-item-control');
-        if (control instanceof HTMLElement) {
-            control.classList.add('nova-full-width-control');
-        }
+        control?.classList.add('nova-full-width-control');
 
         // Add keyboard shortcut hint
         new Setting(contentEl)

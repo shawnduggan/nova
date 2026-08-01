@@ -18,7 +18,6 @@ import {
 import NovaPlugin from '../main';
 import { AIProviderSettings, PlatformSettings, ProviderType } from './ai/types';
 import { DebugSettings, SupernovaLicense } from './licensing/types';
-import { VIEW_TYPE_NOVA_SIDEBAR, NovaSidebarView } from './ui/sidebar-view';
 import { ClaudeProvider } from './ai/providers/claude';
 import { OpenAIProvider } from './ai/providers/openai';
 import { OpenAICompatibleProvider, isLocalOpenAICompatibleBaseUrl } from './ai/providers/openai-compatible';
@@ -1233,7 +1232,7 @@ export class NovaSettingTab extends PluginSettingTab {
 								// Refresh content 
 								this.updateTabContent();
 							}
-						} catch (_) {
+						} catch {
 							this.showLicenseMessage('Error validating Supernova license.', 'error');
 						} finally {
 							button.setButtonText('Validate license');
@@ -1482,7 +1481,7 @@ export class NovaSettingTab extends PluginSettingTab {
 
 		new Setting(writingSection)
 			.setName('Enable writing analysis')
-			.setDesc('Run readability and style analysis locally for the active markdown note')
+			.setDesc('Run readability and style analysis locally for the active Markdown note')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.writingAnalysis.enabled)
 				.onChange(async (value) => {

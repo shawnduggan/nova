@@ -12,10 +12,10 @@
     "test:watch": "jest --watch",
     "test:models:live": "NOVA_LIVE_MODEL_TESTS=1 jest test/ai/live-model-smoke.test.ts --runInBand",
     "test:models:live:all": "NOVA_LIVE_MODEL_TESTS=1 NOVA_LIVE_MODEL_INCLUDE_SLOW=1 jest test/ai/live-model-smoke.test.ts --runInBand",
-    "lint": "eslint src/ test/ --ext .ts",
-    "lint:fix": "eslint src/ test/ --ext .ts --fix",
-    "lint:obsidian": "eslint src/ --ext .ts --no-ignore --max-warnings 0",
-    "lint:security": "eslint src/ --ext .ts --no-ignore --rule 'no-restricted-properties: [error, {object: \"*\", property: \"innerHTML\"}, {object: \"*\", property: \"outerHTML\"}]'"
+    "lint": "eslint main.ts src/ test/ --ext .ts",
+    "lint:fix": "eslint main.ts src/ test/ --ext .ts --fix",
+    "lint:obsidian": "eslint main.ts src/ --ext .ts --no-ignore --max-warnings 0",
+    "lint:security": "eslint main.ts src/ --ext .ts --no-ignore --rule 'no-restricted-properties: [error, {object: \"*\", property: \"innerHTML\"}, {object: \"*\", property: \"outerHTML\"}]'"
   },
   "keywords": [
     "obsidian",
@@ -36,11 +36,10 @@
     "@types/node": "^16.11.6",
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
-    "builtin-modules": "3.3.0",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "esbuild": "0.25.5",
     "eslint": "^9.39.1",
     "eslint-formatter-compact": "^9.0.1",
-    "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-obsidianmd": "^0.1.9",
     "globals": "^16.5.0",
     "jest": "^29.5.0",

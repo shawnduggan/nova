@@ -520,9 +520,9 @@ export class WritingAnalysisManager {
         const filePath = activeView?.file?.path;
         const cm = this.getEditorView();
         const editorDom = cm?.dom;
-        const focusedElement = document.activeElement;
+        const focusedElement = editorDom?.ownerDocument.activeElement;
 
-        if (!filePath || !cm || !(editorDom instanceof HTMLElement) || !focusedElement || !editorDom.contains(focusedElement)) {
+        if (!filePath || !cm || !editorDom || !focusedElement || !editorDom.contains(focusedElement)) {
             return null;
         }
 
@@ -538,7 +538,7 @@ export class WritingAnalysisManager {
             return;
         }
 
-        const activeElement = document.activeElement;
+        const activeElement = snapshot.editorDom.ownerDocument.activeElement;
         if (!activeElement || snapshot.editorDom.contains(activeElement) || this.hasMeaningfulFocus(activeElement)) {
             return;
         }
@@ -547,7 +547,7 @@ export class WritingAnalysisManager {
     }
 
     private hasMeaningfulFocus(element: Element): boolean {
-        if (element === document.body || element === document.documentElement) {
+        if (element === element.ownerDocument.body || element === element.ownerDocument.documentElement) {
             return false;
         }
 
@@ -615,21 +615,22 @@ export class WritingAnalysisManager {
     }
 
     private getClickedNovaViewType(target: EventTarget | null): string | null {
-        if (!(target instanceof Element)) {
+        const targetElement = target as Element | null;
+        if (typeof targetElement?.closest !== 'function') {
             return null;
         }
 
-        const clickedSurfaceViewType = this.getNovaSurfaceViewTypeFromElement(target);
+        const clickedSurfaceViewType = this.getNovaSurfaceViewTypeFromElement(targetElement);
         if (clickedSurfaceViewType) {
             return clickedSurfaceViewType;
         }
 
-        const labeledAncestorViewType = this.getNovaViewTypeFromLabeledAncestors(target);
+        const labeledAncestorViewType = this.getNovaViewTypeFromLabeledAncestors(targetElement);
         if (labeledAncestorViewType) {
             return labeledAncestorViewType;
         }
 
-        const tabHeader = target.closest('.workspace-tab-header');
+        const tabHeader = targetElement.closest('.workspace-tab-header');
         if (!tabHeader) {
             return null;
         }
@@ -815,7 +816,8 @@ export class WritingAnalysisManager {
     }
 
     private isAnyElementVisible(selector: string): boolean {
-        return Array.from(document.querySelectorAll(selector)).some(element => this.isElementVisible(element));
+        const ownerDocument = this.plugin.app.workspace.containerEl.ownerDocument;
+        return Array.from(ownerDocument.querySelectorAll(selector)).some(element => this.isElementVisible(element));
     }
 
     private isElementVisible(element: Element): boolean {

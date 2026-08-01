@@ -30,6 +30,10 @@ describe('ConversationManager', () => {
         await conversationManager.init();
     });
 
+    afterEach(() => {
+        conversationManager.cleanup();
+    });
+
     describe('initialization', () => {
         it('should initialize with empty conversations', () => {
             expect(conversationManager).toBeDefined();
@@ -423,11 +427,16 @@ describe('ConversationManager', () => {
     });
 
     describe('cleanup', () => {
-        it('should have cleanup functionality', () => {
-            // Cleanup functionality is now private and automatic
-            // Just test that the cleanup method exists
-            expect(conversationManager.cleanup).toBeDefined();
-            expect(typeof conversationManager.cleanup).toBe('function');
+        it('clears the registered interval once', () => {
+            const intervalId = (mockDataStore.registerInterval as jest.Mock).mock.calls[0][0] as number;
+            const clearIntervalSpy = jest.spyOn(window, 'clearInterval');
+
+            conversationManager.cleanup();
+            conversationManager.cleanup();
+
+            expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
+            expect(clearIntervalSpy).toHaveBeenCalledWith(intervalId);
+            clearIntervalSpy.mockRestore();
         });
     });
 

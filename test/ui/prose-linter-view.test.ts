@@ -78,7 +78,7 @@ describe('ProseLinterView', () => {
 		expect(view.getDisplayText()).toBe('Nova prose linter');
 		expect(plugin.writingAnalysisManager.setProseLinterReviewActive).toHaveBeenCalledWith(true);
 		expect(text).toContain('Nova');
-		expect(text).toContain('Open a markdown note');
+		expect(text).toContain('Open a Markdown note');
 		expect(text).not.toContain('Supernova');
 		expect(text).not.toContain('API key');
 		expect(text).not.toContain('provider');

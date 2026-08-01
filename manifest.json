@@ -3,7 +3,7 @@
 	"name": "Nova",
 	"version": "1.8.2",
 	"minAppVersion": "1.7.2",
-	"description": "AI writing editor, native to Obsidian. Sharpen your prose, refine selected text, write at the cursor, and review local clarity checks.",
+	"description": "AI writing editor that sharpens prose, refines selected text, writes at the cursor, and runs local clarity checks.",
 	"author": "Shawn Duggan",
 	"authorUrl": "https://novawriter.ai",
 	"fundingUrl": "https://github.com/sponsors/shawnduggan",

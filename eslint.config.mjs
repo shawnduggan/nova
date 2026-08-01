@@ -1,7 +1,7 @@
 import obsidianmd from "eslint-plugin-obsidianmd";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
-import eslintComments from "eslint-plugin-eslint-comments";
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 
 export default [
 	{
@@ -22,7 +22,7 @@ export default [
 			...obsidianmd.configs.recommended,
 			"obsidianmd/ui/sentence-case": ["error", {
 				allowAutoFix: true,
-				brands: ["Nova", "Supernova", "Obsidian", "LLMs", "Anthropic", "Claude", "Google", "Gemini", "OpenAI", "ChatGPT", "Ko-fi", "I"]
+				brands: ["Nova", "Supernova", "Obsidian", "LLMs", "Anthropic", "Claude", "Google", "Gemini", "OpenAI", "ChatGPT", "Ko-fi", "Markdown", "I"]
 			}],
 
 			// TypeScript strict rules (matching Obsidian bot)

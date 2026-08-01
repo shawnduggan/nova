@@ -5,12 +5,12 @@
  * Located at the top of the sidebar.
  */
 
-import { App, TFile, Platform, setIcon, ToggleComponent } from 'obsidian';
+import { App, TFile, setIcon, ToggleComponent } from 'obsidian';
 import { ContextManager, DocumentReference } from './context-manager';
 import { InputHandler } from './input-handler';
 import { TimeoutManager } from '../utils/timeout-manager';
 import { Logger } from '../utils/logger';
-import { formatContextUsage, getContextWarningLevel, ContextUsage } from '../core/context-calculator';
+import { ContextUsage } from '../core/context-calculator';
 import type NovaPlugin from '../../main';
 
 /** Dependencies injected from the parent sidebar view */
@@ -154,7 +154,6 @@ export class ContextQuickPanel {
 	 */
 	private updateCollapsedInfo(infoEl: HTMLElement): void {
 		const context = this.deps.getCurrentContext();
-		const contextLimit = context?.totalContextUsage?.contextLimit || 32000;
 		const usagePercent = context?.totalContextUsage?.usagePercentage || 0;
 
 		infoEl.textContent = formatCollapsedContextInfo(this.deps.getCurrentFile(), context);

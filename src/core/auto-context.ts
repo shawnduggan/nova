@@ -5,7 +5,7 @@
  * to automatically populate the context panel.
  */
 
-import { App, TFile, CachedMetadata, HeadingCache } from 'obsidian';
+import { App, TFile, HeadingCache } from 'obsidian';
 import { Logger } from '../utils/logger';
 
 /** Source of a context document */

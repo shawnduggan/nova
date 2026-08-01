@@ -277,8 +277,8 @@ export default class NovaPlugin extends Plugin {
 			this.addCommand({
 				id: 'smart-revision',
 				name: 'Smart revision',
-				editorCallback: async (editor: Editor) => {
-					await this.startSmartRevisionFromEditor(editor);
+				editorCallback: (editor: Editor) => {
+					this.startSmartRevisionFromEditor(editor);
 				}
 			});
 
@@ -732,7 +732,7 @@ export default class NovaPlugin extends Plugin {
 		this.selectionContextMenu?.cancelCurrentOperation();
 	}
 
-	async startSmartRevisionFromEditor(editor: Editor): Promise<void> {
+	startSmartRevisionFromEditor(editor: Editor): void {
 		const selectedText = editor.getSelection();
 		if (!selectedText || selectedText.trim().length === 0) {
 			new Notice('Please select some text first');
@@ -787,7 +787,11 @@ export default class NovaPlugin extends Plugin {
 			await leaf?.setViewState({ type: VIEW_TYPE_NOVA_SIDEBAR, active: true });
 		}
 
-		await workspace.revealLeaf(leaf!);
+		if (!leaf) {
+			return;
+		}
+
+		await workspace.revealLeaf(leaf);
 		this.writingAnalysisManager?.setProseLinterReviewActive(false);
 
 		// Store reference to sidebar view
@@ -803,7 +807,7 @@ export default class NovaPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_WRITING_DASHBOARD);
 
 		if (leaves.length > 0) {
-			leaf = leaves[0] as WorkspaceLeaf;
+			leaf = leaves[0];
 		} else {
 			leaf = workspace.getLeaf('tab');
 			await leaf?.setViewState({ type: VIEW_TYPE_WRITING_DASHBOARD, active: true });
@@ -821,7 +825,7 @@ export default class NovaPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_PROSE_LINTER);
 
 		if (leaves.length > 0) {
-			leaf = leaves[0] as WorkspaceLeaf;
+			leaf = leaves[0];
 		} else {
 			leaf = workspace.getRightLeaf(false);
 			await leaf?.setViewState({ type: VIEW_TYPE_PROSE_LINTER, active: true });

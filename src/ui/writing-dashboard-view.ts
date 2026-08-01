@@ -286,7 +286,8 @@ export class WritingDashboardView extends ItemView {
 		}
 
 		this.renderQueued = true;
-		requestAnimationFrame(() => {
+		const ownerWindow = this.containerEl.ownerDocument.defaultView ?? window;
+		ownerWindow.requestAnimationFrame(() => {
 			this.renderQueued = false;
 			this.render();
 		});
@@ -493,11 +494,12 @@ export class WritingDashboardView extends ItemView {
 			return `${x},${y}`;
 		});
 
-		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		const ownerDocument = this.containerEl.ownerDocument;
+		const svg = ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 		svg.setAttribute('class', 'nova-writing-dashboard-sparkline');
 
-		const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+		const polyline = ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 		polyline.setAttribute('points', points.join(' '));
 		polyline.setAttribute('class', 'nova-writing-dashboard-sparkline-line');
 		svg.appendChild(polyline);
@@ -513,7 +515,7 @@ export class WritingDashboardView extends ItemView {
 
 	private appendSparklineDot(svg: SVGElement, point: string): void {
 		const [cx, cy] = point.split(',');
-		const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		const dot = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'circle');
 		dot.setAttribute('cx', cx);
 		dot.setAttribute('cy', cy);
 		dot.setAttribute('r', '2.5');
@@ -522,7 +524,7 @@ export class WritingDashboardView extends ItemView {
 	}
 
 	private appendSparklineLabel(svg: SVGElement, x: number, y: number, value: number, anchor: 'start' | 'end' = 'start'): void {
-		const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		const label = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'text');
 		label.setAttribute('x', `${x}`);
 		label.setAttribute('y', `${y}`);
 		label.setAttribute('text-anchor', anchor);
@@ -715,7 +717,8 @@ export class WritingDashboardView extends ItemView {
 			return true;
 		}
 
-		if (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches) {
+		const ownerWindow = this.containerEl.ownerDocument.defaultView ?? window;
+		if (typeof ownerWindow.matchMedia === 'function' && ownerWindow.matchMedia('(max-width: 700px)').matches) {
 			return true;
 		}
 

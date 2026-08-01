@@ -280,7 +280,7 @@ export class ProseLinterView extends ItemView {
 		this.summaryEl.empty();
 
 		if (!this.state.file) {
-			this.summaryEl.createDiv({ cls: 'nova-prose-linter-summary-empty', text: 'Open a markdown note to review prose.' });
+			this.summaryEl.createDiv({ cls: 'nova-prose-linter-summary-empty', text: 'Open a Markdown note to review prose.' });
 			return;
 		}
 
@@ -369,7 +369,7 @@ export class ProseLinterView extends ItemView {
 		const page = this.createIssuePage(this.visibleCount);
 
 		if (!this.state.file) {
-			this.emptyEl.setText('Open a markdown note to review prose.');
+			this.emptyEl.setText('Open a Markdown note to review prose.');
 			return;
 		}
 		if (this.state.oversized) {
