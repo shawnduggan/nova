@@ -1,6 +1,6 @@
 {
   "name": "nova",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "AI writing editor for Obsidian with in-place editing, local clarity tools, and controlled revision.",
   "main": "main.js",
   "scripts": {

@@ -1,7 +1,7 @@
 {
 	"id": "nova",
 	"name": "Nova",
-	"version": "1.8.2",
+	"version": "1.8.3",
 	"minAppVersion": "1.7.2",
 	"description": "AI writing editor that sharpens prose, refines selected text, writes at the cursor, and runs local clarity checks.",
 	"author": "Shawn Duggan",
