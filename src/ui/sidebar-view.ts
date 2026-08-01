@@ -1680,13 +1680,13 @@ USER REQUEST: ${processedMessage}`;
 				// Find or create stats container
 				let statsContainer = headerEl.querySelector('.nova-document-stats-container');
 				if (!statsContainer) {
-					statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
+					statsContainer = headerEl.createDiv({ cls: 'nova-document-stats-container' });
 				}
 				
 				// Find or create document stats element
 				let statsEl = statsContainer.querySelector('.nova-document-stats');
 				if (!statsEl) {
-					statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
+					statsEl = statsContainer.createDiv({ cls: 'nova-document-stats' });
 				}
 				
 				if (statsEl) {
@@ -1711,25 +1711,25 @@ USER REQUEST: ${processedMessage}`;
 		// Find or create stats container and both elements if they don't exist
 		let statsContainer = headerEl.querySelector('.nova-document-stats-container');
 		if (!statsContainer) {
-			statsContainer = headerEl.createEl('div', { cls: 'nova-document-stats-container' });
+			statsContainer = headerEl.createDiv({ cls: 'nova-document-stats-container' });
 		}
 		
 		// Ensure document stats element exists (left side)
 		let statsEl = statsContainer.querySelector('.nova-document-stats');
 		if (!statsEl) {
-			statsEl = statsContainer.createEl('div', { cls: 'nova-document-stats' });
+			statsEl = statsContainer.createDiv({ cls: 'nova-document-stats' });
 		}
 
 		// Ensure right container exists for token usage
 		let rightContainer = statsContainer.querySelector('.nova-stats-right-container') as HTMLElement;
 		if (!rightContainer) {
-			rightContainer = statsContainer.createEl('div', { cls: 'nova-stats-right-container' });
+			rightContainer = statsContainer.createDiv({ cls: 'nova-stats-right-container' });
 		}
 
 		// Ensure token element exists (inside right container)
 		let tokenEl = rightContainer.querySelector('.nova-token-usage') as HTMLElement;
 		if (!tokenEl) {
-			tokenEl = rightContainer.createEl('div', { cls: 'nova-token-usage' });
+			tokenEl = rightContainer.createDiv({ cls: 'nova-token-usage' });
 		}
 		
 		// Get total context usage if available, otherwise fall back to old calculation

@@ -40,12 +40,12 @@ export class ChatRenderer {
 
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message nova-message-${role}` });
 
-		messageEl.createEl('div', { 
+		messageEl.createDiv({
 			text: role === 'user' ? 'You' : role === 'system' ? 'System' : 'Nova',
 			cls: 'nova-message-role'
 		});
 
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+		const contentEl = messageEl.createDiv({ cls: 'nova-message-content' });
 		// Safe rendering using DOM API
 		this.renderMessageContent(contentEl, content);
 
@@ -63,7 +63,7 @@ export class ChatRenderer {
 		
 		// Create message element with static CSS class
 		const messageEl = this.chatContainer.createDiv({ cls: `nova-message ${cssClass}` });
-		const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+		const contentEl = messageEl.createDiv({ cls: 'nova-message-content' });
 		
 		// Safe rendering using DOM API
 		this.renderMessageContent(contentEl, content);
@@ -260,7 +260,7 @@ export class ChatRenderer {
 				const messageEl = this.chatContainer.createDiv({ 
 					cls: `nova-message ${message.metadata.messageType}` 
 				});
-				const contentEl = messageEl.createEl('div', { cls: 'nova-message-content' });
+				const contentEl = messageEl.createDiv({ cls: 'nova-message-content' });
 				
 				// Safe rendering using DOM API
 				this.renderMessageContent(contentEl, message.content);

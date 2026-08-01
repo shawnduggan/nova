@@ -1,9 +1,14 @@
-import obsidianmd from "eslint-plugin-obsidianmd";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
+import { defineConfig } from "eslint/config";
+import obsidianmd from "eslint-plugin-obsidianmd";
 
-export default [
+export default defineConfig([
+	{
+		files: ["main.ts", "src/**/*.ts"],
+		extends: obsidianmd.configs.recommended,
+	},
 	{
 		files: ["**/*.ts"],
 		languageOptions: {
@@ -18,12 +23,8 @@ export default [
 			"eslint-comments": eslintComments,
 		},
 		rules: {
-			// Obsidian plugin rules
-			...obsidianmd.configs.recommended,
-			"obsidianmd/ui/sentence-case": ["error", {
-				allowAutoFix: true,
-				brands: ["Nova", "Supernova", "Obsidian", "LLMs", "Anthropic", "Claude", "Google", "Gemini", "OpenAI", "ChatGPT", "Ko-fi", "Markdown", "I"]
-			}],
+			"obsidianmd/hardcoded-config-path": "error",
+			"obsidianmd/no-forbidden-elements": "error",
 
 			// TypeScript strict rules (matching Obsidian bot)
 			"@typescript-eslint/no-explicit-any": "error",
@@ -45,6 +46,48 @@ export default [
 				"selector": "CallExpression[callee.property.name='substr']",
 				"message": "substr() is deprecated. Use substring() or slice() instead."
 			}],
+		},
+	},
+	{
+		files: ["main.ts", "src/**/*.ts"],
+		languageOptions: {
+			globals: {
+				AsyncGenerator: "readonly",
+			},
+		},
+		rules: {
+			"obsidianmd/ui/sentence-case": ["error", {
+				allowAutoFix: true,
+				brands: [
+					"Nova", "Supernova", "Obsidian", "LLMs", "Anthropic", "Claude", "Google",
+					"Gemini", "OpenAI", "ChatGPT", "Ko-fi", "Markdown", "I",
+					"http://localhost:1234/v1", "https://openrouter.ai/api/v1", "https://example.com/v1",
+				],
+			}],
+		},
+	},
+	{
+		files: ["src/licensing/feature-manager.ts", "src/settings.ts", "src/utils/logger.ts"],
+		languageOptions: {
+			globals: {
+				process: "readonly",
+			},
+		},
+	},
+	{
+		files: ["src/core/crypto-service.ts"],
+		// Guarded compatibility fallback only; browser APIs remain primary.
+		languageOptions: {
+			globals: {
+				Buffer: "readonly",
+			},
+		},
+	},
+	{
+		files: ["src/settings.ts"],
+		// Nova supports Obsidian before SettingGroup and uses a dynamic tabbed UI.
+		rules: {
+			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
 		},
 	},
 	{
@@ -76,4 +119,4 @@ export default [
 			"build/",
 		],
 	},
-];
+]);

@@ -43,6 +43,18 @@ describe('GoogleProvider', () => {
 		]);
 	});
 
+	test('rejects malformed successful responses', async () => {
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: {
+				candidates: [{ content: { parts: [{ text: { unexpected: true } }] } }]
+			}
+		});
+
+		await expect(provider.complete('System prompt', 'User prompt'))
+			.rejects.toThrow('Google API returned empty text content');
+	});
+
 	test('does not expose prompts, keys, or response bodies in errors or logs', async () => {
 		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 		const privateResponse = 'private-google-response-sentinel';

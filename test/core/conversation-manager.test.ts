@@ -70,6 +70,73 @@ describe('ConversationManager', () => {
 			expect(conversation.messages[0].content).toBe('Hello');
 		});
 
+		it('should drop malformed persisted messages while preserving valid history', async () => {
+			const dataStore = {
+				loadData: jest.fn().mockResolvedValue([{
+					filePath: 'existing.md',
+					messages: [
+						{ id: 'valid', role: 'user', content: 'Keep me', timestamp: 1 },
+						{ id: 'bad-role', role: 'operator', content: 'Drop me', timestamp: 2 },
+						{ id: 'bad-content', role: 'assistant', content: { private: true }, timestamp: 3 }
+					],
+					lastUpdated: 3
+				}]),
+				saveData: jest.fn().mockResolvedValue(undefined),
+				registerInterval: jest.fn().mockImplementation((id) => id)
+			};
+			const manager = new ConversationManager(dataStore);
+			await manager.init();
+
+			expect(manager.getRecentMessages(new TFile('existing.md'), 50).map(message => message.id))
+				.toEqual(['valid']);
+			manager.cleanup();
+		});
+
+		it('should preserve valid optional message fields through a persistence round trip', async () => {
+			const validMessage: ConversationMessage = {
+				id: 'complete-message',
+				role: 'assistant',
+				content: 'Updated content',
+				timestamp: 10,
+				command: {
+					action: 'rewrite',
+					target: 'selection',
+					instruction: 'Make this clearer',
+					context: 'Nearby paragraph'
+				},
+				result: {
+					success: true,
+					content: 'Clearer content',
+					appliedAt: { line: 4, ch: 2 },
+					editType: 'replace',
+					successMessage: 'Revision applied'
+				},
+				metadata: {
+					messageType: 'nova-bubble-result',
+					source: 'command'
+				}
+			};
+			const saveData = jest.fn().mockResolvedValue(undefined);
+			const dataStore = {
+				loadData: jest.fn().mockResolvedValue([{
+					filePath: 'existing.md',
+					messages: [validMessage],
+					lastUpdated: 10
+				}]),
+				saveData,
+				registerInterval: jest.fn().mockImplementation((id) => id)
+			};
+			const manager = new ConversationManager(dataStore);
+			await manager.init();
+			const file = new TFile('existing.md');
+
+			await manager.addUserMessage(file, 'Continue');
+
+			const persistedConversations = saveData.mock.calls[0][1] as Array<{ messages: ConversationMessage[] }>;
+			expect(persistedConversations[0].messages[0]).toEqual(validMessage);
+			manager.cleanup();
+		});
+
 		it('should discard legacy success acknowledgements while preserving meaningful history', async () => {
 			const existingConversations = [{
 				filePath: 'existing.md',

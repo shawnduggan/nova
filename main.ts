@@ -91,6 +91,12 @@ const SETTINGS_DATA_KEYS: ReadonlyArray<keyof NovaSettings> = [
 	'features'
 ];
 
+type PersistedNovaSettings = Omit<NovaSettings, 'licensing'> & {
+	licensing: Omit<NovaSettings['licensing'], 'debugSettings'> & {
+		debugSettings?: NovaSettings['licensing']['debugSettings'];
+	};
+};
+
 export default class NovaPlugin extends Plugin {
 	settings!: NovaSettings;
 	aiProviderManager!: AIProviderManager;
@@ -509,9 +515,10 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const allSavedData = await this.loadData();
+		const allSavedData: unknown = await this.loadData();
 		const savedData = this.selectSettingsData(allSavedData);
-		const settingsMigrationData = JSON.parse(JSON.stringify(this.toPluginDataRecord(allSavedData)));
+		const clonedMigrationData: unknown = JSON.parse(JSON.stringify(this.toPluginDataRecord(allSavedData)));
+		const settingsMigrationData = this.toPluginDataRecord(clonedMigrationData);
 		
 		// Use Object.assign for top level, but manually merge platformSettings to preserve saved values
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
@@ -556,31 +563,41 @@ export default class NovaPlugin extends Plugin {
 				label: 'Claude API key',
 				storedValue: savedData?.aiProviders?.claude?.apiKey ?? '',
 				setRuntime: (value) => { this.settings.aiProviders.claude.apiKey = value; },
-				setStored: (value) => { settingsMigrationData.aiProviders.claude.apiKey = value; }
+				setStored: (value) => {
+					this.getOrCreateRecord(this.getOrCreateRecord(settingsMigrationData, 'aiProviders'), 'claude').apiKey = value;
+				}
 			},
 			{
 				label: 'OpenAI API key',
 				storedValue: savedData?.aiProviders?.openai?.apiKey ?? '',
 				setRuntime: (value) => { this.settings.aiProviders.openai.apiKey = value; },
-				setStored: (value) => { settingsMigrationData.aiProviders.openai.apiKey = value; }
+				setStored: (value) => {
+					this.getOrCreateRecord(this.getOrCreateRecord(settingsMigrationData, 'aiProviders'), 'openai').apiKey = value;
+				}
 			},
 			{
 				label: 'Google API key',
 				storedValue: savedData?.aiProviders?.google?.apiKey ?? '',
 				setRuntime: (value) => { this.settings.aiProviders.google.apiKey = value; },
-				setStored: (value) => { settingsMigrationData.aiProviders.google.apiKey = value; }
+				setStored: (value) => {
+					this.getOrCreateRecord(this.getOrCreateRecord(settingsMigrationData, 'aiProviders'), 'google').apiKey = value;
+				}
 			},
 			{
 				label: 'OpenAI-compatible API key',
 				storedValue: savedData?.aiProviders?.['openai-compatible']?.apiKey ?? '',
 				setRuntime: (value) => { this.settings.aiProviders['openai-compatible'].apiKey = value; },
-				setStored: (value) => { settingsMigrationData.aiProviders['openai-compatible'].apiKey = value; }
+				setStored: (value) => {
+					this.getOrCreateRecord(this.getOrCreateRecord(settingsMigrationData, 'aiProviders'), 'openai-compatible').apiKey = value;
+				}
 			},
 			{
 				label: 'Supernova license key',
 				storedValue: savedData?.licensing?.supernovaLicenseKey ?? '',
 				setRuntime: (value) => { this.settings.licensing.supernovaLicenseKey = value; },
-				setStored: (value) => { settingsMigrationData.licensing.supernovaLicenseKey = value; }
+				setStored: (value) => {
+					this.getOrCreateRecord(settingsMigrationData, 'licensing').supernovaLicenseKey = value;
+				}
 			}
 		];
 		let sensitiveStorageChanged = false;
@@ -632,12 +649,13 @@ export default class NovaPlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		// Create a copy of settings to encrypt API keys for storage
-		const settingsToSave = JSON.parse(JSON.stringify(this.settings));
+		// Take a complete snapshot before asynchronous encryption begins.
+		const clonedSettings: unknown = JSON.parse(JSON.stringify(this.settings));
+		const settingsToSave = clonedSettings as PersistedNovaSettings;
 		
 		// Filter out settings for features that are not enabled
 		if (settingsToSave.features) {
-			const filteredFeatures: Record<string, unknown> = {};
+			const filteredFeatures: NonNullable<NovaSettings['features']> = {};
 
 			// Only include Smart Fill settings if the feature is enabled
 			if (this.featureManager.isFeatureEnabled(FEATURE_SMARTFILL) && settingsToSave.features.smartfill) {
@@ -651,8 +669,8 @@ export default class NovaPlugin extends Plugin {
 				delete settingsToSave.features;
 			}
 		}
-		
-		// Remove debugSettings from saved data (should be transitory for development sessions)
+
+		// Debug settings are transitory for development sessions.
 		if (settingsToSave.licensing?.debugSettings) {
 			delete settingsToSave.licensing.debugSettings;
 		}
@@ -733,6 +751,12 @@ export default class NovaPlugin extends Plugin {
 			: {};
 	}
 
+	private getOrCreateRecord(parent: Record<string, unknown>, key: string): Record<string, unknown> {
+		const record = this.toPluginDataRecord(parent[key]);
+		parent[key] = record;
+		return record;
+	}
+
 	private selectSettingsData(data: unknown): Partial<NovaSettings> {
 		const allData = this.toPluginDataRecord(data);
 		const settingsData: Record<string, unknown> = {};
@@ -755,7 +779,7 @@ export default class NovaPlugin extends Plugin {
 		await operation;
 	}
 
-	private async saveSettingsData(settingsData: Record<string, unknown>): Promise<void> {
+	private async saveSettingsData(settingsData: Partial<Record<keyof NovaSettings, unknown>>): Promise<void> {
 		await this.mutatePluginData((allData) => {
 			for (const key of SETTINGS_DATA_KEYS) {
 				if (Object.prototype.hasOwnProperty.call(settingsData, key)) {
@@ -783,7 +807,7 @@ export default class NovaPlugin extends Plugin {
 			try {
 				const existingData = await this.loadDataWithKey(entry.dataKey);
 				if (existingData === undefined || existingData === null) {
-					const legacyData = JSON.parse(await this.app.vault.adapter.read(legacyPath));
+					const legacyData: unknown = JSON.parse(await this.app.vault.adapter.read(legacyPath));
 					await this.saveDataWithKey(entry.dataKey, legacyData);
 				}
 				await this.app.vault.adapter.remove(legacyPath);
@@ -998,7 +1022,7 @@ export default class NovaPlugin extends Plugin {
 	// DataStore interface implementation for ConversationManager
 	async loadDataWithKey(key: string): Promise<unknown> {
 		await this.dataMutationQueue;
-		const allData = await this.loadData();
+		const allData: unknown = await this.loadData();
 		return this.toPluginDataRecord(allData)[key];
 	}
 

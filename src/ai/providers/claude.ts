@@ -77,7 +77,7 @@ export class ClaudeProvider implements AIProvider {
 				});
 
 				if (response.status === 200) {
-					const data = response.json;
+					const data: unknown = response.json;
 					return extractClaudeTextContent(data);
 				}
 

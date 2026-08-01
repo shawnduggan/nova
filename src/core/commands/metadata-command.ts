@@ -201,16 +201,22 @@ export class MetadataCommand {
             // Try to parse as JSON first (in code blocks)
             const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[1]);
-                return this.normalizeAndFilterUpdates(parsed);
+                const parsed: unknown = JSON.parse(jsonMatch[1]);
+                if (isRecord(parsed)) {
+                    return this.normalizeAndFilterUpdates(parsed);
+                }
+                return null;
             }
             
             // Try to parse as direct JSON (no code blocks)
             try {
                 const trimmedResponse = response.trim();
                 if (trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) {
-                    const parsed = JSON.parse(trimmedResponse);
-                    return this.normalizeAndFilterUpdates(parsed);
+                    const parsed: unknown = JSON.parse(trimmedResponse);
+                    if (isRecord(parsed)) {
+                        return this.normalizeAndFilterUpdates(parsed);
+                    }
+                    return null;
                 }
             } catch {
                 // Not valid JSON, continue to YAML-like parsing
@@ -571,11 +577,11 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
             const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    if (parsed.tags && Array.isArray(parsed.tags)) {
+                    const parsed: unknown = JSON.parse(jsonMatch[0]);
+                    if (isRecord(parsed) && Array.isArray(parsed.tags)) {
                         return {
                             tags: parsed.tags.map((t: unknown) => this.normalizeTagValue(String(t))).filter((t: string) => t),
-                            reasoning: parsed.reasoning
+                            reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : undefined
                         };
                     }
                 } catch {
@@ -688,4 +694,8 @@ Provide an optimized tag list that best represents THIS SPECIFIC document's cont
         
         return `Updated ${keys.length} properties`;
     }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

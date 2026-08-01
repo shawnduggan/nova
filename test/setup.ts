@@ -55,3 +55,24 @@ if (typeof global.btoa === 'undefined') {
 if (typeof global.atob === 'undefined') {
   global.atob = (str: string) => Buffer.from(str, 'base64').toString('utf8');
 }
+
+type ObsidianTestWindow = Window & {
+  createSpan: () => HTMLSpanElement;
+  createSvg: <K extends keyof SVGElementTagNameMap>(tag: K) => SVGElementTagNameMap[K];
+};
+
+function installObsidianWindowHelpers(ownerWindow: Window): ObsidianTestWindow {
+  const obsidianWindow = ownerWindow as ObsidianTestWindow;
+  obsidianWindow.createSpan ??= () => ownerWindow.document.createElement('span');
+  obsidianWindow.createSvg ??= <K extends keyof SVGElementTagNameMap>(tag: K) =>
+    ownerWindow.document.createElementNS('http://www.w3.org/2000/svg', tag);
+  return obsidianWindow;
+}
+
+installObsidianWindowHelpers(window);
+Object.defineProperty(Document.prototype, 'win', {
+  configurable: true,
+  get(this: Document): ObsidianTestWindow {
+    return installObsidianWindowHelpers(this.defaultView ?? window);
+  }
+});

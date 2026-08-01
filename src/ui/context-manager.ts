@@ -741,12 +741,12 @@ export class ContextManager {
 			
 			// Get and add metadata/properties if available
 			const cache = this.app.metadataCache.getFileCache(file);
-			if (cache?.frontmatter && Object.keys(cache.frontmatter).length > 0) {
+			const frontmatter: unknown = cache?.frontmatter;
+			if (isRecord(frontmatter) && Object.keys(frontmatter).length > 0) {
 				contextParts.push('\n### Properties/Metadata:');
-				for (const [key, value] of Object.entries(cache.frontmatter)) {
+				for (const [key, value] of Object.entries(frontmatter)) {
 					// Format the property value (handle arrays, objects, etc.)
-					const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
-					contextParts.push(`- ${key}: ${String(formattedValue)}`);
+					contextParts.push(`- ${key}: ${formatFrontmatterValue(value)}`);
 				}
 			}
 			
@@ -1137,4 +1137,24 @@ export class ContextManager {
 		// Re-populate with new settings
 		await this.populateAutoContext(file);
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatFrontmatterValue(value: unknown): string {
+	if (typeof value === 'string') {
+		return value;
+	}
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	if (value === null) {
+		return 'null';
+	}
+	if (typeof value === 'object') {
+		return JSON.stringify(value) ?? '';
+	}
+	return '';
 }

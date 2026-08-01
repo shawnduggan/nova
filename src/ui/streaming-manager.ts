@@ -2,10 +2,14 @@
  * @file StreamingManager - Manages AI response streaming to editor
  */
 
-import { Editor, Notice, EditorPosition } from 'obsidian';
+import { Editor, Notice, EditorPosition, requireApiVersion } from 'obsidian';
 import { Logger } from '../utils/logger';
 import { TimeoutManager } from '../utils/timeout-manager';
 import type NovaPlugin from '../../main';
+
+type LegacyNotice = {
+    noticeEl: HTMLElement;
+};
 
 export interface StreamingOptions {
     onChunk?: (chunk: string, isComplete: boolean) => void;
@@ -390,12 +394,7 @@ export class StreamingManager {
                 const dots = '.'.repeat(dotCount);
                 const noticeText = `${currentPhrase}${dots}`;
                 
-                // Update notice text directly
-                const noticeWithEl = this.thinkingNotice as Notice & { messageEl?: HTMLElement };
-                const messageEl = noticeWithEl.messageEl;
-                if (messageEl) {
-                    messageEl.textContent = noticeText;
-                }
+                this.thinkingNotice.setMessage(noticeText);
                 
                 // Increment dot count, and when it reaches max, move to next phrase
                 dotCount++;
@@ -425,10 +424,11 @@ export class StreamingManager {
         // which breaks subsequent new Notice() calls. Instead, we hide via CSS
         // and let Obsidian's own 30s timeout clean up the element naturally.
         if (this.thinkingNotice) {
-            const containerEl = (this.thinkingNotice as Notice & { containerEl?: HTMLElement }).containerEl;
-            if (containerEl) {
-                containerEl.addClass('nova-notice-hidden');
-            }
+            // noticeEl is the compatible element on supported releases before 1.8.7.
+            const noticeElement = requireApiVersion('1.8.7')
+                ? this.thinkingNotice.containerEl
+                : (this.thinkingNotice as unknown as LegacyNotice).noticeEl;
+            noticeElement.addClass('nova-notice-hidden');
             this.thinkingNotice = null;
         }
     }

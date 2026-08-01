@@ -115,7 +115,10 @@ export class OllamaProvider implements AIProvider {
 				throw new Error(`Ollama API error: ${response.status}`);
 		}
 
-		const data = response.json;
+		const data: unknown = response.json;
+		if (!isRecord(data) || typeof data.response !== 'string') {
+			throw new Error('Ollama API: Unexpected response format');
+		}
 		return data.response;
 	}
 
@@ -178,8 +181,12 @@ export class OllamaProvider implements AIProvider {
 				throw new Error(`Ollama API error: ${response.status}`);
 		}
 
-		const data = response.json;
-		return data.message.content;
+		const data: unknown = response.json;
+		const message = isRecord(data) && isRecord(data.message) ? data.message : null;
+		if (!message || typeof message.content !== 'string') {
+			throw new Error('Ollama API: Unexpected response format');
+		}
+		return message.content;
 	}
 
 	async complete(systemPrompt: string, userPrompt: string, options?: AIGenerationOptions): Promise<string> {
@@ -212,4 +219,8 @@ export class OllamaProvider implements AIProvider {
 
 		yield { content: '', done: true };
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

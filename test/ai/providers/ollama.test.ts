@@ -86,6 +86,26 @@ describe('OllamaProvider', () => {
 		expect(callArgs.url).toBe('http://localhost:11434/api/chat');
 	});
 
+	test('rejects malformed successful generate responses', async () => {
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: { response: { unexpected: true } }
+		});
+
+		await expect(provider.generateText('Hello'))
+			.rejects.toThrow('Ollama API: Unexpected response format');
+	});
+
+	test('rejects malformed successful chat responses', async () => {
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: { message: { content: { unexpected: true } } }
+		});
+
+		await expect(provider.chatCompletion([{ role: 'user', content: 'Hello' }]))
+			.rejects.toThrow('Ollama API: Unexpected response format');
+	});
+
 	test('does not expose prompts, endpoints, or response bodies in errors or logs', async () => {
 		config.baseUrl = 'https://private-ollama.example/';
 		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);

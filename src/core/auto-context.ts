@@ -152,11 +152,11 @@ export async function truncateDocumentContent(
 		currentTokens += estimateTokens(contentParts[0]);
 		
 		// Add frontmatter if present
-		if (cache?.frontmatter && Object.keys(cache.frontmatter).length > 0) {
+		const frontmatter: unknown = cache?.frontmatter;
+		if (isRecord(frontmatter) && Object.keys(frontmatter).length > 0) {
 			const fmLines = ['\n### Properties/Metadata:'];
-			for (const [key, value] of Object.entries(cache.frontmatter)) {
-				const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
-				fmLines.push(`- ${key}: ${String(formattedValue)}`);
+			for (const [key, value] of Object.entries(frontmatter)) {
+				fmLines.push(`- ${key}: ${formatFrontmatterValue(value)}`);
 			}
 			const fmContent = fmLines.join('\n');
 			contentParts.push(fmContent);
@@ -218,6 +218,26 @@ export async function truncateDocumentContent(
 			Logger.debug('Failed to truncate document content');
 		return null;
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatFrontmatterValue(value: unknown): string {
+	if (typeof value === 'string') {
+		return value;
+	}
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	if (value === null) {
+		return 'null';
+	}
+	if (typeof value === 'object') {
+		return JSON.stringify(value) ?? '';
+	}
+	return '';
 }
 
 /**

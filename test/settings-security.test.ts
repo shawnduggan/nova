@@ -181,4 +181,49 @@ describe('Nova sensitive settings storage', () => {
 		expect(plugin.settings.aiProviders['openai-compatible'].apiKey).toBe('sk-compatible-runtime');
 		expect(plugin.settings.licensing.supernovaLicenseKey).toBe('license-runtime');
 	});
+
+	test('takes a deep snapshot and preserves non-transient licensing fields during async saves', async () => {
+		let signalEncryptionStarted: (() => void) | undefined;
+		const encryptionStarted = new Promise<void>((resolve) => {
+			signalEncryptionStarted = resolve;
+		});
+		let releaseEncryption: (() => void) | undefined;
+		const encryptionGate = new Promise<void>((resolve) => {
+			releaseEncryption = resolve;
+		});
+		const encoder = new TextEncoder();
+		Object.defineProperty(globalThis, 'crypto', {
+			configurable: true,
+			value: {
+				getRandomValues: (value: Uint8Array) => value,
+				subtle: {
+					importKey: jest.fn().mockResolvedValue({}),
+					deriveKey: jest.fn().mockResolvedValue({}),
+					encrypt: jest.fn().mockImplementation(async () => {
+						signalEncryptionStarted?.();
+						await encryptionGate;
+						return encoder.encode('ciphertext').buffer;
+					})
+				}
+			}
+		});
+		const { plugin, saveData } = createPlugin();
+		plugin.settings = cloneDefaultSettings();
+		plugin.settings.aiProviders.claude.apiKey = 'sk-runtime';
+		const licensing = plugin.settings.licensing as unknown as Record<string, unknown>;
+		licensing.futureEntitlement = { active: true };
+		const originalShowReleaseNotes = plugin.settings.general.showReleaseNotes;
+
+		const savePromise = plugin.saveSettings();
+		await encryptionStarted;
+		plugin.settings.general.showReleaseNotes = !originalShowReleaseNotes;
+		(licensing.futureEntitlement as { active: boolean }).active = false;
+		releaseEncryption?.();
+		await savePromise;
+
+		const storedSettings = saveData.mock.calls[0][0];
+		expect(storedSettings.general.showReleaseNotes).toBe(originalShowReleaseNotes);
+		expect(storedSettings.licensing.futureEntitlement).toEqual({ active: true });
+		expect(storedSettings.licensing.debugSettings).toBeUndefined();
+	});
 });

@@ -500,12 +500,12 @@ export class WritingDashboardView extends ItemView {
 			return `${x},${y}`;
 		});
 
-		const ownerDocument = this.containerEl.ownerDocument;
-		const svg = ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		const ownerDocument = this.containerEl.ownerDocument as Document & { win: typeof window };
+		const svg = ownerDocument.win.createSvg('svg');
 		svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 		svg.setAttribute('class', 'nova-writing-dashboard-sparkline');
 
-		const polyline = ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+		const polyline = ownerDocument.win.createSvg('polyline');
 		polyline.setAttribute('points', points.join(' '));
 		polyline.setAttribute('class', 'nova-writing-dashboard-sparkline-line');
 		svg.appendChild(polyline);
@@ -521,7 +521,8 @@ export class WritingDashboardView extends ItemView {
 
 	private appendSparklineDot(svg: SVGElement, point: string): void {
 		const [cx, cy] = point.split(',');
-		const dot = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		const ownerDocument = svg.ownerDocument as Document & { win: typeof window };
+		const dot = ownerDocument.win.createSvg('circle');
 		dot.setAttribute('cx', cx);
 		dot.setAttribute('cy', cy);
 		dot.setAttribute('r', '2.5');
@@ -530,7 +531,8 @@ export class WritingDashboardView extends ItemView {
 	}
 
 	private appendSparklineLabel(svg: SVGElement, x: number, y: number, value: number, anchor: 'start' | 'end' = 'start'): void {
-		const label = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'text');
+		const ownerDocument = svg.ownerDocument as Document & { win: typeof window };
+		const label = ownerDocument.win.createSvg('text');
 		label.setAttribute('x', `${x}`);
 		label.setAttribute('y', `${y}`);
 		label.setAttribute('text-anchor', anchor);

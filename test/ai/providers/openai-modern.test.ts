@@ -160,6 +160,32 @@ describe('OpenAIProvider Modernization', () => {
         ]);
     });
 
+	test('rejects malformed successful responses without logging their body', async () => {
+		const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const privateResponse = 'private-malformed-openai-response';
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: { output_text: { value: privateResponse } }
+		});
+
+		await expect(provider.generateText('private-user-prompt'))
+			.rejects.toThrow('OpenAI API: Unexpected response format');
+		expect(JSON.stringify(errorLog.mock.calls)).not.toContain(privateResponse);
+		errorLog.mockRestore();
+	});
+
+	test('rejects output arrays without valid text content', async () => {
+		(requestUrl as jest.Mock).mockResolvedValue({
+			status: 200,
+			json: {
+				output: [{ type: 'message', content: [{ text: { unexpected: true } }] }]
+			}
+		});
+
+		await expect(provider.generateText('Hello'))
+			.rejects.toThrow('OpenAI API: Unexpected response format');
+	});
+
 	test('does not expose prompts, credentials, endpoints, or response bodies in errors or logs', async () => {
 		provider = new OpenAIProvider({
 			apiKey: 'private-openai-key',

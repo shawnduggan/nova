@@ -75,7 +75,10 @@ export class ConversationManager {
 
         // Cosmetic success acknowledgements from older releases are not conversation history.
         const messages = Array.isArray(conv.messages)
-            ? conv.messages.filter(message => !this.isLegacySuccessAcknowledgement(message))
+            ? conv.messages
+                .filter(message => !this.isLegacySuccessAcknowledgement(message))
+                .map(message => this.sanitizeConversationMessage(message))
+                .filter((message): message is ConversationMessage => message !== null)
             : [];
 
         // Ensure contextDocuments array exists and is valid
@@ -111,6 +114,100 @@ export class ConversationManager {
             contextDocuments,
             metadata
         };
+    }
+
+    private sanitizeConversationMessage(message: unknown): ConversationMessage | null {
+        if (!this.isRecord(message)
+            || typeof message.id !== 'string'
+            || (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'system')
+            || typeof message.content !== 'string'
+            || typeof message.timestamp !== 'number'
+            || !Number.isFinite(message.timestamp)) {
+            return null;
+        }
+
+        const sanitized: ConversationMessage = {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            timestamp: message.timestamp
+        };
+
+        if (this.isValidEditCommand(message.command)) {
+            sanitized.command = message.command;
+        }
+        if (this.isValidEditResult(message.result)) {
+            sanitized.result = message.result;
+        }
+
+        const metadata = this.sanitizeMessageMetadata(message.metadata);
+        if (metadata) {
+            sanitized.metadata = metadata;
+        }
+
+        return sanitized;
+    }
+
+    private isValidEditCommand(command: unknown): command is EditCommand {
+        return this.isRecord(command)
+            && this.isEditAction(command.action)
+            && (command.target === 'cursor'
+                || command.target === 'selection'
+                || command.target === 'document'
+                || command.target === 'end')
+            && typeof command.instruction === 'string'
+            && (command.context === undefined || typeof command.context === 'string');
+    }
+
+    private isValidEditResult(result: unknown): result is EditResult {
+        if (!this.isRecord(result)
+            || typeof result.success !== 'boolean'
+            || (result.editType !== 'insert'
+                && result.editType !== 'replace'
+                && result.editType !== 'append'
+                && result.editType !== 'delete')
+            || (result.content !== undefined && typeof result.content !== 'string')
+            || (result.error !== undefined && typeof result.error !== 'string')
+            || (result.successMessage !== undefined && typeof result.successMessage !== 'string')) {
+            return false;
+        }
+
+        if (result.appliedAt === undefined) {
+            return true;
+        }
+
+        return this.isRecord(result.appliedAt)
+            && typeof result.appliedAt.line === 'number'
+            && typeof result.appliedAt.ch === 'number';
+    }
+
+    private sanitizeMessageMetadata(metadata: unknown): ConversationMessage['metadata'] {
+        if (!this.isRecord(metadata)) {
+            return undefined;
+        }
+
+        const sanitized: NonNullable<ConversationMessage['metadata']> = {};
+        if (typeof metadata.messageType === 'string') {
+            sanitized.messageType = metadata.messageType;
+        }
+        if (metadata.source === 'chat' || metadata.source === 'selection' || metadata.source === 'command') {
+            sanitized.source = metadata.source;
+        }
+
+        return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+    }
+
+    private isEditAction(action: unknown): action is EditAction {
+        return action === 'add'
+            || action === 'edit'
+            || action === 'delete'
+            || action === 'grammar'
+            || action === 'rewrite'
+            || action === 'metadata';
+    }
+
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
     }
 
     /**

@@ -2,9 +2,13 @@
  * @file SelectionEditCommand - Handles editing selected text
  */
 
-import { Editor, EditorPosition, Notice } from 'obsidian';
+import { Editor, EditorPosition, Notice, requireApiVersion } from 'obsidian';
 import NovaPlugin from '../../../main';
 import { Logger } from '../../utils/logger';
+
+type LegacyNotice = {
+    noticeEl: HTMLElement;
+};
 
 export interface SelectionEditResult {
     success: boolean;
@@ -44,10 +48,11 @@ export class SelectionEditCommand {
 
             // Hide via CSS class instead of hide() — hide() removes the notice
             // container from the DOM, breaking subsequent new Notice() calls
-            const containerEl = (loadingNotice as Notice & { containerEl?: HTMLElement }).containerEl;
-            if (containerEl) {
-                containerEl.addClass('nova-notice-hidden');
-            }
+            // noticeEl is the compatible element on supported releases before 1.8.7.
+            const noticeElement = requireApiVersion('1.8.7')
+                ? loadingNotice.containerEl
+                : (loadingNotice as unknown as LegacyNotice).noticeEl;
+            noticeElement.addClass('nova-notice-hidden');
 
             // Use response directly without cleaning
             const transformedText = response.trim();

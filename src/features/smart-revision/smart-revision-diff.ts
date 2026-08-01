@@ -96,7 +96,10 @@ function tokenize(text: string): Token[] {
 }
 
 function buildLcsTable(left: Token[], right: Token[]): number[][] {
-	const table: number[][] = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
+	const table: number[][] = [];
+	for (let rowIndex = 0; rowIndex <= left.length; rowIndex += 1) {
+		table.push(new Array<number>(right.length + 1).fill(0));
+	}
 
 	for (let leftIndex = left.length - 1; leftIndex >= 0; leftIndex -= 1) {
 		for (let rightIndex = right.length - 1; rightIndex >= 0; rightIndex -= 1) {

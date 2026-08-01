@@ -861,16 +861,32 @@ export class Setting {
     }
 }
 
+export function requireApiVersion(_version: string): boolean {
+    return true;
+}
+
 export class Notice {
+    noticeEl: HTMLElement;
     messageEl: HTMLElement;
+	containerEl: HTMLElement;
     
-    constructor(_message: string, _timeout?: number) {
-        // Mock implementation - create a mock element
+    constructor(message: string, _timeout?: number) {
+        this.containerEl = document.createElement('div');
+		this.containerEl.addClass = (cls: string) => this.containerEl.classList.add(cls);
         this.messageEl = document.createElement('div');
+		this.messageEl.addClass = (cls: string) => this.messageEl.classList.add(cls);
+		this.noticeEl = this.messageEl;
+		this.containerEl.appendChild(this.messageEl);
+		this.setMessage(message);
     }
+
+	setMessage(message: string): this {
+		this.messageEl.textContent = message;
+		return this;
+	}
     
     hide(): void {
-        // Mock implementation
+		this.containerEl.remove();
     }
 }
 

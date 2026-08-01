@@ -82,7 +82,7 @@ export class CommandSystem {
 			{ name: 'Continue writing', description: 'Extend the current text', command: 'continue writing' }
 		];
 
-		this.commandMenu.createEl('div', { 
+		this.commandMenu.createDiv({
 			text: 'Quick commands',
 			cls: 'nova-command-menu-title'
 		});
@@ -92,13 +92,13 @@ export class CommandSystem {
 			const cmdEl = this.commandMenu.createDiv({ cls: 'nova-command-menu-item' });
 			// Command item styles defined in CSS
 
-			cmdEl.createEl('div', { 
+			cmdEl.createDiv({
 				text: cmd.name,
 				cls: 'nova-command-name'
 			});
 			// Name element styles defined in CSS
 
-			cmdEl.createEl('div', { 
+			cmdEl.createDiv({
 				text: cmd.description,
 				cls: 'nova-command-desc'
 			});

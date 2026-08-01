@@ -195,7 +195,6 @@ export class MarginIndicators {
 
             // Get current line for analysis
             const cursor = this.activeEditor.getCursor();
-            const currentLine = this.activeEditor.getLine(cursor.line);
             this.logger.debug(`Analyzing line ${cursor.line}`);
 
             // Find opportunities (including markers)

@@ -68,7 +68,8 @@ export class IndicatorWidget extends WidgetType {
         this.releaseLifecycle();
         const lifecycle = this.plugin.addChild(new Component());
         this.lifecycle = lifecycle;
-        const indicator = view.dom.ownerDocument.createElement('span');
+        const ownerDocument = view.dom.ownerDocument as Document & { win: typeof window };
+        const indicator = ownerDocument.win.createSpan();
         indicator.className = 'nova-margin-indicator';
         indicator.textContent = this.opportunity.icon;
 

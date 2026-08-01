@@ -96,41 +96,10 @@ export class OpenAIProvider implements AIProvider {
 				});
 
 				if (response.status === 200) {
-					const data = response.json;
-					
-					// Handle new Responses API format (v1/responses)
-					if (data.output_text) {
-						return data.output_text;
-					}
-					
-					if (data.output && Array.isArray(data.output)) {
-						// Extract text content from output items
-						// GPT-5 returns items with type 'message' (containing 'content') or 'text'
-						return data.output
-							.filter((item: unknown) => {
-								const outputItem = item as { type?: string };
-								return outputItem.type === 'message' || outputItem.type === 'text';
-							})
-							.map((item: unknown) => {
-								const outputItem = item as { content?: unknown; text?: string };
-								const content = outputItem.content || outputItem.text || '';
-								// content might be an array of parts (e.g. [{type: 'text', text: '...'}])
-								if (Array.isArray(content)) {
-									return content
-										.map((part: unknown) => {
-											const contentPart = part as { text?: string; value?: string };
-											return contentPart.text || contentPart.value || '';
-										})
-										.join('');
-								}
-								return content;
-							})
-							.join('');
-					}
-
-					// Handle legacy Chat Completions API format (choices)
-					if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-						return data.choices[0].message.content;
+					const data: unknown = response.json;
+					const responseText = extractOpenAIText(data);
+					if (responseText !== undefined) {
+						return responseText;
 					}
 					
 					Logger.error('OpenAI API response had an unexpected format', { model: modelName });
@@ -271,4 +240,63 @@ export class OpenAIProvider implements AIProvider {
 	clearModelCache(): void {
 		this.cachedModels = null;
 	}
+}
+
+function extractOpenAIText(data: unknown): string | undefined {
+	if (!isRecord(data)) {
+		return undefined;
+	}
+
+	if (typeof data.output_text === 'string' && data.output_text.length > 0) {
+		return data.output_text;
+	}
+
+	if (isUnknownArray(data.output)) {
+		const text = data.output
+			.filter((item): item is Record<string, unknown> =>
+				isRecord(item) && (item.type === 'message' || item.type === 'text'))
+			.map((item) => extractOutputItemText(item))
+			.join('');
+		return text.length > 0 ? text : undefined;
+	}
+
+	if (isUnknownArray(data.choices) && data.choices.length > 0) {
+		const firstChoice = data.choices[0];
+		const message = isRecord(firstChoice) && isRecord(firstChoice.message)
+			? firstChoice.message
+			: null;
+		if (message && typeof message.content === 'string') {
+			return message.content;
+		}
+	}
+
+	return undefined;
+}
+
+function extractOutputItemText(item: Record<string, unknown>): string {
+	if (isUnknownArray(item.content)) {
+		return item.content.map((part) => {
+			if (!isRecord(part)) {
+				return '';
+			}
+			if (typeof part.text === 'string') {
+				return part.text;
+			}
+			return typeof part.value === 'string' ? part.value : '';
+		}).join('');
+	}
+
+	if (typeof item.content === 'string') {
+		return item.content;
+	}
+
+	return typeof item.text === 'string' ? item.text : '';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+	return Array.isArray(value);
 }

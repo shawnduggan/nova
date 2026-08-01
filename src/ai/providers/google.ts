@@ -122,35 +122,44 @@ export class GoogleProvider implements AIProvider {
 			throw new Error(`Google API error: ${response.status}${guidance}`);
 		}
 
-		const data = response.json;
+		const data: unknown = response.json;
 		
 		
 		// Check if response has valid structure
-		if (!data.candidates || data.candidates.length === 0) {
-			if (data.error) {
+		if (!isRecord(data) || !isUnknownArray(data.candidates) || data.candidates.length === 0) {
+			if (isRecord(data) && data.error) {
 				throw new Error('Google API returned an error response');
 			}
 			throw new Error('Google API returned no candidates');
 		}
+		const candidate = data.candidates[0];
+		if (!isRecord(candidate)) {
+			throw new Error('Google API returned empty response');
+		}
+		const finishReason = candidate.finishReason;
+		const content = isRecord(candidate.content) ? candidate.content : null;
+		const parts = content && isUnknownArray(content.parts) ? content.parts : [];
 		
 		// Check if the response was blocked or filtered
-		if (data.candidates[0].finishReason === 'SAFETY' || data.candidates[0].finishReason === 'BLOCKED') {
+		if (finishReason === 'SAFETY' || finishReason === 'BLOCKED') {
 			throw new Error('Google API blocked the response due to safety filters');
 		}
 		
 		// Check if we hit the token limit before generating content
-		if (data.candidates[0].finishReason === 'MAX_TOKENS' && 
-			(!data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0)) {
+		if (finishReason === 'MAX_TOKENS' && parts.length === 0) {
 			throw new Error('API hit token limit before generating any content. Please increase "Default Max Tokens" in settings.');
 		}
 		
 		// Check if response has content
-		if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
-			const text = data.candidates[0].content.parts[0].text;
+		if (parts.length > 0) {
+			const firstPart = parts[0];
+			const text = isRecord(firstPart) && typeof firstPart.text === 'string'
+				? firstPart.text
+				: '';
 			
 			
 			// If response was truncated, throw error instead of returning partial content
-			if (data.candidates[0].finishReason === 'MAX_TOKENS') {
+			if (finishReason === 'MAX_TOKENS') {
 				throw new Error('Response was truncated due to token limit. Please increase "Default Max Tokens" in settings.');
 			}
 			
@@ -249,4 +258,12 @@ export class GoogleProvider implements AIProvider {
 	clearModelCache(): void {
 		this.cachedModels = null;
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+	return Array.isArray(value);
 }
