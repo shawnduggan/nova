@@ -13,7 +13,24 @@ export interface ReleaseNotesEntry {
 }
 
 export const RELEASE_NOTES: Record<string, string> = {
-	// Add entries before running `npm version`. The /release command handles this.
+	// Add entries before running `npm version`. The $release-nova-plugin workflow handles this.
+	'1.8.3': [
+		'## What\'s New in Nova 1.8.3',
+		'',
+		'### Reliability',
+		'',
+		'- **Detached windows now stay in sync.** Writing Dashboard filters and hidden states, Prose Linter review state, sidebar updates, Smart Fill indicators, resizing, and dismissal behavior now follow the Obsidian window where each view is open.',
+		'- **Reloads and layout changes clean up correctly.** Nova now releases view-specific listeners, timers, and editor widgets with their owning views, avoiding stale or duplicated behavior.',
+		'',
+		'### Safer note and plugin data',
+		'',
+		'- **Metadata and tag changes use Obsidian\'s frontmatter API.** Smart Fill verifies that the same note is still active before applying AI-proposed changes and safely handles structured frontmatter values.',
+		'- **Saved data is protected from overlapping writes.** Settings, conversations, and Writing Dashboard cache and history now share a serialized save path, with automatic migration of existing dashboard data.',
+		'',
+		'### Privacy',
+		'',
+		'- **Production diagnostics expose less.** Failed operations no longer include document excerpts, AI responses, provider request or response bodies, or endpoint details in production logs.',
+	].join('\n'),
 	'1.8.2': [
 		'## What\'s New in Nova 1.8.2',
 		'',
@@ -83,20 +100,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'### OpenAI-Compatible Fix',
 		'',
 		'- **LM Studio models activate correctly after setup.** Selecting an OpenAI-compatible model in Settings now also makes that provider active in the sidebar, fixing a state issue where Nova could show the model but still report "No provider."',
-	].join('\n'),
-	'1.7.0': [
-		'## What\'s New in Nova 1.7.0',
-		'',
-		'### OpenAI-Compatible Endpoints',
-		'',
-		'- **Connect Nova to OpenAI-compatible Chat Completions providers.** Use LM Studio, LocalAI, LiteLLM, OpenRouter, and other compatible gateways from the new provider settings.',
-		'- **Model setup is easier.** Test connection refreshes `/models` and lets you select one model in settings; if `/models` is unavailable, Nova validates a manually entered model with a tiny completion.',
-		'- **The sidebar stays focused.** OpenAI-compatible providers show only the selected model in the main model picker, so large catalogs do not flood the dropdown.',
-		'- **Mobile handling is clearer.** Cloud-compatible endpoints can run on mobile, while localhost, private-network, `.local`, and single-hostname URLs remain desktop-only.',
-		'',
-		'### Polish',
-		'',
-		'- **Provider settings and sidebar layout are cleaner in Obsidian 1.13.** The settings cards, connection buttons, secure inputs, and sidebar model picker now keep their intended spacing in both the original and popout settings layouts.',
 	].join('\n'),
 };
 
