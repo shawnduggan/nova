@@ -1306,7 +1306,7 @@ USER REQUEST: ${processedMessage}`;
 				// Remove loading indicator with proper cleanup
 				const loadingTextSpan = loadingEl.querySelector('span');
 				if (loadingTextSpan) {
-					this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+					this.stopThinkingPhraseRotation(loadingTextSpan);
 				}
 				loadingEl.remove();
 
@@ -1318,7 +1318,7 @@ USER REQUEST: ${processedMessage}`;
 			// Remove loading indicator with proper cleanup
 			const loadingTextSpan = loadingEl.querySelector('span');
 			if (loadingTextSpan) {
-				this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+				this.stopThinkingPhraseRotation(loadingTextSpan);
 			}
 			loadingEl.remove();
 			
@@ -1350,7 +1350,7 @@ USER REQUEST: ${processedMessage}`;
 			if (loadingEl) {
 				const loadingTextSpan = loadingEl.querySelector('span');
 				if (loadingTextSpan) {
-					this.stopThinkingPhraseRotation(loadingTextSpan as HTMLElement);
+					this.stopThinkingPhraseRotation(loadingTextSpan);
 				}
 				loadingEl.remove();
 			}

@@ -14,6 +14,15 @@ import type {
 } from '../types';
 import type NovaPlugin from '../../../../main';
 
+type OverridableTimingKey = Exclude<
+    keyof SmartTimingSettings,
+    'documentTypeOverrides'
+>;
+type OverridableTimingSettings = Pick<
+    SmartTimingSettings,
+    OverridableTimingKey
+>;
+
 // Event interfaces for subscribers
 export interface TimingEvents {
     'timing-decision': (decision: TimingDecision) => void;
@@ -275,11 +284,13 @@ export class SmartTimingEngine {
     /**
      * Get effective setting value considering document type overrides
      */
-    private getEffectiveSetting<K extends keyof SmartTimingSettings>(
+    private getEffectiveSetting<K extends OverridableTimingKey>(
         key: K
-    ): SmartTimingSettings[K] {
-        const override = this.settings.documentTypeOverrides[this.currentDocumentType]?.[key] as
-            SmartTimingSettings[K] | undefined;
+    ): OverridableTimingSettings[K];
+    private getEffectiveSetting(
+        key: OverridableTimingKey
+    ): OverridableTimingSettings[OverridableTimingKey] {
+        const override = this.settings.documentTypeOverrides[this.currentDocumentType]?.[key];
         return override !== undefined ? override : this.settings[key];
     }
 

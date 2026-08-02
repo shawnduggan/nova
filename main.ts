@@ -765,7 +765,7 @@ export default class NovaPlugin extends Plugin {
 				settingsData[key] = allData[key];
 			}
 		}
-		return settingsData as Partial<NovaSettings>;
+		return settingsData;
 	}
 
 	private async mutatePluginData(update: (data: Record<string, unknown>) => void): Promise<void> {

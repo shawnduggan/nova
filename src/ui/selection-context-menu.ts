@@ -358,7 +358,7 @@ export class SelectionContextMenu {
         dispatchSidebarProcessing(this.app.workspace, true);
 
         // Show thinking notice
-        this.streamingManager.showThinkingNotice('challenge' as ActionType, 'notice');
+        this.streamingManager.showThinkingNotice('challenge', 'notice');
 
         // Add user message to chat (via event)
         const truncatedText = selectedText.length > 100
