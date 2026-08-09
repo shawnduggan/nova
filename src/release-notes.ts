@@ -14,6 +14,19 @@ export interface ReleaseNotesEntry {
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The $release-nova-plugin workflow handles this.
+	'1.8.4': [
+		'## What\'s New in Nova 1.8.4',
+		'',
+		'### Reliability',
+		'',
+		'- **AI provider responses fail safely.** Nova now validates malformed or incomplete responses from OpenAI, Google, and Ollama, returning clear errors instead of relying on unexpected provider data.',
+		'- **Saved conversations recover cleanly.** Nova discards malformed persisted messages while preserving valid history and supported message details.',
+		'- **Credential and settings saves are more resilient.** Nova can securely migrate credentials when older settings are incomplete, and each save uses one consistent snapshot while credentials are being encrypted.',
+		'',
+		'### Obsidian compatibility',
+		'',
+		'- **Nova uses current public APIs across supported versions.** Thinking notices, editing notices, sidebar elements, and dashboard sparklines now follow current Obsidian patterns while retaining compatibility with older supported releases.',
+	].join('\n'),
 	'1.8.3': [
 		'## What\'s New in Nova 1.8.3',
 		'',
@@ -93,13 +106,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'- **Before/after impact uses Nova\'s local writing analysis.** The proposal shows readability, long sentences, weak phrases, passive voice, and adverb changes without extra analysis services.',
 		'- **Prose Linter now bridges into Smart Revision.** Issue rows include a Smart revision action so Supernova users can move from a local issue to a controlled revision session.',
 		'- **Free users can preview the workflow safely.** The preview shows a static Smart Revision card stack without generating a user-specific AI result.',
-	].join('\n'),
-	'1.7.1': [
-		'## What\'s New in Nova 1.7.1',
-		'',
-		'### OpenAI-Compatible Fix',
-		'',
-		'- **LM Studio models activate correctly after setup.** Selecting an OpenAI-compatible model in Settings now also makes that provider active in the sidebar, fixing a state issue where Nova could show the model but still report "No provider."',
 	].join('\n'),
 };
 
