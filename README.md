@@ -101,7 +101,15 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 
 Nova supports Claude, OpenAI, Gemini, Ollama's local API, and OpenAI-compatible Chat Completions endpoints such as LM Studio, LocalAI, LiteLLM, OpenRouter, and other custom gateways.
 
-Cloud model choices are ordered by capability tier within each provider, with newer models first within a tier. The curated list includes Claude Fable 5.1, GPT-6 Astra, Gemini 3.8 Flash, and Gemini 3.5 Flash-Lite. Older choices removed from the picker are not necessarily retired by their provider; an existing saved selection is retained.
+Cloud model choices are ordered by capability tier within each provider, with newer models first within a tier. Older choices removed from the picker are not necessarily retired by their provider; an existing saved selection is retained.
+
+The cloud model picker in Nova 1.8.5 includes:
+
+| Provider | Models, in picker order |
+| --- | --- |
+| Anthropic | Claude Fable 5.1, Opus 5, Sonnet 5, Haiku 4.5 |
+| OpenAI | GPT-6 Astra, GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.4 mini, GPT-5.6 Luna |
+| Google | Gemini 3.1 Pro (Preview), 2.5 Pro, 3.8 Flash, 2.5 Flash, 3.5 Flash-Lite, 3.1 Flash-Lite, 2.5 Flash-Lite |
 
 Model access depends on your provider account. The Claude connection test uses Haiku to check credentials; it does not verify access to every Claude model. [Claude Fable 5.1 requires 30-day provider retention](https://platform.claude.com/docs/en/models/fable-5-1/overview); zero data retention requires Anthropic authorization. Nova sends requests directly to your chosen provider.
 
