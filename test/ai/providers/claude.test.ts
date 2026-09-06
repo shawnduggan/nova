@@ -184,6 +184,76 @@ describe('ClaudeProvider', () => {
             expect(body).not.toHaveProperty('temperature');
         });
 
+        test.each([undefined, 32])('accepts a Fable response without changing the requested budget (%s)', async (maxTokens) => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: {
+                    stop_reason: 'end_turn',
+                    content: [
+                        { type: 'thinking', thinking: '', signature: 'opaque-signature' },
+                        { type: 'text', text: 'Fable response' }
+                    ]
+                }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt', {
+                model: 'claude-fable-5-1',
+                temperature: 0.5,
+                maxTokens
+            })).resolves.toBe('Fable response');
+
+            const body = JSON.parse((requestUrl as jest.Mock).mock.calls[0][0].body);
+            expect(body.model).toBe('claude-fable-5-1');
+            expect(body.max_tokens).toBe(maxTokens ?? generalSettings.defaultMaxTokens);
+            expect(body).not.toHaveProperty('temperature');
+            expect(body).not.toHaveProperty('thinking');
+            expect(body).not.toHaveProperty('fallbacks');
+            expect(requestUrl).toHaveBeenCalledTimes(1);
+        });
+
+        test.each([
+            { label: 'empty', content: [] },
+            { label: 'partial text', content: [{ type: 'text', text: 'Partial response that must not be accepted' }] }
+        ])('rejects a Fable refusal without returning partial text or retrying ($label)', async ({ content }) => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: {
+                    stop_reason: 'refusal',
+                    stop_details: { type: 'refusal', category: 'cyber', explanation: 'private-refusal-detail' },
+                    content
+                }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt', {
+                model: 'claude-fable-5-1',
+                maxTokens: 32
+            })).rejects.toThrow('Claude API request was declined by the model. Try revising your request.');
+            expect(requestUrl).toHaveBeenCalledTimes(1);
+            const body = JSON.parse((requestUrl as jest.Mock).mock.calls[0][0].body);
+            expect(body.max_tokens).toBe(32);
+            expect(body).not.toHaveProperty('fallbacks');
+        });
+
+        test.each([
+            { label: 'empty', content: [] },
+            { label: 'thinking only', content: [{ type: 'thinking', thinking: '', signature: 'opaque-signature' }] },
+            { label: 'truncated text', content: [{ type: 'text', text: 'Truncated answer' }] }
+        ])('reports an exhausted Fable output budget without increasing it ($label)', async ({ content }) => {
+            (requestUrl as jest.Mock).mockResolvedValueOnce({
+                status: 200,
+                json: { stop_reason: 'max_tokens', content }
+            });
+
+            await expect(provider.complete('System prompt', 'User prompt', {
+                model: 'claude-fable-5-1',
+                maxTokens: 32
+            })).rejects.toThrow('Claude API response reached the output token limit before completing.');
+            expect(requestUrl).toHaveBeenCalledTimes(1);
+            const body = JSON.parse((requestUrl as jest.Mock).mock.calls[0][0].body);
+            expect(body.max_tokens).toBe(32);
+            expect(body).not.toHaveProperty('fallbacks');
+        });
+
         test('should throw error when API key is missing', async () => {
             const providerWithoutKey = new ClaudeProvider({ apiKey: '' }, generalSettings, new TimeoutManager());
 
@@ -237,14 +307,21 @@ describe('ClaudeProvider', () => {
     });
 
     describe('getAvailableModels', () => {
-        test('includes Claude 5 models in the refreshed Claude model list', async () => {
+        test('returns the current curated Claude models and caches the result', async () => {
             (requestUrl as jest.Mock).mockResolvedValue({
                 status: 200,
                 json: { content: [{ text: 'ok' }] }
             });
 
-            await expect(provider.getAvailableModels()).resolves.toContain('claude-opus-5');
-            await expect(provider.getAvailableModels()).resolves.toContain('claude-sonnet-5');
+            const models = [
+                'claude-fable-5-1',
+                'claude-opus-5',
+                'claude-sonnet-5',
+                'claude-haiku-4-5-20251001'
+            ];
+            await expect(provider.getAvailableModels()).resolves.toEqual(models);
+            await expect(provider.getAvailableModels()).resolves.toEqual(models);
+            expect(requestUrl).toHaveBeenCalledTimes(1);
         });
     });
 

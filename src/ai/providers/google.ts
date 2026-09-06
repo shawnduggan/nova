@@ -69,7 +69,7 @@ export class GoogleProvider implements AIProvider {
 		interface GoogleRequestBody {
 			contents: Array<{ role: string; parts: Array<{ text: string }> }>;
 			generationConfig: {
-				temperature: number;
+				temperature?: number;
 				maxOutputTokens: number;
 			};
 			systemInstruction?: {
@@ -80,10 +80,14 @@ export class GoogleProvider implements AIProvider {
 		const requestBody: GoogleRequestBody = {
 			contents: this.formatMessagesForGemini(messages),
 			generationConfig: {
-				temperature: options?.temperature || this.generalSettings.defaultTemperature,
 				maxOutputTokens: options?.maxTokens || this.generalSettings.defaultMaxTokens
 			}
 		};
+
+		// New Gemini models use their default sampling configuration.
+		if (model !== 'gemini-3.8-flash' && model !== 'gemini-3.5-flash-lite') {
+			requestBody.generationConfig.temperature = options?.temperature || this.generalSettings.defaultTemperature;
+		}
 
 		// Add system instruction if provided (Google's proper format)
 		if (options?.systemPrompt && options.systemPrompt.trim()) {
@@ -236,12 +240,12 @@ export class GoogleProvider implements AIProvider {
 			
 			// Return hardcoded current models
 			const models = [
-				'gemini-3.5-flash',
 				'gemini-3.1-pro-preview',
-				'gemini-3.1-flash-lite',
-				'gemini-3-flash-preview',
 				'gemini-2.5-pro',
+				'gemini-3.8-flash',
 				'gemini-2.5-flash',
+				'gemini-3.5-flash-lite',
+				'gemini-3.1-flash-lite',
 				'gemini-2.5-flash-lite'
 			];
 

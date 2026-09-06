@@ -2199,6 +2199,9 @@ USER REQUEST: ${processedMessage}`;
 			if (!providerStatus || providerStatus.state !== 'connected') continue;
 			
 			const models = this.getAvailableModels(providerType);
+			if (providerType === currentProvider && currentModel && !models.some(model => model.value === currentModel)) {
+				models.push({ value: currentModel, label: `${currentModel} (saved)` });
+			}
 			const providerDisplayName = this.getProviderDisplayName(providerType);
 			
 			if (models.length === 0) continue;
