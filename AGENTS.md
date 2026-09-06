@@ -94,6 +94,12 @@ explicit-only workflow such as release with `$release-nova-plugin`.
   and edge paths with realistic Obsidian, provider, state-owner, and
   persistence mocks.
 - Prefer fast deterministic tests. Avoid UI snapshots unless unavoidable.
+- Every newly added model must be tested through Nova in the running Obsidian
+  app with a synthetic prompt and a completed, visible response. Mocked tests
+  and direct API calls support this check but do not replace it. Record each
+  model and its result in the PR. If access or the app blocks a test, report
+  the blocker and leave that model unvalidated; do not claim it works in Nova.
+  Keep private vault content out of test requests and restore test settings.
 
 ### Commits and Maintainer Pull Requests
 

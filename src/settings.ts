@@ -624,9 +624,14 @@ export class NovaSettingTab extends PluginSettingTab {
 	private createTestConnectionButton(container: HTMLElement, provider: ConfigurableProvider): void {
 		const isOllama = provider === 'ollama';
 		const refreshesModels = isOllama || provider === 'openai-compatible';
+		const description = refreshesModels
+			? `Test ${this.getProviderDisplayName(provider)} and refresh the model picker`
+			: provider === 'claude'
+				? 'Check credentials with Haiku. Access to your selected model is checked when you use it.'
+				: 'Test your API connection';
 		const setting = new Setting(container)
 			.setName('Connection status')
-			.setDesc(refreshesModels ? `Test ${this.getProviderDisplayName(provider)} and refresh the model picker` : 'Test your API connection');
+			.setDesc(description);
 
 		// Create status indicator first (to the left)
 		const statusContainer = setting.controlEl.createDiv({ cls: 'nova-connection-status-container' });
@@ -834,8 +839,11 @@ export class NovaSettingTab extends PluginSettingTab {
 		switch (provider) {
 			case 'claude': {
 				const claudeProvider = new ClaudeProvider(this.plugin.settings.aiProviders.claude, this.plugin.settings.general, tempTimeoutManager);
-				// For Claude, just test a minimal completion instead of getAvailableModels
-				await claudeProvider.complete('You are a helpful assistant.', 'Hi', { maxTokens: 8 });
+				// Validate credentials without spending the selected model's reasoning budget.
+				await claudeProvider.complete('Reply with only Hi.', 'Hi', {
+					model: 'claude-haiku-4-5-20251001',
+					maxTokens: 8
+				});
 				return {};
 			}
 			case 'openai': {

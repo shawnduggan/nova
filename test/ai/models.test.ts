@@ -56,12 +56,48 @@ function createSettingsWithOllama(ollama: NovaSettings['aiProviders']['ollama'])
 }
 
 describe('AI model registry', () => {
-	test('includes current Claude models in the Claude picker list', () => {
-		const claudeModels = getAvailableModels('claude');
+	test.each([
+		['claude', 'claude-fable-5-1', 1000000, 128000],
+		['openai', 'gpt-6-astra', 1050000, 128000],
+		['google', 'gemini-3.8-flash', 1048576, 65536],
+		['google', 'gemini-3.5-flash-lite', 1048576, 65536]
+	])('registers %s model %s with its limits', (provider, model, context, output) => {
+		expect(getProviderTypeForModel(String(model))).toBe(provider);
+		expect(getContextLimit(String(provider), String(model))).toBe(context);
+		expect(getModelMaxOutputTokens(String(provider), String(model))).toBe(output);
+	});
 
-		expect(claudeModels[0]).toEqual({ value: 'claude-opus-5', label: 'Claude Opus 5' });
-		expect(claudeModels[1]).toEqual({ value: 'claude-opus-4-8', label: 'Claude Opus 4.8' });
-		expect(claudeModels[2]).toEqual({ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' });
+	test.each([
+		['claude', 'claude-opus-4-8'],
+		['claude', 'claude-opus-4-7'],
+		['claude', 'claude-opus-4-6'],
+		['claude', 'claude-sonnet-4-6'],
+		['openai', 'gpt-5.5-pro'],
+		['openai', 'gpt-5.5'],
+		['openai', 'gpt-5.4-pro'],
+		['openai', 'gpt-5.4'],
+		['openai', 'gpt-5.4-nano'],
+		['google', 'gemini-3.5-flash'],
+		['google', 'gemini-3-flash-preview']
+	])('keeps routing curated-out %s model %s', (provider, model) => {
+		expect(getProviderTypeForModel(model)).toBe(provider);
+		expect(getAvailableModels(provider).map(entry => entry.value)).not.toContain(model);
+	});
+
+	test.each(['claude-opus-4-7', 'claude-opus-4-6', 'claude-sonnet-4-6'])(
+		'uses current limits for saved %s selections', model => {
+			expect(getContextLimit('claude', model)).toBe(1000000);
+			expect(getModelMaxOutputTokens('claude', model)).toBe(128000);
+		}
+	);
+
+	test('orders Claude models by capability tier', () => {
+		expect(getAvailableModels('claude')).toEqual([
+			{ value: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
+			{ value: 'claude-opus-5', label: 'Claude Opus 5' },
+			{ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+			{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' }
+		]);
 	});
 
 	test('maps current Claude models to Claude context metadata', () => {
@@ -80,15 +116,11 @@ describe('AI model registry', () => {
 		const openaiModels = getAvailableModels('openai');
 
 		expect(openaiModels).toEqual([
+			{ value: 'gpt-6-astra', label: 'GPT-6 Astra' },
 			{ value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
 			{ value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
-			{ value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
-			{ value: 'gpt-5.5-pro', label: 'GPT-5.5 Pro' },
-			{ value: 'gpt-5.5', label: 'GPT-5.5' },
-			{ value: 'gpt-5.4-pro', label: 'GPT-5.4 Pro' },
-			{ value: 'gpt-5.4', label: 'GPT-5.4' },
 			{ value: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
-			{ value: 'gpt-5.4-nano', label: 'GPT-5.4 nano' }
+			{ value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' }
 		]);
 	});
 
@@ -124,12 +156,12 @@ describe('AI model registry', () => {
 
 	test('includes current Gemini models in the Google picker list', () => {
 		expect(getAvailableModels('google')).toEqual([
-			{ value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
 			{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-			{ value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
-			{ value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
 			{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+			{ value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
 			{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+			{ value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' },
+			{ value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
 			{ value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite' }
 		]);
 	});

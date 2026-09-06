@@ -164,8 +164,7 @@ export class ClaudeProvider implements AIProvider {
 			return this.cachedModels;
 		}
 
-		// For Claude, we'll use a hardcoded list since Anthropic doesn't provide a models endpoint
-		// But we can validate the API key by making a test call
+		// Return Nova's curated model list after validating the API key.
 		try {
 			// Validate API key with a minimal request
 			const response = await requestUrl({
@@ -189,12 +188,9 @@ export class ClaudeProvider implements AIProvider {
 
 			// Return current available models (from API docs)
 			const models = [
+				'claude-fable-5-1',
 				'claude-opus-5',
-				'claude-opus-4-8',
 				'claude-sonnet-5',
-				'claude-opus-4-7',
-				'claude-opus-4-6',
-				'claude-sonnet-4-6',
 				'claude-haiku-4-5-20251001'
 			];
 
@@ -214,6 +210,14 @@ export class ClaudeProvider implements AIProvider {
 }
 
 function extractClaudeTextContent(data: unknown): string {
+	if (isRecord(data) && data.stop_reason === 'refusal') {
+		throw new Error('Claude API request was declined by the model. Try revising your request.');
+	}
+
+	if (isRecord(data) && data.stop_reason === 'max_tokens') {
+		throw new Error('Claude API response reached the output token limit before completing. Increase the token limit or shorten your request.');
+	}
+
 	if (!isRecord(data) || !Array.isArray(data.content)) {
 		throw new Error('Claude API response did not include text content.');
 	}
@@ -241,7 +245,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // sending it returns a 400 "temperature is deprecated for this model" error.
 // Extend this predicate as additional models drop the parameter.
 export function modelAcceptsTemperature(model: string): boolean {
-	return !model.startsWith('claude-opus-5')
+	return !model.startsWith('claude-fable-5')
+		&& !model.startsWith('claude-opus-5')
 		&& !model.startsWith('claude-opus-4-7')
 		&& !model.startsWith('claude-opus-4-8')
 		&& !model.startsWith('claude-sonnet-5');

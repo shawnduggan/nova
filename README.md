@@ -101,6 +101,10 @@ Need help? [Read the full Nova User Guide](https://novawriter.ai/guide)
 
 Nova supports Claude, OpenAI, Gemini, Ollama's local API, and OpenAI-compatible Chat Completions endpoints such as LM Studio, LocalAI, LiteLLM, OpenRouter, and other custom gateways.
 
+Cloud model choices are ordered by capability tier within each provider, with newer models first within a tier. The curated list includes Claude Fable 5.1, GPT-6 Astra, Gemini 3.8 Flash, and Gemini 3.5 Flash-Lite. Older choices removed from the picker are not necessarily retired by their provider; an existing saved selection is retained.
+
+Model access depends on your provider account. The Claude connection test uses Haiku to check credentials; it does not verify access to every Claude model. [Claude Fable 5.1 requires 30-day provider retention](https://platform.claude.com/docs/en/models/fable-5-1/overview); zero data retention requires Anthropic authorization. Nova sends requests directly to your chosen provider.
+
 For OpenAI-compatible endpoints, enter the API root exactly as the provider expects, such as `http://localhost:1234/v1` or `https://example.com/api/v1`. Nova appends `/models` and `/chat/completions`; it does not guess or add `/v1` for you. API keys are optional for endpoints that do not require authentication.
 
 If `/models` is unavailable, enter the model name manually and test the connection. Nova will validate the saved model with a tiny chat completion. Cloud-compatible endpoints can be used on mobile when mobile support is enabled; local, private network, `.local`, and single-hostname URLs are desktop-only.
