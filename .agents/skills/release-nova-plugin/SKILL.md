@@ -5,6 +5,11 @@ description: Run Nova's approval-gated version, release-note, build, commit, tag
 
 # Release Nova Plugin
 
+Use these gates only for an explicitly requested versioned release. Routine
+implementation or maintenance commits and pushes follow Shawn's standing
+repository completion authorization in AGENTS.md; they do not need a target
+version, release-note body approval, or the release preflight below.
+
 This workflow has irreversible Git and publication steps. Require explicit
 authorization at each gate. A request to prepare a release does not by itself
 authorize commits, tags, pushes, or publication.

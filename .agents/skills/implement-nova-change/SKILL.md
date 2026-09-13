@@ -25,7 +25,9 @@ audit-nova-compliance for submission-sensitive behavior.
 
 ## Produce the Nova Plan
 
-Use the exact one-page Plan order in AGENTS.md:
+For a small, well-bounded change, state acceptance criteria, affected files,
+and the smallest meaningful validation. For non-trivial work, use the
+one-page Plan order in AGENTS.md:
 
 1. Acceptance Criteria
 2. Assumptions
@@ -49,15 +51,17 @@ Otherwise stop for approval.
 ## Implement
 
 1. Show a unified PATCH PREVIEW before the first edit and before any later
-   batch whose scope materially differs from the preview.
+   batch whose scope materially differs from the preview. Continue when the
+   implementation is already authorized; a preview is not a new approval gate.
 2. Edit only files in the Scope Allowlist. Stop and revise the plan before
    expanding scope.
 3. Apply the smallest coherent diff, copy existing Nova patterns, and avoid
    speculative cleanup or unrelated refactors.
 4. Preserve contracts, event ordering, streaming, cancellation, teardown,
    privacy, accessibility, and mobile behavior.
-5. Add or update behavior tests with realistic mocks. Cover success, error,
-   and relevant edge or cancellation paths.
+5. For behavior changes, add or update meaningful tests with realistic mocks
+   covering the affected success, error, edge, or cancellation paths. Do not
+   add tests that only mirror wording or a reversible, low-impact edit.
 6. Validate each logical batch with the narrowest useful command before
    running broader gates.
 
@@ -66,21 +70,33 @@ workstreams. The primary agent integrates and owns the final diff.
 
 ## Verify and Hand Off
 
-Run applicable checks in this progression:
+Choose checks for the affected behavior and the readiness claim:
 
-- targeted tests;
-- npm run build;
-- npm test;
-- npm run lint;
-- npm run lint:security;
-- npm run lint:obsidian;
-- npm run build:prod when bundling, submission, or release behavior changed.
+- Start with the smallest meaningful inspection, targeted test, or static check.
+- Use npm run typecheck:test for test/mock typing changes and npm run build
+  when source, types, styles, or build inputs require validation.
+- Run the full npm test suite when shared contracts, broad behavior, or
+  release/submission readiness warrants it.
+- Run the relevant lint, security, and Obsidian checks for affected rules or
+  submission-sensitive behavior; do not treat every command as mandatory for
+  every edit.
+- Use npm run build:prod for bundling, submission, or release changes.
+- Complete all required release/submission gates when claiming that readiness,
+  including real Obsidian validation for newly added models.
+
+Once the chosen checks pass, repeat or broaden them only after new changes,
+failures, or unresolved evidence. Documentation-only changes usually need
+reference/command validation and diff inspection, not a full application run.
 
 Inspect final git status and the complete diff. Confirm every acceptance
 criterion, note skipped checks and pre-existing failures, and list any residual
 risk.
 
-Do not create a scratchpad plan in the repository. Do not commit, tag, push,
-publish, or release. If a commit would be the next step, show the proposed
-scope and an AGENTS.md-compliant message without AI attribution, then wait for
-explicit approval.
+Do not create a scratchpad plan in the repository. Finish user-authorized
+implementation under Shawn's standing repository completion authorization:
+inspect the intended diff, run relevant checks, commit only the completed
+task changes with an AGENTS.md-compliant message, push to the existing intended
+remote/branch, and verify the remote commit. Do not ask again or stop with
+uncommitted work. Preserve unrelated work and explicit local-only/no-push
+requests; report actual validation, branch, or push blockers. Route versioned
+release actions through release-nova-plugin and preserve its exact gates.

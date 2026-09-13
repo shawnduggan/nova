@@ -21,13 +21,13 @@ implementation when the proposal depends on what Nova already does.
 
 Apply this evidence hierarchy:
 
-1. Existing canonical vault document for product intent
-2. More recent explicit product decision
+1. Shawn's current explicit instructions and newer explicit product decisions
+2. Existing canonical vault documents for product intent not superseded by those decisions
 3. Live code and tests for shipped behavior
 4. Issue or request context for the current task
 5. Clearly labeled inference
 
-Do not treat roadmap text as implementation evidence.
+When a newer explicit decision supersedes a document, identify the canonical record that needs updating; do not silently retain the older intent. Keep decisions distinct from shipped behavior. Do not treat roadmap text as implementation evidence.
 
 ## Evaluate the Proposal
 

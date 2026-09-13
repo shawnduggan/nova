@@ -41,12 +41,18 @@ Read every applicable SKILL.md completely before acting:
 - .agents/skills/audit-nova-compliance/SKILL.md before plugin submission,
   after submission-sensitive changes, or whenever compliance is uncertain.
 - .agents/skills/release-nova-plugin/SKILL.md for versioning, release notes,
-  commits, tags, pushes, GitHub releases, assets, or attestations.
+  release commits, tags, publication pushes, GitHub releases, assets, or
+  attestations. Ordinary implementation commits and pushes use the repository
+  completion workflow below.
 - .agents/skills/sync-nova-codebase/SKILL.md after adding src/**/*.ts files or
   after major refactors that may stale the generated codebase map.
 
-Use only the minimum applicable skill set. If guidance conflicts, follow the
-stricter rule and stop before irreversible actions.
+Use only the minimum applicable skill set. Follow instruction priority and
+Shawn's current explicit task scope. Preserve concrete commit, release,
+privacy, and external-action gates. For workflow or presentation defaults,
+use the instruction specific to the requested outcome. If a material conflict
+remains unresolved, identify the exact source and rule; do not turn a generic
+guideline into an additional approval checkpoint.
 Codex-native reusable workflows are skills, not slash commands. Invoke an
 explicit-only workflow such as release with `$release-nova-plugin`.
 
@@ -151,10 +157,18 @@ explicit-only workflow such as release with `$release-nova-plugin`.
 - Avoid unnecessary DOM updates and unjustified full-vault scans.
 - Preserve streaming behavior, structured errors, privacy, accessibility, and
   mobile compatibility.
-- Output diffs only unless the user explicitly requests another format.
-- Never auto-commit. Always stop for explicit approval before committing.
-- Never tag, push, publish, create a release, delete release state, or perform
-  another irreversible external action without explicit approval.
+- Return findings for reviews, recommendations for product work, and a concise
+  change-and-validation summary for implementation. Include diffs when
+  requested or useful, including the required patch preview.
+- Complete user-authorized implementation and fixes under Shawn's
+  September 13, 2026 standing repository authorization: validate, inspect the
+  intended diff, commit only completed task changes, push to the existing
+  intended remote/branch, and verify the remote commit. Do not ask again or
+  leave the work uncommitted. Preserve unrelated work, explicit local-only
+  requests, and active release-branch continuity.
+- Version bumps, release-note approval, tags, release publication, deletion
+  of release state, and other consequential actions retain their exact gates.
+  An ordinary maintenance commit/push does not invoke a versioned release.
 - If ambiguity would materially change scope or behavior, ask one focused
   question. Otherwise choose the most conservative low-risk interpretation.
 
@@ -164,8 +178,9 @@ explicit-only workflow such as release with `$release-nova-plugin`.
 
 ### Plan
 
-For non-trivial implementation work, produce a one-page executable plan in
-this order:
+For a small, well-bounded change, state acceptance criteria, affected files,
+and the smallest meaningful validation. For non-trivial implementation work,
+produce a one-page executable plan in this order:
 
 1. Acceptance Criteria
 2. Assumptions, marked Must-Confirm or Low-Risk
@@ -187,7 +202,8 @@ remain explicit.
 ### Implement
 
 - Work only in the Scope Allowlist.
-- Show a PATCH PREVIEW as a unified diff before applying changes.
+- Show a PATCH PREVIEW as a unified diff before applying changes. A preview
+  is not another approval gate when the implementation is already authorized.
 - Copy established Nova and Obsidian patterns; add abstractions only when the
   plan justifies them.
 - When addressing review feedback, apply only Must-Fix items unless told
@@ -197,7 +213,12 @@ remain explicit.
 
 - Validate the narrowest relevant behavior first, then run broader checks in
   proportion to risk.
-- Use realistic mocks and cover success, error, and edge behavior.
+- Use realistic mocks and cover success, error, and edge behavior when tests
+  are warranted by a behavioral change. Do not add tests that merely mirror
+  wording or implementation for a reversible, low-impact edit.
+- Once the relevant checks pass, repeat or broaden them only after new changes,
+  failures, or unresolved evidence. Keep full release/submission gates for
+  those readiness claims.
 - Do not hide pre-existing failures; distinguish them from regressions caused
   by the current patch.
 
