@@ -27,6 +27,17 @@ export const OLLAMA_DEFAULT_CONTEXT = 32000;
 export const OPENAI_COMPATIBLE_DEFAULT_CONTEXT = 32000;
 
 const LEGACY_MODEL_PROVIDER_TYPES: Record<string, string> = {
+	'claude-opus-5': 'claude',
+	'claude-sonnet-5': 'claude',
+	'gpt-5.6-sol': 'openai',
+	'gpt-5.6-terra': 'openai',
+	'gpt-5.4-mini': 'openai',
+	'gpt-5.6-luna': 'openai',
+	'gemini-3.1-pro-preview': 'google',
+	'gemini-2.5-pro': 'google',
+	'gemini-2.5-flash': 'google',
+	'gemini-3.1-flash-lite': 'google',
+	'gemini-2.5-flash-lite': 'google',
 	'claude-opus-4-8': 'claude',
 	'claude-opus-4-7': 'claude',
 	'claude-opus-4-6': 'claude',
@@ -115,27 +126,20 @@ export function getAvailableModels(providerType: string, settings?: NovaSettings
 		case 'claude':
 			return [
 				{ value: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
-				{ value: 'claude-opus-5', label: 'Claude Opus 5' },
-				{ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+				{ value: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+				{ value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
 				{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' }
 			];
 		case 'openai':
 			return [
 				{ value: 'gpt-6-astra', label: 'GPT-6 Astra' },
-				{ value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
-				{ value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
-				{ value: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
-				{ value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' }
+				{ value: 'gpt-6-sol', label: 'GPT-6 Sol' },
+				{ value: 'gpt-6-luna', label: 'GPT-6 Luna' }
 			];
 		case 'google':
 			return [
-				{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-				{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 				{ value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
-				{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-				{ value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' },
-				{ value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
-				{ value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite' }
+				{ value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' }
 			];
 		case 'ollama': {
 			return getConfiguredModels(settings, 'ollama');
@@ -153,8 +157,10 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	claude: {
 		// Claude models
 		'claude-fable-5-1': { tokens: 1000000, maxOutputTokens: 128000 },
+		'claude-opus-5-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-8': { tokens: 1000000, maxOutputTokens: 128000 },
+		'claude-sonnet-5-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-sonnet-5': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-7': { tokens: 1000000, maxOutputTokens: 128000 },
 		'claude-opus-4-6': { tokens: 1000000, maxOutputTokens: 128000 },
@@ -167,8 +173,10 @@ const CLOUD_PROVIDER_LIMITS: Record<string, ProviderContextLimits> = {
 	openai: {
 		// OpenAI models
 		'gpt-6-astra': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-6-sol': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.6-sol': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.6-terra': { tokens: 1050000, maxOutputTokens: 128000 },
+		'gpt-6-luna': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.6-luna': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.5': { tokens: 1050000, maxOutputTokens: 128000 },
 		'gpt-5.5-pro': { tokens: 1050000, maxOutputTokens: 128000 },

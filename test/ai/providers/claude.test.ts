@@ -158,16 +158,16 @@ describe('ClaudeProvider', () => {
             expect(body).not.toHaveProperty('temperature');
         });
 
-        test('omits temperature for Claude Opus 5', async () => {
+        test.each(['claude-opus-5', 'claude-opus-5-5', 'claude-sonnet-5-5'])('omits temperature for %s', async model => {
             await provider.complete('System prompt', 'User prompt', {
-                model: 'claude-opus-5',
+                model,
                 temperature: 0.5
             });
 
             const callArgs = (requestUrl as jest.Mock).mock.calls[0][0];
             const body = JSON.parse(callArgs.body);
 
-            expect(body.model).toBe('claude-opus-5');
+            expect(body.model).toBe(model);
             expect(body).not.toHaveProperty('temperature');
         });
 
@@ -315,8 +315,8 @@ describe('ClaudeProvider', () => {
 
             const models = [
                 'claude-fable-5-1',
-                'claude-opus-5',
-                'claude-sonnet-5',
+                'claude-opus-5-5',
+                'claude-sonnet-5-5',
                 'claude-haiku-4-5-20251001'
             ];
             await expect(provider.getAvailableModels()).resolves.toEqual(models);

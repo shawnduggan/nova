@@ -58,6 +58,10 @@ function createSettingsWithOllama(ollama: NovaSettings['aiProviders']['ollama'])
 describe('AI model registry', () => {
 	test.each([
 		['claude', 'claude-fable-5-1', 1000000, 128000],
+		['claude', 'claude-opus-5-5', 1000000, 128000],
+		['claude', 'claude-sonnet-5-5', 1000000, 128000],
+		['openai', 'gpt-6-sol', 1050000, 128000],
+		['openai', 'gpt-6-luna', 1050000, 128000],
 		['openai', 'gpt-6-astra', 1050000, 128000],
 		['google', 'gemini-3.8-flash', 1048576, 65536],
 		['google', 'gemini-3.5-flash-lite', 1048576, 65536]
@@ -68,6 +72,17 @@ describe('AI model registry', () => {
 	});
 
 	test.each([
+		['claude', 'claude-opus-5'],
+		['claude', 'claude-sonnet-5'],
+		['openai', 'gpt-5.6-sol'],
+		['openai', 'gpt-5.6-terra'],
+		['openai', 'gpt-5.4-mini'],
+		['openai', 'gpt-5.6-luna'],
+		['google', 'gemini-3.1-pro-preview'],
+		['google', 'gemini-2.5-pro'],
+		['google', 'gemini-2.5-flash'],
+		['google', 'gemini-3.1-flash-lite'],
+		['google', 'gemini-2.5-flash-lite'],
 		['claude', 'claude-opus-4-8'],
 		['claude', 'claude-opus-4-7'],
 		['claude', 'claude-opus-4-6'],
@@ -91,11 +106,17 @@ describe('AI model registry', () => {
 		}
 	);
 
+	test.each(['claude', 'openai', 'google'])('offers only stable models for %s', provider => {
+		for (const model of getAvailableModels(provider)) {
+			expect(model.value).not.toMatch(/preview|beta|experimental/i);
+		}
+	});
+
 	test('orders Claude models by capability tier', () => {
 		expect(getAvailableModels('claude')).toEqual([
 			{ value: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
-			{ value: 'claude-opus-5', label: 'Claude Opus 5' },
-			{ value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+			{ value: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+			{ value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
 			{ value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' }
 		]);
 	});
@@ -117,10 +138,8 @@ describe('AI model registry', () => {
 
 		expect(openaiModels).toEqual([
 			{ value: 'gpt-6-astra', label: 'GPT-6 Astra' },
-			{ value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
-			{ value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
-			{ value: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
-			{ value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' }
+			{ value: 'gpt-6-sol', label: 'GPT-6 Sol' },
+			{ value: 'gpt-6-luna', label: 'GPT-6 Luna' }
 		]);
 	});
 
@@ -156,13 +175,8 @@ describe('AI model registry', () => {
 
 	test('includes current Gemini models in the Google picker list', () => {
 		expect(getAvailableModels('google')).toEqual([
-			{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-			{ value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 			{ value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
-			{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-			{ value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' },
-			{ value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
-			{ value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite' }
+			{ value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' }
 		]);
 	});
 
