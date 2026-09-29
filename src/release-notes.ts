@@ -14,6 +14,16 @@ export interface ReleaseNotesEntry {
 
 export const RELEASE_NOTES: Record<string, string> = {
 	// Add entries before running `npm version`. The $release-nova-plugin workflow handles this.
+	'1.8.6': [
+		"## What's New in Nova 1.8.6",
+		"",
+		"### Updated AI models",
+		"",
+		"- **New Claude models:** Claude Opus 5.5 and Claude Sonnet 5.5 are now available.",
+		"- **New OpenAI models:** GPT-6 Sol and GPT-6 Luna join GPT-6 Astra.",
+		"- **Stable model choices:** The cloud model picker now focuses on stable, released models. Gemini choices are Gemini 3.8 Flash and Gemini 3.5 Flash-Lite; preview and superseded choices have been removed from the main lists.",
+		"- **Saved selections are preserved:** Existing selections keep their provider routing and token limits, even when the model is no longer listed. Availability still depends on your provider account.",
+	].join('\n'),
 	'1.8.5': [
 		"## What's New in Nova 1.8.5",
 		"",
@@ -85,21 +95,6 @@ export const RELEASE_NOTES: Record<string, string> = {
 		'- **The optional newsletter is paused.** New signups are closed and no newsletter launch email will be sent. Important Nova updates will continue through release notes and [novawriter.ai](https://novawriter.ai).',
 		'',
 		'Nova itself continues to collect zero telemetry and has no AI proxy.',
-	].join('\n'),
-	'1.8.1': [
-		'## What\'s New in Nova 1.8.1',
-		'',
-		'### Sidebar polish',
-		'',
-		'- **The model selector stays compact without hiding important context.** The new status pill always shows the active model and whether processing is local or cloud, then opens the full selector on click or tap.',
-		'- **Nova now shows one conversation state at a time.** The welcome card appears only for empty conversations, proactive “I noticed” notices have been removed, and model-switch confirmations disappear instead of becoming conversation history.',
-		'- **Sidebar typography keeps the focus on your document.** Conversation text, Context, and Writing now use Obsidian’s theme-aware small UI sizing and muted colors, with a clearer two-line welcome card.',
-		'- **Responsive controls stay usable.** The header, clear-conversation button, composer, and send button remain aligned and accessible across wide, narrow, desktop, and mobile sidebars.',
-		'- **Context summaries count short notes correctly.** The active note and its estimated tokens no longer incorrectly appear as zero.',
-		'',
-		'### GPT-5.6 models',
-		'',
-		'- **GPT-5.6 Sol, Terra, and Luna are available.** All three can be selected in Nova and use OpenAI’s Responses API, with support for their 1.05M-token context and up to 128K output.',
 	].join('\n'),
 };
 
