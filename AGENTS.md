@@ -152,6 +152,9 @@ explicit-only: never start it unless Shawn asks for a release.
 - Release continuity: all work for an active release stays on its release
   branch. Do not sync it with origin/main between tasks unless explicitly
   requested.
+- Push to main only when Shawn requests it. The release workflow's approved
+  fast-forward of main counts as a request. GitHub's pull-request rule on main
+  is bypassed with admin rights for these pushes.
 - Preserve the user's dirty worktree and unrelated changes.
 - Never break provider, UI, state-owner, persistence, event, or serialized-data
   contracts without an approved migration.

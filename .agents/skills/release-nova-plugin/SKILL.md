@@ -120,7 +120,8 @@ Present:
 - approved release-note body;
 - release asset list: main.js, manifest.json, and styles.css;
 - attestation workflow readiness;
-- relevant check results.
+- relevant check results;
+- the fast-forward of main to the release branch and its push.
 
 Obtain explicit approval naming the tag, push target, and GitHub release. The
 user may approve these related actions together only after seeing this exact
@@ -140,6 +141,9 @@ After approval:
 5. Confirm package.json and manifest.json use the exact target version, the tag
    equals manifest.json's version, the release points to the intended commit,
    and all three assets are present.
+6. Fast-forward main to the release branch and push main. GitHub's
+   pull-request rule on main is bypassed with admin rights; that is expected
+   for this approved step. If the fast-forward is not possible, stop and ask.
 
 Never force-push, move a tag, overwrite a release, or delete release state
 without separate explicit authorization.
