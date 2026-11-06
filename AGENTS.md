@@ -102,6 +102,13 @@ explicit-only: never start it unless Shawn asks for a release.
   and edge paths with realistic Obsidian, provider, state-owner, and
   persistence mocks.
 - Prefer fast deterministic tests. Avoid UI snapshots unless unavoidable.
+- Test every Obsidian-facing change in the running Obsidian app, not only in
+  Jest. In Claude Code on Atlas, do this with computer use: run npm run build
+  (this folder is the live plugin in Shawn's vault, so the build replaces the
+  running Nova), reload Nova by turning it off and on in Settings → Community
+  plugins, use the changed feature, and confirm the visible result on screen.
+  Rebuild with npm run build:prod or restore the released build afterwards if
+  the change is not being kept.
 - Every newly added model must be tested through Nova in the running Obsidian
   app with a synthetic prompt and a completed, visible response. Mocked tests
   and direct API calls support this check but do not replace it. Record each
