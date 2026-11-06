@@ -1,6 +1,6 @@
 ---
 name: sync-nova-codebase
-description: Refresh Nova's generated codebase reference after new TypeScript files, major refactors, export changes, or stale navigation metadata. Use to keep the Codex navigation index accurate without replacing live code inspection.
+description: Refresh Nova's generated codebase reference after new TypeScript files, major refactors, export changes, or stale navigation metadata. Use to keep the navigation index accurate without replacing live code inspection.
 ---
 
 # Sync Nova Codebase

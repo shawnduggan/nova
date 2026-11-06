@@ -1,6 +1,7 @@
 ---
 name: release-nova-plugin
 description: Run Nova's approval-gated version, release-note, build, commit, tag, push, GitHub release, asset, and attestation workflow. Use only when the user explicitly asks to prepare or publish a Nova release.
+disable-model-invocation: true
 ---
 
 # Release Nova Plugin
@@ -12,7 +13,8 @@ version, release-note body approval, or the release preflight below.
 
 This workflow has irreversible Git and publication steps. Require explicit
 authorization at each gate. A request to prepare a release does not by itself
-authorize commits, tags, pushes, or publication.
+authorize commits, tags, pushes, or publication. In Claude Code, ask for each
+gate's approval with the question tool, naming the exact action.
 
 Nova release tags and titles use the bare version number without a v prefix.
 The approved release-note body is the single source for both in-app notes and

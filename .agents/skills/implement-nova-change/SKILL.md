@@ -1,6 +1,6 @@
 ---
 name: implement-nova-change
-description: Plan, implement, test, and hand off Nova features, fixes, and issues using the repository's smallest-diff, patch-preview, testing, compliance, and approval rules. Use whenever the user asks Codex to change Nova code or repository behavior.
+description: Plan, implement, test, and hand off Nova features, fixes, and issues using the repository's smallest-diff, patch-preview, testing, compliance, and approval rules. Use whenever the user asks to change Nova code or repository behavior.
 ---
 
 # Implement Nova Change

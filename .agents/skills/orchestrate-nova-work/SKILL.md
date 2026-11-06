@@ -1,12 +1,12 @@
 ---
 name: orchestrate-nova-work
-description: Coordinate complex Nova work with dependency graphs, focused Codex subagents, checker nodes, and bounded convergence. Use for major features, architecture decisions, broad reviews, or investigations with at least three genuinely independent workstreams.
+description: Coordinate complex Nova work with dependency graphs, focused subagents, checker nodes, and bounded convergence. Use for major features, architecture decisions, broad reviews, or investigations with at least three genuinely independent workstreams.
 ---
 
 # Orchestrate Nova Work
 
 Use orchestration when independent evidence streams can materially reduce
-elapsed time or improve verification. This skill authorizes focused Codex
+elapsed time or improve verification. This skill authorizes focused
 subagents within the user's existing task scope; it does not authorize new
 external actions or broaden file scope.
 

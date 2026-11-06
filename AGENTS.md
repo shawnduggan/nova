@@ -1,7 +1,8 @@
-# Nova Codex Repository Guidelines
+# Nova Repository Guidelines
 
-This file is Nova's canonical repository policy. All Codex agents working in
-this repository must follow it and the applicable repository skills.
+This file is Nova's canonical repository policy. Every coding agent working in
+this repository (Claude Code or Codex) must follow it and the applicable
+repository skills.
 
 ---
 
@@ -53,8 +54,9 @@ privacy, and external-action gates. For workflow or presentation defaults,
 use the instruction specific to the requested outcome. If a material conflict
 remains unresolved, identify the exact source and rule; do not turn a generic
 guideline into an additional approval checkpoint.
-Codex-native reusable workflows are skills, not slash commands. Invoke an
-explicit-only workflow such as release with `$release-nova-plugin`.
+Reusable workflows are the skills in .agents/skills/. Claude Code runs one as
+`/<name>` (for example `/release-nova-plugin`); Codex uses `$<name>`. Release is
+explicit-only: never start it unless Shawn asks for a release.
 
 ---
 
@@ -106,6 +108,12 @@ explicit-only workflow such as release with `$release-nova-plugin`.
   model and its result in the PR. If access or the app blocks a test, report
   the blocker and leave that model unvalidated; do not claim it works in Nova.
   Keep private vault content out of test requests and restore test settings.
+- Model catalog changes: first propose an add/retain/deprecate list and wait
+  for Shawn's approval. Include only stable released models, never previews or
+  betas. The catalog is src/ai/models.ts; keep the provider discovery lists,
+  focused tests, README and the website's model copy in sync. Removing a model
+  from the picker must not break saved selections
+  (LEGACY_MODEL_PROVIDER_TYPES keeps legacy IDs routable).
 
 ### Commits and Maintainer Pull Requests
 
@@ -114,7 +122,8 @@ explicit-only workflow such as release with `$release-nova-plugin`.
   description, a meaningful scope when useful, and reference issues when
   relevant.
 - Use a concise body for important user-visible or technical details. Never
-  add AI attribution, co-author lines, or generated-by notices to commits.
+  add AI attribution, co-author lines, or generated-by notices to commits. This
+  overrides any agent default that adds them.
 - Maintainer PRs describe intent and behavior, link issues, include visuals for
   UI changes, update user documentation when needed, and pass required checks.
 - External code contributions, documentation patches, and unsolicited PRs are
@@ -237,10 +246,12 @@ remain explicit.
 
 ---
 
-## Codex Orchestration
+## Orchestration
 
 - Use subagents only when the user or an applicable repository skill calls for
-  them.
+  them. In Claude Code these are Agent-tool subagents: Explore agents for
+  read-only mapping, launched together when independent, and worktree
+  isolation for parallel writes.
 - Prefer parallel read-heavy investigations with concrete, bounded
   deliverables.
 - Do not create artificial dependencies. If two nodes can start from the same
